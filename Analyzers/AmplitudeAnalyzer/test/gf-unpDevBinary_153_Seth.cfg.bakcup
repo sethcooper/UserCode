@@ -1,0 +1,300 @@
+process ECALDQM = { 
+
+     source = DAQEcalTBInputService{
+      untracked vstring fileNames = { 'file:/data/franzoni/data/cosm-sm34/H4-000044841-SM34-COSMIC-STD'}
+#      untracked vstring fileNames = { 'file:/data/franzoni/data/cosm-sm05/H4-000015185-SM5-TEST_PULSE-MGPA'}
+
+# a normal laser run
+#      untracked vstring fileNames = { 'file:/data/franzoni/data/cosm-sm33-good/H4-000044687-SM33-LASER-STD'}
+# has integrity problems on tower 26
+#      untracked vstring fileNames = { 'file:/data/franzoni/data/cosm-sm33/H4-000043973-SM33-PEDESTAL-STD'}
+      untracked bool isBinary = true
+     }
+
+     untracked PSet maxEvents = {untracked int32 input = 100}
+
+
+
+
+
+#include "EventFilter/EcalTBRawToDigi/data/EcalUnpackerData.cfi"
+
+include "EventFilter/EcalRawToDigiDev/data/EcalUnpackerData.cfi"
+
+    # imposed by hardware / raw data - only this one will be unpacked (by default: all 600-670)
+    replace ecalEBunpacker.FEDs = {13}
+
+    # matched list:
+    # first is one element of FEDs
+    replace ecalEBunpacker.orderedFedList = {13}
+    # second is corresponding DCC id 1-9 EE-, 10-45 EB, 46-54 EE+
+     replace ecalEBunpacker.orderedDCCIdList = {25}
+
+
+
+
+
+
+
+
+
+
+include "RecoTBCalo/EcalTBHodoscopeReconstructor/data/ecal2006TBHodoscopeReconstructor.cfi"
+
+     replace ecal2006TBHodoscopeReconstructor.rawInfoProducer = "ecalEBunpacker"
+
+include "RecoTBCalo/EcalTBTDCReconstructor/data/ecal2006TBTDCReconstructor.cfi"
+
+     replace ecal2006TBTDCReconstructor.rawInfoProducer = "ecalEBunpacker"
+     replace ecal2006TBTDCReconstructor.eventHeaderProducer = "ecalEBunpacker"
+
+     module ecalUncalibHit = ecalFixedAlphaBetaFitUncalibRecHit from "RecoLocalCalo/EcalRecProducers/data/ecalFixedAlphaBetaFitUncalibRecHit.cfi"
+#     module ecalUncalibHit = ecalWeightUncalibRecHit from "RecoLocalCalo/EcalRecProducers/data/ecalWeightUncalibRecHit.cfi"
+
+     replace ecalUncalibHit.EBdigiCollection = ecalEBunpacker:ebDigis
+     replace ecalUncalibHit.EEdigiCollection = ecalEBunpacker:eeDigis
+
+#     module ecalUncalibHit = ecal2006TBWeightUncalibRecHit from "RecoTBCalo/EcalTBRecProducers/data/ecal2006TBWeightUncalibRecHit.cfi"
+#
+#     replace ecalUncalibHit.digiProducer = "ecalEBunpacker"
+#     replace ecalUncalibHit.EBdigiCollection = "ebDigis"
+#
+
+
+# required from 17x on
+ include "CalibCalorimetry/EcalLaserCorrection/data/ecalLaserCorrectionService.cfi"
+
+include "RecoLocalCalo/EcalRecProducers/data/ecalRecHit.cfi"
+
+     replace ecalRecHit.EBuncalibRecHitCollection = ecalUncalibHit:EcalUncalibRecHitsEB
+     replace ecalRecHit.EEuncalibRecHitCollection = ecalUncalibHit:EcalUncalibRecHitsEE
+
+include "DQM/EcalBarrelMonitorModule/data/EcalBarrelMonitorModule.cfi"
+     replace ecalBarrelMonitorModule.enableMonitorDaemon = false
+#     replace ecalBarrelMonitorModule.runNumber = 123456789
+#     replace ecalBarrelMonitorModule.runNumber = 44687
+     replace ecalBarrelMonitorModule.runNumber = 43973
+
+include "DQM/EcalBarrelMonitorTasks/data/EcalBarrelMonitorTasks.cfi"
+
+include "DQM/EcalBarrelMonitorTasks/data/disableCleanup.cff"
+
+include "DQM/EcalBarrelMonitorClient/data/EcalBarrelMonitorClient.cfi"
+
+     replace ecalBarrelMonitorClient.location = "H4B"
+     replace ecalBarrelMonitorClient.baseHtmlDir = "."
+#     replace ecalBarrelMonitorClient.baseHtmlDir = "/data/franzoni/data/logs/dqm-out"
+
+    replace ecalBarrelMonitorClient.mergeRuns = true
+
+     replace ecalBarrelMonitorClient.enableMonitorDaemon = false
+     replace ecalBarrelMonitorClient.prefixME = ""
+     replace ecalBarrelMonitorClient.enableServer = false
+#     replace ecalBarrelMonitorClient.superModules = { 19 }
+#   this is for GREJ runs with fed==625
+     replace ecalBarrelMonitorClient.superModules = { 16 }
+
+     module preScaler = Prescaler{ int32 prescaleFactor = 1 }
+
+     module dumpEv = EventContentAnalyzer {}
+
+     module eventSource = EventCoordinatesSource{
+       untracked bool enableMonitorDaemon = false
+     }
+
+     sequence ecalBarrelDataSequence = { preScaler,
+                                         eventSource,
+                                         ecalEBunpacker,
+                                         #ecal2006TBHodoscopeReconstructor,
+                                         #ecal2006TBTDCReconstructor,
+                                         ecalUncalibHit,
+                                         ecalRecHit }
+
+     sequence ecalBarrelMonitorSequence = { ecalBarrelMonitorModule,
+                                            ecalBarrelMonitorClient }
+
+     path p = { ecalBarrelDataSequence, ecalBarrelMonitorSequence }
+
+     endpath q = { ecalBarrelTestBeamTasksSequence
+                            #, dumpEv
+                            }
+
+#     service = LockService{ }
+
+     es_source src1 = EcalTrivialConditionRetriever{
+       untracked vdouble amplWeights = { -0.333, -0.333, -0.333,
+                                          0.000,  0.000,  1.000,
+                                          0.000,  0.000,  0.000,  0.000 }
+       untracked vdouble pedWeights  = {  0.333,  0.333,  0.333,
+                                          0.000,  0.000,  0.000,
+                                          0.000,  0.000,  0.000,  0.000 }
+       untracked vdouble jittWeights = {  0.040,  0.040,  0.040,
+                                          0.000,  1.320, -0.050,
+                                         -0.500, -0.500, -0.400,  0.000 }
+     }
+
+     service = MessageLogger{
+       untracked vstring destinations = { "cout" }
+       untracked vstring categories = { "EcalTBInputService",
+                                        "EcalTBRawToDigi",
+                                        "EcalTBRawToDigiTriggerType",
+                                        "EcalTBRawToDigiTpg",
+                                        "EcalTBRawToDigiNumTowerBlocks",
+                                        "EcalTBRawToDigiTowerId",
+                                        "EcalTBRawToDigiTowerSize",
+                                        "EcalTBRawToDigiChId",
+                                        "EcalTBRawToDigiGainZero",
+                                        "EcalTBRawToDigiGainSwitch",
+                                        "EcalTBRawToDigiDccBlockSize",
+                                        "EcalRawToDigiDev",
+                                        "EcalRawToDigiDevTriggerType",
+                                        "EcalRawToDigiDevTpg",
+                                        "EcalRawToDigiDevNumTowerBlocks",
+                                        "EcalRawToDigiDevTowerId",
+                                        "EcalRawToDigiDevTowerSize",
+                                        "EcalRawToDigiDevChId",
+                                        "EcalRawToDigiDevGainZero",
+                                        "EcalRawToDigiDevGainSwitch",
+                                        "EcalRawToDigiDevDccBlockSize",
+
+                                        "EcalRawToDigiDevMemBlock",
+                                        "EcalRawToDigiDevMemTowerId",
+                                        "EcalRawToDigiDevMemChId",
+                                        "EcalRawToDigiDevMemGain",
+
+                                        "EcalRawToDigiDevTCC",
+                                        "EcalRawToDigiDevSRP",
+
+                                        "EcalBarrelMonitor"
+                                      }
+       untracked PSet cout = {
+         untracked string threshold = "WARNING"
+         untracked PSet default                        = { untracked int32 limit = 0 }
+         untracked PSet EcalTBInputService             = { untracked int32 limit = 0 }
+         untracked PSet EcalTBRawToDigi                = { untracked int32 limit = 1000 }
+         untracked PSet EcalTBRawToDigiTriggerType     = { untracked int32 limit = 1000 }
+         untracked PSet EcalTBRawToDigiTpg             = { untracked int32 limit = 1000 }
+         untracked PSet EcalTBRawToDigiNumTowerBlocks  = { untracked int32 limit = 1000 }
+         untracked PSet EcalTBRawToDigiTowerId         = { untracked int32 limit = 1000 }
+         untracked PSet EcalTBRawToDigiTowerSize       = { untracked int32 limit = 1000 }
+         untracked PSet EcalTBRawToDigiChId            = { untracked int32 limit = 1000 }
+         untracked PSet EcalTBRawToDigiGainZero        = { untracked int32 limit = 1000 }
+         untracked PSet EcalTBRawToDigiGainSwitch      = { untracked int32 limit = 1000 }
+         untracked PSet EcalTBRawToDigiDccBlockSize    = { untracked int32 limit = 1000 }
+         untracked PSet EcalRawToDigiDev               = { untracked int32 limit = 1000 }
+         untracked PSet EcalRawToDigiDevTriggerType    = { untracked int32 limit = 1000 }
+         untracked PSet EcalRawToDigiDevTpg            = { untracked int32 limit = 1000 }
+         untracked PSet EcalRawToDigiDevNumTowerBlocks = { untracked int32 limit = 1000 }
+         untracked PSet EcalRawToDigiDevTowerId        = { untracked int32 limit = 1000 }
+         untracked PSet EcalRawToDigiDevTowerSize      = { untracked int32 limit = 1000 }
+         untracked PSet EcalRawToDigiDevChId           = { untracked int32 limit = 1000 }
+         untracked PSet EcalRawToDigiDevGainZero       = { untracked int32 limit = 1000 }
+         untracked PSet EcalRawToDigiDevGainSwitch     = { untracked int32 limit = 1000 }
+         untracked PSet EcalRawToDigiDevDccBlockSize   = { untracked int32 limit = 1000 }
+
+         untracked PSet EcalRawToDigiDevMemBlock   = { untracked int32 limit = 1000 }
+         untracked PSet EcalRawToDigiDevMemTowerId   = { untracked int32 limit = 1000 }
+         untracked PSet EcalRawToDigiDevMemChId   = { untracked int32 limit = 1000 }
+         untracked PSet EcalRawToDigiDevMemGain   = { untracked int32 limit = 1000 }
+
+         untracked PSet EcalRawToDigiDevTCC   = { untracked int32 limit = 1000 }
+         untracked PSet EcalRawToDigiDevSRP   = { untracked int32 limit = 1000 }
+
+         untracked PSet EcalBarrelMonitor              = { untracked int32 limit = 0 }
+         untracked bool noTimeStamps = true
+         untracked bool noLineBreaks = true
+       }
+     }
+
+
+     service = DaqMonitorROOTBackEnd{ }
+
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#     service = MessageLogger{
+#       untracked vstring destinations = { "cout" }
+#       untracked vstring categories = { "EcalTBInputService",
+#                                        "EcalTBRawToDigi",
+#                                        "EcalTBRawToDigiTriggerType",
+#                                        "EcalTBRawToDigiTpg",
+#                                        "EcalTBRawToDigiNumTowerBlocks",
+#                                        "EcalTBRawToDigiTowerId",
+#                                        "EcalTBRawToDigiTowerSize",
+#                                        "EcalTBRawToDigiChId",
+#                                        "EcalTBRawToDigiGainZero",
+#                                        "EcalTBRawToDigiGainSwitch",
+#                                        "EcalTBRawToDigiDccBlockSize",
+#                                        "EcalBarrelMonitor"
+#                                      }
+#       untracked PSet cout = {
+#         untracked string threshold = "WARNING"
+#         untracked PSet default                       = { untracked int32 limit = 0 }
+#         untracked PSet EcalTBInputService            = { untracked int32 limit = 0 }
+#         untracked PSet EcalTBRawToDigi               = { untracked int32 limit = 1000 }
+#         untracked PSet EcalTBRawToDigiTriggerType    = { untracked int32 limit = 1000 }
+#         untracked PSet EcalTBRawToDigiTpg            = { untracked int32 limit = 1000 }
+#         untracked PSet EcalTBRawToDigiNumTowerBlocks = { untracked int32 limit = 1000 }
+#         untracked PSet EcalTBRawToDigiTowerId        = { untracked int32 limit = 1000 }
+#         untracked PSet EcalTBRawToDigiTowerSize      = { untracked int32 limit = 1000 }
+#         untracked PSet EcalTBRawToDigiChId           = { untracked int32 limit = 1000 }
+#         untracked PSet EcalTBRawToDigiGainZero       = { untracked int32 limit = 1000 }
+#         untracked PSet EcalTBRawToDigiGainSwitch     = { untracked int32 limit = 1000 }
+#         untracked PSet EcalTBRawToDigiDccBlockSize   = { untracked int32 limit = 1000 }
+#         untracked PSet EcalBarrelMonitor             = { untracked int32 limit = 0 }
+#         untracked bool noTimeStamps = true
+#         untracked bool noLineBreaks = true
+#       }
+#     }
