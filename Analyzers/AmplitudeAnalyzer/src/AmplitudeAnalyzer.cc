@@ -13,7 +13,7 @@
 //
 // Original Author:  Seth COOPER ()
 //         Created:  Wed Aug 22 18:57:08 CEST 2007
-// $Id: AmplitudeAnalyzer.cc,v 1.1 2007/08/22 17:11:06 scooper Exp $
+// $Id: AmplitudeAnalyzer.cc,v 1.2 2007/08/22 18:54:13 scooper Exp $
 //
 //
 
@@ -61,6 +61,9 @@ class AmplitudeAnalyzer : public edm::EDAnalyzer {
       edm::InputTag  EcalRecHitCollection_;
       edm::InputTag EcalUncalibratedRecHitCollection_;
 
+      TH1F* adcHisto_;
+      TH1F* recEhisto_;
+        
       // ----------member data ---------------------------
 };
 
@@ -85,6 +88,9 @@ AmplitudeAnalyzer::AmplitudeAnalyzer(const ParameterSet& ps)
 
   EBDigiCollection_ = ps.getParameter<InputTag>("EBDigiCollection");
   EcalUncalibratedRecHitCollection_ = ps.getParameter<InputTag>("EcalUncalibratedRecHitCollection");
+  
+  adcHisto_ = new TH1F("adc counts","adc counts",100,0,100);
+  recEhisto_ = new TH1F("rec energy","rec energy",200,0,100);
 }
 
 
@@ -115,23 +121,23 @@ void AmplitudeAnalyzer::analyze(const Event& e, const EventSetup& iSetup)
     for (int i = 0; i < 10; i++) {
       EcalMGPASample sample = dataframe.sample(i);
       int adc = sample.adc();
-      int gainid = sample.gainId();
+      adcHisto_->Fill(adc);
+      cout << "ADC: " << adc << endl;
+      //int gainid = sample.gainId();
     }
   }
   
   Handle<EcalUncalibratedRecHitCollection> hits;
   e.getByLabel(EcalUncalibratedRecHitCollection_, hits);
   for ( EcalUncalibratedRecHitCollection::const_iterator hitItr = hits->begin(); hitItr != hits->end(); ++hitItr ) {
-
     EcalUncalibratedRecHit hit = (*hitItr);
     EBDetId id = hit.id();
     float R_ene = hit.amplitude();
-    float chi2    = hit.chi2();
-    float jiitter   = hit.jitter();
-cout << "amp: " << R_ene << endl;
-    //fill here
+    //float chi2    = hit.chi2();
+    //float jiitter   = hit.jitter();
+    recEhisto_->Fill(R_ene);
+    cout << "Rec energy: " << R_ene << endl;
   }
-
 }
 
 
@@ -143,6 +149,11 @@ void AmplitudeAnalyzer::beginJob(const EventSetup&)
 // ------------ method called once each job just after ending the event loop  ------------
 void 
 AmplitudeAnalyzer::endJob() {
+  TFile a("test.root","RECREATE");
+  recEhisto_->Write();
+  adcHisto_->Write();
+  a.Write();
+  a.Close();
 }
 
 //define this as a plug-in

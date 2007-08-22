@@ -3,6 +3,7 @@
 <use name=FWCore/ParameterSet>
 <use name=DataFormats/EcalDetId>
 <use name=DataFormats/EcalRecHit>
+<use name=root>
 <flags EDM_PLUGIN=1>
 <export>
    <lib name=MyCodeAmplitudeAnalyzer>
@@ -11,4 +12,5 @@
    <use name=FWCore/ParameterSet>
    <use name=DataFormats/EcalDetId>
    <use name=DataFormats/EcalRecHit>
+   <use name=root>
 </export>
