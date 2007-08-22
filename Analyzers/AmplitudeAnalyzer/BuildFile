@@ -1,10 +1,14 @@
 <use name=FWCore/Framework>
 <use name=FWCore/PluginManager>
 <use name=FWCore/ParameterSet>
+<use name=DataFormats/EcalDetId>
+<use name=DataFormats/EcalRecHit>
 <flags EDM_PLUGIN=1>
 <export>
    <lib name=MyCodeAmplitudeAnalyzer>
    <use name=FWCore/Framework>
    <use name=FWCore/PluginManager>
    <use name=FWCore/ParameterSet>
+   <use name=DataFormats/EcalDetId>
+   <use name=DataFormats/EcalRecHit>
 </export>
