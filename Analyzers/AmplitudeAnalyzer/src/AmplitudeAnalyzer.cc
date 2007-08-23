@@ -13,7 +13,7 @@
 //
 // Original Author:  Seth COOPER ()
 //         Created:  Wed Aug 22 18:57:08 CEST 2007
-// $Id: AmplitudeAnalyzer.cc,v 1.3 2007/08/22 20:47:12 scooper Exp $
+// $Id: AmplitudeAnalyzer.cc,v 1.4 2007/08/23 15:16:23 scooper Exp $
 //
 //
 
@@ -122,7 +122,7 @@ void AmplitudeAnalyzer::analyze(const Event& e, const EventSetup& iSetup)
       EcalMGPASample sample = dataframe.sample(i);
       int adc = sample.adc();
       adcHisto_->Fill(adc);
-      if(adc<30)
+      if(adc<30 && adc>0)
         cout << "ADC: " << adc << endl;
       //int gainid = sample.gainId();
     }
