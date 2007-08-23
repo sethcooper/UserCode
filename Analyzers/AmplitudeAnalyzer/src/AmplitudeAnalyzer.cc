@@ -13,7 +13,7 @@
 //
 // Original Author:  Seth COOPER ()
 //         Created:  Wed Aug 22 18:57:08 CEST 2007
-// $Id: AmplitudeAnalyzer.cc,v 1.2 2007/08/22 18:54:13 scooper Exp $
+// $Id: AmplitudeAnalyzer.cc,v 1.3 2007/08/22 20:47:12 scooper Exp $
 //
 //
 
@@ -122,7 +122,8 @@ void AmplitudeAnalyzer::analyze(const Event& e, const EventSetup& iSetup)
       EcalMGPASample sample = dataframe.sample(i);
       int adc = sample.adc();
       adcHisto_->Fill(adc);
-      cout << "ADC: " << adc << endl;
+      if(adc<30)
+        cout << "ADC: " << adc << endl;
       //int gainid = sample.gainId();
     }
   }
@@ -136,7 +137,7 @@ void AmplitudeAnalyzer::analyze(const Event& e, const EventSetup& iSetup)
     //float chi2    = hit.chi2();
     //float jiitter   = hit.jitter();
     recEhisto_->Fill(R_ene);
-    cout << "Rec energy: " << R_ene << endl;
+    //cout << "Rec energy: " << R_ene << endl;
   }
 }
 
