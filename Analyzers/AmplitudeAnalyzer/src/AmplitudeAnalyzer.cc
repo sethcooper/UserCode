@@ -13,7 +13,7 @@
 //
 // Original Author:  Seth COOPER ()
 //         Created:  Wed Aug 22 18:57:08 CEST 2007
-// $Id: AmplitudeAnalyzer.cc,v 1.5 2007/08/23 15:20:15 scooper Exp $
+// $Id: AmplitudeAnalyzer.cc,v 1.6 2007/08/24 18:37:16 scooper Exp $
 //
 //
 
@@ -123,7 +123,9 @@ void AmplitudeAnalyzer::analyze(const Event& e, const EventSetup& iSetup)
     EBDetId id = dataframe.id();
     EcalMGPASample sample = dataframe.sample(4);
     int adc = sample.adc();
-    adcHisto_->Fill(adc);
+    float ped = (float)(dataframe.sample(0).adc()+dataframe.sample(1).adc())/2.0;
+    float amp = adc-ped;
+    adcHisto_->Fill(amp);
     
     EcalUncalibratedRecHitCollection::const_iterator hitItr = hits->find(id);
     EcalUncalibratedRecHit hit = (*hitItr);
@@ -131,7 +133,7 @@ void AmplitudeAnalyzer::analyze(const Event& e, const EventSetup& iSetup)
     float R_ene = hit.amplitude();
     recEhisto_->Fill(R_ene);
    
-    rawAdcVsRecAdc_->Fill(adc,R_ene);
+    rawAdcVsRecAdc_->Fill(amp,R_ene);
    // for (int i = 0; i < 10; i++) {
    //   EcalMGPASample sample = dataframe.sample(i);
    //   int adc = sample.adc();
