@@ -13,7 +13,7 @@
 //
 // Original Author:  Seth COOPER ()
 //         Created:  Wed Aug 22 18:57:08 CEST 2007
-// $Id: AmplitudeAnalyzer.cc,v 1.6 2007/08/24 18:37:16 scooper Exp $
+// $Id: AmplitudeAnalyzer.cc,v 1.7 2007/08/24 18:58:25 scooper Exp $
 //
 //
 
@@ -90,9 +90,9 @@ AmplitudeAnalyzer::AmplitudeAnalyzer(const ParameterSet& ps)
   EBDigiCollection_ = ps.getParameter<InputTag>("EBDigiCollection");
   EcalUncalibratedRecHitCollection_ = ps.getParameter<InputTag>("EcalUncalibratedRecHitCollection");
   
-  adcHisto_ = new TH1F("adc counts","adc counts",100,150,250);
+  adcHisto_ = new TH1F("adc counts","adc counts",200,0,100);
   recEhisto_ = new TH1F("rec energy","rec energy",200,0,100);
-  rawAdcVsRecAdc_ = new TH2F("raw and rec adc","raw and rec adc",100,150,250,100,0,100);
+  rawAdcVsRecAdc_ = new TH2F("raw and rec adc","raw and rec adc",200,0,100,200,0,100);
 }
 
 
