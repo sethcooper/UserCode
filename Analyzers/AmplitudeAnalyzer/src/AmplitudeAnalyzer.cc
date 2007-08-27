@@ -13,7 +13,7 @@
 //
 // Original Author:  Seth COOPER ()
 //         Created:  Wed Aug 22 18:57:08 CEST 2007
-// $Id: AmplitudeAnalyzer.cc,v 1.8 2007/08/24 19:07:15 scooper Exp $
+// $Id: AmplitudeAnalyzer.cc,v 1.9 2007/08/24 19:50:32 scooper Exp $
 //
 //
 
@@ -122,18 +122,21 @@ void AmplitudeAnalyzer::analyze(const Event& e, const EventSetup& iSetup)
     EBDataFrame dataframe = (*digiItr);
     EBDetId id = dataframe.id();
     EcalMGPASample sample = dataframe.sample(4);
-    int adc = sample.adc();
-    double pedestal = (double(dataframe.sample(0).adc()) + double(dataframe.sample(1).adc()))/2.;
-    float amp = (float) adc-pedestal;
-    adcHisto_->Fill(amp);
-    
-    EcalUncalibratedRecHitCollection::const_iterator hitItr = hits->find(id);
-    EcalUncalibratedRecHit hit = (*hitItr);
-    
-    float R_ene = hit.amplitude();
-    recEhisto_->Fill(R_ene);
+    if(sample.gainId()==1)
+    {
+      int adc = sample.adc();
+      double pedestal = (double(dataframe.sample(0).adc()) + double(dataframe.sample(1).adc()))/2.;
+      float amp = (float) adc-pedestal;
+      adcHisto_->Fill(amp);
+
+      EcalUncalibratedRecHitCollection::const_iterator hitItr = hits->find(id);
+      EcalUncalibratedRecHit hit = (*hitItr);
+
+      float R_ene = hit.amplitude();
+      recEhisto_->Fill(R_ene);
    
-    rawAdcVsRecAdc_->Fill(amp,R_ene);
+      rawAdcVsRecAdc_->Fill(amp,R_ene);
+    }
    // for (int i = 0; i < 10; i++) {
    //   EcalMGPASample sample = dataframe.sample(i);
    //   int adc = sample.adc();
