@@ -13,7 +13,7 @@
 //
 // Original Author:  Seth COOPER ()
 //         Created:  Wed Aug 22 18:57:08 CEST 2007
-// $Id: AmplitudeAnalyzer.cc,v 1.16 2007/08/28 21:04:31 scooper Exp $
+// $Id: AmplitudeAnalyzer.cc,v 1.17 2007/08/28 21:08:31 scooper Exp $
 //
 //
 
@@ -134,7 +134,7 @@ AmplitudeAnalyzer::~AmplitudeAnalyzer()
 // ------------ method called to for each event  ------------
 void AmplitudeAnalyzer::analyze(const Event& e, const EventSetup& iSetup)
 {
-  bool isFitted;
+  bool isFitted, isValid;
   Handle<EBDigiCollection> digis;
   e.getByLabel(EBDigiCollection_, digis);
   Handle<EcalUncalibratedRecHitCollection> hits;
@@ -142,36 +142,62 @@ void AmplitudeAnalyzer::analyze(const Event& e, const EventSetup& iSetup)
 
   for ( EBDigiCollection::const_iterator digiItr = digis->begin(); digiItr != digis->end(); ++digiItr )
   {
+    isValid = true;
     isFitted = false;
-    EBDataFrame dataframe = (*digiItr);
-    EBDetId id = dataframe.id();
-    EcalMGPASample sample = dataframe.sample(4);
-    if(sample.gainId()==1)
-    {
-      int adc = sample.adc();
-      double pedestal = (double(dataframe.sample(0).adc()) + double(dataframe.sample(1).adc()))/2.;
-      float amp = (float) adc-pedestal;
-      adcHisto_->Fill(amp);
-      if(amp < 8) 
-        adcNoFitHisto_->Fill(amp);
-      else 
-      {
-        adcFitHisto_->Fill(amp);
-        isFitted = true;
-      }
-      
-      EcalUncalibratedRecHitCollection::const_iterator hitItr = hits->find(id);
-      EcalUncalibratedRecHit hit = (*hitItr);
+    EBDataFrame dataFrame = (*digiItr);
+    EBDetId id = dataFrame.id();
+    double pedestal = (double(dataFrame.sample(0).adc()) + double(dataFrame.sample(1).adc()))/2.;
+    double frame[10];
+    EcalMGPASample sample;
+    double maxsample = -1;
+    int imax = -1;
+    for(int iSample=0; iSample<10; ++iSample)
+    { 
+      //create frame in adc gain 12 equivalent
+      int GainId = dataFrame.sample(iSample).gainId();
 
-      float R_ene = hit.amplitude();
-      recEhisto_->Fill(R_ene);
-      if(isFitted) recFitHisto_->Fill(R_ene);
-      else recNoFitHisto_->Fill(R_ene);
-      
-      rawAdcVsRecAdc_->Fill(amp,R_ene);
-      if(isFitted) rawAdcVsRecAdcFit_->Fill(amp,R_ene);
-      else rawAdcVsRecAdcNoFit_->Fill(amp,R_ene);
+      if(GainId==1){
+        frame[iSample] = double(dataFrame.sample(iSample).adc())-pedestal;
+      }
+      else {
+        //frame[iSample] = (double(dataFrame.sample(iSample).adc())-pedestals[GainId-1])*gainRatios[GainId-1];
+        std::cout << "Oops!  No gainRatios, can't deal with this!" << std::endl;
+        isValid  = false;
+        break;
+      }
+      //if (GainId == 0 ) GainId = 3;//Fix ME this should be before frame construction for saturated channels
+      //if (GainId != gainId0) iGainSwitch = 1;
+      if( frame[iSample]>maxsample ) {
+        maxsample = frame[iSample];
+        imax = iSample;
+      }
     }
+    //sample = dataFrame.sample(imax);
+    //int adc = sample.adc();
+    //double pedestal = (double(dataframe.sample(0).adc()) + double(dataframe.sample(1).adc()))/2.;
+    if(!isValid) break;
+    float amp = (float) maxsample;
+    adcHisto_->Fill(amp);
+    if(amp < 8)
+      adcNoFitHisto_->Fill(amp);
+    else 
+    {
+      adcFitHisto_->Fill(amp);
+      isFitted = true;
+    }
+
+    EcalUncalibratedRecHitCollection::const_iterator hitItr = hits->find(id);
+    EcalUncalibratedRecHit hit = (*hitItr);
+
+    float R_ene = hit.amplitude();
+    recEhisto_->Fill(R_ene);
+    if(isFitted) recFitHisto_->Fill(R_ene);
+    else recNoFitHisto_->Fill(R_ene);
+
+    rawAdcVsRecAdc_->Fill(amp,R_ene);
+    if(isFitted) rawAdcVsRecAdcFit_->Fill(amp,R_ene);
+    else rawAdcVsRecAdcNoFit_->Fill(amp,R_ene);
+  }
    // for (int i = 0; i < 10; i++) {
    //   EcalMGPASample sample = dataframe.sample(i);
    //   int adc = sample.adc();
@@ -188,7 +214,7 @@ void AmplitudeAnalyzer::analyze(const Event& e, const EventSetup& iSetup)
 //    //float jiitter   = hit.jitter();
 //    //cout << "Rec energy: " << R_ene << endl;
     
-  }
+//  }
 }
 
 
