@@ -13,7 +13,7 @@
 //
 // Original Author:  Seth COOPER ()
 //         Created:  Wed Aug 22 18:57:08 CEST 2007
-// $Id: AmplitudeAnalyzer.cc,v 1.13 2007/08/28 18:50:46 scooper Exp $
+// $Id: AmplitudeAnalyzer.cc,v 1.14 2007/08/28 18:55:37 scooper Exp $
 //
 //
 
@@ -134,14 +134,15 @@ AmplitudeAnalyzer::~AmplitudeAnalyzer()
 // ------------ method called to for each event  ------------
 void AmplitudeAnalyzer::analyze(const Event& e, const EventSetup& iSetup)
 {
-  bool isFitted = false;
+  bool isFitted;
   Handle<EBDigiCollection> digis;
   e.getByLabel(EBDigiCollection_, digis);
   Handle<EcalUncalibratedRecHitCollection> hits;
   e.getByLabel(EcalUncalibratedRecHitCollection_, hits);
 
-  for ( EBDigiCollection::const_iterator digiItr = digis->begin(); digiItr != digis->end(); ++digiItr ) {
-
+  for ( EBDigiCollection::const_iterator digiItr = digis->begin(); digiItr != digis->end(); ++digiItr )
+  {
+    isFitted = false;
     EBDataFrame dataframe = (*digiItr);
     EBDetId id = dataframe.id();
     EcalMGPASample sample = dataframe.sample(4);
