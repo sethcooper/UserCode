@@ -13,7 +13,7 @@
 //
 // Original Author:  Seth COOPER ()
 //         Created:  Wed Aug 22 18:57:08 CEST 2007
-// $Id: AmplitudeAnalyzer.cc,v 1.14 2007/08/28 18:55:37 scooper Exp $
+// $Id: AmplitudeAnalyzer.cc,v 1.15 2007/08/28 20:51:55 scooper Exp $
 //
 //
 
@@ -99,17 +99,17 @@ AmplitudeAnalyzer::AmplitudeAnalyzer(const ParameterSet& ps)
   EcalUncalibratedRecHitCollection_ = ps.getParameter<InputTag>("EcalUncalibratedRecHitCollection");
   
   //total histos
-  adcHisto_ = new TH1F("adc counts","adc counts",50,-25,25);
-  recEhisto_ = new TH1F("rec energy","rec energy",50,-25,25);
-  rawAdcVsRecAdc_ = new TH2F("raw and rec adc","raw and rec adc",50,-25,25,50,-25,25);
+  adcHisto_ = new TH1F("total_adc_counts","total adc counts",50,-25,25);
+  recEhisto_ = new TH1F("total_rec_energy","total rec energy",50,-25,25);
+  rawAdcVsRecAdc_ = new TH2F("total_raw_rec","total raw and rec adc",50,-25,25,50,-25,25);
   // fit only histos
-  adcFitHisto_ = new TH1F("adc counts for fit","adc counts for fit",50,-25,25);
-  recFitHisto_ = new TH1F("rec energy for fit","adc energy for fit",50,-25,25);
-  rawAdcVsRecAdcFit_ = new TH2F("raw and rec adc for fit","raw and rec adc for fit",50,-25,25,50,-25,25);
+  adcFitHisto_ = new TH1F("fit_adc","adc counts for fit",50,-25,25);
+  recFitHisto_ = new TH1F("fit_recE","adc energy for fit",50,-25,25);
+  rawAdcVsRecAdcFit_ = new TH2F("fit_raw_rec","raw and rec adc for fit",50,-25,25,50,-25,25);
   // amp5 only histos
-  adcNoFitHisto_ = new TH1F("adc counts no fit","adc counts no fit",50,-25,25);
-  recNoFitHisto_ = new TH1F("rec energy no fit","adc energy no fit",50,-25,25);
-  rawAdcVsRecAdcNoFit_ = new TH2F("raw and rec adc no fit","raw and rec adc no fit",50,-25,25,50,-25,25);
+  adcNoFitHisto_ = new TH1F("no_fit_adc","adc counts no fit",50,-25,25);
+  recNoFitHisto_ = new TH1F("no_fit_recE","adc energy no fit",50,-25,25);
+  rawAdcVsRecAdcNoFit_ = new TH2F("no_fit_raw_rec","raw and rec adc no fit",50,-25,25,50,-25,25);
 }
 
 
