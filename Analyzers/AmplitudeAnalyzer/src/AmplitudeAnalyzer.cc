@@ -13,7 +13,7 @@
 //
 // Original Author:  Seth COOPER ()
 //         Created:  Wed Aug 22 18:57:08 CEST 2007
-// $Id: AmplitudeAnalyzer.cc,v 1.12 2007/08/28 18:26:53 scooper Exp $
+// $Id: AmplitudeAnalyzer.cc,v 1.13 2007/08/28 18:50:46 scooper Exp $
 //
 //
 
@@ -203,6 +203,14 @@ AmplitudeAnalyzer::endJob() {
   recEhisto_->Write();
   adcHisto_->Write();
   rawAdcVsRecAdc_->Write();
+  
+  recFitHisto_->Write();
+  adcFitHisto_->Write();
+  rawAdcVsRecAdcFit_->Write();
+  
+  recNoFitHisto_->Write();
+  adcNoFitHisto_->Write();
+  rawAdcVsRecAdcNoFit_->Write();
   a.Write();
   a.Close();
 }
