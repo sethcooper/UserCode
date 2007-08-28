@@ -13,7 +13,7 @@
 //
 // Original Author:  Seth COOPER ()
 //         Created:  Wed Aug 22 18:57:08 CEST 2007
-// $Id: AmplitudeAnalyzer.cc,v 1.15 2007/08/28 20:51:55 scooper Exp $
+// $Id: AmplitudeAnalyzer.cc,v 1.16 2007/08/28 21:04:31 scooper Exp $
 //
 //
 
@@ -104,11 +104,11 @@ AmplitudeAnalyzer::AmplitudeAnalyzer(const ParameterSet& ps)
   rawAdcVsRecAdc_ = new TH2F("total_raw_rec","total raw and rec adc",50,-25,25,50,-25,25);
   // fit only histos
   adcFitHisto_ = new TH1F("fit_adc","adc counts for fit",50,-25,25);
-  recFitHisto_ = new TH1F("fit_recE","adc energy for fit",50,-25,25);
+  recFitHisto_ = new TH1F("fit_recE","rec energy for fit",50,-25,25);
   rawAdcVsRecAdcFit_ = new TH2F("fit_raw_rec","raw and rec adc for fit",50,-25,25,50,-25,25);
   // amp5 only histos
   adcNoFitHisto_ = new TH1F("no_fit_adc","adc counts no fit",50,-25,25);
-  recNoFitHisto_ = new TH1F("no_fit_recE","adc energy no fit",50,-25,25);
+  recNoFitHisto_ = new TH1F("no_fit_recE","rec energy no fit",50,-25,25);
   rawAdcVsRecAdcNoFit_ = new TH2F("no_fit_raw_rec","raw and rec adc no fit",50,-25,25,50,-25,25);
 }
 
