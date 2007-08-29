@@ -13,7 +13,7 @@
 //
 // Original Author:  Seth COOPER ()
 //         Created:  Wed Aug 22 18:57:08 CEST 2007
-// $Id: AmplitudeAnalyzer.cc,v 1.18 2007/08/28 21:45:52 scooper Exp $
+// $Id: AmplitudeAnalyzer.cc,v 1.19 2007/08/29 14:34:02 scooper Exp $
 //
 //
 
@@ -100,7 +100,7 @@ AmplitudeAnalyzer::AmplitudeAnalyzer(const ParameterSet& ps)
   EBDigiCollection_ = ps.getParameter<InputTag>("EBDigiCollection");
   EcalUncalibratedRecHitCollection_ = ps.getParameter<InputTag>("EcalUncalibratedRecHitCollection");
 
-  maxSampleHisto_ = new TH1F("max_sample_num","number of maximum sample",10,0,9);
+  maxSampleHisto_ = new TH1F("max_sample_num","number of maximum sample",10,0,10);
   
   //total histos
   adcHisto_ = new TH1F("total_adc_counts","total adc counts",50,-25,25);
