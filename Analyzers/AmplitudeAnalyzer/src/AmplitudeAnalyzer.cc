@@ -13,7 +13,7 @@
 //
 // Original Author:  Seth COOPER ()
 //         Created:  Wed Aug 22 18:57:08 CEST 2007
-// $Id: AmplitudeAnalyzer.cc,v 1.17 2007/08/28 21:08:31 scooper Exp $
+// $Id: AmplitudeAnalyzer.cc,v 1.18 2007/08/28 21:45:52 scooper Exp $
 //
 //
 
@@ -61,6 +61,8 @@ class AmplitudeAnalyzer : public edm::EDAnalyzer {
       edm::InputTag  EcalRecHitCollection_;
       edm::InputTag EcalUncalibratedRecHitCollection_;
 
+      TH1F* maxSampleHisto_;
+      
       TH1F* adcHisto_;
       TH1F* recEhisto_;
       TH2F* rawAdcVsRecAdc_;
@@ -97,6 +99,8 @@ AmplitudeAnalyzer::AmplitudeAnalyzer(const ParameterSet& ps)
 
   EBDigiCollection_ = ps.getParameter<InputTag>("EBDigiCollection");
   EcalUncalibratedRecHitCollection_ = ps.getParameter<InputTag>("EcalUncalibratedRecHitCollection");
+
+  maxSampleHisto_ = new TH1F("max_sample_num","number of maximum sample",10,0,9);
   
   //total histos
   adcHisto_ = new TH1F("total_adc_counts","total adc counts",50,-25,25);
@@ -115,6 +119,7 @@ AmplitudeAnalyzer::AmplitudeAnalyzer(const ParameterSet& ps)
 
 AmplitudeAnalyzer::~AmplitudeAnalyzer()
 {
+  delete maxSampleHisto_;
   delete adcHisto_;
   delete recEhisto_;
   delete rawAdcVsRecAdc_;
@@ -175,12 +180,15 @@ void AmplitudeAnalyzer::analyze(const Event& e, const EventSetup& iSetup)
     //sample = dataFrame.sample(imax);
     //int adc = sample.adc();
     //double pedestal = (double(dataframe.sample(0).adc()) + double(dataframe.sample(1).adc()))/2.;
+    
+    maxSampleHisto_->Fill(imax);
+    
     if(!isValid) break;
     float amp = (float) maxsample;
     adcHisto_->Fill(amp);
     if(amp < 8)
       adcNoFitHisto_->Fill(amp);
-    else 
+    else
     {
       adcFitHisto_->Fill(amp);
       isFitted = true;
@@ -227,6 +235,9 @@ void AmplitudeAnalyzer::beginJob(const EventSetup&)
 void 
 AmplitudeAnalyzer::endJob() {
   TFile a("test.root","RECREATE");
+  
+  maxSampleHisto_->Write();
+  
   recEhisto_->Write();
   adcHisto_->Write();
   rawAdcVsRecAdc_->Write();
@@ -238,6 +249,7 @@ AmplitudeAnalyzer::endJob() {
   recNoFitHisto_->Write();
   adcNoFitHisto_->Write();
   rawAdcVsRecAdcNoFit_->Write();
+  
   a.Write();
   a.Close();
 }
