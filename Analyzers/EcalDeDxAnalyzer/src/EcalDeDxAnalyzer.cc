@@ -13,7 +13,7 @@
 //
 // Original Author:  Seth Cooper
 //         Created:  Thu Sep 27 16:09:01 CDT 2007
-// $Id: EcalDeDxAnalyzer.cc,v 1.2 2007/10/02 19:17:54 scooper Exp $
+// $Id: EcalDeDxAnalyzer.cc,v 1.3 2007/10/03 20:28:34 scooper Exp $
 //
 //
 
@@ -69,7 +69,8 @@ class EcalDeDxAnalyzer : public edm::EDAnalyzer {
       int findTrack(const EcalRecHit &seed, const reco::TrackCollection *tracks, const CaloSubdetectorGeometry* geometry_p);
       double dPhi(double phi1, double phi2);
       double dR(double eta1, double phi1, double eta2, double phi2);
-      
+
+
       edm::InputTag EBHitCollection_;
       edm::InputTag EEHitCollection_;
       //edm::InputTag EMCollection_;
