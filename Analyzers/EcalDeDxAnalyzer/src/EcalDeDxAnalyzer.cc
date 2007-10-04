@@ -13,7 +13,7 @@
 //
 // Original Author:  Seth Cooper
 //         Created:  Thu Sep 27 16:09:01 CDT 2007
-// $Id: EcalDeDxAnalyzer.cc,v 1.3 2007/10/03 20:28:34 scooper Exp $
+// $Id: EcalDeDxAnalyzer.cc,v 1.4 2007/10/03 22:16:53 scooper Exp $
 //
 //
 
@@ -31,10 +31,7 @@
 #include "FWCore/ParameterSet/interface/ParameterSet.h"
 #include "DataFormats/EcalRecHit/interface/EcalRecHitCollections.h"
 #include "DataFormats/Common/interface/Handle.h"
-//#include "AnalysisDataFormats/ElectronEfficiency/interface/EmObject.h"
 #include "DataFormats/Math/interface/Vector3D.h"
-//#include "DataFormats/EgammaReco/interface/SuperCluster.h"
-//#include "DataFormats/EgammaReco/interface/BasicCluster.h"
 #include "DataFormats/EcalDetId/interface/EEDetId.h"
 #include "DataFormats/EcalDetId/interface/EBDetId.h"
 #include "DataFormats/DetId/interface/DetId.h"
@@ -47,7 +44,7 @@
 #include "FWCore/Framework/interface/ESHandle.h"
 #include "DataFormats/GeometryVector/interface/GlobalPoint.h"
 
-
+#include "TH1F.h"
 #include "TH2F.h"
 #include "TFile.h"
 
@@ -73,9 +70,10 @@ class EcalDeDxAnalyzer : public edm::EDAnalyzer {
 
       edm::InputTag EBHitCollection_;
       edm::InputTag EEHitCollection_;
-      //edm::InputTag EMCollection_;
       edm::InputTag trackProducer_;
       TH2F* energyVsMomentum_;
+      TH1F* energyHist_;
+      TH1F* momentumHist_;
      
       double dRSuperClusterTrack_;
       double minTrackPt_;
@@ -99,10 +97,12 @@ EcalDeDxAnalyzer::EcalDeDxAnalyzer(const edm::ParameterSet& ps)
    //now do what ever initialization is needed
    EBHitCollection_ = ps.getParameter<edm::InputTag>("EBRecHitCollection");
    EEHitCollection_ = ps.getParameter<edm::InputTag>("EERecHitCollection");
-   //EMCollection_    = ps.getParameter<edm::InputTag>("EMObjectCollection");
    trackProducer_   = ps.getParameter<edm::InputTag>("trackProducer");
    
-   energyVsMomentum_ = new TH2F("energy_vs_momentum","energy vs. momentum",150,0,150,150,0,150);
+   energyVsMomentum_ = new TH2F("energy_vs_momentum","energy dep. in ecal vs. momentum",400,0,100,24,0,1.5);
+   energyHist_ = new TH1F("energy_in_ecal","energy dep. in ecal",24,0,1.5);
+   momentumHist_ = new TH1F("tracker_outer_momentum","tracker outer momentum",400,0,100);
+   
    dRSuperClusterTrack_ = 0.2;
    minTrackPt_ = 1.0;
 }
@@ -127,15 +127,6 @@ void EcalDeDxAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& 
 {
   using namespace edm;
   using namespace std;
-
-  // Get EmObjects out of the event
-  //   Handle<EgEff::EmObjectCollection> EMObjs;
-  //   try 
-  //   {
-  //     iEvent.getByLabel(EMCollection_, EMObjs);
-  //   } catch ( exception& ex ) {
-  //     cerr << "Error! can't get the product " << EMCollection_.label() << endl;
-  //   }
 
   Handle<reco::TrackCollection> trackHandle;
   Handle<EBRecHitCollection> EBHits;
@@ -171,8 +162,10 @@ void EcalDeDxAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& 
       math::XYZVector pv = track->outerMomentum();
       float p = (float)sqrt(pow(pv.x(),2)+(pv.y(),2)+(pv.z(),2));
       float energy = (recItr->energy());
-      cout << "RecHit Energy: " << energy << " Momentum: " << p << endl;
+      cout << "EBRecHit Energy: " << energy << " Momentum: " << p << endl;
       energyVsMomentum_->Fill(p, energy);
+      energyHist_->Fill(energy);
+      momentumHist_->Fill(p);
     }
   }
 
@@ -186,57 +179,12 @@ void EcalDeDxAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& 
       math::XYZVector pv = track->outerMomentum();
       float p = (float)sqrt(pow(pv.x(),2)+(pv.y(),2)+(pv.z(),2));
       float energy = (recItr->energy());
-      cout << "RecHit Energy: " << energy << " Momentum: " << p << endl;
+      cout << "EERecHit Energy: " << energy << " Momentum: " << p << endl;
       energyVsMomentum_->Fill(p, energy);
+      energyHist_->Fill(energy);
+      momentumHist_->Fill(p);
     }
   }
-
-  // Loop over the EmObjects
-//   for(EgEff::EmObjectCollection::const_iterator emItr = EMObjs->begin(); emItr != EMObjs->end(); ++emItr)
-//   {
-//     cout << "Looping over the EmObjects" << endl;
-//     // Make sure each EMObject has a track and an associated supercluster
-//     if(emItr->hasSuperCluster() && emItr->hasTrack())
-//     {
-//       cout << "OK so far, we have a cluster and a track." << endl;
-//       // Get the seed BasicCluster
-//       reco::BasicClusterRef bc = (emItr->superCluster())->seed();
-//       // Get the vector of hits used in the seed BasicCluster
-//       vector<DetId> BCHits = bc->getHitsByDetId();
-//       // Loop over these hits, finding the hit with the highest energy--the seed crystal
-//       // Have to check both EE and EB hit collections
-//       float bestEnergy = -1;
-//       for(vector<DetId>::const_iterator itr = BCHits.begin(); itr != BCHits.end(); ++itr)
-//       {
-//         cout << "Looking for the max hit..." << endl;
-//         EcalRecHitCollection::const_iterator recItr = EBHits->end();
-//         recItr = EBHits->find(*itr);
-//         if(recItr==EBHits->end())
-//         {
-//           cout << "DetId not found in EBHits, searching EEHits..." << endl;
-//           recItr = EEHits->end();
-//           recItr = EEHits->find(*itr);
-//         }
-//           
-//         if(recItr!=EEHits->end()) // Then we have a hit
-//         {
-//           cout << "We have a hit!" << endl;
-//           if(recItr->energy() > bestEnergy)
-//           {
-//             cout << "Setting new max energy to  : " << recItr->energy() << endl;
-//             bestEnergy=recItr->energy();
-//           }
-//         }
-//       }
-       
-       // Fill our root histogram with the energy, momentum, whatever
-       // But need to compute the momentum from the track
-//       math::XYZVector pv = emItr->track()->outerMomentum();
-//       float p = (float)sqrt(pow(pv.x(),2)+(pv.y(),2)+(pv.z(),2));
-//       cout << "MaxRecHit energy: " << bestEnergy << " momentum: " << p << endl;
-//       energyVsMomentum_->Fill(p,bestEnergy);
-//     }
-//   }
    
 }
 
@@ -295,7 +243,9 @@ EcalDeDxAnalyzer::endJob() {
   TFile a("test.root","RECREATE");
 
   energyVsMomentum_->Write();
-
+  energyHist_->Write();
+  momentumHist_->Write();
+  
   a.Write();
   a.Close();
 
