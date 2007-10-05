@@ -13,7 +13,7 @@
 //
 // Original Author:  Seth Cooper
 //         Created:  Thu Sep 27 16:09:01 CDT 2007
-// $Id: EcalDeDxAnalyzer.cc,v 1.5 2007/10/04 15:05:10 scooper Exp $
+// $Id: EcalDeDxAnalyzer.cc,v 1.6 2007/10/05 18:25:18 scooper Exp $
 //
 //
 
@@ -76,7 +76,9 @@ class EcalDeDxAnalyzer : public edm::EDAnalyzer {
       TH2D* energyVsMomentum_;
       TH1D* energyHist_;
       TH1D* momentumHist_;
-    
+      TH1D* highestEnergyHist_;
+      TH1D* bozoClusterEnergyHist_;
+      
       edm::InputTag simTrackContainer_;
       TH1D* simTrackEtaHist_;
       TH1D* simTrackPhiHist_;
@@ -112,6 +114,9 @@ EcalDeDxAnalyzer::EcalDeDxAnalyzer(const edm::ParameterSet& ps)
    energyVsMomentum_ = new TH2D("energy_vs_momentum","energy dep. in ecal vs. momentum",8000,0,2000,100,0,1.5);
    energyHist_ = new TH1D("energy_in_ecal","energy dep. in ecal",100,0,1.5);
    momentumHist_ = new TH1D("tracker_outer_momentum","tracker outer momentum",8000,0,2000);
+   highestEnergyHist_ = new TH1D("highest_energy_recHits","highest energy track-matched RecHits",100,0,1.5);
+   bozoClusterEnergyHist_ = new TH1D("bozo_cluster_recHits","track-matched bozo clusters",100,0,1.5);
+   
    
    simTrackEtaHist_ = new TH1D("simTrackEta","Eta of MC tracks",80,-4,4);
    simTrackPhiHist_ = new TH1D("simTrackPhi","Phi of MC tracks",120,-6.4,6.4);
@@ -177,7 +182,9 @@ void EcalDeDxAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& 
   const CaloSubdetectorGeometry *geometry_endcap = geoHandle->getSubdetectorGeometry(DetId::Ecal, EcalEndcap);
   const CaloSubdetectorGeometry *geometry_barrel = geoHandle->getSubdetectorGeometry(DetId::Ecal, EcalBarrel);
 
+  float highestE = -1;
   // Loop over the RecHits, first EBRechits
+  // TODO: Really we should look at tracks first, since hits could be anything
   for(EBRecHitCollection::const_iterator recItr = EBHits->begin(); recItr != EBHits->end(); ++recItr)
   {
     int trackFound = findTrack(*recItr, trackHandle.product(), geometry_barrel);
@@ -190,6 +197,8 @@ void EcalDeDxAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& 
       const CaloCellGeometry *cell_p = geometry_barrel->getGeometry((*recItr).id());
       // Center of xtal
       GlobalPoint pt = (dynamic_cast <const TruncatedPyramid *> (cell_p))->getPosition(0);
+      if(energy > highestE)
+        highestE = energy;
       energyVsMomentum_->Fill(p, energy);
       energyHist_->Fill(energy);
       momentumHist_->Fill(p);
@@ -197,7 +206,10 @@ void EcalDeDxAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& 
       ecalHitPhiHist_->Fill(pt.phi());
     }
   }
-
+  if(highestE > -1)
+    highestEnergyHist_->Fill(highestE);
+  
+  highestE = -1;
   // Now loop over the EERecHits
   for(EERecHitCollection::const_iterator recItr = EEHits->begin(); recItr != EEHits->end(); ++recItr)
   {
@@ -211,6 +223,8 @@ void EcalDeDxAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& 
       const CaloCellGeometry *cell_p = geometry_endcap->getGeometry((*recItr).id());
       // Center of xtal
       GlobalPoint pt = (dynamic_cast <const TruncatedPyramid *> (cell_p))->getPosition(0);
+      if(energy > highestE)
+        highestE = energy;
       energyVsMomentum_->Fill(p, energy);
       energyHist_->Fill(energy);
       momentumHist_->Fill(p);
@@ -218,6 +232,8 @@ void EcalDeDxAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& 
       ecalHitPhiHist_->Fill(pt.phi());
     }
   }
+  if(highestE > -1)
+    highestEnergyHist_->Fill(highestE);
    
 }
 
@@ -278,7 +294,9 @@ EcalDeDxAnalyzer::endJob() {
   energyVsMomentum_->Write();
   energyHist_->Write();
   momentumHist_->Write();
-
+  highestEnergyHist_->Write();
+  bozoClusterEnergyHist_->Write();
+  
   simTrackEtaHist_->Write();
   simTrackPhiHist_->Write();
   ecalHitEtaHist_->Write();
