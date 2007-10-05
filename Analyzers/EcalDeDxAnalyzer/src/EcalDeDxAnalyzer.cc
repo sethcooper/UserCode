@@ -13,7 +13,7 @@
 //
 // Original Author:  Seth Cooper
 //         Created:  Thu Sep 27 16:09:01 CDT 2007
-// $Id: EcalDeDxAnalyzer.cc,v 1.4 2007/10/03 22:16:53 scooper Exp $
+// $Id: EcalDeDxAnalyzer.cc,v 1.5 2007/10/04 15:05:10 scooper Exp $
 //
 //
 
@@ -43,9 +43,11 @@
 #include "Geometry/Records/interface/IdealGeometryRecord.h"
 #include "FWCore/Framework/interface/ESHandle.h"
 #include "DataFormats/GeometryVector/interface/GlobalPoint.h"
+#include "SimDataFormats/Track/interface/SimTrack.h"
+#include "SimDataFormats/Track/interface/SimTrackContainer.h"
 
-#include "TH1F.h"
-#include "TH2F.h"
+#include "TH1D.h"
+#include "TH2D.h"
 #include "TFile.h"
 
 //
@@ -71,12 +73,18 @@ class EcalDeDxAnalyzer : public edm::EDAnalyzer {
       edm::InputTag EBHitCollection_;
       edm::InputTag EEHitCollection_;
       edm::InputTag trackProducer_;
-      TH2F* energyVsMomentum_;
-      TH1F* energyHist_;
-      TH1F* momentumHist_;
-     
+      TH2D* energyVsMomentum_;
+      TH1D* energyHist_;
+      TH1D* momentumHist_;
+    
+      edm::InputTag simTrackContainer_;
+      TH1D* simTrackEtaHist_;
+      TH1D* simTrackPhiHist_;
+      TH1D* ecalHitEtaHist_;
+      TH1D* ecalHitPhiHist_;
+        
       double dRSuperClusterTrack_;
-      double minTrackPt_;
+      double minTrackP_;
       
       // ----------member data ---------------------------
 };
@@ -95,16 +103,22 @@ class EcalDeDxAnalyzer : public edm::EDAnalyzer {
 EcalDeDxAnalyzer::EcalDeDxAnalyzer(const edm::ParameterSet& ps)
 {
    //now do what ever initialization is needed
-   EBHitCollection_ = ps.getParameter<edm::InputTag>("EBRecHitCollection");
-   EEHitCollection_ = ps.getParameter<edm::InputTag>("EERecHitCollection");
-   trackProducer_   = ps.getParameter<edm::InputTag>("trackProducer");
+   EBHitCollection_   = ps.getParameter<edm::InputTag>("EBRecHitCollection");
+   EEHitCollection_   = ps.getParameter<edm::InputTag>("EERecHitCollection");
+   trackProducer_     = ps.getParameter<edm::InputTag>("trackProducer");
+   minTrackP_         = ps.getParameter<double>("minTrackP");
+   simTrackContainer_ = ps.getParameter<edm::InputTag>("simTrackContainer");
    
-   energyVsMomentum_ = new TH2F("energy_vs_momentum","energy dep. in ecal vs. momentum",400,0,100,24,0,1.5);
-   energyHist_ = new TH1F("energy_in_ecal","energy dep. in ecal",24,0,1.5);
-   momentumHist_ = new TH1F("tracker_outer_momentum","tracker outer momentum",400,0,100);
+   energyVsMomentum_ = new TH2D("energy_vs_momentum","energy dep. in ecal vs. momentum",8000,0,2000,100,0,1.5);
+   energyHist_ = new TH1D("energy_in_ecal","energy dep. in ecal",100,0,1.5);
+   momentumHist_ = new TH1D("tracker_outer_momentum","tracker outer momentum",8000,0,2000);
+   
+   simTrackEtaHist_ = new TH1D("simTrackEta","Eta of MC tracks",80,-4,4);
+   simTrackPhiHist_ = new TH1D("simTrackPhi","Phi of MC tracks",120,-6.4,6.4);
+   ecalHitEtaHist_ = new TH1D("ecalHitEta","Eta of hits in ecal",60,-3,3);
+   ecalHitPhiHist_ = new TH1D("ecalHitPhi","Phi of hits in ecal",120,-6.4,6.4);
    
    dRSuperClusterTrack_ = 0.2;
-   minTrackPt_ = 1.0;
 }
 
 
@@ -131,11 +145,14 @@ void EcalDeDxAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& 
   Handle<reco::TrackCollection> trackHandle;
   Handle<EBRecHitCollection> EBHits;
   Handle<EERecHitCollection> EEHits;
+  Handle<SimTrackContainer> simTracks;
+  
   try
   {
     iEvent.getByLabel(trackProducer_, trackHandle);
     iEvent.getByLabel(EBHitCollection_, EBHits);
     iEvent.getByLabel(EEHitCollection_, EEHits);
+    iEvent.getByLabel(simTrackContainer_, simTracks);
   }
   catch(cms::Exception& ex)
   {
@@ -145,6 +162,14 @@ void EcalDeDxAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& 
 
   //TODO: Preshower hits??
 
+  for(SimTrackContainer::const_iterator trackItr = simTracks->begin(); trackItr != simTracks->end(); ++trackItr)
+  {
+    double eta = trackItr->trackerSurfacePosition().eta();
+    double phi = trackItr->trackerSurfacePosition().phi();
+    simTrackEtaHist_->Fill(eta);
+    simTrackPhiHist_->Fill(phi);
+  }
+  
   
   //Setup geometry
   ESHandle<CaloGeometry> geoHandle;
@@ -159,13 +184,17 @@ void EcalDeDxAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& 
     if(trackFound != -1)
     {
       const reco::TrackRef track = edm::Ref<reco::TrackCollection>(trackHandle, trackFound); 
-      math::XYZVector pv = track->outerMomentum();
-      float p = (float)sqrt(pow(pv.x(),2)+(pv.y(),2)+(pv.z(),2));
+      double p = track->outerP();
       float energy = (recItr->energy());
       cout << "EBRecHit Energy: " << energy << " Momentum: " << p << endl;
+      const CaloCellGeometry *cell_p = geometry_barrel->getGeometry((*recItr).id());
+      // Center of xtal
+      GlobalPoint pt = (dynamic_cast <const TruncatedPyramid *> (cell_p))->getPosition(0);
       energyVsMomentum_->Fill(p, energy);
       energyHist_->Fill(energy);
       momentumHist_->Fill(p);
+      ecalHitEtaHist_->Fill(pt.eta());
+      ecalHitPhiHist_->Fill(pt.phi());
     }
   }
 
@@ -176,13 +205,17 @@ void EcalDeDxAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& 
     if(trackFound != -1)
     {
       const reco::TrackRef track = edm::Ref<reco::TrackCollection>(trackHandle, trackFound); 
-      math::XYZVector pv = track->outerMomentum();
-      float p = (float)sqrt(pow(pv.x(),2)+(pv.y(),2)+(pv.z(),2));
+      double p = track->outerP();
       float energy = (recItr->energy());
       cout << "EERecHit Energy: " << energy << " Momentum: " << p << endl;
+      const CaloCellGeometry *cell_p = geometry_endcap->getGeometry((*recItr).id());
+      // Center of xtal
+      GlobalPoint pt = (dynamic_cast <const TruncatedPyramid *> (cell_p))->getPosition(0);
       energyVsMomentum_->Fill(p, energy);
       energyHist_->Fill(energy);
       momentumHist_->Fill(p);
+      ecalHitEtaHist_->Fill(pt.eta());
+      ecalHitPhiHist_->Fill(pt.phi());
     }
   }
    
@@ -195,7 +228,7 @@ int EcalDeDxAnalyzer::findTrack(const EcalRecHit &seed, const reco::TrackCollect
 
   // See if we have a track with pT > minTrackPt_ and dR < dRSuperClusterTrack_
   unsigned int numTracks = tracks->size();
-  double highestPt = 0;
+  double highestP = 0;
 
   // Get position of the EERecHit
   const CaloCellGeometry *cell_p = geometry_p->getGeometry(seed.id());
@@ -206,11 +239,11 @@ int EcalDeDxAnalyzer::findTrack(const EcalRecHit &seed, const reco::TrackCollect
   {
     if(dR((*tracks)[j].eta(), (*tracks)[j].phi(), p.eta(), p.phi()) < dRSuperClusterTrack_)
     {
-      double trackPt = (*tracks)[j].pt();
-      if((trackPt > minTrackPt_) && (trackPt > highestPt))
+      double trackP = (*tracks)[j].outerP();
+      if((trackP > minTrackP_) && (trackP > highestP))
       {
         retTrack = j;
-        highestPt = trackPt;
+        highestP = trackP;
       }
     }
   }
@@ -245,6 +278,11 @@ EcalDeDxAnalyzer::endJob() {
   energyVsMomentum_->Write();
   energyHist_->Write();
   momentumHist_->Write();
+
+  simTrackEtaHist_->Write();
+  simTrackPhiHist_->Write();
+  ecalHitEtaHist_->Write();
+  ecalHitPhiHist_->Write();
   
   a.Write();
   a.Close();
