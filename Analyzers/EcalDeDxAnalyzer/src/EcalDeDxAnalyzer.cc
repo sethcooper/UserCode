@@ -13,7 +13,7 @@
 //
 // Original Author:  Seth Cooper
 //         Created:  Thu Sep 27 16:09:01 CDT 2007
-// $Id: EcalDeDxAnalyzer.cc,v 1.6 2007/10/05 18:25:18 scooper Exp $
+// $Id: EcalDeDxAnalyzer.cc,v 1.7 2007/10/05 18:52:52 scooper Exp $
 //
 //
 
@@ -49,6 +49,8 @@
 #include "TH1D.h"
 #include "TH2D.h"
 #include "TFile.h"
+#include "TF1.h"
+#include "TGraph.h"
 
 //
 // class decleration
@@ -78,15 +80,21 @@ class EcalDeDxAnalyzer : public edm::EDAnalyzer {
       TH1D* momentumHist_;
       TH1D* highestEnergyHist_;
       TH1D* bozoClusterEnergyHist_;
+      TH2D* energyVsBetaHist_;
+      
+      TGraph* deDxVsBetaGraph_;
       
       edm::InputTag simTrackContainer_;
       TH1D* simTrackEtaHist_;
       TH1D* simTrackPhiHist_;
       TH1D* ecalHitEtaHist_;
       TH1D* ecalHitPhiHist_;
-        
+      
+      TF1* betheBlochKFunct;
+      
       double dRSuperClusterTrack_;
       double minTrackP_;
+      double mcParticleMass_;
       
       // ----------member data ---------------------------
 };
@@ -110,20 +118,26 @@ EcalDeDxAnalyzer::EcalDeDxAnalyzer(const edm::ParameterSet& ps)
    trackProducer_     = ps.getParameter<edm::InputTag>("trackProducer");
    minTrackP_         = ps.getParameter<double>("minTrackP");
    simTrackContainer_ = ps.getParameter<edm::InputTag>("simTrackContainer");
+   mcParticleMass_    = ps.getUntrackedParameter<double>("mcParticleMass",-1.0);
    
    energyVsMomentum_ = new TH2D("energy_vs_momentum","energy dep. in ecal vs. momentum",8000,0,2000,100,0,1.5);
    energyHist_ = new TH1D("energy_in_ecal","energy dep. in ecal",100,0,1.5);
    momentumHist_ = new TH1D("tracker_outer_momentum","tracker outer momentum",8000,0,2000);
    highestEnergyHist_ = new TH1D("highest_energy_recHits","highest energy track-matched RecHits",100,0,1.5);
    bozoClusterEnergyHist_ = new TH1D("bozo_cluster_recHits","track-matched bozo clusters",100,0,1.5);
-   
+   energyVsBetaHist_ = new TH2D("energy_vs_beta","energy dep. in ecal vs. beta",100,0,1,100,0,1.5);
+   // e vs. beta hist only valid when we know the mass (i.e., protons)!
+
+   betheBlochKFunct = new TF1("betheBlochK","(1/[0])*(1/pow(x,2))",0.001,1);
+   betheBlochKFunct->SetParNames("K");
+   betheBlochKFunct->SetParameter(0,900);
    
    simTrackEtaHist_ = new TH1D("simTrackEta","Eta of MC tracks",80,-4,4);
    simTrackPhiHist_ = new TH1D("simTrackPhi","Phi of MC tracks",120,-6.4,6.4);
    ecalHitEtaHist_ = new TH1D("ecalHitEta","Eta of hits in ecal",60,-3,3);
    ecalHitPhiHist_ = new TH1D("ecalHitPhi","Phi of hits in ecal",120,-6.4,6.4);
    
-   dRSuperClusterTrack_ = 0.2;
+   dRSuperClusterTrack_ = 1; //0.2;
 }
 
 
@@ -182,6 +196,9 @@ void EcalDeDxAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& 
   const CaloSubdetectorGeometry *geometry_endcap = geoHandle->getSubdetectorGeometry(DetId::Ecal, EcalEndcap);
   const CaloSubdetectorGeometry *geometry_barrel = geoHandle->getSubdetectorGeometry(DetId::Ecal, EcalBarrel);
 
+  vector<double> vx;
+  vector<double> vy;
+  
   float highestE = -1;
   // Loop over the RecHits, first EBRechits
   // TODO: Really we should look at tracks first, since hits could be anything
@@ -204,6 +221,13 @@ void EcalDeDxAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& 
       momentumHist_->Fill(p);
       ecalHitEtaHist_->Fill(pt.eta());
       ecalHitPhiHist_->Fill(pt.phi());
+      if(mcParticleMass_ > -1)
+      {
+        double beta = p/sqrt(pow(p,2)+pow(mcParticleMass_,2));
+        energyVsBetaHist_->Fill(energy,beta);
+        vx.push_back(energy/23.0);  //TODO: This is only a very rough crystal length approximation
+        vy.push_back(beta);
+      }
     }
   }
   if(highestE > -1)
@@ -230,11 +254,17 @@ void EcalDeDxAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& 
       momentumHist_->Fill(p);
       ecalHitEtaHist_->Fill(pt.eta());
       ecalHitPhiHist_->Fill(pt.phi());
+      if(mcParticleMass_ > -1)
+      {
+        double beta = p/sqrt(pow(p,2)+pow(mcParticleMass_,2));
+        vx.push_back(energy/23.0);  //TODO: This is only a very rough crystal length approximation
+        vy.push_back(beta);
+      }
     }
   }
   if(highestE > -1)
     highestEnergyHist_->Fill(highestE);
-   
+  deDxVsBetaGraph_ = new TGraph(vx.size(), &(*vx.begin()), &(*vy.begin())); 
 }
 
 
@@ -289,6 +319,8 @@ EcalDeDxAnalyzer::beginJob(const edm::EventSetup&)
 // ------------ method called once each job just after ending the event loop  ------------
 void 
 EcalDeDxAnalyzer::endJob() {
+  using namespace std;
+  
   TFile a("test.root","RECREATE");
 
   energyVsMomentum_->Write();
@@ -296,7 +328,12 @@ EcalDeDxAnalyzer::endJob() {
   momentumHist_->Write();
   highestEnergyHist_->Write();
   bozoClusterEnergyHist_->Write();
-  
+  energyVsBetaHist_->Write();
+ cout << "I'm here!!!" << endl; 
+  //deDxVsBetaGraph_->Fit("betheBlochK");
+ cout << "I'm here!" << endl;
+  deDxVsBetaGraph_->Write();
+ cout << "I'm past it." << endl; 
   simTrackEtaHist_->Write();
   simTrackPhiHist_->Write();
   ecalHitEtaHist_->Write();
