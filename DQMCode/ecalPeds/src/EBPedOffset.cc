@@ -128,6 +128,8 @@ void EBPedOffset::analyze (Event const& event,
 
    std::map <int,int> DACvalues ;
    
+   std::cout << "Entering header loop!" << std::endl;
+    
    // loop over the headers
    for ( EcalRawDataCollection::const_iterator headerItr= DCCHeaders->begin();
          headerItr != DCCHeaders->end (); 
@@ -137,10 +139,12 @@ void EBPedOffset::analyze (Event const& event,
        //DACvalues[getHeaderSMId (headerItr->id ())] = settings.ped_offset ;
        //m_SMnum = headerItr->id();
        DACvalues[headerItr->id()] = settings.ped_offset;
-//       std::cout << "DCCid: " << headerItr->id () << "\n" ;
-//       std::cout << "Ped offset DAC: " << settings.ped_offset << "\n" ;
+       std::cout << "DCCid: " << headerItr->id () << "\n" ;
+       std::cout << "Ped offset DAC: " << settings.ped_offset << "\n" ;
      } //! loop over the headers
 
+   std::cout << "Exiting header loop!" << std::endl;
+   
    // get the digis
    // (one digi for each crystal)
    // TODO; SIC: fix this behavior
@@ -162,6 +166,7 @@ void EBPedOffset::analyze (Event const& event,
     {    
        int gainId = itdigi->sample(0).gainId();
        EBDetId detId = EBDetId(itdigi->id());
+       std::cout << "GainId:" << gainId;
        int crystalId = detId.ic();
 //       int crystalId = itdigi->id().iphi () + 20 * (itdigi->id().ieta () -1) ;
        //int smId = EBDetId(itdigi->id()).ism();
@@ -180,7 +185,7 @@ void EBPedOffset::analyze (Event const& event,
                                        itdigi->sample (iSample).adc());
          } // loop over the samples
     } // loop over the digis
-
+   std::cout << std::endl;
 }
 
 
