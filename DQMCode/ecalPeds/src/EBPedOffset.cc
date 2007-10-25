@@ -128,7 +128,9 @@ void EBPedOffset::analyze (Event const& event,
    }
 
    std::map <int,int> DACvalues;
-   m_run = event.id().run();
+
+   if(m_run==-1)
+     m_run = event.id().run();
    
    // loop over the headers
    for ( EcalRawDataCollection::const_iterator headerItr= DCCHeaders->begin();
