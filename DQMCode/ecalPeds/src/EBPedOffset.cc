@@ -68,7 +68,8 @@ EBPedOffset::EBPedOffset (const ParameterSet& paramSet) :
   m_dbHostPort (paramSet.getUntrackedParameter<int> ("dbHostPort",1521)) ,
   m_create_moniov (paramSet.getUntrackedParameter<bool>("createMonIOV", false)) ,
   m_location (paramSet.getUntrackedParameter<std::string>("location", "H4")) ,
-  m_run (paramSet.getParameter<int> ("run")) ,
+  //m_run (paramSet.getParameter<int> ("run")) ,
+  m_run(-1),
   m_plotting (paramSet.getParameter<std::string> ("plotting"))    
 {
   edm::LogInfo ("EBPedOffset") << " reading "
@@ -127,6 +128,7 @@ void EBPedOffset::analyze (Event const& event,
    }
 
    std::map <int,int> DACvalues;
+   m_run = event.id().run();
    
    // loop over the headers
    for ( EcalRawDataCollection::const_iterator headerItr= DCCHeaders->begin();
@@ -138,6 +140,7 @@ void EBPedOffset::analyze (Event const& event,
        //m_SMnum = headerItr->id();
        int FEDid = 600+headerItr->id();
        DACvalues[FEDid] = settings.ped_offset;
+
        //std::cout << "FEDid: " << FEDid << std::endl;
        //std::cout << "Ped offset DAC: " << settings.ped_offset << std::endl;
      } //! loop over the headers
@@ -207,7 +210,7 @@ void EBPedOffset::endJob ()
     } 
   edm::LogInfo ("EBPedOffset") << " results map size " 
                                << m_pedResult.size () ;
-  writeXMLFile (m_xmlFile) ;
+  writeXMLFiles(m_xmlFile) ;
 
   if (m_plotting != '0') makePlots () ;
   if (m_dbHostName != '0') writeDb () ;          
@@ -338,11 +341,11 @@ void EBPedOffset::writeDb ()
 
 
 //!calculate the super module number from the headers
-int EBPedOffset::getHeaderSMId (const int headerId) 
-{
+//int EBPedOffset::getHeaderSMId (const int headerId) 
+//{
   //PG FIXME temporary solution
   //PG FIXME check it is consistent with the TB!
-  return headerId;
+//  return headerId;
   /*
   unsigned dccID = 1-1 ; // at the moment SM is 1 by default (in DetID)
   EBDetId idsm (1, 1 + 20 * dccID) ;  
@@ -350,62 +353,58 @@ int EBPedOffset::getHeaderSMId (const int headerId)
   int id = ( iphi() - 1 ) / kCrystalsInPhi + 1;
   if ( zside() < 0 ) id += 18;
   */
-}
+//}
 
 
 // -----------------------------------------------------------------------------
 
 
-//! write the m_pedResult in an XML file
-void EBPedOffset::writeXMLFile (std::string fileName) 
+//! write the m_pedResults to XML files
+void EBPedOffset::writeXMLFiles(std::string fileName)
 {
-  // open the output stream
-  std::ofstream xml_outfile ;
-  xml_outfile.open (fileName.c_str ()) ;
-  
-  // write the header file
-  // FIXME has the SM number to be removed form here?
-  xml_outfile<<"<offsets>"<<std::endl;
-  xml_outfile << "<PEDESTAL_OFFSET_RELEASE VERSION_ID = \"SM1_VER1\"> \n" ;
-  xml_outfile << "  <RELEASE_ID>RELEASE_1</RELEASE_ID>\n" ;
-  //xml_outfile << "  <SUPERMODULE>" << "-1" << "</SUPERMODULE>\n" ;
-  xml_outfile << "  <SUPERMODULE>";
-  for (std::map<int,TPedResult*>::const_iterator smRes = m_pedResult.begin () ;
-       smRes != m_pedResult.end() ; 
-       ++smRes)
-    {
-      xml_outfile << smRes->first;
-      if(++smRes != m_pedResult.end())
-      {
-        xml_outfile << ",";
-      }
-      --smRes;
-    }
-  xml_outfile << "</SUPERMODULE>\n";
-  xml_outfile << "  <TIME_STAMP> 070705 </TIME_STAMP>" << std::endl ;
-
   // loop over the super-modules
-  for (std::map<int,TPedResult*>::const_iterator smRes = m_pedResult.begin () ;
-       smRes != m_pedResult.end () ; 
+  for (std::map<int,TPedResult*>::const_iterator smRes = m_pedResult.begin();
+       smRes != m_pedResult.end(); 
        ++smRes)
     {
+      string thisSMFileName = fileName;
+      // open the output stream
+      thisSMFileName+="_";
+      thisSMFileName+=intToString(smRes->first);
+      thisSMFileName+="_";
+      thisSMFileName+=intToString(m_run);
+      thisSMFileName+=".xml";
+      std::ofstream xml_outfile;
+      xml_outfile.open(thisSMFileName.c_str());
+
+      // write the header file
+      xml_outfile<<"<offsets>"<<std::endl;
+      xml_outfile << "<PEDESTAL_OFFSET_RELEASE VERSION_ID = \"SM1_VER1\"> \n";
+      xml_outfile << "  <RELEASE_ID>RELEASE_1</RELEASE_ID>\n";
+      //xml_outfile << "  <SUPERMODULE>" << "-1" << "</SUPERMODULE>\n" ;
+      xml_outfile << "  <SUPERMODULE>";
+      xml_outfile << smRes->first;
+      xml_outfile << "</SUPERMODULE>\n";
+      xml_outfile << "  <TIME_STAMP> 070705 </TIME_STAMP>" << std::endl;
+
        // loop over the crystals
        for (int xtal = 0 ; xtal < 1700 ; ++xtal) 
          {
             xml_outfile << "  <PEDESTAL_OFFSET>\n";
-            xml_outfile << "    <HIGH>" << ((smRes->second)->m_DACvalue)[0][xtal] << "</HIGH>\n" ;
-            xml_outfile << "    <MED>" << ((smRes->second)->m_DACvalue)[1][xtal] << "</MED>\n" ;
-            xml_outfile << "    <LOW>" << ((smRes->second)->m_DACvalue)[2][xtal] << "</LOW>\n" ;
-            xml_outfile << "    <SUPERMODULE> " << smRes->first << " </SUPERMODULE>\n" ;
-            xml_outfile << "    <CRYSTAL> "<< xtal+1 << " </CRYSTAL>\n" ;
-            xml_outfile << "  </PEDESTAL_OFFSET>" << std::endl ;            
-         } // loop over the crystals
+            xml_outfile << "    <HIGH>" << ((smRes->second)->m_DACvalue)[0][xtal] << "</HIGH>\n";
+            xml_outfile << "    <MED>" << ((smRes->second)->m_DACvalue)[1][xtal] << "</MED>\n";
+            xml_outfile << "    <LOW>" << ((smRes->second)->m_DACvalue)[2][xtal] << "</LOW>\n";
+            xml_outfile << "    <SUPERMODULE> " << smRes->first << " </SUPERMODULE>\n";
+            xml_outfile << "    <CRYSTAL> "<< xtal+1 << " </CRYSTAL>\n";
+            xml_outfile << "  </PEDESTAL_OFFSET>" << std::endl;            
+         } 
+
+       // close the open tags  
+       xml_outfile << " </PEDESTAL_OFFSET_RELEASE>" << std::endl;
+       xml_outfile << "</offsets>" << std::endl;
+       xml_outfile.close ();
     } // loop over the super-modules
   
-  // close the open tags  
-  xml_outfile << " </PEDESTAL_OFFSET_RELEASE>" << std::endl ;
-  xml_outfile << "</offsets>" << std::endl ;
-  xml_outfile.close () ;
 
 }
 
@@ -422,28 +421,43 @@ void EBPedOffset::makePlots ()
                                << m_pedValues.size () ;
 
   // create the ROOT file
-  TFile * rootFile = new TFile (m_plotting.c_str (),"RECREATE") ;
+  m_plotting+="_";
+  m_plotting+= intToString(m_run);
+  m_plotting+=".root";
+  
+  TFile * rootFile = new TFile (m_plotting.c_str(),"RECREATE") ;
 
   // loop over the supermodules
-  for (std::map<int,TPedValues*>::const_iterator smPeds = m_pedValues.begin () ;
-       smPeds != m_pedValues.end () ; 
+  for (std::map<int,TPedValues*>::const_iterator smPeds = m_pedValues.begin();
+       smPeds != m_pedValues.end(); 
        ++smPeds)
     {
       // make a folder in the ROOT file
       char folderName[120] ;
-      sprintf (folderName,"SM%02d",smPeds->first) ;
-      rootFile->mkdir (folderName) ;
-      smPeds->second->makePlots (rootFile,folderName) ;
-
-    } // loop over the supermodules
+      sprintf (folderName,"FED%02d",smPeds->first);
+      rootFile->mkdir(folderName);
+      smPeds->second->makePlots(rootFile,folderName);
+    }
 
   rootFile->Close () ;
-  delete rootFile ;
+  delete rootFile;
  
   LogDebug ("EBPedOffset") << " DONE" ; 
 }
 
+// -----------------------------------------------------------------------------
 
+// convert an int to a string
+string EBPedOffset::intToString(int num)
+{
+
+  // outputs the number into the string stream and then flushes
+  // the buffer (makes sure the output is put into the stream)
+  ostringstream myStream;
+  myStream << num << flush;
+  return(myStream.str()); //returns the string form of the stringstream object
+}
+                
 
 
 /* various pieces of code here 

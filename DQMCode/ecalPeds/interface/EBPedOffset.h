@@ -27,57 +27,59 @@ class EBPedOffset: public edm::EDAnalyzer
   public:
     
     //! Constructor
-    EBPedOffset (const edm::ParameterSet& ps) ;
+    EBPedOffset(const edm::ParameterSet& ps);
     
     //! Destructor
-    virtual ~EBPedOffset () ;
+    virtual ~EBPedOffset();
    
     ///! Analyze
-    void analyze (edm::Event const& event, edm::EventSetup const& eventSetup) ;
+    void analyze(edm::Event const& event, edm::EventSetup const& eventSetup);
     
     //! BeginJob
-    void beginJob (edm::EventSetup const& eventSetup) ;
+    void beginJob(edm::EventSetup const& eventSetup);
     
     //! EndJob
-    void endJob (void) ;
+    void endJob(void);
     
     //! write the results into xml format
-    void writeXMLFile (std::string fileName) ;
+    void writeXMLFiles(std::string fileName);
     
     //! WriteDB
-    void writeDb () ;
+    void writeDb();
     
     //! create the plots of the DAC pedestal trend
-    void makePlots () ;
+    void makePlots();
 
 
   private:
  
-    int getHeaderSMId (const int headerId) ;
+    //int getHeaderSMId (const int headerId);
     
-    std::string m_digiCollection ; //!< secondary name given to collection of digis
-    std::string m_digiProducer ;   //!< name of module/plugin/producer making digis
-    std::string m_headerProducer ; //!< name of module/plugin/producer making headers
+    std::string intToString(int num);
+    
+    std::string m_digiCollection; //!< secondary name given to collection of digis
+    std::string m_digiProducer;   //!< name of module/plugin/producer making digis
+    std::string m_headerProducer; //!< name of module/plugin/producer making headers
 
-    std::string m_xmlFile ;        //!< name of the xml file to be saved
+    std::string m_xmlFile;        //!< name of the xml file to be saved
 
-    std::map<int,TPedValues*> m_pedValues ;
-    std::map<int,TPedResult*> m_pedResult ;
+    std::map<int,TPedValues*> m_pedValues;
+    std::map<int,TPedResult*> m_pedResult;
      
-    int m_DACmin ;
-    int m_DACmax ;
-    double m_RMSmax ;
-    int m_bestPed ;
-    //int m_SMnum ; //! FIXME temporary until the fix in CMSSW
+    int m_DACmin;
+    int m_DACmax;
+    double m_RMSmax;
+    int m_bestPed;
+    //int m_SMnum; //! FIXME temporary until the fix in CMSSW
     
     //! database host name
-    std::string m_dbHostName ;
+    std::string m_dbHostName;
     //! database name
-    std::string m_dbName ;
+    std::string m_dbName;
     //! database user name
-    std::string m_dbUserName ;
+    std::string m_dbUserName;
     //! database user password
-    std::string m_dbPassword ;
+    std::string m_dbPassword;
     //! database 
     int m_dbHostPort;
     //!allow the creation of a new moniov if not existing in the DB
@@ -86,10 +88,10 @@ class EBPedOffset: public edm::EDAnalyzer
     // used to retrieve the run_iov 
     std::string m_location;
     //! run number
-    int m_run ;
+    int m_run;
     
     //! the root file where to store the detail plots
-    std::string m_plotting ;
+    std::string m_plotting;
 
 } ; 
 
