@@ -169,7 +169,13 @@ void EBPedOffset::analyze (Event const& event,
        //int smId = EBDetId(itdigi->id()).ism();
        int FEDid = 600+(ecalElectronicsMap->getElectronicsId(detId)).dccId();
        
-       //TODO: Check to make sure smId as defined in the line above matches m_SMnum??
+       //TODO: Behavior here?
+       if(DACvalues.find(FEDid)==DACvalues.end())
+       {
+         edm::LogError("EBPedOffset") << "Error! DCCid of digi does not match any DCCid found in DCC headers.";
+         break;
+       }
+       
        if (!m_pedValues.count(FEDid))
          m_pedValues[FEDid] = new TPedValues(m_RMSmax,m_bestPed);
 
