@@ -138,8 +138,8 @@ void EBPedOffset::analyze (Event const& event,
        //m_SMnum = headerItr->id();
        int FEDid = 600+headerItr->id();
        DACvalues[FEDid] = settings.ped_offset;
-       std::cout << "FEDid: " << FEDid << std::endl;
-       std::cout << "Ped offset DAC: " << settings.ped_offset << std::endl;
+       //std::cout << "FEDid: " << FEDid << std::endl;
+       //std::cout << "Ped offset DAC: " << settings.ped_offset << std::endl;
      } //! loop over the headers
 
    // get the digis
@@ -163,26 +163,26 @@ void EBPedOffset::analyze (Event const& event,
     {    
        int gainId = itdigi->sample(0).gainId();
        EBDetId detId = EBDetId(itdigi->id());
-       std::cout << "GainId:" << gainId;
+       //std::cout << "GainId:" << gainId;
        int crystalId = detId.ic();
 //       int crystalId = itdigi->id().iphi () + 20 * (itdigi->id().ieta () -1) ;
        //int smId = EBDetId(itdigi->id()).ism();
-       int smId = (ecalElectronicsMap->getElectronicsId(detId)).dccId();
+       int FEDid = 600+(ecalElectronicsMap->getElectronicsId(detId)).dccId();
        
        //TODO: Check to make sure smId as defined in the line above matches m_SMnum??
-       if (!m_pedValues.count(smId))
-         m_pedValues[smId] = new TPedValues(m_RMSmax,m_bestPed);
+       if (!m_pedValues.count(FEDid))
+         m_pedValues[FEDid] = new TPedValues(m_RMSmax,m_bestPed);
 
        // loop over the samples
        for (int iSample = 0; iSample < EBDataFrame::MAXSAMPLES; ++iSample) 
          {
-            m_pedValues[smId]->insert(gainId,
+            m_pedValues[FEDid]->insert(gainId,
                                        crystalId,
-                                       DACvalues[smId],
+                                       DACvalues[FEDid],
                                        itdigi->sample (iSample).adc());
          } // loop over the samples
     } // loop over the digis
-   std::cout << std::endl;
+   //std::cout << std::endl;
 }
 
 
