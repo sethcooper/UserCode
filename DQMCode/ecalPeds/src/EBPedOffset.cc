@@ -126,10 +126,8 @@ void EBPedOffset::analyze (Event const& event,
                                   << m_headerProducer.c_str();
    }
 
-   std::map <int,int> DACvalues ;
+   std::map <int,int> DACvalues;
    
-   std::cout << "Entering header loop!" << std::endl;
-    
    // loop over the headers
    for ( EcalRawDataCollection::const_iterator headerItr= DCCHeaders->begin();
          headerItr != DCCHeaders->end (); 
@@ -138,13 +136,12 @@ void EBPedOffset::analyze (Event const& event,
        EcalDCCHeaderBlock::EcalDCCEventSettings settings = headerItr->getEventSettings();
        //DACvalues[getHeaderSMId (headerItr->id ())] = settings.ped_offset ;
        //m_SMnum = headerItr->id();
-       DACvalues[headerItr->id()] = settings.ped_offset;
-       std::cout << "DCCid: " << headerItr->id () << "\n" ;
-       std::cout << "Ped offset DAC: " << settings.ped_offset << "\n" ;
+       int FEDid = 600+headerItr->id();
+       DACvalues[FEDid] = settings.ped_offset;
+       std::cout << "FEDid: " << FEDid << std::endl;
+       std::cout << "Ped offset DAC: " << settings.ped_offset << std::endl;
      } //! loop over the headers
 
-   std::cout << "Exiting header loop!" << std::endl;
-   
    // get the digis
    // (one digi for each crystal)
    // TODO; SIC: fix this behavior
@@ -172,7 +169,7 @@ void EBPedOffset::analyze (Event const& event,
        //int smId = EBDetId(itdigi->id()).ism();
        int smId = (ecalElectronicsMap->getElectronicsId(detId)).dccId();
        
-       //TODO: Check to make sure smId as defined in the line above matches m_SMnum
+       //TODO: Check to make sure smId as defined in the line above matches m_SMnum??
        if (!m_pedValues.count(smId))
          m_pedValues[smId] = new TPedValues(m_RMSmax,m_bestPed);
 
