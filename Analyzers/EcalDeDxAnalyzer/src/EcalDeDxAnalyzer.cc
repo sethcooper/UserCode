@@ -13,7 +13,7 @@
 //
 // Original Author:  Seth Cooper
 //         Created:  Thu Sep 27 16:09:01 CDT 2007
-// $Id: EcalDeDxAnalyzer.cc,v 1.8 2007/10/11 18:28:49 scooper Exp $
+// $Id: EcalDeDxAnalyzer.cc,v 1.9 2007/10/29 14:33:11 scooper Exp $
 //
 //
 
@@ -24,12 +24,6 @@
 #include <sstream>
 
 // user include files
-#include "FWCore/Framework/interface/Frameworkfwd.h"
-#include "FWCore/Framework/interface/EDAnalyzer.h"
-#include "FWCore/Framework/interface/Event.h"
-#include "FWCore/Framework/interface/EventSetup.h"
-#include "FWCore/Framework/interface/MakerMacros.h"
-#include "FWCore/ParameterSet/interface/ParameterSet.h"
 #include "DataFormats/EcalRecHit/interface/EcalRecHitCollections.h"
 #include "DataFormats/Common/interface/Handle.h"
 #include "DataFormats/Math/interface/Vector3D.h"
@@ -37,23 +31,44 @@
 #include "DataFormats/EcalDetId/interface/EBDetId.h"
 #include "DataFormats/DetId/interface/DetId.h"
 #include "DataFormats/TrackReco/interface/Track.h"
+#include "DataFormats/TrackingRecHit/interface/TrackingRecHit.h"
+#include "DataFormats/GeometryVector/interface/GlobalPoint.h"
+#include "DataFormats/GeometrySurface/interface/SimpleCylinderBounds.h"
+#include "DataFormats/GeometrySurface/interface/SimpleDiskBounds.h"
+#include "DataFormats/GeometrySurface/interface/Cylinder.h"
+#include "DataFormats/GeometrySurface/interface/BoundCylinder.h"
+#include "DataFormats/GeometrySurface/interface/BoundDisk.h"
+#include "FWCore/Framework/interface/Frameworkfwd.h"
+#include "FWCore/Framework/interface/EDAnalyzer.h"
+#include "FWCore/Framework/interface/Event.h"
+#include "FWCore/Framework/interface/EventSetup.h"
+#include "FWCore/Framework/interface/MakerMacros.h"
+#include "FWCore/ParameterSet/interface/ParameterSet.h"
+#include "FWCore/Framework/interface/ESHandle.h"
 #include "Geometry/CaloGeometry/interface/CaloSubdetectorGeometry.h"
 #include "Geometry/CaloGeometry/interface/CaloCellGeometry.h"
 #include "Geometry/CaloGeometry/interface/CaloGeometry.h"
 #include "Geometry/CaloGeometry/interface/TruncatedPyramid.h"
 #include "Geometry/Records/interface/IdealGeometryRecord.h"
-#include "FWCore/Framework/interface/ESHandle.h"
-#include "DataFormats/GeometryVector/interface/GlobalPoint.h"
+#include "Geometry/Records/interface/TrackerDigiGeometryRecord.h"
+#include "Geometry/CommonDetUnit/interface/GeomDet.h"
+#include "Geometry/CommonDetUnit/interface/GeomDetUnit.h"
+#include "Geometry/TrackerGeometryBuilder/interface/TrackerGeometry.h"
+#include "MagneticField/Records/interface/IdealMagneticFieldRecord.h"
 #include "SimDataFormats/Track/interface/SimTrack.h"
 #include "SimDataFormats/Track/interface/SimTrackContainer.h"
 #include "SimDataFormats/CaloHit/interface/PCaloHitContainer.h"
+#include "SimDataFormats/TrackingHit/interface/PSimHit.h"
+#include "SimDataFormats/TrackingAnalysis/interface/TrackingParticle.h"
+#include "TrackingTools/TrajectoryState/interface/TrajectoryStateOnSurface.h"
+#include "TrackingTools/MaterialEffects/interface/PropagatorWithMaterial.h"
+
 #include "TH1D.h"
 #include "TH2D.h"
 #include "TFile.h"
 #include "TF1.h"
 #include "TGraph.h"
 #include "TProfile.h"
-
 #include "Analyzers/EcalDeDxAnalyzer/interface/BozoCluster.h"
 
 //
@@ -67,15 +82,40 @@ class EcalDeDxAnalyzer : public edm::EDAnalyzer {
 
 
    private:
-      virtual void beginJob(const edm::EventSetup&) ;
+      virtual void beginJob(const edm::EventSetup& setup) ;
       virtual void analyze(const edm::Event&, const edm::EventSetup&);
-      virtual void endJob() ;
+      virtual void endJob();
 
       int findTrack(const EcalRecHit &seed, const reco::TrackCollection *tracks, const CaloSubdetectorGeometry* geometry_p);
       double dPhi(double phi1, double phi2);
       double dR(double eta1, double phi1, double eta2, double phi2);
       BozoCluster makeBozoCluster(const EcalRecHit &seed, const edm::Handle<EBRecHitCollection> &hits);
       std::string floatToString(float f);
+      math::XYZPoint propagateTrack(const reco::Track track);
+      math::XYZPoint propagateTrack(const TrackingParticle track);
+      GlobalPoint localPosToGlobalPos(const PSimHit hit);
+      GlobalVector localMomToGlobalMom(const PSimHit hit);
+      /** Hard-wired numbers defining the surfaces on which the crystal front faces lie. */
+      static float barrelRadius() {return 129.f;} //p81, p50, ECAL TDR
+      static float barrelHalfLength() {return 270.9f;} //p81, p50, ECAL TDR
+      static float endcapRadius() {return 171.1f;} // fig 3.26, p81, ECAL TDR
+      static float endcapZ() {return 320.5f;} // fig 3.26, p81, ECAL TDR
+      static void initializeSurfaces();
+      static void check() {if (!theInit_) initializeSurfaces();}
+      static ReferenceCountingPointer<BoundCylinder>  theBarrel_;
+      static ReferenceCountingPointer<BoundDisk>      theNegativeEtaEndcap_;
+      static ReferenceCountingPointer<BoundDisk>      thePositiveEtaEndcap_;
+      static const BoundCylinder& barrel()        { check(); return *theBarrel_;}
+      static const BoundDisk& negativeEtaEndcap() { check(); return *theNegativeEtaEndcap_;}
+      static const BoundDisk& positiveEtaEndcap() { check(); return *thePositiveEtaEndcap_;}
+      static bool theInit_;
+
+      edm::ESHandle<MagneticField> theMF_;
+      //TrackAssociatorBase* associatorByHits_;
+      TrajectoryStateOnSurface stateAtECAL_;
+      mutable PropagatorWithMaterial* forwardPropagator_ ;
+      PropagationDirection dir_;
+      const TrackerGeometry *trackerGeom;
 
       edm::InputTag EBHitCollection_;
       edm::InputTag EEHitCollection_;
@@ -100,12 +140,15 @@ class EcalDeDxAnalyzer : public edm::EDAnalyzer {
       TH1D* cluster3x3Hist_;
       TH1D* cluster5x5Hist_;
       TH1D* simHitsEnergyHist_;
-        
+      TH1D* simTrackRecoTrackDeltaEtaHist_;
+      TH1D* simTrackRecoTrackDeltaPhiHist_;
+
+      
       TF1* betheBlochKFunct;
       
       
       double dRHitTrack;
-      double minTrackP_;
+      double minTrackPt_;
       double mcParticleMass_;
       
       std::vector<double> vx;
@@ -117,6 +160,10 @@ class EcalDeDxAnalyzer : public edm::EDAnalyzer {
 //
 // constants, enums and typedefs
 //
+ReferenceCountingPointer<BoundCylinder>  EcalDeDxAnalyzer::theBarrel_ = 0;
+ReferenceCountingPointer<BoundDisk>      EcalDeDxAnalyzer::theNegativeEtaEndcap_ = 0;
+ReferenceCountingPointer<BoundDisk>      EcalDeDxAnalyzer::thePositiveEtaEndcap_ = 0;
+bool                                     EcalDeDxAnalyzer::theInit_ = false;
 
 //
 // static data member definitions
@@ -131,7 +178,7 @@ EcalDeDxAnalyzer::EcalDeDxAnalyzer(const edm::ParameterSet& ps)
    EBHitCollection_     = ps.getParameter<edm::InputTag>("EBRecHitCollection");
    EEHitCollection_     = ps.getParameter<edm::InputTag>("EERecHitCollection");
    trackProducer_       = ps.getParameter<edm::InputTag>("trackProducer");
-   minTrackP_           = ps.getParameter<double>("minTrackP");
+   minTrackPt_           = ps.getParameter<double>("minTrackPt");
    simTrackContainer_   = ps.getParameter<edm::InputTag>("simTrackContainer");
    mcParticleMass_      = ps.getUntrackedParameter<double>("mcParticleMass",-1.0);
    dRHitTrack = ps.getParameter<double>("dRTrack");
@@ -159,6 +206,8 @@ EcalDeDxAnalyzer::EcalDeDxAnalyzer(const edm::ParameterSet& ps)
    simHitsEnergyHist_ = new TH1D("simHitsEnergy","Energy of sim hits",200,0,2);
    ecalHitEtaHist_ = new TH1D("ecalHitsEta","Eta of hits in ecal",60,-3,3);
    ecalHitPhiHist_ = new TH1D("ecalHitsPhi","Phi of hits in ecal",120,-6.4,6.4);
+   simTrackRecoTrackDeltaEtaHist_ = new TH1D("tracksDeltaEta","Delta eta of sim tracks and reco tracks",100,-1,1);
+   simTrackRecoTrackDeltaPhiHist_ = new TH1D("tracksDeltaPhi","Delta eta of sim tracks and reco tracks",300,-3.15,3.15);
    
    //dRHitTrack = 1; //0.2;
 }
@@ -188,7 +237,7 @@ void EcalDeDxAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& 
   Handle<EBRecHitCollection> EBHits;
   Handle<EERecHitCollection> EEHits;
   Handle<SimTrackContainer> simTracks;
-  
+
   try
   {
     iEvent.getByLabel(trackProducer_, trackHandle);
@@ -202,17 +251,44 @@ void EcalDeDxAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& 
     throw ex; 
   }
 
-  cout << "Number of tracks: " << trackHandle.product()->size() << endl;
+  cout << "Number of reco tracks: " << trackHandle.product()->size() << endl;
+  cout << "Number of sim tracks: " << simTracks->size() << endl;
 
+  // Get MC Tracking truth
+  edm::Handle < TrackingParticleCollection > trackingParticleHandle;
+  iEvent.getByLabel("mtt", "MyTrackTruth", trackingParticleHandle);
+  TrackingParticleCollection trackingParticles =
+    *(trackingParticleHandle.product());
+   
   //TODO: Preshower hits??
-
-  for(SimTrackContainer::const_iterator trackItr = simTracks->begin(); trackItr != simTracks->end(); ++trackItr)
+  int simTrackCount = 0;
+  //for(SimTrackContainer::const_iterator trackItr = simTracks->begin(); trackItr != simTracks->end(); ++trackItr)
+  for(std::vector <TrackingParticle>::iterator trackItr = trackingParticles.begin(); trackItr != trackingParticles.end();
+	    ++trackItr) 
   {
-    double eta = trackItr->trackerSurfacePosition().eta();
-    double phi = trackItr->trackerSurfacePosition().phi();
-    simTrackEtaHist_->Fill(eta);
-    simTrackPhiHist_->Fill(phi);
+    std::vector<PSimHit> simHits = trackItr->trackPSimHit();
+    if (simHits.size() == 0) continue;
+    std::vector<PSimHit>::const_iterator hit = simHits.end();
+    hit--;
+    
+    //TODO: Make this an honest-to-goodness Pt cut (in GeV)
+    if(hit->pabs() > 100)
+    {
+      double eta = localPosToGlobalPos(*hit).eta();
+      double phi = localPosToGlobalPos(*hit).phi();
+      simTrackEtaHist_->Fill(eta);
+      simTrackPhiHist_->Fill(phi);
+      simTrackCount++;
+      // A bit dangerous here, but so far we only have either 1 or zero tracks make it past
+      // the P cut into this if block.
+      math::XYZPoint ecalSimTrackPos = propagateTrack(*trackItr);
+      // Also only 1 reco track
+      math::XYZPoint ecalRecoTrackPos = propagateTrack((*trackHandle.product())[0]);
+      simTrackRecoTrackDeltaPhiHist_->Fill(ecalSimTrackPos.Phi()-ecalRecoTrackPos.Phi());
+      simTrackRecoTrackDeltaEtaHist_->Fill(ecalSimTrackPos.Eta()-ecalRecoTrackPos.Eta());
+    }
   }
+  cout << "Number of sim tracks past cut: " << simTrackCount << endl;
   
   Handle<PCaloHitContainer> hits;
   const PCaloHitContainer* phits=0;
@@ -234,22 +310,24 @@ void EcalDeDxAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& 
   
   //Setup geometry
   ESHandle<CaloGeometry> geoHandle;
-  iSetup.get <IdealGeometryRecord> ().get(geoHandle);
+  ESHandle<TrackerGeometry> trackerHandle;
+  iSetup.get<IdealGeometryRecord>().get(geoHandle);
+  iSetup.get<TrackerDigiGeometryRecord>().get(trackerHandle);
   const CaloSubdetectorGeometry *geometry_endcap = geoHandle->getSubdetectorGeometry(DetId::Ecal, EcalEndcap);
   const CaloSubdetectorGeometry *geometry_barrel = geoHandle->getSubdetectorGeometry(DetId::Ecal, EcalBarrel);
-
+  trackerGeom = trackerHandle.product();
   
   float highestE = -1;
   double trackMatchedP;
   EcalRecHit highestEHit;
   // Loop over the RecHits, first EBRechits
-  // TODO: Really should we look at tracks first, since hits could be anything?
+  // TODO: Should we look at tracks first instead?
   for(EBRecHitCollection::const_iterator recItr = EBHits->begin(); recItr != EBHits->end(); ++recItr)
   {
     int trackFound = findTrack(*recItr, trackHandle.product(), geometry_barrel);
     if(trackFound != -1)
     {
-      const reco::TrackRef track = edm::Ref<reco::TrackCollection>(trackHandle, trackFound); 
+      const reco::TrackRef track = edm::Ref<reco::TrackCollection>(trackHandle, trackFound);
       double p = track->outerP();
       float energy = (recItr->energy());
       const CaloCellGeometry *cell_p = geometry_barrel->getGeometry((*recItr).id());
@@ -273,11 +351,12 @@ void EcalDeDxAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& 
         double beta = p/sqrt(pow(p,2)+pow(mcParticleMass_,2));
         energyVsBetaHist_->Fill(beta, energy);
         deDxVsBetaHist_->Fill(beta,energy/23.0);
-        if(beta > .5 && beta < .8 && energy/23.0 > .014)
+        if(beta > .5) //energy/23.0 > .003)
         {
           cout << "Adding point (e/l,beta): " << energy/23.0 << "," << beta << endl;
           vx.push_back(beta);
           vy.push_back(energy/23.0);  //TODO: This is only a very rough crystal length approximation
+                                      //      Can we fix using propagator?
         }
       }
     }
@@ -339,29 +418,137 @@ int EcalDeDxAnalyzer::findTrack(const EcalRecHit &seed, const reco::TrackCollect
 
   // See if we have a track with pT > minTrackPt_ and dR < dRHitTrack
   unsigned int numTracks = tracks->size();
-  double highestP = 0;
-
-  // Get position of the EERecHit
+  double highestPt = 0;
+  // Get position of the RecHit
   const CaloCellGeometry *cell_p = geometry_p->getGeometry(seed.id());
   // Center of xtal
-  GlobalPoint p = (dynamic_cast <const TruncatedPyramid *> (cell_p))->getPosition(0);
+  GlobalPoint p = (dynamic_cast<const TruncatedPyramid*>(cell_p))->getPosition(0);
 
   for(unsigned int j = 0; j < numTracks; j++)
   {
-    double dRtrack = dR((*tracks)[j].eta(), (*tracks)[j].phi(), p.eta(), p.phi());
+    //Propagate tracks
+    math::XYZPoint ecalHitPt = propagateTrack((*tracks)[j]);
+    double dRtrack = dR(ecalHitPt.eta(), ecalHitPt.phi(), p.eta(), p.phi());
+    //double dRtrack = dR((*tracks)[j].eta(), (*tracks)[j].phi(), p.eta(), p.phi());
     //std::cout << "dR of track to hit: " << dRtrack << std::endl;
     if(dRtrack < dRHitTrack)
     {
-      double trackP = (*tracks)[j].outerP();
-      if((trackP > minTrackP_) && (trackP > highestP))
+      double trackPt = (*tracks)[j].outerPt();
+      if((trackPt > minTrackPt_) && (trackPt > highestPt))
       {
         retTrack = j;
-        highestP = trackP;
+        highestPt = trackPt;
       }
     }
   }
 
   return retTrack;
+}
+
+
+//---------------------------------------------------------------------------------------------------
+math::XYZPoint EcalDeDxAnalyzer::propagateTrack(const reco::Track track)
+{
+  trackingRecHit_iterator hit = track.recHitsEnd();
+  
+  while(!(*hit)->isValid() && hit != track.recHitsBegin())
+  {
+    hit--;
+  }
+  if(hit == track.recHitsBegin())
+    return math::XYZPoint(0.,0.,0.);
+
+  DetId theDetUnitId((*hit)->geographicalId());
+  const GeomDetUnit *theDet =  trackerGeom-> idToDetUnit(theDetUnitId);
+  const BoundPlane& bSurface = theDet->surface();
+  GlobalPoint hitPos(bSurface.toGlobal((*hit)->localPosition()).x(),
+      bSurface.toGlobal((*hit)->localPosition()).y(),
+      bSurface.toGlobal((*hit)->localPosition()).z());
+  GlobalVector hitMom(track.outerPx(),track.outerPy(),track.outerPz());
+
+  TrackCharge ch = track.charge();
+  const FreeTrajectoryState FTS (hitPos, hitMom, ch, &(*theMF_));
+  //std::cout << " fts position " << FTS.position()  << " momentum " <<  FTS.momentum()  << std::endl;
+
+  stateAtECAL_ = forwardPropagator_->propagate(FTS, barrel()) ;
+
+  if(!stateAtECAL_.isValid() || ( stateAtECAL_.isValid() && fabs(stateAtECAL_.globalPosition().eta() ) >1.479 ))
+  {
+    if(FTS.position().eta() > 0.)
+    {
+      stateAtECAL_= forwardPropagator_->propagate( FTS, positiveEtaEndcap());
+    }
+    else
+    {
+      stateAtECAL_= forwardPropagator_->propagate( FTS, negativeEtaEndcap());
+    }
+  }  
+
+  math::XYZPoint ecalImpactPosition(0.,0.,0.);
+  if (stateAtECAL_.isValid()) ecalImpactPosition = stateAtECAL_.globalPosition();
+  return ecalImpactPosition;
+}
+
+
+//---------------------------------------------------------------------------------------------------
+math::XYZPoint EcalDeDxAnalyzer::propagateTrack(const TrackingParticle track)
+{
+  std::vector<PSimHit> simHits = track.trackPSimHit();
+  if ( simHits.size() == 0 ) return math::XYZPoint(0.,0.,0.);
+  std::vector<PSimHit>::const_iterator hit=simHits.end();
+  hit--;
+
+  GlobalPoint hitPos = localPosToGlobalPos(*hit);
+  GlobalVector hitMom = localMomToGlobalMom(*hit);
+
+  TrackCharge ch=track.charge();
+  const FreeTrajectoryState FTS (hitPos, hitMom , ch  ,  &(*theMF_) );   
+  //std::cout << " fts position " << FTS.position()  << " momentum " <<  FTS.momentum()  << std::endl;   
+
+
+  stateAtECAL_ = forwardPropagator_->propagate( FTS, barrel() ) ;
+
+  if (!stateAtECAL_.isValid() || ( stateAtECAL_.isValid() && fabs(stateAtECAL_.globalPosition().eta() ) >1.479 )  )
+  {
+    if ( FTS.position().eta() > 0.)
+    {
+      stateAtECAL_= forwardPropagator_->propagate( FTS, positiveEtaEndcap());
+    }
+    else
+    {
+      stateAtECAL_= forwardPropagator_->propagate( FTS, negativeEtaEndcap());
+    }
+  }
+
+  math::XYZPoint ecalImpactPosition(0.,0.,0.);
+  if ( stateAtECAL_.isValid() ) ecalImpactPosition = stateAtECAL_.globalPosition();
+  return ecalImpactPosition;
+}
+
+
+//---------------------------------------------------------------------------------------------------
+GlobalPoint EcalDeDxAnalyzer::localPosToGlobalPos(const PSimHit hit)
+{
+  DetId theDetUnitId(hit.detUnitId());
+  const GeomDetUnit *theDet =  trackerGeom->idToDetUnit(theDetUnitId);
+  const BoundPlane& bSurface = theDet->surface();
+  GlobalPoint hitPos(bSurface.toGlobal(hit.localPosition()).x(),
+      bSurface.toGlobal(hit.localPosition()).y(),
+      bSurface.toGlobal(hit.localPosition()).z());
+  return hitPos;
+}
+
+
+//---------------------------------------------------------------------------------------------------
+GlobalVector EcalDeDxAnalyzer::localMomToGlobalMom(const PSimHit hit)
+{
+  DetId theDetUnitId(hit.detUnitId());
+  const GeomDetUnit *theDet =  trackerGeom->idToDetUnit(theDetUnitId);
+  const BoundPlane& bSurface = theDet->surface();
+  GlobalVector hitMom(bSurface.toGlobal(hit.momentumAtEntry()).x(),
+      bSurface.toGlobal(hit.momentumAtEntry()).y(),
+      bSurface.toGlobal(hit.momentumAtEntry()).z()); 
+  return hitMom;
 }
 
 //---------------------------------------------------------------------------------------------------
@@ -432,8 +619,10 @@ BozoCluster EcalDeDxAnalyzer::makeBozoCluster(const EcalRecHit &seed, const edm:
 
 
 // ------------ method called once each job just before starting event loop  ------------
-void EcalDeDxAnalyzer::beginJob(const edm::EventSetup&)
+void EcalDeDxAnalyzer::beginJob(const edm::EventSetup& setup)
 {
+  setup.get<IdealMagneticFieldRecord>().get(theMF_);
+  forwardPropagator_ = new PropagatorWithMaterial ( dir_ = alongMomentum, mcParticleMass_, &(*theMF_) );
 }
 
 // ------------ method called once each job just after ending the event loop  ------------
@@ -491,6 +680,8 @@ void EcalDeDxAnalyzer::endJob() {
   cluster3x3Hist_->Write();
   cluster5x5Hist_->Write();
   simHitsEnergyHist_->Write();
+  simTrackRecoTrackDeltaEtaHist_->Write();
+  simTrackRecoTrackDeltaPhiHist_->Write();
   
   a.Write();
   a.Close();
@@ -504,6 +695,31 @@ std::string EcalDeDxAnalyzer::floatToString(float f)
   ostringstream i;
   i << f << flush;
   return i.str();
+}
+
+
+void EcalDeDxAnalyzer::initializeSurfaces()
+{
+  const float epsilon = 0.001;
+  Surface::RotationType rot; // unit rotation matrix
+
+  theBarrel_ = new BoundCylinder( Surface::PositionType(0,0,0), rot, 
+      SimpleCylinderBounds( barrelRadius()-epsilon, 
+        barrelRadius()+epsilon, 
+        -barrelHalfLength(), 
+        barrelHalfLength()));
+
+  theNegativeEtaEndcap_ = 
+    new BoundDisk( Surface::PositionType( 0, 0, -endcapZ()), rot, 
+        SimpleDiskBounds( 0, endcapRadius(), -epsilon, epsilon));
+
+  thePositiveEtaEndcap_ = 
+    new BoundDisk( Surface::PositionType( 0, 0, endcapZ()), rot, 
+        SimpleDiskBounds( 0, endcapRadius(), -epsilon, epsilon));
+
+  theInit_ = true;
+
+
 }
 
 //define this as a plug-in
