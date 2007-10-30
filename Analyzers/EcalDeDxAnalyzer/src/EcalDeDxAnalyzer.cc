@@ -13,7 +13,7 @@
 //
 // Original Author:  Seth Cooper
 //         Created:  Thu Sep 27 16:09:01 CDT 2007
-// $Id: EcalDeDxAnalyzer.cc,v 1.9 2007/10/29 14:33:11 scooper Exp $
+// $Id: EcalDeDxAnalyzer.cc,v 1.10 2007/10/30 15:17:11 scooper Exp $
 //
 //
 
@@ -120,6 +120,7 @@ class EcalDeDxAnalyzer : public edm::EDAnalyzer {
       edm::InputTag EBHitCollection_;
       edm::InputTag EEHitCollection_;
       edm::InputTag trackProducer_;
+      edm::InputTag trackingParticleCollection_;
       TH2D* energyVsMomentum_;
       TH1D* energyHist_;
       TH1D* momentumHist_;
@@ -175,13 +176,14 @@ bool                                     EcalDeDxAnalyzer::theInit_ = false;
 EcalDeDxAnalyzer::EcalDeDxAnalyzer(const edm::ParameterSet& ps)
 {
    //now do what ever initialization is needed
-   EBHitCollection_     = ps.getParameter<edm::InputTag>("EBRecHitCollection");
-   EEHitCollection_     = ps.getParameter<edm::InputTag>("EERecHitCollection");
-   trackProducer_       = ps.getParameter<edm::InputTag>("trackProducer");
-   minTrackPt_           = ps.getParameter<double>("minTrackPt");
-   simTrackContainer_   = ps.getParameter<edm::InputTag>("simTrackContainer");
-   mcParticleMass_      = ps.getUntrackedParameter<double>("mcParticleMass",-1.0);
-   dRHitTrack = ps.getParameter<double>("dRTrack");
+   EBHitCollection_            = ps.getParameter<edm::InputTag>("EBRecHitCollection");
+   EEHitCollection_            = ps.getParameter<edm::InputTag>("EERecHitCollection");
+   trackProducer_              = ps.getParameter<edm::InputTag>("trackProducer");
+   minTrackPt_                 = ps.getParameter<double>("minTrackPt");
+   simTrackContainer_          = ps.getParameter<edm::InputTag>("simTrackContainer");
+   trackingParticleCollection_ = ps.getParameter<edm::InputTag>("trackingParticleCollection");
+   mcParticleMass_             = ps.getUntrackedParameter<double>("mcParticleMass",-1.0);
+   dRHitTrack                  = ps.getParameter<double>("dRTrack");
    
    energyVsMomentum_ = new TH2D("energy_vs_momentum","energy dep. in ecal vs. momentum",8000,0,2000,100,0,1.5);
    energyHist_ = new TH1D("energy_in_ecal","energy dep. in ecal",100,0,1.5);
@@ -252,14 +254,16 @@ void EcalDeDxAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& 
   }
 
   cout << "Number of reco tracks: " << trackHandle.product()->size() << endl;
-  cout << "Number of sim tracks: " << simTracks->size() << endl;
+  //cout << "Number of sim tracks: " << simTracks->size() << endl;
 
   // Get MC Tracking truth
   edm::Handle < TrackingParticleCollection > trackingParticleHandle;
-  iEvent.getByLabel("mtt", "MyTrackTruth", trackingParticleHandle);
+  iEvent.getByLabel(trackingParticleCollection_, trackingParticleHandle);
   TrackingParticleCollection trackingParticles =
     *(trackingParticleHandle.product());
-   
+  
+  cout << "Number of TrackingParticle Tracks: " << trackingParticles.size() << endl;
+     
   //TODO: Preshower hits??
   int simTrackCount = 0;
   //for(SimTrackContainer::const_iterator trackItr = simTracks->begin(); trackItr != simTracks->end(); ++trackItr)
@@ -271,14 +275,19 @@ void EcalDeDxAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& 
     std::vector<PSimHit>::const_iterator hit = simHits.end();
     hit--;
     
+    cout << "I am here!!!" << endl; 
+   
     //TODO: Make this an honest-to-goodness Pt cut (in GeV)
     if(hit->pabs() > 100)
     {
+      cout << "DEBUG1" << endl;
       double eta = localPosToGlobalPos(*hit).eta();
       double phi = localPosToGlobalPos(*hit).phi();
+      cout << "DEBUG3" << endl;
       simTrackEtaHist_->Fill(eta);
       simTrackPhiHist_->Fill(phi);
       simTrackCount++;
+      cout << " DEBUG2" << endl;
       // A bit dangerous here, but so far we only have either 1 or zero tracks make it past
       // the P cut into this if block.
       math::XYZPoint ecalSimTrackPos = propagateTrack(*trackItr);
@@ -288,7 +297,8 @@ void EcalDeDxAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& 
       simTrackRecoTrackDeltaEtaHist_->Fill(ecalSimTrackPos.Eta()-ecalRecoTrackPos.Eta());
     }
   }
-  cout << "Number of sim tracks past cut: " << simTrackCount << endl;
+
+  cout << "Number of tracking particles tracks  past cut: " << simTrackCount << endl;
   
   Handle<PCaloHitContainer> hits;
   const PCaloHitContainer* phits=0;
@@ -311,8 +321,16 @@ void EcalDeDxAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& 
   //Setup geometry
   ESHandle<CaloGeometry> geoHandle;
   ESHandle<TrackerGeometry> trackerHandle;
-  iSetup.get<IdealGeometryRecord>().get(geoHandle);
-  iSetup.get<TrackerDigiGeometryRecord>().get(trackerHandle);
+  try
+  {
+    iSetup.get<IdealGeometryRecord>().get(geoHandle);
+    iSetup.get<TrackerDigiGeometryRecord>().get(trackerHandle);
+  }
+  catch (std::exception& ex)
+  {
+    std::cerr << "Error!  can't get the tracker geometry." << std::endl;
+    throw ex;
+  }
   const CaloSubdetectorGeometry *geometry_endcap = geoHandle->getSubdetectorGeometry(DetId::Ecal, EcalEndcap);
   const CaloSubdetectorGeometry *geometry_barrel = geoHandle->getSubdetectorGeometry(DetId::Ecal, EcalBarrel);
   trackerGeom = trackerHandle.product();
@@ -529,9 +547,14 @@ math::XYZPoint EcalDeDxAnalyzer::propagateTrack(const TrackingParticle track)
 //---------------------------------------------------------------------------------------------------
 GlobalPoint EcalDeDxAnalyzer::localPosToGlobalPos(const PSimHit hit)
 {
+  using namespace std;
+  cout << "LocalPosToGlobalPos" << endl;
   DetId theDetUnitId(hit.detUnitId());
+  cout << "LocalPosToGlobalPos2" << endl;
   const GeomDetUnit *theDet =  trackerGeom->idToDetUnit(theDetUnitId);
+  cout << "LocalPosToGlobalPos3" << endl;
   const BoundPlane& bSurface = theDet->surface();
+  cout << "LocalPosToGlobalPos4" << endl;
   GlobalPoint hitPos(bSurface.toGlobal(hit.localPosition()).x(),
       bSurface.toGlobal(hit.localPosition()).y(),
       bSurface.toGlobal(hit.localPosition()).z());
