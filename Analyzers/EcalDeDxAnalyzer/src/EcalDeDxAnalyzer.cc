@@ -13,7 +13,7 @@
 //
 // Original Author:  Seth Cooper
 //         Created:  Thu Sep 27 16:09:01 CDT 2007
-// $Id: EcalDeDxAnalyzer.cc,v 1.11 2007/10/30 16:40:54 scooper Exp $
+// $Id: EcalDeDxAnalyzer.cc,v 1.12 2007/11/06 16:35:00 scooper Exp $
 //
 //
 
@@ -194,22 +194,22 @@ EcalDeDxAnalyzer::EcalDeDxAnalyzer(const edm::ParameterSet& ps)
    hitEtaPhiHist_ = new TH2D("hit_eta_Phi","eta and phi of ecal RecHits",25,-1.5,1.5,50,-3.2,3.2);
    cluster3x3Hist_ = new TH1D("3x3_cluster_energy","E3x3 energy", 100, 0, 1.5);
    cluster5x5Hist_ = new TH1D("5x5_cluster_energy","E5x5 energy", 100, 0, 1.5);
-   deDxVsBetaHist_ = new TH2D("dedx_vs_beta","dE/dx vs. beta",10,0,1,60,0,.06);
+   deDxVsBetaHist_ = new TH2D("dedx_vs_beta","dE/dx vs. beta",25,0,1,60,0,.06);
    //TODO: How to define path length of particle in detector for a cluster??
    clusterDeDxVsBetaHist_ = new TH2D("cluster_dedx_vs_beta","dE/dx from cluster vs. beta",100,0,1,60,0,.06);
    
    // e vs. beta hist only valid when we know the mass (i.e., protons)!
-   betheBlochKFunct = new TF1("betheBlochK","(1/[0])*(1/pow(x,2))",0.001,1);
+   betheBlochKFunct = new TF1("betheBlochK","(1/[0])*(1/pow(x,2))",0.5,1);
    betheBlochKFunct->SetParNames("K");
-   betheBlochKFunct->SetParameter(0,900);
+   betheBlochKFunct->SetParameter(0,150);
    
    simTrackEtaHist_ = new TH1D("simTracksEta","Eta of MC tracks",80,-4,4);
    simTrackPhiHist_ = new TH1D("simTracksPhi","Phi of MC tracks",120,-6.4,6.4);
    simHitsEnergyHist_ = new TH1D("simHitsEnergy","Energy of sim hits",200,0,2);
    ecalHitEtaHist_ = new TH1D("ecalHitsEta","Eta of hits in ecal",60,-3,3);
    ecalHitPhiHist_ = new TH1D("ecalHitsPhi","Phi of hits in ecal",120,-6.4,6.4);
-   simTrackRecoTrackDeltaEtaHist_ = new TH1D("tracksDeltaEta","Delta eta of sim tracks and reco tracks",100,-1,1);
-   simTrackRecoTrackDeltaPhiHist_ = new TH1D("tracksDeltaPhi","Delta eta of sim tracks and reco tracks",300,-3.15,3.15);
+   simTrackRecoTrackDeltaEtaHist_ = new TH1D("tracksDeltaEta","Delta eta of sim tracks and reco tracks",1000,-.01,.01);
+   simTrackRecoTrackDeltaPhiHist_ = new TH1D("tracksDeltaPhi","Delta phi of sim tracks and reco tracks",2000,-.04,.04);
    
    //dRHitTrack = 1; //0.2;
 }
@@ -298,19 +298,21 @@ void EcalDeDxAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& 
     {
       double eta = localPosToGlobalPos(*hit).eta();
       double phi = localPosToGlobalPos(*hit).phi();
-      cout << "PDG ID:" << trackItr->pdgId() << endl;
-      cout << "DEBUG1--line 301" << endl;
+      //cout << "PDG ID:" << trackItr->pdgId() << endl;
+      //cout << "DEBUG1--line 301" << endl;
       simTrackEtaHist_->Fill(eta);
       simTrackPhiHist_->Fill(phi);
       simTrackCount++;
       math::XYZPoint ecalSimTrackPos = propagateTrack(*trackItr);
-      cout << "DEBUG2" << endl;
+      //cout << "DEBUG2" << endl;
       math::XYZPoint ecalRecoTrackPos = math::XYZPoint(0,0,0);
       if(trackHandle.product()->size()!=0)
+      {
         math::XYZPoint ecalRecoTrackPos = propagateTrack((*trackHandle.product())[0]);
-      cout << "DEBUG3" << endl;
-      simTrackRecoTrackDeltaPhiHist_->Fill(ecalSimTrackPos.Phi()-ecalRecoTrackPos.Phi());
-      simTrackRecoTrackDeltaEtaHist_->Fill(ecalSimTrackPos.Eta()-ecalRecoTrackPos.Eta());
+        //cout << "DEBUG3" << endl;
+        simTrackRecoTrackDeltaPhiHist_->Fill(ecalSimTrackPos.Phi()-ecalRecoTrackPos.Phi());
+        simTrackRecoTrackDeltaEtaHist_->Fill(ecalSimTrackPos.Eta()-ecalRecoTrackPos.Eta());
+      }
     }
   }
 
@@ -368,9 +370,9 @@ void EcalDeDxAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& 
       {
         double beta = p/sqrt(pow(p,2)+pow(mcParticleMass_,2));
         energyVsBetaHist_->Fill(beta, energy);
-        deDxVsBetaHist_->Fill(beta,energy/23.0);
         if(beta > .5) //energy/23.0 > .003)
         {
+          deDxVsBetaHist_->Fill(beta,energy/23.0);
           cout << "Adding point (e/l,beta): " << energy/23.0 << "," << beta << endl;
           vx.push_back(beta);
           vy.push_back(energy/23.0);  //TODO: This is only a very rough crystal length approximation
@@ -653,7 +655,7 @@ void EcalDeDxAnalyzer::endJob() {
   betheBlochKFunct->Write();
   
   TProfile* deDxProfile_ = (TProfile*) (deDxVsBetaHist_->ProfileX());
-  //deDxProfile_->Fit("betheBlochK");
+  deDxProfile_->Fit("betheBlochK","R");
   deDxProfile_->Write();
 
   TGraph* maxDeDxVsBeta;
@@ -679,7 +681,7 @@ void EcalDeDxAnalyzer::endJob() {
   
   clusterDeDxVsBetaHist_->Write();
   deDxVsBetaGraph_ = new TGraph(vx.size(), &(*vx.begin()), &(*vy.begin()));
-  deDxVsBetaGraph_->Fit("betheBlochK");
+  deDxVsBetaGraph_->Fit("betheBlochK","R");
   deDxVsBetaGraph_->SetTitle("DeDx vs. beta (all hits)");
   deDxVsBetaGraph_->SetName("dedxVsBetaFittedGraph");
   deDxVsBetaGraph_->Write();
