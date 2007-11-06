@@ -13,7 +13,7 @@
 //
 // Original Author:  Seth Cooper
 //         Created:  Thu Sep 27 16:09:01 CDT 2007
-// $Id: EcalDeDxAnalyzer.cc,v 1.10 2007/10/30 15:17:11 scooper Exp $
+// $Id: EcalDeDxAnalyzer.cc,v 1.11 2007/10/30 16:40:54 scooper Exp $
 //
 //
 
@@ -256,6 +256,23 @@ void EcalDeDxAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& 
   cout << "Number of reco tracks: " << trackHandle.product()->size() << endl;
   //cout << "Number of sim tracks: " << simTracks->size() << endl;
 
+  //Setup geometry
+  ESHandle<CaloGeometry> geoHandle;
+  ESHandle<TrackerGeometry> trackerHandle;
+  try
+  {
+    iSetup.get<IdealGeometryRecord>().get(geoHandle);
+    iSetup.get<TrackerDigiGeometryRecord>().get(trackerHandle);
+  }
+  catch (std::exception& ex)
+  {
+    std::cerr << "Error!  can't get the tracker geometry." << std::endl;
+    throw ex;
+  }
+  const CaloSubdetectorGeometry *geometry_endcap = geoHandle->getSubdetectorGeometry(DetId::Ecal, EcalEndcap);
+  const CaloSubdetectorGeometry *geometry_barrel = geoHandle->getSubdetectorGeometry(DetId::Ecal, EcalBarrel);
+  trackerGeom = trackerHandle.product();
+
   // Get MC Tracking truth
   edm::Handle < TrackingParticleCollection > trackingParticleHandle;
   iEvent.getByLabel(trackingParticleCollection_, trackingParticleHandle);
@@ -275,30 +292,29 @@ void EcalDeDxAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& 
     std::vector<PSimHit>::const_iterator hit = simHits.end();
     hit--;
     
-    cout << "I am here!!!" << endl; 
    
     //TODO: Make this an honest-to-goodness Pt cut (in GeV)
     if(hit->pabs() > 100)
     {
-      cout << "DEBUG1" << endl;
       double eta = localPosToGlobalPos(*hit).eta();
       double phi = localPosToGlobalPos(*hit).phi();
-      cout << "DEBUG3" << endl;
+      cout << "PDG ID:" << trackItr->pdgId() << endl;
+      cout << "DEBUG1--line 301" << endl;
       simTrackEtaHist_->Fill(eta);
       simTrackPhiHist_->Fill(phi);
       simTrackCount++;
-      cout << " DEBUG2" << endl;
-      // A bit dangerous here, but so far we only have either 1 or zero tracks make it past
-      // the P cut into this if block.
       math::XYZPoint ecalSimTrackPos = propagateTrack(*trackItr);
-      // Also only 1 reco track
-      math::XYZPoint ecalRecoTrackPos = propagateTrack((*trackHandle.product())[0]);
+      cout << "DEBUG2" << endl;
+      math::XYZPoint ecalRecoTrackPos = math::XYZPoint(0,0,0);
+      if(trackHandle.product()->size()!=0)
+        math::XYZPoint ecalRecoTrackPos = propagateTrack((*trackHandle.product())[0]);
+      cout << "DEBUG3" << endl;
       simTrackRecoTrackDeltaPhiHist_->Fill(ecalSimTrackPos.Phi()-ecalRecoTrackPos.Phi());
       simTrackRecoTrackDeltaEtaHist_->Fill(ecalSimTrackPos.Eta()-ecalRecoTrackPos.Eta());
     }
   }
 
-  cout << "Number of tracking particles tracks  past cut: " << simTrackCount << endl;
+  cout << "Number of tracking particles tracks past cut: " << simTrackCount << endl;
   
   Handle<PCaloHitContainer> hits;
   const PCaloHitContainer* phits=0;
@@ -318,22 +334,6 @@ void EcalDeDxAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& 
     simHitsEnergyHist_->Fill(myHit->energy());
   }
   
-  //Setup geometry
-  ESHandle<CaloGeometry> geoHandle;
-  ESHandle<TrackerGeometry> trackerHandle;
-  try
-  {
-    iSetup.get<IdealGeometryRecord>().get(geoHandle);
-    iSetup.get<TrackerDigiGeometryRecord>().get(trackerHandle);
-  }
-  catch (std::exception& ex)
-  {
-    std::cerr << "Error!  can't get the tracker geometry." << std::endl;
-    throw ex;
-  }
-  const CaloSubdetectorGeometry *geometry_endcap = geoHandle->getSubdetectorGeometry(DetId::Ecal, EcalEndcap);
-  const CaloSubdetectorGeometry *geometry_barrel = geoHandle->getSubdetectorGeometry(DetId::Ecal, EcalBarrel);
-  trackerGeom = trackerHandle.product();
   
   float highestE = -1;
   double trackMatchedP;
@@ -468,16 +468,16 @@ int EcalDeDxAnalyzer::findTrack(const EcalRecHit &seed, const reco::TrackCollect
 math::XYZPoint EcalDeDxAnalyzer::propagateTrack(const reco::Track track)
 {
   trackingRecHit_iterator hit = track.recHitsEnd();
+  hit--;
   
-  while(!(*hit)->isValid() && hit != track.recHitsBegin())
-  {
-    hit--;
-  }
   if(hit == track.recHitsBegin())
     return math::XYZPoint(0.,0.,0.);
 
   DetId theDetUnitId((*hit)->geographicalId());
   const GeomDetUnit *theDet =  trackerGeom-> idToDetUnit(theDetUnitId);
+  if(theDet==0)
+    return math::XYZPoint(0.,0.,0.);
+
   const BoundPlane& bSurface = theDet->surface();
   GlobalPoint hitPos(bSurface.toGlobal((*hit)->localPosition()).x(),
       bSurface.toGlobal((*hit)->localPosition()).y(),
@@ -548,13 +548,9 @@ math::XYZPoint EcalDeDxAnalyzer::propagateTrack(const TrackingParticle track)
 GlobalPoint EcalDeDxAnalyzer::localPosToGlobalPos(const PSimHit hit)
 {
   using namespace std;
-  cout << "LocalPosToGlobalPos" << endl;
   DetId theDetUnitId(hit.detUnitId());
-  cout << "LocalPosToGlobalPos2" << endl;
   const GeomDetUnit *theDet =  trackerGeom->idToDetUnit(theDetUnitId);
-  cout << "LocalPosToGlobalPos3" << endl;
   const BoundPlane& bSurface = theDet->surface();
-  cout << "LocalPosToGlobalPos4" << endl;
   GlobalPoint hitPos(bSurface.toGlobal(hit.localPosition()).x(),
       bSurface.toGlobal(hit.localPosition()).y(),
       bSurface.toGlobal(hit.localPosition()).z());
