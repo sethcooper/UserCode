@@ -2,8 +2,8 @@
 /**
  * \file EcalPedOffset.cc
  *
- * $Date: 2007/06/13 07:00:09 $
- * $Revision: 1.18 $
+ * $Date: 2007/10/29 13:09:00 $
+ * $Revision: 1.1 $
  * \author P. Govoni (pietro.govoni@cernNOSPAM.ch)
  * Last updated: @DATE@ @AUTHOR@
  *
@@ -139,6 +139,7 @@ void EcalPedOffset::analyze (Event const& event,
     EcalDCCHeaderBlock::EcalDCCEventSettings settings = headerItr->getEventSettings();
     int FEDid = 600+headerItr->id();
     DACvalues[FEDid] = settings.ped_offset;
+    //std::cout << "Inserting DAC value of " << settings.ped_offset << " for FEDid " << FEDid << std::endl;
   }
 
 //TODO: fix this part so that if we get neither endcap nor barrel, something
@@ -193,7 +194,7 @@ void EcalPedOffset::readDACs(edm::Handle<EBDigiCollection> pDigis,
       itdigi != pDigis->end(); 
       ++itdigi)
   {
-    // Below is for 1_7_0
+    // This is for 1_7_0:
     //int gainId = ((EBDataFrame)(*itdigi)).sample(0).gainId();
     int gainId = itdigi->sample(0).gainId();
     EBDetId detId = EBDetId(itdigi->id());
@@ -218,6 +219,9 @@ void EcalPedOffset::readDACs(edm::Handle<EBDigiCollection> pDigis,
           crystalId,
           DACvalues[FEDid],
           itdigi->sample(iSample).adc());
+//      if(itdigi->sample(iSample).adc()==0)
+//        LogDebug("EcalPedOffset") << "Barrel digis.  Gain:" << gainId << " cry:"
+//          << crystalId << " DAC:" << DACvalues[FEDid] << " ZERO PEDESTAL.";
     }
     
   } //end loop over digis
@@ -261,6 +265,9 @@ void EcalPedOffset::readDACs(edm::Handle<EEDigiCollection> pDigis,
           crystalId,
           DACvalues[FEDid],
           itdigi->sample(iSample).adc());
+//      if(itdigi->sample(iSample).adc()==0)
+//        LogDebug("EcalPedOffset") << "Endcap digis.  Gain:" << gainId << " cry:"
+//          << crystalId << " DAC:" << DACvalues[FEDid] << " ZERO PEDESTAL.";
     }
     
   } //end loop over digis
