@@ -1,10 +1,11 @@
 <use name=FWCore/Framework>
 
-<library file=/stubs/EcalPedHistDumperModule.cc name=EcalPedHistDumperModule>
-  <flags EDM_PLUGIN=1>
-  <use name=root>
-  <use name=DataFormats/EcalDigi>
-</library>
+<library file=stubs/EcalPedHistDumperModule.cc name=EcalPedHistDumperModule>
+   <flags EDM_PLUGIN=1>
+   <use name=cppunit>
+   <use name=root>
+   <use name=DataFormats/EcalDigi>
+</library> 
 
 <library file=stubs/EcalDigiDumperModule.cc name=EcalDigiDumperModule>
    <flags EDM_PLUGIN=1> 
