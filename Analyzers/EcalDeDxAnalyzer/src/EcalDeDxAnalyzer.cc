@@ -13,7 +13,7 @@
 //
 // Original Author:  Seth Cooper
 //         Created:  Thu Sep 27 16:09:01 CDT 2007
-// $Id: EcalDeDxAnalyzer.cc,v 1.12 2007/11/06 16:35:00 scooper Exp $
+// $Id: EcalDeDxAnalyzer.cc,v 1.13 2007/11/06 22:20:24 scooper Exp $
 //
 //
 
@@ -151,6 +151,7 @@ class EcalDeDxAnalyzer : public edm::EDAnalyzer {
       double dRHitTrack;
       double minTrackPt_;
       double mcParticleMass_;
+      double trackerHitMinP_;
       
       std::vector<double> vx;
       std::vector<double> vy;
@@ -184,6 +185,7 @@ EcalDeDxAnalyzer::EcalDeDxAnalyzer(const edm::ParameterSet& ps)
    trackingParticleCollection_ = ps.getParameter<edm::InputTag>("trackingParticleCollection");
    mcParticleMass_             = ps.getUntrackedParameter<double>("mcParticleMass",-1.0);
    dRHitTrack                  = ps.getParameter<double>("dRTrack");
+   trackerHitMinP_             = ps.getParameter<double>("trackerMinHitP_");
    
    energyVsMomentum_ = new TH2D("energy_vs_momentum","energy dep. in ecal vs. momentum",8000,0,2000,100,0,1.5);
    energyHist_ = new TH1D("energy_in_ecal","energy dep. in ecal",100,0,1.5);
@@ -294,7 +296,7 @@ void EcalDeDxAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& 
     
    
     //TODO: Make this an honest-to-goodness Pt cut (in GeV)
-    if(hit->pabs() > 100)
+    if(hit->pabs() > trackerHitMinP_)
     {
       double eta = localPosToGlobalPos(*hit).eta();
       double phi = localPosToGlobalPos(*hit).phi();
@@ -348,6 +350,19 @@ void EcalDeDxAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& 
     if(trackFound != -1)
     {
       const reco::TrackRef track = edm::Ref<reco::TrackCollection>(trackHandle, trackFound);
+      
+      //double p = 0;
+      //Get e, p from MC for zero B field
+      cout << "Number of simTracks:" << simTracks->size() << endl;
+      //for(SimTrackContainer::const_iterator simTrack = simTracks->begin(); simTrack != simTracks->end(); ++simTrack)
+      //{
+        //if((simTrack->type())==2212)
+        //{
+         // p = (sqrt(pow((simTrack->momentum()).px(),2)+pow((simTrack->momentum()).py(),2)
+         //       +pow((simTrack->momentum()).pz(),2)));
+        //}
+      //}
+      
       double p = track->outerP();
       float energy = (recItr->energy());
       const CaloCellGeometry *cell_p = geometry_barrel->getGeometry((*recItr).id());
@@ -438,7 +453,7 @@ int EcalDeDxAnalyzer::findTrack(const EcalRecHit &seed, const reco::TrackCollect
 
   // See if we have a track with pT > minTrackPt_ and dR < dRHitTrack
   unsigned int numTracks = tracks->size();
-  double highestPt = 0;
+  double lowestdR = 1000;
   // Get position of the RecHit
   const CaloCellGeometry *cell_p = geometry_p->getGeometry(seed.id());
   // Center of xtal
@@ -454,10 +469,10 @@ int EcalDeDxAnalyzer::findTrack(const EcalRecHit &seed, const reco::TrackCollect
     if(dRtrack < dRHitTrack)
     {
       double trackPt = (*tracks)[j].outerPt();
-      if((trackPt > minTrackPt_) && (trackPt > highestPt))
+      if((trackPt > minTrackPt_) && (dRtrack < lowestdR))
       {
         retTrack = j;
-        highestPt = trackPt;
+        lowestdR = dRtrack;
       }
     }
   }
@@ -662,9 +677,9 @@ void EcalDeDxAnalyzer::endJob() {
   vector<double> xBetaVec;
   vector<double> yMaxDeDxVec;
 
-  for(int i=0; i<10; i++)
+  for(int i=0; i<25; i++)
   {
-    string title = "DeDxBetaHist"+floatToString(i*.1)+"_"+floatToString((i+1)*.1);
+    string title = "DeDxBetaHist"+floatToString(i*.25)+"_"+floatToString((i+1)*.25);
     TH1D* deDxBetaProjection_ = (TH1D*) (deDxVsBetaHist_->ProjectionY(title.c_str(),i,i+1));
     deDxBetaProjection_->Write();
     yMaxDeDxVec.push_back((deDxBetaProjection_->GetMaximumBin())*.001);
