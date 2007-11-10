@@ -5,6 +5,7 @@
    <use name=cppunit>
    <use name=root>
    <use name=DataFormats/EcalDigi>
+   <use name=Geometry/EcalMapping>
 </library> 
 
 <library file=stubs/EcalDigiDumperModule.cc name=EcalDigiDumperModule>
