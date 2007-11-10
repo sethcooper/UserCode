@@ -87,12 +87,14 @@ class EcalDeDxAnalyzer : public edm::EDAnalyzer {
       virtual void endJob();
 
       int findTrack(const EcalRecHit &seed, const reco::TrackCollection *tracks, const CaloSubdetectorGeometry* geometry_p);
+      //int findTrack(const EcalRecHit &seed, const edm::SimTrackContainer *tracks, const CaloSubdetectorGeometry* geometry_p);
       double dPhi(double phi1, double phi2);
       double dR(double eta1, double phi1, double eta2, double phi2);
       BozoCluster makeBozoCluster(const EcalRecHit &seed, const edm::Handle<EBRecHitCollection> &hits);
       std::string floatToString(float f);
       math::XYZPoint propagateTrack(const reco::Track track);
       math::XYZPoint propagateTrack(const TrackingParticle track);
+      //math::XYZPoint EcalDeDxAnalyzer::propagateTrack(const edm::SimTrack track);
       GlobalPoint localPosToGlobalPos(const PSimHit hit);
       GlobalVector localMomToGlobalMom(const PSimHit hit);
       /** Hard-wired numbers defining the surfaces on which the crystal front faces lie. */
@@ -362,9 +364,22 @@ void EcalDeDxAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& 
          //       +pow((simTrack->momentum()).pz(),2)));
         //}
       //}
-      
+
       double p = track->outerP();
       float energy = (recItr->energy());
+//      int simTrackFound = findTrack(*recItr, simTracks, geometry_barrel);
+//      if(simTrackFound != -1 && mcParticleMass_ > -1)
+//      {
+//        const SimTrack MCtrack = (*simTracks)[simTrackFound];
+//        pFromMC = (sqrt(pow((MCtrack->momentum()).px(),2)+pow((MCtrack->momentum()).py(),2)
+//                +pow((MCtrack->momentum()).pz(),2)));
+//        
+//        double beta = 1/sqrt(K*energy/23.0);
+//        double betaSim = pFromMC/sqrt(pow(pFromMC,2)+pow(mcParticleMass_,2));
+//        
+//        deltaPHist_->Fill(betaSim-beta);
+//      }
+      
       const CaloCellGeometry *cell_p = geometry_barrel->getGeometry((*recItr).id());
       // Center of xtal
       GlobalPoint pt = (dynamic_cast <const TruncatedPyramid *> (cell_p))->getPosition(0);
@@ -482,6 +497,42 @@ int EcalDeDxAnalyzer::findTrack(const EcalRecHit &seed, const reco::TrackCollect
 
 
 //---------------------------------------------------------------------------------------------------
+//int EcalDeDxAnalyzer::findTrack(const EcalRecHit &seed, const edm::SimTrackContainer *tracks,
+//                                const CaloSubdetectorGeometry* geometry_p)
+//{
+//  int retTrack = -1;
+//
+//  // See if we have a track with pT > minTrackPt_ and dR < dRHitTrack
+//  unsigned int numTracks = tracks->size();
+//  double lowestdR = 1000;
+//  // Get position of the RecHit
+//  const CaloCellGeometry *cell_p = geometry_p->getGeometry(seed.id());
+//  // Center of xtal
+//  GlobalPoint p = (dynamic_cast<const TruncatedPyramid*>(cell_p))->getPosition(0);
+//
+//  for(unsigned int j = 0; j < numTracks; j++)
+//  {
+//    //Propagate tracks
+//    math::XYZPoint ecalHitPt = propagateTrack((*tracks)[j]);
+//    double dRtrack = dR(ecalHitPt.eta(), ecalHitPt.phi(), p.eta(), p.phi());
+//    //double dRtrack = dR((*tracks)[j].eta(), (*tracks)[j].phi(), p.eta(), p.phi());
+//    //std::cout << "dR of track to hit: " << dRtrack << std::endl;
+//    if(dRtrack < dRHitTrack)
+//    {
+//      double trackPt = (*tracks)[j].outerPt();
+//      if((trackPt > minTrackPt_) && (dRtrack < lowestdR))
+//      {
+//        retTrack = j;
+//        lowestdR = dRtrack;
+//      }
+//    }
+//  }
+//
+//  return retTrack;
+//}
+
+
+//---------------------------------------------------------------------------------------------------
 math::XYZPoint EcalDeDxAnalyzer::propagateTrack(const reco::Track track)
 {
   trackingRecHit_iterator hit = track.recHitsEnd();
@@ -559,6 +610,42 @@ math::XYZPoint EcalDeDxAnalyzer::propagateTrack(const TrackingParticle track)
   if ( stateAtECAL_.isValid() ) ecalImpactPosition = stateAtECAL_.globalPosition();
   return ecalImpactPosition;
 }
+
+
+//---------------------------------------------------------------------------------------------------
+//math::XYZPoint EcalDeDxAnalyzer::propagateTrack(const edm::SimTrack track)
+//{
+//  std::vector<PSimHit> simHits = track.trackPSimHit();
+//  if ( simHits.size() == 0 ) return math::XYZPoint(0.,0.,0.);
+//  std::vector<PSimHit>::const_iterator hit=simHits.end();
+//  hit--;
+//
+//  GlobalPoint hitPos = localPosToGlobalPos(*hit);
+//  GlobalVector hitMom = localMomToGlobalMom(*hit);
+//
+//  TrackCharge ch=track.charge();
+//  const FreeTrajectoryState FTS (hitPos, hitMom , ch  ,  &(*theMF_) );   
+//  //std::cout << " fts position " << FTS.position()  << " momentum " <<  FTS.momentum()  << std::endl;   
+//
+//
+//  stateAtECAL_ = forwardPropagator_->propagate( FTS, barrel() ) ;
+//
+//  if (!stateAtECAL_.isValid() || ( stateAtECAL_.isValid() && fabs(stateAtECAL_.globalPosition().eta() ) >1.479 )  )
+//  {
+//    if ( FTS.position().eta() > 0.)
+//    {
+//      stateAtECAL_= forwardPropagator_->propagate( FTS, positiveEtaEndcap());
+//    }
+//    else
+//    {
+//      stateAtECAL_= forwardPropagator_->propagate( FTS, negativeEtaEndcap());
+//    }
+//  }
+//
+//  math::XYZPoint ecalImpactPosition(0.,0.,0.);
+//  if ( stateAtECAL_.isValid() ) ecalImpactPosition = stateAtECAL_.globalPosition();
+//  return ecalImpactPosition;
+//}
 
 
 //---------------------------------------------------------------------------------------------------
