@@ -2,8 +2,8 @@
 /**
  * \file EcalPedOffset.cc
  *
- * $Date: 2007/10/29 13:09:00 $
- * $Revision: 1.1 $
+ * $Date: 2007/11/06 16:38:58 $
+ * $Revision: 1.2 $
  * \author P. Govoni (pietro.govoni@cernNOSPAM.ch)
  * Last updated: @DATE@ @AUTHOR@
  *
@@ -330,8 +330,9 @@ void EcalPedOffset::writeDb ()
 
 
   run_t run = m_run ; //FIXME dal config file
-  RunIOV runiov = DBconnection->fetchRunIOV (&runtag, run);
-
+  //RunIOV runiov = DBconnection->fetchRunIOV (&runtag, run);
+  RunIOV runiov = DBconnection->fetchRunIOV(m_location, run);
+  
   // MonRunIOV
   MonVersionDef monverdef ;  
   monverdef.setMonitoringVersion ("test01");
@@ -344,7 +345,8 @@ void EcalPedOffset::writeDb ()
   MonRunIOV moniov ;
 
   try{
-    moniov= DBconnection->fetchMonRunIOV (&runtag, &montag, run, subrun);
+    runtag = runiov.getRunTag();
+    moniov = DBconnection->fetchMonRunIOV(&runtag, &montag, run, subrun);
   } 
   catch (runtime_error &e) {
     if(m_create_moniov){
