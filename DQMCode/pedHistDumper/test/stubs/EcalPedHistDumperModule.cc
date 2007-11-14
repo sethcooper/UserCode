@@ -64,20 +64,20 @@ EcalPedHistDumperModule::EcalPedHistDumperModule(const edm::ParameterSet& ps) :
 {
   using namespace std;
   vector<int> listDefaults = vector<int>();
-  //for(int i=601; i<655; ++i)
-  //{
-  //  listDefaults.push_back(i);
-  //} 
+  for(int i=601; i<655; ++i)
+  {
+    listDefaults.push_back(i);
+  } 
   listFEDs_ = ps.getUntrackedParameter<vector<int> >("listFEDs", listDefaults);
   
   // Apply no selection if -1 is passed
   if(listFEDs_[0]==-1)
   {
     //debug
-    cerr << "no selection on FEDs!" << endl;
-    inputIsOk_=false;
-    return;
-    //listFEDs_ = listDefaults;
+    //cerr << "no selection on FEDs!" << endl;
+    //inputIsOk_=false;
+    //return;
+    listFEDs_ = listDefaults;
   }
   
   listDefaults.clear();
@@ -96,7 +96,7 @@ EcalPedHistDumperModule::EcalPedHistDumperModule(const edm::ParameterSet& ps) :
   inputIsOk_ = true;
   vector<int>::iterator intIter;
   
-  // Verify supermodule numbers are valid
+  // Verify FED numbers are valid
   for (intIter = listFEDs_.begin(); intIter != listFEDs_.end(); intIter++)
   {  
       if ( ((*intIter) < 601)||(654 < (*intIter)) )
@@ -135,7 +135,7 @@ EcalPedHistDumperModule::EcalPedHistDumperModule(const edm::ParameterSet& ps) :
   {
     std::map<string,TH1F*> histMap;
     //debug
-    cout << "Initializing map for FED:" << *FEDitr << endl;
+    //cout << "Initializing map for FED:" << *FEDitr << endl;
     for (intIter = listChannels_.begin(); intIter != listChannels_.end(); ++intIter)
     { 
       //Put 3 histos (1 per gain) for the channel into the map
@@ -178,7 +178,7 @@ void EcalPedHistDumperModule::endJob(void)
   if(inputIsOk_)
   { 
     //debug
-    cout << "endJob:creating root file!" << endl;
+    //cout << "endJob:creating root file!" << endl;
     
     fileName_ += "_"+intToString(runNum_)+".graph.root";
 
@@ -197,6 +197,7 @@ void EcalPedHistDumperModule::endJob(void)
       //debug 
       //cout << "FED:" << *FEDitr << endl;
       //cout << "Size of histMap:" << mapHistos.size() << endl;
+      // All mapHistos entries have size 15 since they are initialized above
       //if(mapHistos.size()==0)
       //{
       //  cout << "detected empty hist map for FED:" << *FEDitr <<"; deleting dir" << endl;
@@ -219,7 +220,6 @@ void EcalPedHistDumperModule::endJob(void)
         string name3 = "Cry";
         name3.append(chnl+"Gain12");
         hist = mapHistos[name1];
-        cout << "I get to here!" << endl;
         // This is a sanity check only
         if(hist!=0)
         {
