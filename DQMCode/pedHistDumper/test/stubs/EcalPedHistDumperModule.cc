@@ -20,6 +20,7 @@
 
 #include <iostream>
 #include <vector>
+#include <set>
 #include "TFile.h"
 #include "TH1.h"
 #include "TDirectory.h"
@@ -41,7 +42,7 @@ class EcalPedHistDumperModule: public edm::EDAnalyzer
     std::string intToString(int num);
     void readEBdigis(edm::Handle<EBDigiCollection> digis);
     void readEEdigis(edm::Handle<EEDigiCollection> digis);
-    void initHists();
+    void initHists(int FED);
 
     int runNum_;
     bool inputIsOk_;
@@ -55,6 +56,7 @@ class EcalPedHistDumperModule: public edm::EDAnalyzer
     std::vector<int> listSamples_;
     std::vector<int> listFEDs_;
     std::map<int,stringHistMap> FEDsAndHistMaps_;
+    std::set<int> theRealFedSet_;
     TFile * root_file_;
 };
 
@@ -69,14 +71,12 @@ EcalPedHistDumperModule::EcalPedHistDumperModule(const edm::ParameterSet& ps) :
 {
   using namespace std;
 
-  vector<int> listDefaults = vector<int>();
-  for(int i=601; i<655; ++i)
-  {
-    listDefaults.push_back(i);
-  } 
-  listFEDs_ = ps.getUntrackedParameter<vector<int> >("listFEDs", listDefaults);
+  //for(int i=601; i<655; ++i)
+  //{
+  //  listDefaults.push_back(i);
+  //} 
+  listFEDs_ = ps.getParameter<vector<int> >("listFEDs");
   
-  allFEDsSelected_ = false;
   // Apply no selection if -1 is passed
   if(listFEDs_[0]==-1)
   {
@@ -87,7 +87,25 @@ EcalPedHistDumperModule::EcalPedHistDumperModule(const edm::ParameterSet& ps) :
     //return;
     //listFEDs_ = listDefaults;
   }
-  
+  else
+  {
+    allFEDsSelected_ = false;
+    // Verify FED numbers are valid
+    for (vector<int>::const_iterator intIter = listFEDs_.begin(); intIter != listFEDs_.end(); intIter++)
+    {  
+      if ( ((*intIter) < 601)||(654 < (*intIter)) )
+      {  
+        cout << "[EcalPedHistDumperModule] FED value: " << (*intIter) << " found in listFEDs. "
+          << " Valid range is 601-654. Returning." << endl;
+        inputIsOk_ = false;
+        return;
+      }
+      else
+        theRealFedSet_.insert(*intIter);
+    }
+  } 
+
+  vector<int> listDefaults = vector<int>();
   listDefaults.clear();
   for(int i=1; i<1701; ++i)
   {
@@ -149,9 +167,8 @@ void EcalPedHistDumperModule::endJob(void)
 
     TFile root_file_(fileName_.c_str() , "RECREATE");
     //Loop over FEDs first
-    for(vector<int>::const_iterator FEDitr = listFEDs_.begin(); FEDitr != listFEDs_.end(); ++FEDitr)
+    for(set<int>::const_iterator FEDitr = theRealFedSet_.begin(); FEDitr != theRealFedSet_.end(); ++FEDitr)
     {
-      
       string dir = intToString(*FEDitr);
       TDirectory* FEDdir = gDirectory->mkdir(dir.c_str());
       FEDdir->cd();
@@ -227,35 +244,25 @@ void EcalPedHistDumperModule::analyze(const edm::Event& e, const edm::EventSetup
       e.getByLabel (headerProducer_, DCCHeaders);
     } catch ( std::exception& ex ) {
       edm::LogError ("EcalPedOffset") << "Error! can't get the product " 
-        << headerProducer_.c_str() << " Data for all FEDs being examined";
+        << headerProducer_.c_str();
+      return;
     }
 
-    vector<int> theRealFedList;
     for (EcalRawDataCollection::const_iterator headerItr= DCCHeaders->begin();
         headerItr != DCCHeaders->end (); 
         ++headerItr) 
     {
       int FEDid = 600+headerItr->id();
-      theRealFedList.push_back(FEDid);
+      theRealFedSet_.insert(FEDid);
     }
-    // So we only do this once, not once per event
-    allFEDsSelected_ = false;
-    listFEDs_ = theRealFedList;
   }
 
-  // Verify FED numbers are valid
-  for (vector<int>::const_iterator intIter = listFEDs_.begin(); intIter != listFEDs_.end(); intIter++)
-  {  
-      if ( ((*intIter) < 601)||(654 < (*intIter)) )
-      {  
-	cout << "[EcalPedHistDumperModule] FED value: " << (*intIter) << " found in listFEDs. "
-		  << " Valid range is 601-654. Returning." << endl;
-	inputIsOk_ = false;
-	return;
-      }
+  // loop over fed list and make sure that there are histo maps
+  for(set<int>::const_iterator fedItr = theRealFedSet_.begin(); fedItr != theRealFedSet_.end(); ++fedItr)
+  {
+    if(FEDsAndHistMaps_.find(*fedItr)==FEDsAndHistMaps_.end())
+      initHists(*fedItr);
   }
-
-  initHists();
   
   //debug
   //cout << "analyze...input is ok? " << inputIsOk_ << endl;
@@ -298,44 +305,40 @@ void EcalPedHistDumperModule::analyze(const edm::Event& e, const edm::EventSetup
     runNum_ = e.id().run();
 }
 
-// create the map of FEDid and histogram-string map from int FED list and int channel list
-void EcalPedHistDumperModule::initHists()
+// insert the 3-entry hist map into the map keyed by FED number
+void EcalPedHistDumperModule::initHists(int FED)
 {
   using namespace std;
   //using namespace edm;
-  
-  // Loop over FEDids and create map of histograms
-  for(vector<int>::const_iterator FEDitr = listFEDs_.begin(); FEDitr != listFEDs_.end(); ++FEDitr)
-  {
-    std::map<string,TH1F*> histMap;
-    //debug
-    //cout << "Initializing map for FED:" << *FEDitr << endl;
-    for (vector<int>::const_iterator intIter = listChannels_.begin(); intIter != listChannels_.end(); ++intIter)
-    { 
-      //Put 3 histos (1 per gain) for the channel into the map
-      string FEDid = intToString(*FEDitr);
-      string chnl = intToString(*intIter);
-      string title1 = "Gain1 ADC Counts for channel ";
-      title1.append(chnl);
-      string name1 = "Cry";
-      name1.append(chnl+"Gain1");
-      string title2 = "Gain6 ADC Counts for channel ";
-      title2.append(chnl);
-      string name2 = "Cry";
-      name2.append(chnl+"Gain6");
-      string title3 = "Gain12 ADC Counts for channel ";
-      title3.append(chnl);
-      string name3 = "Cry";
-      name3.append(chnl+"Gain12");
-      histMap.insert(make_pair(name1,new TH1F(name1.c_str(),title1.c_str(),75,175.0,250.0)));
-      histMap[name1]->SetDirectory(0);
-      histMap.insert(make_pair(name2,new TH1F(name2.c_str(),title2.c_str(),75,175.0,250.0)));
-      histMap[name2]->SetDirectory(0);
-      histMap.insert(make_pair(name3,new TH1F(name3.c_str(),title3.c_str(),75,175.0,250.0)));
-      histMap[name3]->SetDirectory(0);
-    }
-    FEDsAndHistMaps_.insert(make_pair(*FEDitr,histMap));
+
+  std::map<string,TH1F*> histMap;
+  //debug
+  //cout << "Initializing map for FED:" << *FEDitr << endl;
+  for (vector<int>::const_iterator intIter = listChannels_.begin(); intIter != listChannels_.end(); ++intIter)
+  { 
+    //Put 3 histos (1 per gain) for the channel into the map
+    string FEDid = intToString(FED);
+    string chnl = intToString(*intIter);
+    string title1 = "Gain1 ADC Counts for channel ";
+    title1.append(chnl);
+    string name1 = "Cry";
+    name1.append(chnl+"Gain1");
+    string title2 = "Gain6 ADC Counts for channel ";
+    title2.append(chnl);
+    string name2 = "Cry";
+    name2.append(chnl+"Gain6");
+    string title3 = "Gain12 ADC Counts for channel ";
+    title3.append(chnl);
+    string name3 = "Cry";
+    name3.append(chnl+"Gain12");
+    histMap.insert(make_pair(name1,new TH1F(name1.c_str(),title1.c_str(),75,175.0,250.0)));
+    histMap[name1]->SetDirectory(0);
+    histMap.insert(make_pair(name2,new TH1F(name2.c_str(),title2.c_str(),75,175.0,250.0)));
+    histMap[name2]->SetDirectory(0);
+    histMap.insert(make_pair(name3,new TH1F(name3.c_str(),title3.c_str(),75,175.0,250.0)));
+    histMap[name3]->SetDirectory(0);
   }
+  FEDsAndHistMaps_.insert(make_pair(FED,histMap));
 }
 
 
