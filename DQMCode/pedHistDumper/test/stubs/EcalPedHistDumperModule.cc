@@ -82,7 +82,7 @@ EcalPedHistDumperModule::EcalPedHistDumperModule(const edm::ParameterSet& ps) :
   {
     allFEDsSelected_ = true;
     //debug
-    //cerr << "no selection on FEDs!" << endl;
+    //cout << "no selection on FEDs!" << endl;
     //inputIsOk_=false;
     //return;
     //listFEDs_ = listDefaults;
@@ -363,12 +363,12 @@ void EcalPedHistDumperModule::readEBdigis(edm::Handle<EBDigiCollection> digis)
     //cout << "FEDid:" << FEDid << " cryId:" << crystalId << endl;
     //cout << "FEDid:" << FEDid << endl;
     //Select desired supermodules only
-    vector<int>::iterator icIter;
-    icIter = find(listFEDs_.begin(), listFEDs_.end(), FEDid);
-    if (icIter == listFEDs_.end())
+    set<int>::const_iterator fedIter = find(theRealFedSet_.begin(), theRealFedSet_.end(), FEDid);
+    if (fedIter == theRealFedSet_.end())
       continue;
 
     // Select desired channels only
+    vector<int>::iterator icIter;
     icIter = find(listChannels_.begin(), listChannels_.end(), crystalId);
     if (icIter == listChannels_.end())
       continue;
@@ -419,12 +419,12 @@ void EcalPedHistDumperModule::readEEdigis(edm::Handle<EEDigiCollection> digis)
     int crystalId = 10000*FEDid+100*elecId.towerId()+5*(elecId.stripId()-1)+elecId.xtalId();
 
     //Select desired FEDs only
-    vector<int>::iterator icIter;
-    icIter = find(listFEDs_.begin(), listFEDs_.end(), FEDid);
-    if (icIter == listFEDs_.end())
+    set<int>::const_iterator fedIter = find(theRealFedSet_.begin(), theRealFedSet_.end(), FEDid);
+    if (fedIter == theRealFedSet_.end())
       continue;
 
     // Select desired channels only
+    vector<int>::iterator icIter;
     icIter = find(listChannels_.begin(), listChannels_.end(), crystalId);
     if (icIter == listChannels_.end())
       continue;
