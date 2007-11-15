@@ -15,6 +15,7 @@
 #include <DataFormats/EcalDetId/interface/EcalDetIdCollections.h>
 #include <DataFormats/EcalDigi/interface/EcalTriggerPrimitiveDigi.h>
 #include <DataFormats/EcalDigi/interface/EcalTriggerPrimitiveSample.h>
+#include "DataFormats/EcalRawData/interface/EcalRawDataCollections.h"
 #include "Geometry/EcalMapping/interface/EcalElectronicsMapping.h"
 
 #include <iostream>
@@ -40,13 +41,16 @@ class EcalPedHistDumperModule: public edm::EDAnalyzer
     std::string intToString(int num);
     void readEBdigis(edm::Handle<EBDigiCollection> digis);
     void readEEdigis(edm::Handle<EEDigiCollection> digis);
+    void initHists();
 
     int runNum_;
     bool inputIsOk_;
+    bool allFEDsSelected_;
     std::string fileName_;
     std::string barrelDigiCollection_;
     std::string endcapDigiCollection_;
     std::string digiProducer_;
+    std::string headerProducer_;
     std::vector<int> listChannels_;
     std::vector<int> listSamples_;
     std::vector<int> listFEDs_;
@@ -60,9 +64,11 @@ EcalPedHistDumperModule::EcalPedHistDumperModule(const edm::ParameterSet& ps) :
   fileName_ (ps.getUntrackedParameter<std::string>("fileName", std::string("ecalPedDigiDump"))),
   barrelDigiCollection_ (ps.getParameter<std::string> ("EBdigiCollection")),
   endcapDigiCollection_ (ps.getParameter<std::string> ("EEdigiCollection")),
-  digiProducer_ (ps.getParameter<std::string> ("digiProducer"))
+  digiProducer_ (ps.getParameter<std::string> ("digiProducer")),
+  headerProducer_ (ps.getParameter<std::string> ("headerProducer"))
 {
   using namespace std;
+
   vector<int> listDefaults = vector<int>();
   for(int i=601; i<655; ++i)
   {
@@ -70,14 +76,16 @@ EcalPedHistDumperModule::EcalPedHistDumperModule(const edm::ParameterSet& ps) :
   } 
   listFEDs_ = ps.getUntrackedParameter<vector<int> >("listFEDs", listDefaults);
   
+  allFEDsSelected_ = false;
   // Apply no selection if -1 is passed
   if(listFEDs_[0]==-1)
   {
+    allFEDsSelected_ = true;
     //debug
     //cerr << "no selection on FEDs!" << endl;
     //inputIsOk_=false;
     //return;
-    listFEDs_ = listDefaults;
+    //listFEDs_ = listDefaults;
   }
   
   listDefaults.clear();
@@ -96,17 +104,6 @@ EcalPedHistDumperModule::EcalPedHistDumperModule(const edm::ParameterSet& ps) :
   inputIsOk_ = true;
   vector<int>::iterator intIter;
   
-  // Verify FED numbers are valid
-  for (intIter = listFEDs_.begin(); intIter != listFEDs_.end(); intIter++)
-  {  
-      if ( ((*intIter) < 601)||(654 < (*intIter)) )
-      {  
-	cout << "[EcalPedHistDumperModule] FED value: " << (*intIter) << " found in listFEDs. "
-		  << " Valid range is 601-654. Returning." << endl;
-	inputIsOk_ = false;
-	return;
-      }
-  }
   // Verify crystal numbers are valid
   for (intIter = listChannels_.begin(); intIter != listChannels_.end(); ++intIter)
   {  
@@ -130,38 +127,6 @@ EcalPedHistDumperModule::EcalPedHistDumperModule(const edm::ParameterSet& ps) :
       }
   }
 
-  // Loop over FEDids and create map of histograms
-  for(vector<int>::iterator FEDitr = listFEDs_.begin(); FEDitr != listFEDs_.end(); ++FEDitr)
-  {
-    std::map<string,TH1F*> histMap;
-    //debug
-    //cout << "Initializing map for FED:" << *FEDitr << endl;
-    for (intIter = listChannels_.begin(); intIter != listChannels_.end(); ++intIter)
-    { 
-      //Put 3 histos (1 per gain) for the channel into the map
-      string FEDid = intToString(*FEDitr);
-      string chnl = intToString(*intIter);
-      string title1 = "Gain1 ADC Counts for channel ";
-      title1.append(chnl);
-      string name1 = "Cry";
-      name1.append(chnl+"Gain1");
-      string title2 = "Gain6 ADC Counts for channel ";
-      title2.append(chnl);
-      string name2 = "Cry";
-      name2.append(chnl+"Gain6");
-      string title3 = "Gain12 ADC Counts for channel ";
-      title3.append(chnl);
-      string name3 = "Cry";
-      name3.append(chnl+"Gain12");
-      histMap.insert(make_pair(name1,new TH1F(name1.c_str(),title1.c_str(),75,175.0,250.0)));
-      histMap[name1]->SetDirectory(0);
-      histMap.insert(make_pair(name2,new TH1F(name2.c_str(),title2.c_str(),75,175.0,250.0)));
-      histMap[name2]->SetDirectory(0);
-      histMap.insert(make_pair(name3,new TH1F(name3.c_str(),title3.c_str(),75,175.0,250.0)));
-      histMap[name3]->SetDirectory(0);
-    }
-    FEDsAndHistMaps_.insert(make_pair(*FEDitr,histMap));
-  }
 }
 
 EcalPedHistDumperModule::~EcalPedHistDumperModule() 
@@ -246,20 +211,55 @@ void EcalPedHistDumperModule::endJob(void)
   }
 }
 
-void EcalPedHistDumperModule::analyze( const edm::Event & e, const  edm::EventSetup& c)
+void EcalPedHistDumperModule::analyze(const edm::Event& e, const edm::EventSetup& c)
 {
   using namespace std;
   using namespace edm;
 
+  if (!inputIsOk_)
+    return;
+  
+  // loop over the headers, this is to detect missing FEDs if all are selected
+  if(allFEDsSelected_)
+  {
+    edm::Handle<EcalRawDataCollection> DCCHeaders;
+    try {
+      e.getByLabel (headerProducer_, DCCHeaders);
+    } catch ( std::exception& ex ) {
+      edm::LogError ("EcalPedOffset") << "Error! can't get the product " 
+        << headerProducer_.c_str() << " Data for all FEDs being examined";
+    }
+
+    vector<int> theRealFedList;
+    for (EcalRawDataCollection::const_iterator headerItr= DCCHeaders->begin();
+        headerItr != DCCHeaders->end (); 
+        ++headerItr) 
+    {
+      int FEDid = 600+headerItr->id();
+      theRealFedList.push_back(FEDid);
+    }
+    // So we only do this once, not once per event
+    allFEDsSelected_ = false;
+    listFEDs_ = theRealFedList;
+  }
+
+  // Verify FED numbers are valid
+  for (vector<int>::const_iterator intIter = listFEDs_.begin(); intIter != listFEDs_.end(); intIter++)
+  {  
+      if ( ((*intIter) < 601)||(654 < (*intIter)) )
+      {  
+	cout << "[EcalPedHistDumperModule] FED value: " << (*intIter) << " found in listFEDs. "
+		  << " Valid range is 601-654. Returning." << endl;
+	inputIsOk_ = false;
+	return;
+      }
+  }
+
+  initHists();
+  
   //debug
   //cout << "analyze...input is ok? " << inputIsOk_ << endl;
   
-  if (!inputIsOk_)
-    return;
-
-  //debug
-  //cout << "input is OK" << endl;
-
   bool barrelDigisFound = true;
   bool endcapDigisFound = true;
   // get the barrel digis
@@ -296,6 +296,46 @@ void EcalPedHistDumperModule::analyze( const edm::Event & e, const  edm::EventSe
   
   if(runNum_==-1)
     runNum_ = e.id().run();
+}
+
+// create the map of FEDid and histogram-string map from int FED list and int channel list
+void EcalPedHistDumperModule::initHists()
+{
+  using namespace std;
+  //using namespace edm;
+  
+  // Loop over FEDids and create map of histograms
+  for(vector<int>::const_iterator FEDitr = listFEDs_.begin(); FEDitr != listFEDs_.end(); ++FEDitr)
+  {
+    std::map<string,TH1F*> histMap;
+    //debug
+    //cout << "Initializing map for FED:" << *FEDitr << endl;
+    for (vector<int>::const_iterator intIter = listChannels_.begin(); intIter != listChannels_.end(); ++intIter)
+    { 
+      //Put 3 histos (1 per gain) for the channel into the map
+      string FEDid = intToString(*FEDitr);
+      string chnl = intToString(*intIter);
+      string title1 = "Gain1 ADC Counts for channel ";
+      title1.append(chnl);
+      string name1 = "Cry";
+      name1.append(chnl+"Gain1");
+      string title2 = "Gain6 ADC Counts for channel ";
+      title2.append(chnl);
+      string name2 = "Cry";
+      name2.append(chnl+"Gain6");
+      string title3 = "Gain12 ADC Counts for channel ";
+      title3.append(chnl);
+      string name3 = "Cry";
+      name3.append(chnl+"Gain12");
+      histMap.insert(make_pair(name1,new TH1F(name1.c_str(),title1.c_str(),75,175.0,250.0)));
+      histMap[name1]->SetDirectory(0);
+      histMap.insert(make_pair(name2,new TH1F(name2.c_str(),title2.c_str(),75,175.0,250.0)));
+      histMap[name2]->SetDirectory(0);
+      histMap.insert(make_pair(name3,new TH1F(name3.c_str(),title3.c_str(),75,175.0,250.0)));
+      histMap[name3]->SetDirectory(0);
+    }
+    FEDsAndHistMaps_.insert(make_pair(*FEDitr,histMap));
+  }
 }
 
 
@@ -373,9 +413,9 @@ void EcalPedHistDumperModule::readEEdigis(edm::Handle<EEDigiCollection> digis)
     EEDetId detId = EEDetId(digiItr->id());
     EcalElectronicsId elecId = ecalElectronicsMap->getElectronicsId(detId);
     int FEDid = 600+elecId.dccId();
-    int crystalId = detId.ic();
+    int crystalId = 10000*FEDid+100*elecId.towerId()+5*(elecId.stripId()-1)+elecId.xtalId();
 
-    //Select desired supermodules only
+    //Select desired FEDs only
     vector<int>::iterator icIter;
     icIter = find(listFEDs_.begin(), listFEDs_.end(), FEDid);
     if (icIter == listFEDs_.end())
