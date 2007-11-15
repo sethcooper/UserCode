@@ -40,7 +40,7 @@ echo "      -f|--first_ev         f_ev            first (as written to file) eve
 echo "      -l|--last_ev          l_ev            last  (as written to file) event that will be analyzed; default is 9999"
 echo "      -fed|--fed_id         fed_id          selects FED id (601...654); default is all"
 echo "      -cry|--cryGraph       ics             graphs from channel ic will be created"
-echo "      -s|--sample(s)        samples         sample to be examine; defaults to samples 1-3"
+echo "      -s|--sample(s)        samples         sample to be examine (1...10); defaults to samples 1,2,3"
 echo ""
 echo "To specify multiple fed_id's, crys, or samples, use a comma-separated list in between double quotes, e.g., \"1,2,3\" "
 exit
