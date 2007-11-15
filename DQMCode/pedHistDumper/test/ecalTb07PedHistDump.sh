@@ -38,11 +38,11 @@ echo "      -d|--data_file        file_name       data file to be analyzed"
 echo ""
 echo "      -f|--first_ev         f_ev            first (as written to file) event that will be analyzed; default is 1"
 echo "      -l|--last_ev          l_ev            last  (as written to file) event that will be analyzed; default is 9999"
-echo "      -eb|--ieb_id          ieb_id          selects sm barrel id (1...36); default is all"
+echo "      -fed|--fed_id         fed_id          selects FED id (601...654); default is all"
 echo "      -cry|--cryGraph       ics             graphs from channel ic will be created"
-echo "      -s|--sample(s)        samples         sample to be examine; defaults to samples 1-3"
+echo "      -s|--sample(s)        samples         sample to be examine (1...10); defaults to samples 1,2,3"
 echo ""
-echo "To specify multiple ieb_id's, crys, or samples, use a comma-separated list in between double quotes, e.g., \"1,2,3\" "
+echo "To specify multiple fed_id's, crys, or samples, use a comma-separated list in between double quotes, e.g., \"1,2,3\" "
 exit
 
 fi
@@ -88,8 +88,8 @@ last_event=9999
                 ;;
 
 
-      -eb|--ieb_id)
-                ieb=$2
+      -fed|--fed_id)
+                fed=$2
                 ;;
 
       -cry|--cryGraph)
@@ -113,7 +113,7 @@ echo "first event analyzed will be:                 $first_event"
 first_event=$(($first_event-1))
 
 echo "last event analyzed will be:                  $last_event"
-echo "supermodules selected:                        ${ieb}"
+echo "supermodules selected:                        ${fed}"
 
 
 if [[  $cryString = "true"  ]]
@@ -141,16 +141,16 @@ include "EventFilter/EcalTBRawToDigi/data/Ecal07UnpackerData.cfi"
      replace ecalEBunpacker.tbTowerStripChannelMapFile = "EventFilter/EcalTBRawToDigi/data/h2.map"
      replace ecalEBunpacker.tbTowerMapFile             = "EventFilter/EcalTBRawToDigi/data/h2_towers.map"
 
+untracked PSet maxEvents = {untracked int32 input = $last_event}
+
 # if getting data from a .root pool file
 #     source = PoolSource {
-#       untracked int32 maxEvents = $last_event
 #       untracked uint32 skipEvents = $first_event
 #       untracked vstring fileNames = { 'file:$data_path$data_file' }
 #       untracked bool   debugFlag     = true
 #     }
 
      source = NewEventStreamFileReader{
-       untracked int32 maxEvents = $last_event
        untracked uint32 skipEvents = $first_event
        untracked vstring fileNames = { 'file:$data_path$data_file' }
        untracked uint32 debugVebosity = 10
@@ -160,7 +160,7 @@ include "EventFilter/EcalTBRawToDigi/data/Ecal07UnpackerData.cfi"
      module graphDumperModule = EcalPedHistDumperModule {
 
         # selection on sm number in the barrel (1...36; 1 with tb unpacker)
-        untracked vint32 listSupermodules = {${ieb}}
+        untracked vint32 listSupermodules = {${fed}}
 	
          # specify list of channels to be dumped
          untracked vint32  listChannels = {${cry_ic}}
@@ -169,6 +169,9 @@ include "EventFilter/EcalTBRawToDigi/data/Ecal07UnpackerData.cfi"
          untracked vint32 listSamples = {${sample}}
 
         untracked string fileName =  '$data_file.$$'
+        string EBdigiCollection = 'ebDigis'
+        string EEdigiCollection = 'eeDigis'
+        string digiProducer = 'ecalEBunpacker'
       }
      
      path p = {ecalEBunpacker, graphDumperModule}
