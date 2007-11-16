@@ -207,6 +207,7 @@ void EcalPedHistDumperModule::endJob(void)
         {
           string cryDirName = "Cry_"+chnl;
           TDirectory* cryDir = FEDdir->mkdir(cryDirName.c_str());
+          cryDir->cd();
           hist->SetDirectory(cryDir);
           hist->Write();
           hist = mapHistos[name2];
@@ -215,7 +216,8 @@ void EcalPedHistDumperModule::endJob(void)
           hist = mapHistos[name3];
           hist->SetDirectory(cryDir);
           hist->Write();
-          root_file_.cd(dir.c_str());
+          //root_file_.cd(dir.c_str());
+          root_file_.cd();
         }
         else
         {
