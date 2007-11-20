@@ -1,16 +1,17 @@
 module graphDumperModule = EcalPedHistDumperModule {
 
-# selection on FED number in the barrel (1...36; 1 with TB unpacker)
-  untracked vint32 listFEDs = {-1}
+      # selection on FED number in the barrel (1...36; 1 with TB unpacker)
+      untracked vint32 listFEDs = {-1}
 
-# specify list of channels to be dumped
-  untracked vint32  listChannels = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
+      # specify list of channels to be dumped
+      # outputs all channels if not specified
+      #untracked vint32  listChannels = {1, 2, 3}
 
-# sepecify list of samples to use
-  untracked vint32 listSamples = {1,2,3}
+      # sepecify list of samples to use
+      untracked vint32 listSamples = {1,2,3}
 
-  untracked string fileName =  'ecalPedHistDumper'
-    string EBdigiCollection = 'ebDigis'
-    string EEdigiCollection = 'eeDigis'
-    string digiProducer = 'ecalEBunpacker'
-}
+      untracked string fileName =  'pedHistDumper'
+      string EBdigiCollection = 'ebDigis'
+      string EEdigiCollection = 'eeDigis'
+      string digiProducer = 'ecalEBunpacker'
+    }
