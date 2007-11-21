@@ -13,7 +13,7 @@
 //
 // Original Author:  Giovanni FRANZONI
 //         Created:  Tue Aug 28 11:46:22 CEST 2007
-// $Id: GetEcalURechit.cc,v 1.1 2007/11/20 09:56:50 scooper Exp $
+// $Id: GetEcalURechit.cc,v 1.2 2007/11/21 16:20:22 scooper Exp $
 //
 //
 
@@ -63,10 +63,11 @@ class GetEcalURechit : public edm::EDAnalyzer {
     // ----------member data ---------------------------
 
   edm::InputTag EcalUncalibratedRecHitCollection_;
+  edm::InputTag headerProducer_;
   int ievt_;
   int runNum_;
+  double threshold_;
   std::string fileName_;
-  std::string headerProducer_;
 
     
   std::vector<int> maskedChannels_;
@@ -97,9 +98,10 @@ using namespace std;
 //
 GetEcalURechit::GetEcalURechit(const edm::ParameterSet& iConfig) :
   EcalUncalibratedRecHitCollection_ (iConfig.getParameter<edm::InputTag>("EcalUncalibratedRecHitCollection")),
-  headerProducer_ (iConfig.getParameter<std::string>("headerProducer")),
-  fileName_ (iConfig.getUntrackedParameter<std::string>("fileName", std::string("getURecHit"))),
-  runNum_(-1)
+  headerProducer_ (iConfig.getParameter<edm::InputTag>("headerProducer")),
+  runNum_(-1),
+  threshold_ (iConfig.getUntrackedParameter<double>("amplitudeThreshold", 9.0)),
+  fileName_ (iConfig.getUntrackedParameter<std::string>("fileName", std::string("getURecHit")))
 {
   maskedChannels_.push_back(-1);
   maskedFEDs_.push_back(-1);
@@ -137,12 +139,12 @@ void
 GetEcalURechit::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 {
     
-  edm::Handle<EcalRawDataCollection> DCCHeaders;
+  Handle<EcalRawDataCollection> DCCHeaders;
   try {
-    iEvent.getByLabel (headerProducer_, DCCHeaders);
+    iEvent.getByLabel(headerProducer_, DCCHeaders);
   } catch ( std::exception& ex ) {
     edm::LogError ("EcalPedOffset") << "Error! can't get the product " 
-      << headerProducer_.c_str();
+      << headerProducer_;
     return;
   }
 
@@ -225,7 +227,7 @@ GetEcalURechit::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
       continue; //TODO: return or continue? (changed to continue by SIC)
     }      
 
-    if (ampli > 9 )
+    if (ampli > threshold_ )
     { 
       LogWarning("GetEcalURechit") << "channel: " << ic << "  ampli: " << ampli << " jitter " << jitter
         << " iEvent: " << iEvent.id().event() << " crudeEvent: " <<    ievt_ << " FED: " << FEDid;
