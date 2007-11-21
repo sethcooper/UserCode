@@ -2,8 +2,8 @@
 /**
  * \file EcalPedOffset.cc
  *
- * $Date: 2007/11/06 16:38:58 $
- * $Revision: 1.2 $
+ * $Date: 2007/11/14 15:55:15 $
+ * $Revision: 1.3 $
  * \author P. Govoni (pietro.govoni@cernNOSPAM.ch)
  * Last updated: @DATE@ @AUTHOR@
  *
@@ -14,7 +14,7 @@
 #include <fstream>
 //#include <vector>
 
-#include "CalibCalorimetry/EcalPedestalOffsets/interface/EcalPedOffset.h"
+#include "../interface/EcalPedOffset.h"
 
 #include "FWCore/Framework/interface/MakerMacros.h"
 #include "FWCore/MessageLogger/interface/MessageLogger.h"
@@ -195,8 +195,8 @@ void EcalPedOffset::readDACs(edm::Handle<EBDigiCollection> pDigis,
       ++itdigi)
   {
     // This is for 1_7_0:
-    //int gainId = ((EBDataFrame)(*itdigi)).sample(0).gainId();
-    int gainId = itdigi->sample(0).gainId();
+    int gainId = ((EBDataFrame)(*itdigi)).sample(0).gainId();
+    //int gainId = itdigi->sample(0).gainId();
     EBDetId detId = EBDetId(itdigi->id());
     EcalElectronicsId elecId = ecalElectronicsMap->getElectronicsId(detId);
     int FEDid = 600+elecId.dccId();
@@ -218,7 +218,7 @@ void EcalPedOffset::readDACs(edm::Handle<EBDigiCollection> pDigis,
       m_pedValues[FEDid]->insert(gainId,
           crystalId,
           DACvalues[FEDid],
-          itdigi->sample(iSample).adc());
+          ((EBDataFrame)(*itdigi)).sample(iSample).adc());
 //      if(itdigi->sample(iSample).adc()==0)
 //        LogDebug("EcalPedOffset") << "Barrel digis.  Gain:" << gainId << " cry:"
 //          << crystalId << " DAC:" << DACvalues[FEDid] << " ZERO PEDESTAL.";
@@ -241,8 +241,8 @@ void EcalPedOffset::readDACs(edm::Handle<EEDigiCollection> pDigis,
       ++itdigi)
   {
     // Below for 1_7_0
-    //int gainId = ((EEDataFrame)(*itdigi)).sample(0).gainId();
-    int gainId = itdigi->sample(0).gainId();
+    int gainId = ((EEDataFrame)(*itdigi)).sample(0).gainId();
+    //int gainId = itdigi->sample(0).gainId();
     EEDetId detId = EEDetId(itdigi->id());
     EcalElectronicsId elecId = ecalElectronicsMap->getElectronicsId(detId);
     int FEDid = 600+elecId.dccId();
@@ -264,7 +264,7 @@ void EcalPedOffset::readDACs(edm::Handle<EEDigiCollection> pDigis,
       m_pedValues[FEDid]->insert(gainId,
           crystalId,
           DACvalues[FEDid],
-          itdigi->sample(iSample).adc());
+          ((EBDataFrame)(*itdigi)).sample(iSample).adc());
 //      if(itdigi->sample(iSample).adc()==0)
 //        LogDebug("EcalPedOffset") << "Endcap digis.  Gain:" << gainId << " cry:"
 //          << crystalId << " DAC:" << DACvalues[FEDid] << " ZERO PEDESTAL.";
