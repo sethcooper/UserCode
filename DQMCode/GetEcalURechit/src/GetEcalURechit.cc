@@ -13,7 +13,7 @@
 //
 // Original Author:  Giovanni FRANZONI
 //         Created:  Tue Aug 28 11:46:22 CEST 2007
-// $Id: GetEcalURechit.cc,v 1.2 2007/11/21 16:20:22 scooper Exp $
+// $Id: GetEcalURechit.cc,v 1.3 2007/11/21 16:59:54 scooper Exp $
 //
 //
 
@@ -119,7 +119,9 @@ GetEcalURechit::GetEcalURechit(const edm::ParameterSet& iConfig) :
       continue;
     string title = "UncalibRecHitsAmplitude_all_crys_FED_"+intToString(i);
     string name = "UCalibRecHitsAmpli_FED_"+intToString(i);
-    FEDHistMap_.insert(make_pair(i,new TH1F (name.c_str(),title.c_str(),4096,0,4095)));
+    TH1F* hist = new TH1F (name.c_str(),title.c_str(),4096,0,4095);
+    hist->SetDirectory(0);
+    FEDHistMap_.insert(make_pair(i,hist));
   }
   
 }
@@ -232,6 +234,7 @@ GetEcalURechit::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
       LogWarning("GetEcalURechit") << "channel: " << ic << "  ampli: " << ampli << " jitter " << jitter
         << " iEvent: " << iEvent.id().event() << " crudeEvent: " <<    ievt_ << " FED: " << FEDid;
     }
+    //cout << "DEBUG987897 filling hist for FED: " << FEDid << endl;
     FEDHistMap_[FEDid]->Fill(ampli);
   }
 
@@ -262,7 +265,6 @@ GetEcalURechit::endJob()
       continue;
     else
     {
-      cout << "DEBUG, FED: " << *FEDitr << endl;
       hist = FEDHistMap_[*FEDitr];
       if(hist!=0)
         hist->Write();
