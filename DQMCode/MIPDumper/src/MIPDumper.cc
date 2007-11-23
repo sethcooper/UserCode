@@ -1,9 +1,9 @@
 // -*- C++ -*-
 //
-// Package:    GetEcalURechit
-// Class:      GetEcalURechit
+// Package:   MIPDumper 
+// Class:     MIPDumper 
 // 
-/**\class GetEcalURechit GetEcalURechit.cc Tool/GetEcalURechit/src/GetEcalURechit.cc
+/**\class MIPDumper MIPDUmper.cc
 
  Description: <one line class summary>
 
@@ -11,9 +11,9 @@
      <Notes on implementation>
 */
 //
-// Original Author:  Giovanni FRANZONI
-//         Created:  Tue Aug 28 11:46:22 CEST 2007
-// $Id: GetEcalURechit.cc,v 1.4 2007/11/21 18:38:23 scooper Exp $
+// Original Author:  Seth COOPER
+//         Created:  Th Nov 22 5:46:22 CEST 2007
+// $Id: MIPDumper.cc,v 1.1 2007/11/23 12:53:06 scooper Exp $
 //
 //
 
@@ -46,7 +46,7 @@
 
 
 //
-// class decleration
+// class declaration
 //
 
 class MIPDumper : public edm::EDAnalyzer {
@@ -64,13 +64,13 @@ class MIPDumper : public edm::EDAnalyzer {
     // ----------member data ---------------------------
 
   edm::InputTag EcalUncalibratedRecHitCollection_;
-  edm::InputTag headerProducer_;
+  edm::InputTag EBDigis_;
   int ievt_;
   int runNum_;
   double threshold_;
   std::string fileName_;
 
-  std::vector<int> listAllChannels;
+  std::set<EBDetId> listAllChannels;
     
   int side;
 
@@ -81,10 +81,6 @@ class MIPDumper : public edm::EDAnalyzer {
   std::vector<int> maskedChannels_;
   std::vector<int> maskedFEDs_;
   
-  std::map<int,TH1F*> FEDHistMap_;
-  
-  std::set<int> theRealFedSet_;
-
   TFile* file;
 
 };
@@ -106,7 +102,7 @@ using namespace std;
 //
 MIPDumper::MIPDumper(const edm::ParameterSet& iConfig) :
   EcalUncalibratedRecHitCollection_ (iConfig.getParameter<edm::InputTag>("EcalUncalibratedRecHitCollection")),
-  headerProducer_ (iConfig.getParameter<edm::InputTag>("headerProducer")),
+  EBDigis_ (iConfig.getParameter<edm::InputTag>("EBDigiCollection")),
   runNum_(-1),
   threshold_ (iConfig.getUntrackedParameter<double>("amplitudeThreshold", 12.0)),
   fileName_ (iConfig.getUntrackedParameter<std::string>("fileName", std::string("mipDumper")))
@@ -120,18 +116,6 @@ MIPDumper::MIPDumper(const edm::ParameterSet& iConfig) :
   ievt_ =0;
   vector<int>::iterator result;
   
-  // initialize map of FEDid and histogram
-  for(int i=601; i<655; ++i)
-  {
-    vector<int>::const_iterator result = find(maskedFEDs_.begin(), maskedFEDs_.end(), i);
-    if(result!=maskedFEDs_.end())
-      continue;
-    string title = "UncalibRecHitsAmplitude_all_crys_FED_"+intToString(i);
-    string name = "UCalibRecHitsAmpli_FED_"+intToString(i);
-    TH1F* hist = new TH1F (name.c_str(),title.c_str(),4096,0,4095);
-    hist->SetDirectory(0);
-    FEDHistMap_.insert(make_pair(i,hist));
-  }
   
   for (int i=0; i<10; i++)        abscissa[i] = i;
 }
@@ -151,24 +135,19 @@ void
 MIPDumper::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 {
     
-  Handle<EcalRawDataCollection> DCCHeaders;
-  try {
-    iEvent.getByLabel(headerProducer_, DCCHeaders);
-  } catch ( std::exception& ex ) {
-    edm::LogError ("EcalPedOffset") << "Error! can't get the product " 
-      << headerProducer_;
-    return;
-  }
-
-  for (EcalRawDataCollection::const_iterator headerItr= DCCHeaders->begin();
-      headerItr != DCCHeaders->end (); 
-      ++headerItr) 
-  {
-    int FEDid = 600+headerItr->id();
-    theRealFedSet_.insert(FEDid);
-  }
+  //Handle<EcalRawDataCollection> DCCHeaders;
+  //try {
+  //  iEvent.getByLabel(headerProducer_, DCCHeaders);
+  //} catch ( std::exception& ex ) {
+  //  edm::LogError ("EcalPedOffset") << "Error! can't get the product " 
+  //    << headerProducer_;
+  //  return;
+  //}
 
   ievt_++;
+  int graphCount = 0;
+  //We only want the 3x3's for this event...
+  listAllChannels.clear();
   auto_ptr<EcalElectronicsMapping> ecalElectronicsMap(new EcalElectronicsMapping);
   Handle<EcalUncalibratedRecHitCollection> hits;
 
@@ -195,8 +174,8 @@ MIPDumper::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
     //TODO: make it work for endcap FEDs also
     //if(ebDet.isValid())
     //{
-      ic = ebDet.ic();
-      elecId = ecalElectronicsMap->getElectronicsId(ebDet);
+    ic = ebDet.ic();
+    elecId = ecalElectronicsMap->getElectronicsId(ebDet);
     //}
     //else
     //{
@@ -243,16 +222,15 @@ MIPDumper::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
     { 
       LogWarning("MIPDumper") << "channel: " << ic << "  ampli: " << ampli << " jitter " << jitter
         << " iEvent: " << iEvent.id().event() << " crudeEvent: " <<    ievt_ << " FED: " << FEDid;
-
-      // retrieving crystal data from Event
-      edm::Handle<EBDigiCollection>  digis;
-      iEvent.getByLabel("ecalEBunpacker", "ebDigis", digis);
+      
+      int ism = ebDet.ism();
 
       int ieta = (ic-1)/20   +1;
       int iphi = (ic-1)%20 +1;
+      
 
       int hside = (side/2);
-
+      
       for (int u = (-hside) ; u<=hside; u++)
       {
         for (int v = (-hside) ; v<=hside; v++)
@@ -264,49 +242,78 @@ MIPDumper::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
           if (iphi_c < 1 || 20 < iphi_c)  continue;
 
           int ic_c = (ieta_c-1) *20 + iphi_c;
-          listAllChannels.push_back ( ic_c ) ;
-        }
-      }
-
-      //find digi we need
-
-      for ( EBDigiCollection::const_iterator digiItr= digis->begin();digiItr != digis->end(); 
-          ++digiItr ) {
-        {
-
-          int ic     = EBDetId((*digiItr).id()).ic();
-          //int ieb    = EBDetId((*digiItr).id()).ism();
-          EBDetId det2 = (*digiItr).id();
-          EcalElectronicsId elecId2 = ecalElectronicsMap->getElectronicsId(det2);
-          int FEDid2 = 600+elecId2.dccId();
-          if (FEDid2 != FEDid) return;
-
-          // selecting desired channels only
-          std::vector<int>::iterator icIter;
-          icIter     = find( listAllChannels.begin() , listAllChannels.end() , ic);
-          if (icIter == listAllChannels.end()) { continue; }
-
-          for (int i=0; i< (*digiItr).size() ; ++i ) {
-            EBDataFrame df( *digiItr );
-            ordinate[i] = df.sample(i).adc();
-          }
-
-          TGraph oneGraph(10, abscissa,ordinate);
-          std::string title;
-          title = "Graph_ev" + intToString( ievt_ ) + "_ic" + intToString( ic )+ "_FED" + intToString(FEDid);
-          oneGraph.SetTitle(title.c_str());
-          oneGraph.SetName(title.c_str());
-          graphs.push_back(oneGraph);
-
+          //listAllChannels.insert(EBDetId(ieta_c,iphi_c));
+          EBDetId toInsert = EBDetId(ism, ic_c,1);
+          //pair<set<EBDetId>::iterator,bool> retVal =
+          listAllChannels.insert(toInsert);
+          //if(retVal.second)
+          //  cout << "Insertion of ic:" << ic_c << "successful." << endl;
+          //else
+          //  cout << "Insertion of ic:" << ic_c << "failed." << endl;
+          //cout << "EBDet:" << toInsert << endl;
+          //cout << "RetVal:" << *(retVal.first) << endl;
+          
         }
       }
     }
-    FEDHistMap_[FEDid]->Fill(ampli);
   }
 
+  // retrieving crystal data from Event
+  edm::Handle<EBDigiCollection>  digis;
+  iEvent.getByLabel(EBDigis_, digis);
+
+  for(std::set<EBDetId>::const_iterator chnlItr = listAllChannels.begin(); chnlItr!= listAllChannels.end(); ++chnlItr)
+  {
+      //int ic     = EBDetId((*chnlItr).id()).ic();
+      //int ieb    = EBDetId((*digiItr).id()).ism();
+      //EBDetId det = (*chnlItr).id();
+      //find digi we need  -- can't get find() to work; need DataFrame(DetId det) to work? 
+      //TODO: use find()
+
+    EBDigiCollection::const_iterator digiItr = digis->begin();
+    while(digiItr != digis->end() && ((*digiItr).id()!=*chnlItr))
+    {
+      //EBDetId det = (*digiItr).id();
+      
+      //if(det==(*chnlItr))
+      //  break;
+      ++digiItr;
+    }
+    if(digiItr==digis->end())
+      continue;
+
+//EBDigiCollection::const_iterator digiItr;
+//    for(EBDigiCollection::const_iterator digiItr = digis->begin();
+//        digiItr!=digis->end(); ++digiItr)
+//    {
+//      if(EBDetId((*digiItr).id())==*chnlItr)
+//        break;
+//    }
+//    
+//    if(digiItr==digis->end())
+//      continue;
+
+    int ic = (*chnlItr).ic();
+    int ism = (*chnlItr).ism();
+
+    for (int i=0; i< (*digiItr).size() ; ++i ) {
+      EBDataFrame df( *digiItr );
+      ordinate[i] = df.sample(i).adc();
+    }
+
+    TGraph oneGraph(10, abscissa,ordinate);
+    std::string title;
+    title = "Graph_ev" + intToString( ievt_ ) + "_ic" + intToString( ic )+ "_iSM" + intToString(ism);
+    oneGraph.SetTitle(title.c_str());
+    oneGraph.SetName(title.c_str());
+    graphs.push_back(oneGraph);
+    graphCount++;
+  }
   if(runNum_==-1)
     runNum_ = iEvent.id().run();
 }
+  
+
 
 
 // ------------ method called once each job just before starting event loop  ------------
@@ -321,25 +328,19 @@ MIPDumper::endJob()
 {
   string filename = fileName_+intToString(runNum_)+".root";
   file = TFile::Open(filename.c_str(),"RECREATE");
+  file->cd();
   
+  int graphCount = 0;
   std::vector<TGraph>::iterator gr_it;
-  for ( gr_it = graphs.begin(); gr_it !=  graphs.end(); gr_it++ )      (*gr_it).Write();
-
-  for(set<int>::const_iterator FEDitr = theRealFedSet_.begin(); FEDitr != theRealFedSet_.end(); ++FEDitr)
+  for (gr_it = graphs.begin(); gr_it !=  graphs.end(); gr_it++ )
   {
-    TH1F* hist = 0;
-    vector<int>::iterator result;
-    result = find(maskedFEDs_.begin(), maskedFEDs_.end(), *FEDitr);
-    if(result!=maskedFEDs_.end())
-      continue;
-    else
-    {
-      hist = FEDHistMap_[*FEDitr];
-      if(hist!=0)
-        hist->Write();
-    }
+    graphCount++;
+    if(graphCount % 1000 == 0)
+      LogInfo("MIPDumper") << "Writing out graph " << graphCount << " of "
+        << graphs.size(); 
+    
+    (*gr_it).Write();
   }
-
   file->Close();
 }
 

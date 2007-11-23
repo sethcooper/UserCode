@@ -1,15 +1,15 @@
-module dumpURecHit = MIPDumper{
+module dumpMip = MIPDumper{
 
       InputTag EcalUncalibratedRecHitCollection = ecalUncalibHit:EcalUncalibRecHitsEB
-      InputTag headerProducer                   = ecalEBunpacker
+      InputTag EBDigiCollection                   = ecalEBunpacker:ebDigis
 
       # use hash index to mask channels
       # add a simple description of hashIndex (hhahhahhh...)
-      untracked vint32 maskedChannels           = {30641}
+      #untracked vint32 maskedChannels           = {30641}
 
       # add parameter for the amplitude threshold
-      untracked double amplitudeThreshold = 5 
+      untracked double amplitudeThreshold = 12
 
       # add parameter for the name of the output root file with TH1F
-
+      untracked string fileName = 'mipDump'
 }
