@@ -13,7 +13,7 @@
 //
 // Original Author:  Seth COOPER
 //         Created:  Th Nov 22 5:46:22 CEST 2007
-// $Id: MIPDumper.cc,v 1.1 2007/11/23 12:53:06 scooper Exp $
+// $Id: MIPDumper.cc,v 1.2 2007/11/23 17:43:50 scooper Exp $
 //
 //
 
@@ -60,7 +60,8 @@ class MIPDumper : public edm::EDAnalyzer {
       virtual void analyze(const edm::Event&, const edm::EventSetup&);
       virtual void endJob() ;
       std::string intToString(int num);
-  
+      void writeGraphs();
+
     // ----------member data ---------------------------
 
   edm::InputTag EcalUncalibratedRecHitCollection_;
@@ -309,8 +310,39 @@ MIPDumper::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
     graphs.push_back(oneGraph);
     graphCount++;
   }
+  
   if(runNum_==-1)
+  {
     runNum_ = iEvent.id().run();
+    fileName_+=intToString(runNum_);
+    fileName_+=".root";
+    file = TFile::Open(fileName_.c_str(),"RECREATE");
+  }
+
+  if(graphs.size()==0)
+    return;
+  
+  writeGraphs();
+
+}
+
+void MIPDumper::writeGraphs()
+{
+  int graphCount = 0;
+  //file = TFile::Open(fileName_.c_str(),"RECREATE");
+  file->cd();
+  std::vector<TGraph>::iterator gr_it;
+  for (gr_it = graphs.begin(); gr_it !=  graphs.end(); gr_it++ )
+  {
+    graphCount++;
+    if(graphCount % 100 == 0)
+      LogInfo("MIPDumper") << "Writing out graph " << graphCount << " of "
+        << graphs.size(); 
+
+    (*gr_it).Write(); 
+  }
+  
+  graphs.clear();
 }
   
 
@@ -326,21 +358,7 @@ MIPDumper::beginJob(const edm::EventSetup&)
 void 
 MIPDumper::endJob()
 {
-  string filename = fileName_+intToString(runNum_)+".root";
-  file = TFile::Open(filename.c_str(),"RECREATE");
-  file->cd();
-  
-  int graphCount = 0;
-  std::vector<TGraph>::iterator gr_it;
-  for (gr_it = graphs.begin(); gr_it !=  graphs.end(); gr_it++ )
-  {
-    graphCount++;
-    if(graphCount % 1000 == 0)
-      LogInfo("MIPDumper") << "Writing out graph " << graphCount << " of "
-        << graphs.size(); 
-    
-    (*gr_it).Write();
-  }
+  writeGraphs();
   file->Close();
 }
 
