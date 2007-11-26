@@ -13,7 +13,7 @@
 //
 // Original Author:  Seth COOPER
 //         Created:  Th Nov 22 5:46:22 CEST 2007
-// $Id: MIPDumper.cc,v 1.2 2007/11/23 17:43:50 scooper Exp $
+// $Id: MIPDumper.cc,v 1.3 2007/11/25 13:00:55 scooper Exp $
 //
 //
 
@@ -315,7 +315,7 @@ MIPDumper::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
   {
     runNum_ = iEvent.id().run();
     fileName_+=intToString(runNum_);
-    fileName_+=".root";
+    fileName_+=".graph.root";
     file = TFile::Open(fileName_.c_str(),"RECREATE");
   }
 
