@@ -55,30 +55,45 @@ class EcalPedHistDumperModule: public edm::EDAnalyzer
     std::vector<int> listChannels_;
     std::vector<int> listSamples_;
     std::vector<int> listFEDs_;
+    std::vector<int> listEBs_;
+    std::vector<int> FEDids_;
+    std::vector<int> EBids_;
     std::map<int,stringHistMap> FEDsAndHistMaps_;
+    std::map<int,int> FEDidToEBidMap_;
+    std::map<int,int> EBidToFEDidMap_;
     std::set<int> theRealFedSet_;
     TFile * root_file_;
 };
 
-
+//TODO: InputTag these guys up!
 EcalPedHistDumperModule::EcalPedHistDumperModule(const edm::ParameterSet& ps) :
   runNum_(-1),
   fileName_ (ps.getUntrackedParameter<std::string>("fileName", std::string("ecalPedDigiDump"))),
   barrelDigiCollection_ (ps.getParameter<std::string> ("EBdigiCollection")),
   endcapDigiCollection_ (ps.getParameter<std::string> ("EEdigiCollection")),
   digiProducer_ (ps.getParameter<std::string> ("digiProducer")),
-  headerProducer_ (ps.getParameter<std::string> ("headerProducer"))
+  headerProducer_ (ps.getParameter<std::string> ("headerProducer")),
+  FEDids_ (ps.getParameter<std::vector<int> > ("fedID")),
+  EBids_ (ps.getParameter<std::vector<int> > ("ebID"))
 {
   using namespace std;
 
+  //initialize EBid <--> FEDid maps
+  for(int i = 0; i < FEDids_.size(); ++i)
+  {
+    FEDidToEBidMap_.insert(make_pair(FEDids_[0],EBids_[0]));
+    EBidToFEDidMap_.insert(make_pair(EBids_[0],FEDids_[0]));
+  }
+  
   //for(int i=601; i<655; ++i)
   //{
   //  listDefaults.push_back(i);
   //} 
-  listFEDs_ = ps.getParameter<vector<int> >("listFEDs");
+  listFEDs_ = ps.getUntrackedParameter<vector<int> >("listFEDs");
+  listEBs_ = ps.getUntrackedParameter<vector<int> >("listEBs");
   
-  // Apply no selection if -1 is passed
-  if(listFEDs_[0]==-1)
+  // Apply no selection if -1 is passed in either list
+  if(listFEDs_[0]==-1 || listEBs_[0] == -1)
   {
     allFEDsSelected_ = true;
     //debug
@@ -90,6 +105,18 @@ EcalPedHistDumperModule::EcalPedHistDumperModule(const edm::ParameterSet& ps) :
   else
   {
     allFEDsSelected_ = false;
+    if(listFEDs_.size()==0)
+    {
+      //if "actual" EB id given, then convert to FEDid and put in listFEDs_
+      if(listEBs_.size() > 0 && listEBs_[0] != -1)
+      {
+        listFEDs_.clear();
+        for(int i = 0; i < listEBs_.size(); ++i)
+        {
+          listFEDs_.push_back(EBidToFEDidMap_[listEBs_[i]]);
+        }
+      }
+    }
     // Verify FED numbers are valid
     for (vector<int>::const_iterator intIter = listFEDs_.begin(); intIter != listFEDs_.end(); intIter++)
     {  

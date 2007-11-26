@@ -34,15 +34,15 @@ echo ""
 echo "Options:"
 echo ""
 echo "      -p|--path_file        file_path       path to the data to be analyzed (default is /data/ecalod-22/daq-data/)"
-echo "      -d|--data_file        file_name       data file to be analyzed"
 echo ""
 echo "      -f|--first_ev         f_ev            first (as written to file) event that will be analyzed; default is 1"
 echo "      -l|--last_ev          l_ev            last  (as written to file) event that will be analyzed; default is 9999"
 echo "      -fed|--fed_id         fed_id          selects FED id (601...654); default is all"
+echo "      -eb|--ieb_id          ieb_id          selects sm barrel id(-1...-18,1...18); default is all"
 echo "      -cry|--cryGraph       ics             graphs from channel ic will be created"
 echo "      -s|--sample(s)        samples         sample to be examine (1...10); defaults to samples 1,2,3"
 echo ""
-echo "To specify multiple fed_id's, crys, or samples, use a comma-separated list in between double quotes, e.g., \"1,2,3\" "
+echo "To specify multiple fed_id's, ieb_id's, crys, or samples, use a comma-separated list in between double quotes, e.g., \"1,2,3\" "
 exit
 
 fi
@@ -55,9 +55,10 @@ cfg_path="$conf_dir"
 
 
 fed=-1
+ieb=-1
 
-cry_ic=1;
-cryString="false";
+cry_ic="1,2,3,4,5,6,7,8,9,10"
+cryString="false"
 
 sample="1, 2, 3"
 
@@ -92,6 +93,10 @@ last_event=9999
                 fed=$2
                 ;;
 
+      -eb|--ieb_id)
+                ieb=$2
+                ;;
+
       -cry|--cryGraph)
                 cry_ic=$2
                 cryString="true"
@@ -106,6 +111,8 @@ last_event=9999
 
 done
 
+data_file=${data_path##*/} 
+
 echo ""
 echo ""
 echo "data to be analyzed:                          $data_file"
@@ -113,15 +120,12 @@ echo "first event analyzed will be:                 $first_event"
 first_event=$(($first_event-1))
 
 echo "last event analyzed will be:                  $last_event"
-echo "supermodules selected:                        ${ieb}"
+echo "supermodules selected:                        ${ieb} (-1 => all SMs)"
+echo "feds selected:                                ${fed} (-1 => all FEDs)"
 
+echo "channels selected for graphs:                 ${cry_ic}"
 
-if [[  $cryString = "true"  ]]
-then
-        echo "channels selected for graphs:                 ${cry_ic}"
-fi
-
-        echo "sample(s):                                    ${sample}"
+echo "sample(s):                                    ${sample}"
 
 
 echo ""
@@ -139,25 +143,30 @@ process TESTGRAPHDUMPER = {
   include "EventFilter/EcalRawToDigiDev/data/EcalUnpackerMapping.cfi"
   include "EventFilter/EcalRawToDigiDev/data/EcalUnpackerData.cfi"  
 
-# if getting data from a .root pool file
-#     source = PoolSource {
-#       untracked int32 maxEvents = $last_event
-#       untracked uint32 skipEvents = $first_event
-#       untracked vstring fileNames = { 'file:$data_path$data_file' }
-#       untracked bool   debugFlag     = true
-#     }
+  untracked PSet maxEvents = {untracked int32 input = $last_event}
 
-     source = NewEventStreamFileReader{
-       untracked int32 maxEvents = $last_event
+# if getting data from a .root pool file
+     source = PoolSource {
        untracked uint32 skipEvents = $first_event
-       untracked vstring fileNames = { 'file:$data_path$data_file' }
-       untracked uint32 debugVebosity = 10
+       untracked vstring fileNames = { 'file:$data_path' }
        untracked bool   debugFlag     = true
-     } 
+     }
+
+#     source = NewEventStreamFileReader{
+#       untracked uint32 skipEvents = $first_event
+#       untracked vstring fileNames = { 'file:$data_path' }
+#       untracked uint32 debugVebosity = 10
+#       untracked bool   debugFlag     = true
+#     } 
+
+
 
      module graphDumperModule = EcalPedHistDumperModule {
 
        # selection on sm number in the barrel (1...36; 1 with tb unpacker)
+       untracked vint32 listEBs = {${fed}}
+
+       # selection on FED number (601...654)
        untracked vint32 listFEDs = {${ieb}}
 	
        # specify list of channels to be dumped
@@ -170,6 +179,23 @@ process TESTGRAPHDUMPER = {
        string EBdigiCollection = 'ebDigis'
        string EEdigiCollection = 'eeDigis'
        string digiProducer = 'ecalEBunpacker'
+       string headerProducer = 'ecalEBunpacker'
+
+      #list of FED ids for EB
+      vint32 fedID = {610,611,612,613,614,615,
+         616,617,618,619,620,621,
+         622,623,624,625,626,627,
+         628,629,630,631,632,633,
+         634,635,636,637,638,639,
+         640,641,642,643,644,645}
+
+      #list of EB ids 
+      vint32 ebID = { -1,  -2,  -3,  -4,  -5,  -6,
+         -7,  -8,  -9, -10, -11, -12,
+         -13, -14, -15, -16, -17, -18,
+         1,   2,   3,   4,   5,   6,
+         7,   8,   9,  10,  11,  12,
+         13,  14,  15,  16,  17,  18}
      }
      
      path p = {ecalEBunpacker, graphDumperModule}
