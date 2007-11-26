@@ -7,6 +7,12 @@ module dumpMip = MIPDumper{
       # add a simple description of hashIndex (hhahhahhh...)
       #untracked vint32 maskedChannels           = {30641}
 
+      # masked FEDs
+      #untracked vint32 maskedFEDs = {-1}
+
+      # masked EBids
+      #untracked vint32 maskedEBs = {-1}
+
       # add parameter for the amplitude threshold
       untracked double amplitudeThreshold = 12
 
