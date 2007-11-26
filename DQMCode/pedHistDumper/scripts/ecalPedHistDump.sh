@@ -76,11 +76,6 @@ last_event=9999
                 data_path="$2"
                 ;;
 
-      -d|--data_file)
-                data_file="$2"
-                ;;
-
-
       -f|--first_ev)
                 first_event="$2"
                 ;;
