@@ -8,13 +8,13 @@
  *
  */
 
-#include <FWCore/Framework/interface/EDAnalyzer.h>
-#include <FWCore/Framework/interface/Event.h>
-#include <FWCore/Framework/interface/MakerMacros.h>
-#include <DataFormats/EcalDigi/interface/EcalDigiCollections.h>
-#include <DataFormats/EcalDetId/interface/EcalDetIdCollections.h>
-#include <DataFormats/EcalDigi/interface/EcalTriggerPrimitiveDigi.h>
-#include <DataFormats/EcalDigi/interface/EcalTriggerPrimitiveSample.h>
+#include "FWCore/Framework/interface/EDAnalyzer.h"
+#include "FWCore/Framework/interface/Event.h"
+#include "FWCore/Framework/interface/MakerMacros.h"
+#include "DataFormats/EcalDigi/interface/EcalDigiCollections.h"
+#include "DataFormats/EcalDetId/interface/EcalDetIdCollections.h"
+#include "DataFormats/EcalDigi/interface/EcalTriggerPrimitiveDigi.h"
+#include "DataFormats/EcalDigi/interface/EcalTriggerPrimitiveSample.h"
 #include "DataFormats/EcalRawData/interface/EcalRawDataCollections.h"
 #include "Geometry/EcalMapping/interface/EcalElectronicsMapping.h"
 
@@ -388,14 +388,14 @@ void EcalPedHistDumperModule::readEBdigis(edm::Handle<EBDigiCollection> digis)
       string name3 = "Cry";
       name3.append(chnl+"Gain12");
       TH1F* hist = 0;
-      if((*digiItr).sample(*itr-1).gainId()==3)
+      if(((EBDataFrame)(*digiItr)).sample(*itr-1).gainId()==3)
         hist = mapHistos[name1];
-      if((*digiItr).sample(*itr-1).gainId()==2)
+      if(((EBDataFrame)(*digiItr)).sample(*itr-1).gainId()==2)
         hist = mapHistos[name2];
-      if((*digiItr).sample(*itr-1).gainId()==1)
+      if(((EBDataFrame)(*digiItr)).sample(*itr-1).gainId()==1)
         hist = mapHistos[name3];
       if(hist!=0)
-        hist->Fill((*digiItr).sample(*itr-1).adc());
+        hist->Fill(((EBDataFrame)(*digiItr)).sample(*itr-1).adc());
       else
         cerr << "EcalPedHistDumper: Error: This shouldn't happen!" << endl;
     }
@@ -444,14 +444,14 @@ void EcalPedHistDumperModule::readEEdigis(edm::Handle<EEDigiCollection> digis)
       string name3 = "Cry";
       name3.append(chnl+"Gain12");
       TH1F* hist = 0;
-      if((*digiItr).sample(*itr-1).gainId()==3)
+      if(((EBDataFrame)(*digiItr)).sample(*itr-1).gainId()==3)
         hist = mapHistos[name1];
-      if((*digiItr).sample(*itr-1).gainId()==2)
+      if(((EBDataFrame)(*digiItr)).sample(*itr-1).gainId()==2)
         hist = mapHistos[name2];
-      if((*digiItr).sample(*itr-1).gainId()==1)
+      if(((EBDataFrame)(*digiItr)).sample(*itr-1).gainId()==1)
         hist = mapHistos[name3];
       if(hist!=0)
-        hist->Fill((*digiItr).sample(*itr-1).adc());
+        hist->Fill(((EBDataFrame)(*digiItr)).sample(*itr-1).adc());
       else
         cerr << "EcalPedHistDumper: Error: This shouldn't happen!" << endl;
     }
