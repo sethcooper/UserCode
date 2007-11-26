@@ -13,7 +13,7 @@
 //
 // Original Author:  Seth COOPER
 //         Created:  Th Nov 22 5:46:22 CEST 2007
-// $Id: MIPDumper.cc,v 1.3 2007/11/25 13:00:55 scooper Exp $
+// $Id: MIPDumper.cc,v 1.4 2007/11/26 15:18:39 scooper Exp $
 //
 //
 
@@ -73,7 +73,7 @@ class MIPDumper : public edm::EDAnalyzer {
 
   std::set<EBDetId> listAllChannels;
     
-  int side;
+  int side_;
 
   int abscissa[10];
   int ordinate[10];
@@ -81,7 +81,12 @@ class MIPDumper : public edm::EDAnalyzer {
   std::vector<TGraph> graphs;
   std::vector<int> maskedChannels_;
   std::vector<int> maskedFEDs_;
-  
+  std::vector<int> maskedEBs_;
+  std::vector<int> FEDids_;
+  std::vector<int> EBids_;
+  std::map<int,int> FEDidToEBidMap_;
+  std::map<int,int> EBidToFEDidMap_;
+
   TFile* file;
 
 };
@@ -106,18 +111,41 @@ MIPDumper::MIPDumper(const edm::ParameterSet& iConfig) :
   EBDigis_ (iConfig.getParameter<edm::InputTag>("EBDigiCollection")),
   runNum_(-1),
   threshold_ (iConfig.getUntrackedParameter<double>("amplitudeThreshold", 12.0)),
-  fileName_ (iConfig.getUntrackedParameter<std::string>("fileName", std::string("mipDumper")))
+  fileName_ (iConfig.getUntrackedParameter<std::string>("fileName", std::string("mipDumper"))),
+  side_ (iConfig.getUntrackedParameter< int >("side", 3)),
+  FEDids_ (iConfig.getParameter<std::vector<int> > ("fedID")),
+  EBids_ (iConfig.getParameter<std::vector<int> > ("ebID"))
 {
-  side                = iConfig.getUntrackedParameter< int >("side", 3);
-  maskedChannels_.push_back(-1);
-  maskedFEDs_.push_back(-1);
+  std::vector<int> listDefaults;
+  listDefaults.push_back(-1);
   
-  maskedChannels_ = (iConfig.getUntrackedParameter<vector<int> >("maskedChannels", maskedChannels_)),
-  maskedFEDs_ = (iConfig.getUntrackedParameter<vector<int> >("maskedFEDs", maskedFEDs_)),
+  maskedChannels_ = iConfig.getUntrackedParameter<vector<int> >("maskedChannels", listDefaults);
+  maskedFEDs_ = iConfig.getUntrackedParameter<vector<int> >("maskedFEDs", listDefaults);
+  maskedEBs_ =  iConfig.getUntrackedParameter<vector<int> >("maskedEBs", listDefaults);
+  
+  // initialize EBid <--> FEDid maps
+  for(int i = 0; (unsigned int)i <FEDids_.size(); ++i)
+  {
+    FEDidToEBidMap_.insert(make_pair(FEDids_[0],EBids_[0]));
+    EBidToFEDidMap_.insert(make_pair(EBids_[0],FEDids_[0]));
+  }
+
+  // load up the maskedFED list with the proper FEDids
+  if(maskedFEDs_[0]==-1)
+  {
+    //if "actual" EB id given, then convert to FEDid and put in listFEDs_
+    if(maskedEBs_[0] != -1)
+    {
+      maskedFEDs_.clear();
+      for(int i = 0; (unsigned int)i < maskedEBs_.size(); ++i)
+      {
+        maskedFEDs_.push_back(EBidToFEDidMap_[maskedEBs_[i]]);
+      }
+    }
+  }
+  
   ievt_ =0;
-  vector<int>::iterator result;
-  
-  
+  //vector<int>::iterator result;
   for (int i=0; i<10; i++)        abscissa[i] = i;
 }
 
@@ -230,7 +258,7 @@ MIPDumper::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
       int iphi = (ic-1)%20 +1;
       
 
-      int hside = (side/2);
+      int hside = (side_/2);
       
       for (int u = (-hside) ; u<=hside; u++)
       {
@@ -297,7 +325,7 @@ MIPDumper::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
     int ic = (*chnlItr).ic();
     int ism = (*chnlItr).ism();
 
-    for (int i=0; i< (*digiItr).size() ; ++i ) {
+    for (int i=0; (unsigned int)i< (*digiItr).size() ; ++i ) {
       EBDataFrame df( *digiItr );
       ordinate[i] = df.sample(i).adc();
     }
