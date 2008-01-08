@@ -13,7 +13,7 @@
 //
 // Original Author:  Seth Cooper
 //         Created:  Thu Sep 27 16:09:01 CDT 2007
-// $Id: EcalDeDxAnalyzer.cc,v 1.13 2007/11/06 22:20:24 scooper Exp $
+// $Id: EcalDeDxAnalyzer.cc,v 1.15 2007/11/10 00:04:41 scooper Exp $
 //
 //
 
@@ -123,6 +123,7 @@ class EcalDeDxAnalyzer : public edm::EDAnalyzer {
       edm::InputTag EEHitCollection_;
       edm::InputTag trackProducer_;
       edm::InputTag trackingParticleCollection_;
+      edm::InputTag simTrackContainer_;
       TH2D* energyVsMomentum_;
       TH1D* energyHist_;
       TH1D* momentumHist_;
@@ -132,10 +133,7 @@ class EcalDeDxAnalyzer : public edm::EDAnalyzer {
       TH2D* hitEtaPhiHist_;
       TH2D* deDxVsBetaHist_;
       TH2D* clusterDeDxVsBetaHist_;
-      
-      TGraph* deDxVsBetaGraph_;
-      
-      edm::InputTag simTrackContainer_;
+      TH2D* deDxVsGammaBetaHist_;
       TH1D* simTrackEtaHist_;
       TH1D* simTrackPhiHist_;
       TH1D* ecalHitEtaHist_;
@@ -145,10 +143,9 @@ class EcalDeDxAnalyzer : public edm::EDAnalyzer {
       TH1D* simHitsEnergyHist_;
       TH1D* simTrackRecoTrackDeltaEtaHist_;
       TH1D* simTrackRecoTrackDeltaPhiHist_;
-
-      
+      TGraph* deDxVsBetaGraph_;
       TF1* betheBlochKFunct;
-      
+      TFile* a;
       
       double dRHitTrack;
       double minTrackPt_;
@@ -189,6 +186,10 @@ EcalDeDxAnalyzer::EcalDeDxAnalyzer(const edm::ParameterSet& ps)
    dRHitTrack                  = ps.getParameter<double>("dRTrack");
    trackerHitMinP_             = ps.getParameter<double>("trackerMinHitP_");
    
+   a = new TFile("test.root","RECREATE");
+   
+   TH1::AddDirectory(false);
+   
    energyVsMomentum_ = new TH2D("energy_vs_momentum","energy dep. in ecal vs. momentum",8000,0,2000,100,0,1.5);
    energyHist_ = new TH1D("energy_in_ecal","energy dep. in ecal",100,0,1.5);
    momentumHist_ = new TH1D("tracker_outer_momentum","tracker outer momentum",8000,0,2000);
@@ -201,6 +202,7 @@ EcalDeDxAnalyzer::EcalDeDxAnalyzer(const edm::ParameterSet& ps)
    deDxVsBetaHist_ = new TH2D("dedx_vs_beta","dE/dx vs. beta",25,0,1,60,0,.06);
    //TODO: How to define path length of particle in detector for a cluster??
    clusterDeDxVsBetaHist_ = new TH2D("cluster_dedx_vs_beta","dE/dx from cluster vs. beta",100,0,1,60,0,.06);
+   deDxVsGammaBetaHist_ = new TH2D("dedx_vs_gamma_beta","dE/dx vs. beta*gamma",40,0,10,60,0,.06);
    
    // e vs. beta hist only valid when we know the mass (i.e., protons)!
    betheBlochKFunct = new TF1("betheBlochK","(1/[0])*(1/pow(x,2))",0.5,1);
@@ -225,7 +227,8 @@ EcalDeDxAnalyzer::~EcalDeDxAnalyzer()
    // do anything here that needs to be done at desctruction time
    // (e.g. close files, deallocate resources etc.)
    //delete energyVsMomentum_;
-
+  using namespace std;
+  
 }
 
 
@@ -304,9 +307,13 @@ void EcalDeDxAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& 
       double phi = localPosToGlobalPos(*hit).phi();
       //cout << "PDG ID:" << trackItr->pdgId() << endl;
       //cout << "DEBUG1--line 301" << endl;
+      //cout << "eta: " << eta << " phi: " << phi << endl;
       simTrackEtaHist_->Fill(eta);
+      //cout << "Filled eta" << endl;
       simTrackPhiHist_->Fill(phi);
+      //cout << "Filled phi" << endl;
       simTrackCount++;
+      //cout << "DEBUG1.5" << endl;
       math::XYZPoint ecalSimTrackPos = propagateTrack(*trackItr);
       //cout << "DEBUG2" << endl;
       math::XYZPoint ecalRecoTrackPos = math::XYZPoint(0,0,0);
@@ -399,11 +406,13 @@ void EcalDeDxAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& 
       if(mcParticleMass_ > -1)
       {
         double beta = p/sqrt(pow(p,2)+pow(mcParticleMass_,2));
+        double gamma = 1/sqrt(1-beta*beta);
         energyVsBetaHist_->Fill(beta, energy);
         if(beta > .5) //energy/23.0 > .003)
         {
+          deDxVsGammaBetaHist_->Fill(beta*gamma,energy/23.0);
           deDxVsBetaHist_->Fill(beta,energy/23.0);
-          cout << "Adding point (e/l,beta): " << energy/23.0 << "," << beta << endl;
+          cout << "Added point (e/l,beta): " << energy/23.0 << "," << beta << endl;
           vx.push_back(beta);
           vy.push_back(energy/23.0);  //TODO: This is only a very rough crystal length approximation
                                       //      Can we fix using propagator?
@@ -458,6 +467,7 @@ void EcalDeDxAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& 
 //  }
 //  if(highestE > -1)
 //    highestEnergyHist_->Fill(highestE);
+  cout << "Finished analyze" << endl;
 }
 
 //---------------------------------------------------------------------------------------------------
@@ -744,6 +754,7 @@ BozoCluster EcalDeDxAnalyzer::makeBozoCluster(const EcalRecHit &seed, const edm:
 // ------------ method called once each job just before starting event loop  ------------
 void EcalDeDxAnalyzer::beginJob(const edm::EventSetup& setup)
 {
+  std::cout << "beginJob" << std::endl;
   setup.get<IdealMagneticFieldRecord>().get(theMF_);
   forwardPropagator_ = new PropagatorWithMaterial ( dir_ = alongMomentum, mcParticleMass_, &(*theMF_) );
 }
@@ -752,14 +763,18 @@ void EcalDeDxAnalyzer::beginJob(const edm::EventSetup& setup)
 void EcalDeDxAnalyzer::endJob() {
   using namespace std;
   
-  TFile a("test.root","RECREATE");
-
+  cout << "Endjob" << endl;
+  a->cd();
+  
   betheBlochKFunct->Write();
   
   TProfile* deDxProfile_ = (TProfile*) (deDxVsBetaHist_->ProfileX());
   deDxProfile_->Fit("betheBlochK","R");
   deDxProfile_->Write();
 
+  TProfile* deDxGammaBetaProfile_ = (TProfile*) (deDxVsGammaBetaHist_->ProfileX());
+  deDxGammaBetaProfile_->Write();
+  
   TGraph* maxDeDxVsBeta;
   vector<double> xBetaVec;
   vector<double> yMaxDeDxVec;
@@ -787,6 +802,7 @@ void EcalDeDxAnalyzer::endJob() {
   deDxVsBetaGraph_->SetTitle("DeDx vs. beta (all hits)");
   deDxVsBetaGraph_->SetName("dedxVsBetaFittedGraph");
   deDxVsBetaGraph_->Write();
+  deDxVsGammaBetaHist_->Write();
   //deDxVsBetaHist_->Fit("betheBlochK");
   deDxVsBetaHist_->Write();
   energyVsMomentum_->Write();
@@ -806,9 +822,8 @@ void EcalDeDxAnalyzer::endJob() {
   simTrackRecoTrackDeltaEtaHist_->Write();
   simTrackRecoTrackDeltaPhiHist_->Write();
   
-  a.Write();
-  a.Close();
-
+  a->Write();
+  a->Close();
 }
 
 
