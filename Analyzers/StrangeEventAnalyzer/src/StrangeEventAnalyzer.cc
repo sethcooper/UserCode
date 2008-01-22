@@ -13,13 +13,14 @@
 //
 // Original Author:  Seth Cooper
 //         Created:  Tue Jan  8 16:47:23 CST 2008
-// $Id$
+// $Id: StrangeEventAnalyzer.cc,v 1.1 2008/01/21 16:04:18 scooper Exp $
 //
 //
 
 
 // system include files
 #include <memory>
+#include <map>
 
 // user include files
 #include "FWCore/Framework/interface/Frameworkfwd.h"
@@ -31,6 +32,8 @@
 #include "DataFormats/EcalRecHit/interface/EcalRecHitCollections.h"
 #include "DataFormats/EcalDetId/interface/EBDetId.h"
 #include "DataFormats/EcalDigi/interface/EcalDigiCollections.h"
+#include "CaloOnlineTools/EcalTools/interface/EcalFedMap.h"
+#include "Geometry/EcalMapping/interface/EcalElectronicsMapping.h"
 #include "TFile.h"
 #include "TH1F.h"
 #include "TH2F.h"
@@ -72,11 +75,16 @@ class StrangeEventAnalyzer : public edm::EDAnalyzer {
       TH2F* ampVsDelta2Hist_;
       TH2F* ampVsMaxSampleIndexHist_;
       TH2F* ampVsChi2Hist_;
-      TH2F* ampVsChannelHist_;
+
       TFile* file_;
 
       int abscissa[10];
       int ordinate[10];
+      int fedIds[36];
+      std::map<int,TH2F*> fedIdChannelHistMap_;
+      std::map<int,TH2F*> fedIdMonsterOccupancyHistMap_;
+      std::map<int,TH2F*> fedIdCosmicOccupancyHistMap_;
+      EcalFedMap* fedMap_;
 };
 
 //
@@ -114,10 +122,11 @@ EBDigis_ (iConfig.getParameter<edm::InputTag>("EBDigiCollection"))
    ampVsDelta2Hist_ = new TH2F("ampVsDelta12","max-min amplitude vs. sample2-sample1",200,0,200,2000,0,2000);
    ampVsMaxSampleIndexHist_ = new TH2F("ampVsMaxSampleIndex","max-min amplitude vs. index of max sample",10,0,10,2000,0,2000);
    ampVsChi2Hist_ = new TH2F("ampVsChi2","Max-min amplitudes vs. chi-squares",2000,-500,1000,2000,0,2000);
-   ampVsChannelHist_ = new TH2F("ampVsChannel","Max-min amplitudes vs. channel",2000,0,1700,2000,0,2000);
 
    for (int i=0; i<10; i++)
      abscissa[i] = i;
+
+   fedMap_ = new EcalFedMap();
 }
 
 
@@ -162,7 +171,32 @@ StrangeEventAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& i
      maxMinAmpHist_->Fill(amplitude);
      EBDetId hitDetId = hit.id();
      //sampleHitsPastCut.push_back(hit);
-     ampVsChannelHist_->Fill(amplitude,((EBDetId)hit.id()).ic());
+
+     // Get the Fedid
+     auto_ptr<EcalElectronicsMapping> ecalElectronicsMap(new EcalElectronicsMapping);
+     EcalElectronicsId elecId = ecalElectronicsMap->getElectronicsId(hitDetId);
+     int FEDid = 600+elecId.dccId();
+
+     //TODO: maybe fix this so that occupancy plots don't always get generated for each dcc in data?
+     if(fedIds[FEDid-601]==0)
+     {
+       string name = "ampVsChannel_"+fedMap_->getSliceFromFed(FEDid);
+       string title = "Max-min amplitudes vs. channel for "+fedMap_->getSliceFromFed(FEDid);
+       fedIdChannelHistMap_[FEDid] = new TH2F(name.c_str(),title.c_str(),2000,0,1700,2000,0,2000);
+       
+       name = "monsterOccupancy_"+fedMap_->getSliceFromFed(FEDid);
+       title = "Monster occupancy for "+fedMap_->getSliceFromFed(FEDid);
+       fedIdMonsterOccupancyHistMap_[FEDid] = new TH2F(name.c_str(),title.c_str(),85,0,85,20,0,20);
+     
+       
+       name = "cosmicOccupancy_"+fedMap_->getSliceFromFed(FEDid);
+       title = "Cosmic occupancy for "+fedMap_->getSliceFromFed(FEDid);
+       fedIdCosmicOccupancyHistMap_[FEDid] = new TH2F(name.c_str(),title.c_str(),85,0,85,20,0,20);
+       
+       fedIds[FEDid-601]++;
+     }
+     
+     fedIdChannelHistMap_[FEDid]->Fill(amplitude,hitDetId.ic());
      
      if(amplitude > 13)
      {
@@ -193,6 +227,7 @@ StrangeEventAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& i
            oneGraph.SetTitle(title.c_str());
            oneGraph.SetName(name.c_str());
            oneGraph.Write();
+           fedIdMonsterOccupancyHistMap_[FEDid]->Fill(hitDetId.ieta(), hitDetId.iphi());
          }
          else
          {
@@ -234,6 +269,7 @@ StrangeEventAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& i
                oneGraph.SetTitle(title.c_str());
                oneGraph.SetName(name.c_str());
                oneGraph.Write();
+               fedIdCosmicOccupancyHistMap_[FEDid]->Fill(hitDetId.ieta(), hitDetId.iphi());
              }
              else
              {
@@ -248,6 +284,7 @@ StrangeEventAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& i
                oneGraph.SetTitle(title.c_str());
                oneGraph.SetName(name.c_str());
                oneGraph.Write();
+               fedIdMonsterOccupancyHistMap_[FEDid]->Fill(hitDetId.ieta(), hitDetId.iphi());
              }
            }
            else
@@ -263,6 +300,7 @@ StrangeEventAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& i
              oneGraph.SetTitle(title.c_str());
              oneGraph.SetName(name.c_str());
              oneGraph.Write();
+             fedIdMonsterOccupancyHistMap_[FEDid]->Fill(hitDetId.ieta(), hitDetId.iphi());
            }
          }
        }
@@ -367,6 +405,7 @@ StrangeEventAnalyzer::beginJob(const edm::EventSetup&)
 void 
 StrangeEventAnalyzer::endJob()
 {
+  using namespace std;
   file_->cd();
   
   chi2Hist_->Write();
@@ -385,8 +424,24 @@ StrangeEventAnalyzer::endJob()
   ampVsDelta2Hist_->Write();
   ampVsMaxSampleIndexHist_->Write();
   ampVsChi2Hist_->Write();
-  ampVsChannelHist_->Write();
 
+  // now iterate through the maps and write the hists
+  for(map<int,TH2F*>::const_iterator itr = fedIdChannelHistMap_.begin();
+      itr != fedIdChannelHistMap_.end(); ++itr)
+  {
+    itr->second->Write();
+  }
+  for(map<int,TH2F*>::const_iterator itr = fedIdMonsterOccupancyHistMap_.begin();
+      itr != fedIdMonsterOccupancyHistMap_.end(); ++itr)
+  {
+    itr->second->Write();
+  }
+  for(map<int,TH2F*>::const_iterator itr = fedIdCosmicOccupancyHistMap_.begin();
+      itr != fedIdCosmicOccupancyHistMap_.end(); ++itr)
+  {
+    itr->second->Write();
+  }
+  
   file_->Write();
   file_->Close();
 }
