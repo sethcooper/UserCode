@@ -13,7 +13,7 @@
 //
 // Original Author:  Seth Cooper
 //         Created:  Tue Jan  8 16:47:23 CST 2008
-// $Id: StrangeEventAnalyzer.cc,v 1.1 2008/01/21 16:04:18 scooper Exp $
+// $Id: StrangeEventAnalyzer.cc,v 1.2 2008/01/22 15:29:38 scooper Exp $
 //
 //
 
@@ -32,7 +32,7 @@
 #include "DataFormats/EcalRecHit/interface/EcalRecHitCollections.h"
 #include "DataFormats/EcalDetId/interface/EBDetId.h"
 #include "DataFormats/EcalDigi/interface/EcalDigiCollections.h"
-#include "CaloOnlineTools/EcalTools/interface/EcalFedMap.h"
+#include "EcalFedMap.h"
 #include "Geometry/EcalMapping/interface/EcalElectronicsMapping.h"
 #include "TFile.h"
 #include "TH1F.h"
@@ -80,7 +80,7 @@ class StrangeEventAnalyzer : public edm::EDAnalyzer {
 
       int abscissa[10];
       int ordinate[10];
-      int fedIds[36];
+      int fedIds[54];
       std::map<int,TH2F*> fedIdChannelHistMap_;
       std::map<int,TH2F*> fedIdMonsterOccupancyHistMap_;
       std::map<int,TH2F*> fedIdCosmicOccupancyHistMap_;
@@ -126,6 +126,9 @@ EBDigis_ (iConfig.getParameter<edm::InputTag>("EBDigiCollection"))
    for (int i=0; i<10; i++)
      abscissa[i] = i;
 
+   for (int i=0; i<54; i++)
+     fedIds[i] = 0;
+  
    fedMap_ = new EcalFedMap();
 }
 
@@ -156,9 +159,9 @@ StrangeEventAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& i
    
    Handle<EcalUncalibratedRecHitCollection> sampleHits;
    iEvent.getByLabel(MaxSampleUncalibratedRecHitCollection_, sampleHits);
-   //LogDebug("StrangeEventAnalyzer") << "event: " << eventNum << " fitted hits collection size: " << sampleHits->size();
-   Handle<EcalUncalibratedRecHitCollection> fittedHits;
-   iEvent.getByLabel(FittedUncalibratedRecHitCollection_, fittedHits);
+   LogDebug("StrangeEventAnalyzer") << "event: " << eventNum << " sample hits collection size: " << sampleHits->size();
+   //Handle<EcalUncalibratedRecHitCollection> fittedHits;
+   //iEvent.getByLabel(FittedUncalibratedRecHitCollection_, fittedHits);
    //LogDebug("StrangeEventAnalyzer") << "event: " << eventNum << " fitted hits collection size: " << fittedHits->size();
    Handle<EBDigiCollection>  digis;
    iEvent.getByLabel(EBDigis_, digis);
@@ -182,21 +185,21 @@ StrangeEventAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& i
      {
        string name = "ampVsChannel_"+fedMap_->getSliceFromFed(FEDid);
        string title = "Max-min amplitudes vs. channel for "+fedMap_->getSliceFromFed(FEDid);
-       fedIdChannelHistMap_[FEDid] = new TH2F(name.c_str(),title.c_str(),2000,0,1700,2000,0,2000);
+       fedIdChannelHistMap_[FEDid] = new TH2F(name.c_str(),title.c_str(),1700,1,1701,2000,0,2000);
        
        name = "monsterOccupancy_"+fedMap_->getSliceFromFed(FEDid);
        title = "Monster occupancy for "+fedMap_->getSliceFromFed(FEDid);
-       fedIdMonsterOccupancyHistMap_[FEDid] = new TH2F(name.c_str(),title.c_str(),85,0,85,20,0,20);
+       fedIdMonsterOccupancyHistMap_[FEDid] = new TH2F(name.c_str(),title.c_str(),85,1,86,20,1,21);
      
        
        name = "cosmicOccupancy_"+fedMap_->getSliceFromFed(FEDid);
        title = "Cosmic occupancy for "+fedMap_->getSliceFromFed(FEDid);
-       fedIdCosmicOccupancyHistMap_[FEDid] = new TH2F(name.c_str(),title.c_str(),85,0,85,20,0,20);
+       fedIdCosmicOccupancyHistMap_[FEDid] = new TH2F(name.c_str(),title.c_str(),85,1,86,20,1,21);
        
        fedIds[FEDid-601]++;
      }
      
-     fedIdChannelHistMap_[FEDid]->Fill(amplitude,hitDetId.ic());
+     fedIdChannelHistMap_[FEDid]->Fill(hitDetId.ic(),amplitude);
      
      if(amplitude > 13)
      {
@@ -227,7 +230,7 @@ StrangeEventAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& i
            oneGraph.SetTitle(title.c_str());
            oneGraph.SetName(name.c_str());
            oneGraph.Write();
-           fedIdMonsterOccupancyHistMap_[FEDid]->Fill(hitDetId.ieta(), hitDetId.iphi());
+           fedIdMonsterOccupancyHistMap_[FEDid]->Fill(hitDetId.ietaSM(), hitDetId.iphiSM());
          }
          else
          {
@@ -269,7 +272,7 @@ StrangeEventAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& i
                oneGraph.SetTitle(title.c_str());
                oneGraph.SetName(name.c_str());
                oneGraph.Write();
-               fedIdCosmicOccupancyHistMap_[FEDid]->Fill(hitDetId.ieta(), hitDetId.iphi());
+               fedIdCosmicOccupancyHistMap_[FEDid]->Fill(hitDetId.ietaSM(), hitDetId.iphiSM());
              }
              else
              {
@@ -284,7 +287,7 @@ StrangeEventAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& i
                oneGraph.SetTitle(title.c_str());
                oneGraph.SetName(name.c_str());
                oneGraph.Write();
-               fedIdMonsterOccupancyHistMap_[FEDid]->Fill(hitDetId.ieta(), hitDetId.iphi());
+               fedIdMonsterOccupancyHistMap_[FEDid]->Fill(hitDetId.ietaSM(), hitDetId.iphiSM());
              }
            }
            else
@@ -300,7 +303,7 @@ StrangeEventAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& i
              oneGraph.SetTitle(title.c_str());
              oneGraph.SetName(name.c_str());
              oneGraph.Write();
-             fedIdMonsterOccupancyHistMap_[FEDid]->Fill(hitDetId.ieta(), hitDetId.iphi());
+             fedIdMonsterOccupancyHistMap_[FEDid]->Fill(hitDetId.ietaSM(), hitDetId.iphiSM());
            }
          }
        }
