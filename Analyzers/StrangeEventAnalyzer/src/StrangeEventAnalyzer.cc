@@ -13,7 +13,7 @@
 //
 // Original Author:  Seth Cooper
 //         Created:  Tue Jan  8 16:47:23 CST 2008
-// $Id: StrangeEventAnalyzer.cc,v 1.2 2008/01/22 15:29:38 scooper Exp $
+// $Id: StrangeEventAnalyzer.cc,v 1.3 2008/01/23 16:27:27 scooper Exp $
 //
 //
 
@@ -21,6 +21,7 @@
 // system include files
 #include <memory>
 #include <map>
+#include <vector>
 
 // user include files
 #include "FWCore/Framework/interface/Frameworkfwd.h"
@@ -67,6 +68,8 @@ class StrangeEventAnalyzer : public edm::EDAnalyzer {
       TH1F* minSampleIndexHist_;
       TH1F* minSampleIndexCosmicsHist_;
       TH1F* numDataframesWithActivityHist_;
+      TH1F* numMonstersInEventHist_;
+      TH1F* numCosmicsInEventHist_;
       
       TH2F* delta1VsDelta2Hist_;
       TH2F* maxSampleIndexVsDelta1Hist_;
@@ -75,7 +78,11 @@ class StrangeEventAnalyzer : public edm::EDAnalyzer {
       TH2F* ampVsDelta2Hist_;
       TH2F* ampVsMaxSampleIndexHist_;
       TH2F* ampVsChi2Hist_;
-
+      TH2F* barrelMonsterOccupancyHist_;
+      TH2F* barrelCosmicOccupancyHist_;
+      TH2F* barrelMonsterOccupancyTTHist_;
+      TH2F* barrelCosmicOccupancyTTHist_;
+      
       TFile* file_;
 
       int abscissa[10];
@@ -85,6 +92,7 @@ class StrangeEventAnalyzer : public edm::EDAnalyzer {
       std::map<int,TH2F*> fedIdMonsterOccupancyHistMap_;
       std::map<int,TH2F*> fedIdCosmicOccupancyHistMap_;
       EcalFedMap* fedMap_;
+      std::vector<int> maskedChannels_;
 };
 
 //
@@ -114,7 +122,11 @@ EBDigis_ (iConfig.getParameter<edm::InputTag>("EBDigiCollection"))
    minSampleIndexHist_ = new TH1F("minSampleIndex","Index of min. amplitude sample",10,0,10);
    minSampleIndexCosmicsHist_ = new TH1F("minSampleIndexCosmics","Index of min. amplitude sample in possible cosmic signals",10,0,10);
    numDataframesWithActivityHist_ = new TH1F("numDFsWithActivity","Number of dataframes with activity per event",1700,0,1700);
+   //WARNING: max range is adjusted so the half the barrel can be full of cosmics/monsters
+   numMonstersInEventHist_ = new TH1F("MonstersInEvent","Number of monsters per event",30600,0,30600);
+   numCosmicsInEventHist_ = new TH1F("CosmicsInEvent","Number of cosmics per event",30600,0,30600);
 
+   
    delta1VsDelta2Hist_ = new TH2F("delta01vsDelta12","sample1-sample0 vs. sample2-sample1",200,0,200,200,0,200);
    maxSampleIndexVsDelta1Hist_ = new TH2F("maxSampleIndexVsDelta1","max. sample index vs. sample1-sample0",200,0,200,10,0,10);
    maxSampleIndexVsDelta2Hist_ = new TH2F("maxSampleIndexVsDelta2","max. sample index vs. sample2-sample1",200,0,200,10,0,10);
@@ -122,7 +134,12 @@ EBDigis_ (iConfig.getParameter<edm::InputTag>("EBDigiCollection"))
    ampVsDelta2Hist_ = new TH2F("ampVsDelta12","max-min amplitude vs. sample2-sample1",200,0,200,2000,0,2000);
    ampVsMaxSampleIndexHist_ = new TH2F("ampVsMaxSampleIndex","max-min amplitude vs. index of max sample",10,0,10,2000,0,2000);
    ampVsChi2Hist_ = new TH2F("ampVsChi2","Max-min amplitudes vs. chi-squares",2000,-500,1000,2000,0,2000);
+   barrelMonsterOccupancyHist_ = new TH2F("barrelMonsterOccupancy","Monster Occupancy",85,1,86,360,-10,350);
+   barrelCosmicOccupancyHist_ = new TH2F("barrelCosmicOccupancy","Cosmic Occupancy",85,1,86,360,-10,350);
+   barrelMonsterOccupancyTTHist_ = new TH2F("barrelMonsterOccupancyTT","Monster Occupancy (TT binning)",17,1,86,90,-10,350);
+   barrelCosmicOccupancyTTHist_ = new TH2F("barrelCosmicOccupancyTT","Cosmic Occupancy (TT binning)",17,1,86,90,-10,350);
 
+   
    for (int i=0; i<10; i++)
      abscissa[i] = i;
 
@@ -130,6 +147,10 @@ EBDigis_ (iConfig.getParameter<edm::InputTag>("EBDigiCollection"))
      fedIds[i] = 0;
   
    fedMap_ = new EcalFedMap();
+   std::vector<int> listDefaults;
+   listDefaults.push_back(-1);
+       
+   maskedChannels_ = iConfig.getUntrackedParameter<std::vector<int> >("maskedChannels", listDefaults);
 }
 
 
@@ -154,12 +175,15 @@ StrangeEventAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& i
    using namespace std;
 
    int numHitsWithActivity = 0;
+   int numCosmicsInEvent = 0;
+   int numMonstersInEvent = 0;
+   
    int eventNum = iEvent.id().event();
    //vector<EcalUncalibratedRecHit> sampleHitsPastCut;
    
    Handle<EcalUncalibratedRecHitCollection> sampleHits;
    iEvent.getByLabel(MaxSampleUncalibratedRecHitCollection_, sampleHits);
-   LogDebug("StrangeEventAnalyzer") << "event: " << eventNum << " sample hits collection size: " << sampleHits->size();
+   //LogDebug("StrangeEventAnalyzer") << "event: " << eventNum << " sample hits collection size: " << sampleHits->size();
    //Handle<EcalUncalibratedRecHitCollection> fittedHits;
    //iEvent.getByLabel(FittedUncalibratedRecHitCollection_, fittedHits);
    //LogDebug("StrangeEventAnalyzer") << "event: " << eventNum << " fitted hits collection size: " << fittedHits->size();
@@ -180,6 +204,14 @@ StrangeEventAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& i
      EcalElectronicsId elecId = ecalElectronicsMap->getElectronicsId(hitDetId);
      int FEDid = 600+elecId.dccId();
 
+     vector<int>::iterator result;
+     result = find(maskedChannels_.begin(), maskedChannels_.end(), hitDetId.hashedIndex());
+     if  (result != maskedChannels_.end())
+     {
+       LogWarning("EcalMipGraphs") << "skipping uncalRecHit for channel: " << hitDetId.ic() << " in fed: " << FEDid << " with amplitude " << amplitude;
+       continue;
+     }
+
      //TODO: maybe fix this so that occupancy plots don't always get generated for each dcc in data?
      if(fedIds[FEDid-601]==0)
      {
@@ -198,6 +230,8 @@ StrangeEventAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& i
        
        fedIds[FEDid-601]++;
      }
+     
+     string SMname = fedMap_->getSliceFromFed(FEDid);
      
      fedIdChannelHistMap_[FEDid]->Fill(hitDetId.ic(),amplitude);
      
@@ -224,13 +258,18 @@ StrangeEventAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& i
              ordinate[i] = df.sample(i).adc();
            }
            TGraph oneGraph(10,abscissa,ordinate);
-           string name = "monster_ev" + intToString(eventNum) + "_ic" + intToString(((EBDetId)hit.id()).ic());
-           string title = "monster event" + intToString(eventNum) + "_ic" + intToString(((EBDetId)hit.id()).ic());
+           string name = "monster_ev" + intToString(eventNum) + "_ic" + intToString(((EBDetId)hit.id()).ic()) + "_" + SMname;
+           string title = "monster event" + intToString(eventNum) + "_ic" + intToString(((EBDetId)hit.id()).ic()) + "_" + SMname;;
 
            oneGraph.SetTitle(title.c_str());
            oneGraph.SetName(name.c_str());
            oneGraph.Write();
            fedIdMonsterOccupancyHistMap_[FEDid]->Fill(hitDetId.ietaSM(), hitDetId.iphiSM());
+           barrelMonsterOccupancyHist_->Fill(hitDetId.ieta(),hitDetId.iphi());
+           barrelMonsterOccupancyTTHist_->Fill(hitDetId.ieta(),hitDetId.iphi());
+           numMonstersInEvent++;
+           cout << "Monster written; presample criterion. " << "evt:" << intToString(eventNum) 
+             << " ic:" << intToString(((EBDetId)hit.id()).ic()) << " SM:" << SMname << endl;
          }
          else
          {
@@ -266,13 +305,18 @@ StrangeEventAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& i
                  ordinate[i] = df.sample(i).adc();
                }
                TGraph oneGraph(10,abscissa,ordinate);
-               string name = "cosmic_ev" + intToString(eventNum) + "_ic" + intToString(((EBDetId)hit.id()).ic());
-               string title = "cosmic event" + intToString(eventNum) + "_ic" + intToString(((EBDetId)hit.id()).ic());
+               string name = "cosmic_ev" + intToString(eventNum) + "_ic" + intToString(((EBDetId)hit.id()).ic()) + "_" + SMname;
+               string title = "cosmic event" + intToString(eventNum) + "_ic" + intToString(((EBDetId)hit.id()).ic()) +"_"+SMname;
 
                oneGraph.SetTitle(title.c_str());
                oneGraph.SetName(name.c_str());
                oneGraph.Write();
                fedIdCosmicOccupancyHistMap_[FEDid]->Fill(hitDetId.ietaSM(), hitDetId.iphiSM());
+               barrelCosmicOccupancyHist_->Fill(hitDetId.ieta(), hitDetId.iphi());
+               barrelCosmicOccupancyTTHist_->Fill(hitDetId.ieta(),hitDetId.iphi());
+               numCosmicsInEvent++;
+               cout << "Cosmic written; max/min amp samples. " << "evt:" << intToString(eventNum) 
+                 << " ic:" << intToString(((EBDetId)hit.id()).ic()) << " SM:" << SMname <<endl;
              }
              else
              {
@@ -282,12 +326,17 @@ StrangeEventAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& i
                  ordinate[i] = df.sample(i).adc();
                }
                TGraph oneGraph(10,abscissa,ordinate);
-               string name = "monster_ev" + intToString(eventNum) + "_ic" + intToString(((EBDetId)hit.id()).ic());
-               string title = "monster event" + intToString(eventNum) + "_ic" + intToString(((EBDetId)hit.id()).ic());
+               string name = "monster_ev" + intToString(eventNum) + "_ic" + intToString(((EBDetId)hit.id()).ic())+"_"+SMname;
+               string title = "monster event" + intToString(eventNum) + "_ic" + intToString(((EBDetId)hit.id()).ic())+"_"+SMname;
                oneGraph.SetTitle(title.c_str());
                oneGraph.SetName(name.c_str());
                oneGraph.Write();
                fedIdMonsterOccupancyHistMap_[FEDid]->Fill(hitDetId.ietaSM(), hitDetId.iphiSM());
+               barrelMonsterOccupancyHist_->Fill(hitDetId.ieta(),hitDetId.iphi());
+               barrelMonsterOccupancyTTHist_->Fill(hitDetId.ieta(),hitDetId.iphi());
+               numMonstersInEvent++;
+           cout << "Monster written; min amp samples. " << "evt:" << intToString(eventNum) 
+             << " ic:" << intToString(((EBDetId)hit.id()).ic()) << " SM:" << SMname <<endl;
              }
            }
            else
@@ -298,19 +347,26 @@ StrangeEventAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& i
                ordinate[i] = df.sample(i).adc();
              }
              TGraph oneGraph(10,abscissa,ordinate);
-             string name = "monster_ev" + intToString(eventNum) + "_ic" + intToString(((EBDetId)hit.id()).ic());
-             string title = "monster event" + intToString(eventNum) + "_ic" + intToString(((EBDetId)hit.id()).ic());
+             string name = "monster_ev" + intToString(eventNum) + "_ic" + intToString(((EBDetId)hit.id()).ic())+"_"+SMname;
+             string title = "monster event" + intToString(eventNum) + "_ic" + intToString(((EBDetId)hit.id()).ic())+"_"+SMname;
              oneGraph.SetTitle(title.c_str());
              oneGraph.SetName(name.c_str());
              oneGraph.Write();
              fedIdMonsterOccupancyHistMap_[FEDid]->Fill(hitDetId.ietaSM(), hitDetId.iphiSM());
+             barrelMonsterOccupancyHist_->Fill(hitDetId.ieta(),hitDetId.iphi());
+             barrelMonsterOccupancyTTHist_->Fill(hitDetId.ieta(),hitDetId.iphi());
+             numMonstersInEvent++;
+           cout << "Monster written; max amp samples. " << "evt:" <<intToString(eventNum) 
+             << " ic:" << intToString(((EBDetId)hit.id()).ic()) << " SM:" << SMname << endl;
            }
          }
        }
      }
    }
    
-
+   numMonstersInEventHist_->Fill(numMonstersInEvent);
+   numCosmicsInEventHist_->Fill(numCosmicsInEvent);
+   
    // Loop over the sample hits passing the cut
 //   for(vector<EcalUncalibratedRecHit>::const_iterator hitItr = sampleHitsPastCut.begin(); hitItr != sampleHitsPastCut.end(); ++hitItr)
 //   {
@@ -395,6 +451,7 @@ StrangeEventAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& i
    
    LogInfo("StrangeEventAnalyzer") << "Event:" << eventNum << " num hits with activity:" << numHitsWithActivity;
    numDataframesWithActivityHist_->Fill(numHitsWithActivity);
+   
 }
 
 
@@ -419,6 +476,8 @@ StrangeEventAnalyzer::endJob()
   minSampleIndexHist_->Write();
   minSampleIndexCosmicsHist_->Write();
   numDataframesWithActivityHist_->Write();
+  numCosmicsInEventHist_->Write();
+  numMonstersInEventHist_->Write();
   
   delta1VsDelta2Hist_->Write();
   maxSampleIndexVsDelta1Hist_->Write();
@@ -427,7 +486,11 @@ StrangeEventAnalyzer::endJob()
   ampVsDelta2Hist_->Write();
   ampVsMaxSampleIndexHist_->Write();
   ampVsChi2Hist_->Write();
-
+  barrelCosmicOccupancyHist_->Write();
+  barrelMonsterOccupancyHist_->Write();
+  barrelCosmicOccupancyTTHist_->Write();
+  barrelMonsterOccupancyTTHist_->Write();
+  
   // now iterate through the maps and write the hists
   for(map<int,TH2F*>::const_iterator itr = fedIdChannelHistMap_.begin();
       itr != fedIdChannelHistMap_.end(); ++itr)
