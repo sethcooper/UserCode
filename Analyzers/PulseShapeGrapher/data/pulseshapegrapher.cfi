@@ -1,0 +1,9 @@
+// Put here the modules you want the cfg file to use,
+// then include this file in your cfg file.
+// i.e. in PulseShapeGrapher.cfg replace 'module demo = PulseShapeGrapher {} '
+// with 'include "anlyzerDir/PulseShapeGrapher/data/PulseShapeGrapher.cfi" '.
+// (Remember that filenames are case sensitive.)
+
+module demo = PulseShapeGrapher {
+
+}
