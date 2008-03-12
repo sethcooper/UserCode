@@ -13,7 +13,7 @@
 //
 // Original Author:  Seth Cooper
 //         Created:  Thu Sep 27 16:09:01 CDT 2007
-// $Id: EcalDeDxAnalyzer.cc,v 1.15 2007/11/10 00:04:41 scooper Exp $
+// $Id: EcalDeDxAnalyzer.cc,v 1.16 2008/01/08 22:36:06 scooper Exp $
 //
 //
 
@@ -175,6 +175,8 @@ bool                                     EcalDeDxAnalyzer::theInit_ = false;
 //
 EcalDeDxAnalyzer::EcalDeDxAnalyzer(const edm::ParameterSet& ps)
 {
+  std::cout << "Constructor for EcalDeDxAnalyzer" << std::endl;
+  
    //now do what ever initialization is needed
    EBHitCollection_            = ps.getParameter<edm::InputTag>("EBRecHitCollection");
    EEHitCollection_            = ps.getParameter<edm::InputTag>("EERecHitCollection");
@@ -191,7 +193,7 @@ EcalDeDxAnalyzer::EcalDeDxAnalyzer(const edm::ParameterSet& ps)
    TH1::AddDirectory(false);
    
    energyVsMomentum_ = new TH2D("energy_vs_momentum","energy dep. in ecal vs. momentum",8000,0,2000,100,0,1.5);
-   energyHist_ = new TH1D("energy_in_ecal","energy dep. in ecal",100,0,1.5);
+   energyHist_ = new TH1D("energy_in_ecal","energy dep. in ecal",1000,0,10.0);
    momentumHist_ = new TH1D("tracker_outer_momentum","tracker outer momentum",8000,0,2000);
    highestEnergyHist_ = new TH1D("highest_energy_recHits","highest energy track-matched RecHits",100,0,1.5);
    bozoClusterEnergyHist_ = new TH1D("bozo_cluster_recHits","track-matched bozo clusters",100,0,1.5);
@@ -202,7 +204,7 @@ EcalDeDxAnalyzer::EcalDeDxAnalyzer(const edm::ParameterSet& ps)
    deDxVsBetaHist_ = new TH2D("dedx_vs_beta","dE/dx vs. beta",25,0,1,60,0,.06);
    //TODO: How to define path length of particle in detector for a cluster??
    clusterDeDxVsBetaHist_ = new TH2D("cluster_dedx_vs_beta","dE/dx from cluster vs. beta",100,0,1,60,0,.06);
-   deDxVsGammaBetaHist_ = new TH2D("dedx_vs_gamma_beta","dE/dx vs. beta*gamma",40,0,10,60,0,.06);
+   deDxVsGammaBetaHist_ = new TH2D("dedx_vs_gamma_beta","dE/dx vs. beta*gamma",400,0,100,60,0,.06);
    
    // e vs. beta hist only valid when we know the mass (i.e., protons)!
    betheBlochKFunct = new TF1("betheBlochK","(1/[0])*(1/pow(x,2))",0.5,1);
@@ -212,8 +214,8 @@ EcalDeDxAnalyzer::EcalDeDxAnalyzer(const edm::ParameterSet& ps)
    simTrackEtaHist_ = new TH1D("simTracksEta","Eta of MC tracks",80,-4,4);
    simTrackPhiHist_ = new TH1D("simTracksPhi","Phi of MC tracks",120,-6.4,6.4);
    simHitsEnergyHist_ = new TH1D("simHitsEnergy","Energy of sim hits",200,0,2);
-   ecalHitEtaHist_ = new TH1D("ecalHitsEta","Eta of hits in ecal",60,-3,3);
-   ecalHitPhiHist_ = new TH1D("ecalHitsPhi","Phi of hits in ecal",120,-6.4,6.4);
+   ecalHitEtaHist_ = new TH1D("ecalHitsEta","Eta of hits in ecal",340,-3,3);
+   ecalHitPhiHist_ = new TH1D("ecalHitsPhi","Phi of hits in ecal",720,-3.14,3.14);
    simTrackRecoTrackDeltaEtaHist_ = new TH1D("tracksDeltaEta","Delta eta of sim tracks and reco tracks",1000,-.01,.01);
    simTrackRecoTrackDeltaPhiHist_ = new TH1D("tracksDeltaPhi","Delta phi of sim tracks and reco tracks",2000,-.04,.04);
    
@@ -227,7 +229,6 @@ EcalDeDxAnalyzer::~EcalDeDxAnalyzer()
    // do anything here that needs to be done at desctruction time
    // (e.g. close files, deallocate resources etc.)
    //delete energyVsMomentum_;
-  using namespace std;
   
 }
 
@@ -261,6 +262,7 @@ void EcalDeDxAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& 
   }
 
   cout << "Number of reco tracks: " << trackHandle.product()->size() << endl;
+  cout << "Number of EB hits: " << EBHits.product()->size() << endl;
   //cout << "Number of sim tracks: " << simTracks->size() << endl;
 
   //Setup geometry
@@ -467,7 +469,6 @@ void EcalDeDxAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& 
 //  }
 //  if(highestE > -1)
 //    highestEnergyHist_->Fill(highestE);
-  cout << "Finished analyze" << endl;
 }
 
 //---------------------------------------------------------------------------------------------------
@@ -754,7 +755,7 @@ BozoCluster EcalDeDxAnalyzer::makeBozoCluster(const EcalRecHit &seed, const edm:
 // ------------ method called once each job just before starting event loop  ------------
 void EcalDeDxAnalyzer::beginJob(const edm::EventSetup& setup)
 {
-  std::cout << "beginJob" << std::endl;
+  //std::cout << "beginJob" << std::endl;
   setup.get<IdealMagneticFieldRecord>().get(theMF_);
   forwardPropagator_ = new PropagatorWithMaterial ( dir_ = alongMomentum, mcParticleMass_, &(*theMF_) );
 }
@@ -763,12 +764,13 @@ void EcalDeDxAnalyzer::beginJob(const edm::EventSetup& setup)
 void EcalDeDxAnalyzer::endJob() {
   using namespace std;
   
-  cout << "Endjob" << endl;
   a->cd();
   
   betheBlochKFunct->Write();
   
   TProfile* deDxProfile_ = (TProfile*) (deDxVsBetaHist_->ProfileX());
+  deDxProfile_->SetTitle("Fitted dE/dx profile");
+  deDxProfile_->SetName("dEdxProfileFitted");
   deDxProfile_->Fit("betheBlochK","R");
   deDxProfile_->Write();
 
