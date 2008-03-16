@@ -13,7 +13,7 @@
 //
 // Original Author:  Seth Cooper
 //         Created:  Tue Feb  5 11:35:45 CST 2008
-// $Id$
+// $Id: PulseShapeGrapher.cc,v 1.1 2008/02/18 17:45:21 scooper Exp $
 //
 //
 
@@ -38,7 +38,7 @@
 #include "DataFormats/EcalRecHit/interface/EcalRecHitCollections.h"
 #include "DataFormats/EcalDetId/interface/EBDetId.h"
 #include "DataFormats/EcalDigi/interface/EcalDigiCollections.h"
-#include "EcalFedMap.h"
+#include "CaloOnlineTools/EcalTools/interface/EcalFedMap.h"
 #include "Geometry/EcalMapping/interface/EcalElectronicsMapping.h"
 
 //
@@ -67,9 +67,16 @@ class PulseShapeGrapher : public edm::EDAnalyzer {
       std::map<int,TH1F*> snpAmpHistMap_;
       std::map<int,TH1F*> cosmicAmpHistMap_;
       std::map<int,TH2F*> pulseShapeHistMap_;
+      std::map<int,TH1F*> firstSampleHistMap_;
+      std::map<int,TH2F*> rawPulseShapeHistMap_;
+      std::map<int,TH2F*> pedMaxPulseShapeHistMap_;
+      std::map<int,TH2F*> nonPedMaxPulseShapeHistMap_;
+      std::map<int,TH1F*> cutAmpHistMap_;
+
 
       TFile* file_;
-
+         
+      EcalFedMap* fedMap_;
       // ----------member data ---------------------------
 };
 
@@ -99,18 +106,47 @@ EBDigis_ (iConfig.getParameter<edm::InputTag>("EBDigiCollection"))
      std::string title = "Amplitude of cry "+intToString(*itr);
      std::string name = "ampOfCry"+intToString(*itr);
      ampHistMap_[*itr] = new TH1F(name.c_str(),title.c_str(),100,0,100);
+     ampHistMap_[*itr]->GetXaxis()->SetTitle("ADC");
+
+     title = "Amplitude (over 13 ADC) of cry "+intToString(*itr);
+     name = "cutAmpOfCry"+intToString(*itr);
+     cutAmpHistMap_[*itr] = new TH1F(name.c_str(),title.c_str(),100,0,100);
+     cutAmpHistMap_[*itr]->GetXaxis()->SetTitle("ADC");
 
      title = "SNP amplitude of cry "+intToString(*itr);
      name = "SNPampOfCry"+intToString(*itr);
      snpAmpHistMap_[*itr] = new TH1F(name.c_str(),title.c_str(),100,0,100);
+     snpAmpHistMap_[*itr]->GetXaxis()->SetTitle("ADC");
      
      title = "Cosmic amplitude of cry "+intToString(*itr);
      name = "cosmicAmpOfCry"+intToString(*itr);
      cosmicAmpHistMap_[*itr] = new TH1F(name.c_str(),title.c_str(),100,0,100);
+     cosmicAmpHistMap_[*itr]->GetXaxis()->SetTitle("ADC");
      
      title = "Pulse shape of cry "+intToString(*itr);
      name = "PulseShapeCry"+intToString(*itr);
-     pulseShapeHistMap_[*itr] = new TH2F(name.c_str(),title.c_str(),10,0,10,11,0,1.1);
+     pulseShapeHistMap_[*itr] = new TH2F(name.c_str(),title.c_str(),10,0,10,220,-20,2);
+     pulseShapeHistMap_[*itr]->GetXaxis()->SetTitle("sample");
+
+     title = "Raw Pulse shape of cry "+intToString(*itr);
+     name = "RawPulseShapeCry"+intToString(*itr);
+     rawPulseShapeHistMap_[*itr] = new TH2F(name.c_str(),title.c_str(),10,0,10,500,0,500);
+     rawPulseShapeHistMap_[*itr]->GetXaxis()->SetTitle("sample");
+     
+     title = "Ped Max Pulse shape of cry "+intToString(*itr);
+     name = "PedMaxPulseShapeCry"+intToString(*itr);
+     pedMaxPulseShapeHistMap_[*itr] = new TH2F(name.c_str(),title.c_str(),10,0,10,1000,-50,50);
+     pedMaxPulseShapeHistMap_[*itr]->GetXaxis()->SetTitle("sample");
+     
+     title = "Non-ped max Pulse shape of cry "+intToString(*itr);
+     name = "NonPedMaxPulseShapeCry"+intToString(*itr);
+     nonPedMaxPulseShapeHistMap_[*itr] = new TH2F(name.c_str(),title.c_str(),10,0,10,1000,-50,50);
+     nonPedMaxPulseShapeHistMap_[*itr]->GetXaxis()->SetTitle("sample");
+     
+     title = "Amplitude of first sample, cry "+intToString(*itr);
+     name = "AmpOfFirstSampleCry"+intToString(*itr);
+     firstSampleHistMap_[*itr] = new TH1F(name.c_str(),title.c_str(),300,100,400);
+     firstSampleHistMap_[*itr]->GetXaxis()->SetTitle("ADC");
    }
    
    fedMap_ = new EcalFedMap();
@@ -189,6 +225,8 @@ PulseShapeGrapher::analyze(const edm::Event& iEvent, const edm::EventSetup& iSet
      if(amplitude < 13)
        continue;
 
+     cutAmpHistMap_[hitDetId.hashedIndex()]->Fill(amplitude);
+     
      // Hit is probably a signal
      numHitsWithActivity++;
      EBDigiCollection::const_iterator digiItr= digis->begin();
@@ -210,21 +248,35 @@ PulseShapeGrapher::analyze(const edm::Event& iEvent, const edm::EventSetup& iSet
      int minSampleIndex = -1;
      for(int i=0; i<10; ++i)
      {
-       if(df.sample(i).adc() > maxSampleAmp)
+       if(df.sample(i).adc() > maxSampleAmp && !isnan(df.sample(i).adc()))
        {
          maxSampleAmp = df.sample(i).adc();
          maxSampleIndex = i;
        }
-       if(df.sample(i).adc() < minSampleAmp)
+       if(df.sample(i).adc() < minSampleAmp && !isnan(df.sample(i).adc()))
        {
          minSampleAmp = df.sample(i).adc();
          minSampleIndex = i;
        }
      }
 
-     int baseline = (df.sample(0).adc()+df.sample(1).adc())/2;
+     cout << "1) maxsample amp:" << maxSampleAmp << " maxSampleIndex:" << maxSampleIndex << endl;
+     int baseline = (df.sample(0).adc()+df.sample(1).adc()+df.sample(2).adc())/3;
      for(int i=0; i<10;++i)
+     {
+       cout << "Filling hist for:" << hitDetId.hashedIndex() << " with sample:" << i 
+         << " amp:" <<(float)(df.sample(i).adc()-baseline)/(maxSampleAmp-baseline) << endl;
+       cout << "ADC of sample:" << df.sample(i).adc() << " baseline:" << baseline << " maxSampleAmp:" 
+         << maxSampleAmp << endl << endl;
        pulseShapeHistMap_[hitDetId.hashedIndex()]->Fill(i, (float)(df.sample(i).adc()-baseline)/(maxSampleAmp-baseline));
+       rawPulseShapeHistMap_[hitDetId.hashedIndex()]->Fill(i, (float)(df.sample(i).adc()));
+       if(maxSampleIndex<2)
+         pedMaxPulseShapeHistMap_[hitDetId.hashedIndex()]->Fill(i, (float)(df.sample(i).adc()-baseline)/(maxSampleAmp-baseline));
+       else
+         nonPedMaxPulseShapeHistMap_[hitDetId.hashedIndex()]->Fill(i, (float)(df.sample(i).adc()-baseline)/(maxSampleAmp-baseline));
+     }
+
+     firstSampleHistMap_[hitDetId.hashedIndex()]->Fill(df.sample(0).adc());
      
      if(delta1 < 3 || delta2 < 3)
      {
@@ -265,10 +317,17 @@ PulseShapeGrapher::endJob() {
    for(std::vector<int>::const_iterator itr = listChannels_.begin(); itr != listChannels_.end(); ++itr)
    {
      ampHistMap_[*itr]->Write();
+     cutAmpHistMap_[*itr]->Write();
      cosmicAmpHistMap_[*itr]->Write();
      snpAmpHistMap_[*itr]->Write();
+     firstSampleHistMap_[*itr]->Write();
 
      pulseShapeHistMap_[*itr]->Write();
+     rawPulseShapeHistMap_[*itr]->Write();
+     TProfile* t2 = (TProfile*) (rawPulseShapeHistMap_[*itr]->ProfileX());
+     t2->Write();
+     pedMaxPulseShapeHistMap_[*itr]->Write();
+     nonPedMaxPulseShapeHistMap_[*itr]->Write();
      TProfile* t1 = (TProfile*) (pulseShapeHistMap_[*itr]->ProfileX());
      t1->Write();
    }
