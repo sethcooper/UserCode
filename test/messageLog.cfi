@@ -1,0 +1,17 @@
+service = MessageLogger{
+  untracked vstring destinations = { 
+    "pippo.txt","Myinfo.txt","ERROR.txt", "Warning.txt" }
+  untracked     PSet Myinfo.txt = { untracked string threshold = "INFO"
+    untracked   bool noTimeStamps = true
+      untracked   bool noLineBreaks = true
+  }
+
+  untracked   PSet pippo.txt = { untracked string threshold = "DEBUG"
+    untracked   PSet default = { untracked int32 limit = 1000 }
+    untracked bool noTimeStamps = true
+      untracked bool noLineBreaks = true
+  }
+  untracked   PSet ERROR.txt = { untracked string threshold = "ERROR"}
+  untracked   PSet Warning.txt = { untracked string threshold = "WARNING"}
+  untracked vstring debugModules = {"uncalibHitMaker","timing"}
+}
