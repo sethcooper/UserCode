@@ -3,7 +3,7 @@
 
 <export>
 
-<lib name=CosmicsTimingAnalyzerCosmicsTimingAnalyzer>
+<lib name=AnalyzersCosmicsTimingAnalyzer>
 <use name=Geometry/EcalMapping>
 
 </export>

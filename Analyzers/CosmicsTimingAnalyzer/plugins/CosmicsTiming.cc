@@ -613,107 +613,71 @@ CosmicsTiming::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
     // S. Cooper, July 9, 2008
     // Modified July 22, 2008
     // scooper@CERN.CH
-     std::vector<DetId> selectedTimingDetIds;
-     //Fill the vector with the DetId's of the trigger tower I want: tower_ieta:4, tower_iphi:53
-     //Add EB+14, iphi10, ieta20 (ic390)
-     selectedTimingDetIds.push_back(EBDetId(14,390,1));
-     //Add EB+14, ic389,388,387,386
-     selectedTimingDetIds.push_back(EBDetId(14,389,1));
-     selectedTimingDetIds.push_back(EBDetId(14,388,1));
-     selectedTimingDetIds.push_back(EBDetId(14,387,1));
-     selectedTimingDetIds.push_back(EBDetId(14,386,1));
-     //Add EB+14, ic370,369,368,367,366
-     selectedTimingDetIds.push_back(EBDetId(14,370,1));
-     selectedTimingDetIds.push_back(EBDetId(14,369,1));
-     selectedTimingDetIds.push_back(EBDetId(14,368,1));
-     selectedTimingDetIds.push_back(EBDetId(14,367,1));
-     selectedTimingDetIds.push_back(EBDetId(14,366,1));
-     //Add EB+14, ic350...ic346
-     selectedTimingDetIds.push_back(EBDetId(14,350,1));
-     selectedTimingDetIds.push_back(EBDetId(14,349,1));
-     selectedTimingDetIds.push_back(EBDetId(14,348,1));
-     selectedTimingDetIds.push_back(EBDetId(14,347,1));
-     selectedTimingDetIds.push_back(EBDetId(14,346,1));
-     //Add EB+14, ic330...ic326
-     selectedTimingDetIds.push_back(EBDetId(14,330,1));
-     selectedTimingDetIds.push_back(EBDetId(14,329,1));
-     selectedTimingDetIds.push_back(EBDetId(14,328,1));
-     selectedTimingDetIds.push_back(EBDetId(14,327,1));
-     selectedTimingDetIds.push_back(EBDetId(14,326,1));
-     //Add EB+14, ic310...ic306
-     selectedTimingDetIds.push_back(EBDetId(14,310,1));
-     selectedTimingDetIds.push_back(EBDetId(14,309,1));
-     selectedTimingDetIds.push_back(EBDetId(14,308,1));
-     selectedTimingDetIds.push_back(EBDetId(14,307,1));
-     selectedTimingDetIds.push_back(EBDetId(14,306,1));
-     
-     // Below is what I used for my first study of two neighboring crys
-     //Add EB+14, iphi10, ieta21 (ic410)
-     //selectedTimingDetIds.push_back(EBDetId(14,410,1));
-     
-     
-     // See if the selected crys are in the cluster and get the RecHits
-     std::vector<EcalRecHit> selectedTimingRecHits;
-     // Get DetId's of crys in supercluster
-     std::vector<DetId> scDetIds = clus->getHitsByDetId();
-     for(std::vector<DetId>::const_iterator detitr = selectedTimingDetIds.begin(); 
-         detitr != selectedTimingDetIds.end(); ++detitr)
-       {
-         // Search for selected DetId in the supercluster
-         std::vector<DetId>::const_iterator clusterDet = find(scDetIds.begin(),scDetIds.end(),*detitr);
-         if(clusterDet == scDetIds.end())
-           continue;
-         
-         // Now obtain the RecHit
-	 EcalRecHitCollection::const_iterator thishit = hits->find((*detitr));
-	 if(thishit == hits->end()) 
-	     continue;
-         selectedTimingRecHits.push_back(*thishit);
-       }
-    
-     if(selectedTimingRecHits.size() < 2)
-     {
-       //std::cout << "COULD NOT FIND TWO SELECTED CRYS IN A CLUSTER" << std::endl;
-       continue;
-     }
-    
-     // Now we generate the deltaT's from all the crystals that are in our TT AND the cosmicCluster
-     for(std::vector<EcalRecHit>::const_iterator currentHit = selectedTimingRecHits.begin();
-         currentHit != selectedTimingRecHits.end(); ++currentHit)
-     {
-       if(currentHit->energy() < 0.110 || currentHit==selectedTimingRecHits.end()-1)
-         continue;
 
-       bool filledDeltaHist = false;
-       for(std::vector<EcalRecHit>::const_iterator secondHit = currentHit+1;
-           secondHit != selectedTimingRecHits.end(); ++secondHit)
-       {
-         if(secondHit->energy() > 0.110)
-         {
-           timingDeltaHist_->Fill(25*secondHit->time()-25*currentHit->time());
-           filledDeltaHist = true;
-         }
-       }
-       if(filledDeltaHist)
-       {
-         selectedCryEnergyHist_->Fill(currentHit->energy());
-         selectedCryTimeHist_->Fill(25*currentHit->time());
-         selectedCryRunHist_->Fill(iEvent.id().run());
-         std::cout << "CosmicsTimingAnalyzer: CurrentHit hashedIndex:  "
-           << ((EBDetId)(currentHit->id())).hashedIndex()
-           << " time: " << 25*currentHit->time()
-           << " energy: " << currentHit->energy() << " run: " << iEvent.id().run() 
-           << " event from id: " << iEvent.id().event() << std::endl;
-       }
-     }
+    // One map for towerId (= iSM-1+iTT) to RecHits in that tower
+    //std::vector<EcalRecHit> selectedTimingRecHits;
+    std::map<int,vector<EcalRecHit> > towerIdsAndHits;
+    
+    // Get DetId's of crys in supercluster
+    std::vector<DetId> scDetIds = clus->getHitsByDetId();
+    for(std::vector<DetId>::const_iterator detitr = scDetIds.begin(); 
+        detitr != scDetIds.end(); ++detitr)
+    {
+      EcalRecHitCollection::const_iterator thisHit = hits->find((*detitr));
+      if(thisHit == hits->end())
+        continue;
+      if(thisHit->energy() > 0.109)
+      {
+        //selectedTimingRecHits.push_back(*thishit);
+        int myTowerId = thisHit->id()->tower()->iTT() + thisHit->id()->iSM()-1;
+        std::vector<EcalRecHit> towerHits = towerIdsAndHits[myTowerId];
+        towerHits.push_back(thisHit);
+      }
+    }
+
+
+    for(std::map<int,vector<EcalRecHit> >::const_iterator mapItr = towerIdsAndHits.begin();
+        mapItr != towerIdsAndHits.end(); ++mapItr)
+    {
+      std::vector<EcalRecHit> selectedTimingRecHits = mapItr->second;
+      if(selectedTimingRecHits.size() < 2)
+        continue;
+
+      // Now we generate the deltaT's from all the crystals that are in our TT AND the cosmicCluster
+      for(std::vector<EcalRecHit>::const_iterator currentHit = selectedTimingRecHits.begin();
+          currentHit != selectedTimingRecHits.end(); ++currentHit)
+      {
+        if(currentHit==selectedTimingRecHits.end()-1)
+          continue;
+
+        bool filledDeltaHist = false;
+        for(std::vector<EcalRecHit>::const_iterator secondHit = currentHit+1;
+            secondHit != selectedTimingRecHits.end(); ++secondHit)
+        {
+          timingDeltaHist_->Fill(25*secondHit->time()-25*currentHit->time());
+          filledDeltaHist = true;
+        }
+        if(filledDeltaHist)
+        {
+          selectedCryEnergyHist_->Fill(currentHit->energy());
+          selectedCryTimeHist_->Fill(25*currentHit->time());
+          selectedCryRunHist_->Fill(iEvent.id().run());
+          std::cout << "CosmicsTimingAnalyzer: CurrentHit hashedIndex:  "
+            << ((EBDetId)(currentHit->id())).hashedIndex()
+            << " time: " << 25*currentHit->time()
+            << " energy: " << currentHit->energy() << " run: " << iEvent.id().run() 
+            << " event from id: " << iEvent.id().event() << std::endl;
+        }
+      }
+    }
 
    }//++++++++++++++++++END LOOP OVER SUPERCLUSTERS+++++++++++++++++++++++++++++++++++
 
   numberofCosmicsHist_->Fill(numberOfCosmics);
   if ( numberOfCosmics > 0 ) {
-     cosmicCounter_++;
-     numberofGoodEvtFreq_->Fill(naiveEvtNum_);
-     allFedsFreqTimeHist_->Fill(eventTime);
+    cosmicCounter_++;
+    numberofGoodEvtFreq_->Fill(naiveEvtNum_);
+    allFedsFreqTimeHist_->Fill(eventTime);
   }
 
   //  LogWarning("CosmicsTiming") << " top & bottom " << numberOfCosmicsTop << " " << numberOfCosmicsBottom << " --> " << numberOfCosmics << endl;
