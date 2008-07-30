@@ -629,9 +629,9 @@ CosmicsTiming::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
       if(thisHit->energy() > 0.109)
       {
         //selectedTimingRecHits.push_back(*thishit);
-        int myTowerId = thisHit->id()->tower()->iTT() + thisHit->id()->iSM()-1;
+        int myTowerId = ((EBDetId)thisHit->id()).tower().iTT() + ((EBDetId) thisHit->id()).ism()-1;
         std::vector<EcalRecHit> towerHits = towerIdsAndHits[myTowerId];
-        towerHits.push_back(thisHit);
+        towerHits.push_back(*thisHit);
       }
     }
 
