@@ -629,17 +629,26 @@ CosmicsTiming::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
       if(thisHit->energy() > 0.109)
       {
         //selectedTimingRecHits.push_back(*thishit);
-        int myTowerId = ((EBDetId)thisHit->id()).tower().iTT() + ((EBDetId) thisHit->id()).ism()-1;
+        int myTowerId = ((EBDetId)thisHit->id()).tower().iTT() + 68*(((EBDetId)thisHit->id()).ism()-1);
         std::vector<EcalRecHit> towerHits = towerIdsAndHits[myTowerId];
         towerHits.push_back(*thisHit);
+        
+        //---------------------DEBUG
+        std::cout << "Pushed back hit for towerID: " << myTowerId << std::endl;
       }
     }
 
+      //-------------------------DEBUG
+      std::cout << "Size of map: " << towerIdsAndHits.size() << std::endl;
 
     for(std::map<int,vector<EcalRecHit> >::const_iterator mapItr = towerIdsAndHits.begin();
         mapItr != towerIdsAndHits.end(); ++mapItr)
     {
       std::vector<EcalRecHit> selectedTimingRecHits = mapItr->second;
+      
+      //-------------------------DEBUG
+      std::cout << "Loop over map; number of hits for this towerId: " << selectedTimingRecHits.size() << std::endl;
+
       if(selectedTimingRecHits.size() < 2)
         continue;
 
@@ -647,6 +656,10 @@ CosmicsTiming::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
       for(std::vector<EcalRecHit>::const_iterator currentHit = selectedTimingRecHits.begin();
           currentHit != selectedTimingRecHits.end(); ++currentHit)
       {
+
+        //-------------------------DEBUG
+        std::cout << "Loop over hits for towerId: " << mapItr->first << std::endl;
+        
         if(currentHit==selectedTimingRecHits.end()-1)
           continue;
 
@@ -654,6 +667,9 @@ CosmicsTiming::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
         for(std::vector<EcalRecHit>::const_iterator secondHit = currentHit+1;
             secondHit != selectedTimingRecHits.end(); ++secondHit)
         {
+          //-------------------------DEBUG
+          std::cout << "Second loop over hits; filling histogram with deltaT: " << std::endl;
+          
           timingDeltaHist_->Fill(25*secondHit->time()-25*currentHit->time());
           filledDeltaHist = true;
         }
