@@ -54,12 +54,13 @@ CosmicsTiming::CosmicsTiming(const edm::ParameterSet& iConfig) :
   histRangeMin_ (iConfig.getUntrackedParameter<double>("histogramMinRange",0.0)),
   minTimingAmp_ (iConfig.getUntrackedParameter<double>("MinTimingAmp",.100)),
   fileName_ (iConfig.getUntrackedParameter<std::string>("fileName", std::string("ecalCosmicHists"))),
+  runInFileName_(iConfig.getUntrackedParameter<bool>("runInFileName",true)),
   startTime_ (iConfig.getUntrackedParameter<double>("TimeStampStart",1215107133.)),
   runTimeLength_ (iConfig.getUntrackedParameter<double>("TimeStampLength",3.)),
-  runInFileName_(iConfig.getUntrackedParameter<bool>("runInFileName",true)),
   numTimingBins_(iConfig.getUntrackedParameter<int>("TimeStampBins",1800))
 
 {
+  
   naiveEvtNum_ = 0;
   cosmicCounter_ = 0;
   cosmicCounterTopBottom_ = 0;
@@ -75,9 +76,7 @@ CosmicsTiming::CosmicsTiming(const edm::ParameterSet& iConfig) :
   allFedsHist_ = new TH1F(name1.c_str(),title1.c_str(),numBins,histRangeMin_,histRangeMax_);
   
   fedMap_ = new EcalFedMap();
-
   
- 
 }
 
 
@@ -94,6 +93,7 @@ CosmicsTiming::~CosmicsTiming()
 void
 CosmicsTiming::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 {
+  
   //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   //
   // HARDCODED RUN NUMBER RECJECTIONS HERE!
@@ -112,8 +112,9 @@ CosmicsTiming::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
   
   naiveEvtNum_++;
 
-  //  cout << "  My Event: " << naiveEvtNum_ << " " << iEvent.id().run() << " " << iEvent.id().event() << " " << iEvent.time().value() << endl;
-  //  cout << "Timestamp: " << iEvent.id().run() << " " << iEvent.id().event() << " " << iEvent.time().value() << endl;
+  //DEBUG
+  //cout << "  My Event: " << naiveEvtNum_ << " " << iEvent.id().run() << " " << iEvent.id().event() << " " << iEvent.time().value() << endl;
+  //cout << "Timestamp: " << iEvent.id().run() << " " << iEvent.id().event() << " " << iEvent.time().value() << endl;
   
   //===================TIMESTAMP INFORMTION=================================
   // Code added to get the time in seconds
@@ -128,7 +129,7 @@ CosmicsTiming::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
   iEvent.getByLabel(barrelClusterCollection_, bscHandle);
   if (!(bscHandle.isValid())) 
     {
-	  //LogWarning("CosmicsTiming") << barrelClusterCollection_ << " not available";
+      LogWarning("CosmicsTiming") << barrelClusterCollection_ << " not available";
       return;
     }
   //LogDebug("CosmicsTiming") << "event " << ievt;
@@ -136,7 +137,7 @@ CosmicsTiming::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
   iEvent.getByLabel(endcapClusterCollection_, escHandle);
   if (!(escHandle.isValid())) 
     {
-	  //LogWarning("CosmicsTiming") << endcapClusterCollection_ << " not available";
+      LogWarning("CosmicsTiming") << endcapClusterCollection_ << " not available";
       //return;
     }
   
@@ -144,150 +145,16 @@ CosmicsTiming::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
   iEvent.getByLabel(ecalRecHitCollection_, hits);
   if (!(escHandle.isValid())) 
     {
-	  //LogWarning("CosmicsTiming") << ecalRecHitCollection_ << " not available";
+      LogWarning("CosmicsTiming") << ecalRecHitCollection_ << " not available";
       //return;
     }
 
-          
-  // get the GMTReadoutCollection
-  Handle<L1MuGMTReadoutCollection> gmtrc_handle; 
-  iEvent.getByLabel(l1GMTReadoutRecTag_,gmtrc_handle);
-  L1MuGMTReadoutCollection const* gmtrc = gmtrc_handle.product();
-  if (!(gmtrc_handle.isValid())) 
-    {
-	  //LogWarning("CosmicsTiming") << "l1MuGMTReadoutCollection" << " not available";
-      //return;
-    }
- 
-  
-  // get hold of L1GlobalReadoutRecord
-  Handle<L1GlobalTriggerReadoutRecord> L1GTRR;
-  iEvent.getByLabel(l1GTReadoutRecTag_,L1GTRR);
-  bool isEcalL1 = false;
-  const unsigned int sizeOfDecisionWord(L1GTRR->decisionWord().size());
-  if (!(L1GTRR.isValid()))
-    {
-      //LogWarning("CosmicsTiming") << l1GTReadoutRecTag_ << " not available";
-      //return;
-    }
-  else if(sizeOfDecisionWord<128)
-    {
-      //LogWarning("CosmicsTiming") << "size of L1 decisionword is " << sizeOfDecisionWord
-        //<< "; L1 Ecal triggering bits not available";
-    } 
-  else
-    {
-      l1Names_.resize(sizeOfDecisionWord);
-      l1Accepts_.resize(sizeOfDecisionWord);
-      for (unsigned int i=0; i!=sizeOfDecisionWord; ++i) {
-        l1Accepts_[i]=0;
-        l1Names_[i]="NameNotAvailable";
-      }
-      for (unsigned int i=0; i!=sizeOfDecisionWord; ++i) {
-        if (L1GTRR->decisionWord()[i])
-          {
-            l1Accepts_[i]++;
-            //cout << "L1A bit: " << i << endl;
-          }
-      }
-     
-      if(l1Accepts_[14] || l1Accepts_[15] || l1Accepts_[16] || l1Accepts_[17]
-          || l1Accepts_[18] || l1Accepts_[19] || l1Accepts_[20])
-        isEcalL1 = true;
-      if(l1Accepts_[73] || l1Accepts_[74] || l1Accepts_[75] || l1Accepts_[76]
-          || l1Accepts_[77] || l1Accepts_[78])
-        isEcalL1 = true;
-    } 
-  
-  bool isRPCL1 = false;
-  bool isDTL1 = false;
-  bool isCSCL1 = false;
-  bool isHCALL1 = false;
-      
-  std::vector<L1MuGMTReadoutRecord> gmt_records = gmtrc->getRecords();
-  std::vector<L1MuGMTReadoutRecord>::const_iterator igmtrr;
-      
-  for(igmtrr=gmt_records.begin(); igmtrr!=gmt_records.end(); igmtrr++) {
-
-    std::vector<L1MuRegionalCand>::const_iterator iter1;
-    std::vector<L1MuRegionalCand> rmc;
-
-    //DT triggers
-    int idt = 0;
-    rmc = igmtrr->getDTBXCands();
-    for(iter1=rmc.begin(); iter1!=rmc.end(); iter1++) {
-      if ( !(*iter1).empty() ) {
-        idt++;
-      }
-    }
-
-    //if(idt>0) std::cout << "Found " << idt << " valid DT candidates in bx wrt. L1A = " 
-    //  << igmtrr->getBxInEvent() << std::endl;
-    if(igmtrr->getBxInEvent()==0 && idt>0) isDTL1 = true;
-
-    //RPC triggers
-    int irpcb = 0;
-    rmc = igmtrr->getBrlRPCCands();
-    for(iter1=rmc.begin(); iter1!=rmc.end(); iter1++) {
-      if ( !(*iter1).empty() ) {
-        irpcb++;
-      }
-    }
-
-    //if(irpcb>0) std::cout << "Found " << irpcb << " valid RPC candidates in bx wrt. L1A = " 
-    //  << igmtrr->getBxInEvent() << std::endl;
-    if(igmtrr->getBxInEvent()==0 && irpcb>0) isRPCL1 = true;
-
-    //CSC Triggers
-    int icsc = 0;
-    rmc = igmtrr->getCSCCands();
-    for(iter1=rmc.begin(); iter1!=rmc.end(); iter1++) {
-      if ( !(*iter1).empty() ) {
-        icsc++;
-      }
-    }
-
-    //if(icsc>0) std::cout << "Found " << icsc << " valid CSC candidates in bx wrt. L1A = " 
-    //  << igmtrr->getBxInEvent() << std::endl;
-    if(igmtrr->getBxInEvent()==0 && icsc>0) isCSCL1 = true;
-  }
-  
-
-  L1GlobalTriggerReadoutRecord const* gtrr = L1GTRR.product();
-
-  for(int ibx=-1; ibx<=1; ibx++) {
-    bool hcal_top = false;
-    bool hcal_bot = false;
-    const L1GtPsbWord psb = gtrr->gtPsbWord(0xbb0d,ibx);
-    std::vector<int> valid_phi;
-    if((psb.aData(4)&0x3f) >= 1) {valid_phi.push_back( (psb.aData(4)>>10)&0x1f ); }
-    if((psb.bData(4)&0x3f) >= 1) {valid_phi.push_back( (psb.bData(4)>>10)&0x1f ); }
-    if((psb.aData(5)&0x3f) >= 1) {valid_phi.push_back( (psb.aData(5)>>10)&0x1f ); }
-    if((psb.bData(5)&0x3f) >= 1) {valid_phi.push_back( (psb.bData(5)>>10)&0x1f ); }
-    std::vector<int>::const_iterator iphi;
-    for(iphi=valid_phi.begin(); iphi!=valid_phi.end(); iphi++) {
-      //std::cout << "Found HCAL mip with phi=" << *iphi << " in bx wrt. L1A = " << ibx << std::endl;
-      if(*iphi<9) hcal_top=true;
-      if(*iphi>8) hcal_bot=true;
-    }
-    if(ibx==0 && hcal_top && hcal_bot) isHCALL1=true;
-  }
-
-//  std::cout << "**** Trigger Source ****" << std::endl;
-//  if(isDTL1) std::cout << "DT" << std::endl;
-//  if(isRPCL1) std::cout << "RPC" << std::endl;
-//  if(isCSCL1) cout << "CSC" << endl;
-//  if(isHCALL1) std::cout << "HCAL" << std::endl;
-//  if(isEcalL1) std::cout << "ECAL" << std::endl;
-//  std::cout << "************************" << std::endl;
-  
   if(runNum_==-1)
     {
       runNum_ = iEvent.id().run();
     }      
 
   int  numberOfCosmics = 0;
-
   int  numberOfCosmicsTop = 0;
   int  numberOfCosmicsBottom = 0;
 
@@ -470,120 +337,7 @@ CosmicsTiming::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 // 				   << " : " << energy << " " << numXtalsinCluster
 // 				   << " : " << iphi << " " << ieta ;
 
-//    if (energy>10.0) {
-//      allOccupancyHighEnergy_->Fill(iphi, ieta);
-//      allOccupancyHighEnergyCoarse_->Fill(iphi, ieta);    
-//      allFedsOccupancyHighEnergyHist_->Fill(iphi,ieta,energy);
-//      allFedsenergyOnlyHighHist_->Fill(energy);
-//
-//      LogInfo("CosmicsTiming") << "High energy event " << iEvent.id().run() << " : " 
-//				     << iEvent.id().event() << " " << naiveEvtNum_  
-//				     << " : " << energy << " " << numXtalsinCluster
-//				     << " : " << iphi << " " << ieta 
-//				     << " : " << isEcalL1 << isHCALL1 << isDTL1 << isRPCL1 << isCSCL1 ;
-//      if (energy>100.0) {
-//      LogInfo("CosmicsTiming") << "Very high energy event " << iEvent.id().run() << " : " 
-//				     << iEvent.id().event() << " " << naiveEvtNum_  
-//				     << " : " << energy << " " << numXtalsinCluster 
-//				     << " : " << iphi << " " << ieta 
-//				     << " : " << isEcalL1 << isHCALL1 << isDTL1 << isRPCL1 << isCSCL1 ;
-//      }
-//      
-//    }
 
-    // Exclusive trigger plots
-
-    if(isEcalL1&&!isDTL1&&!isRPCL1&&!isCSCL1&&!isHCALL1) {
-      allOccupancyExclusiveECAL_->Fill(iphi, ieta);
-      allOccupancyCoarseExclusiveECAL_->Fill(iphi, ieta);
-      if (ampli > minTimingAmp_) {
-	allFedsTimingHistECAL_->Fill(time);
-	allFedsTimingPhiEtaHistECAL_->Fill(iphi,ieta,time);
-        allFedsTimingTTHistECAL_->Fill(iphi,ieta,time);
-        allFedsTimingLMHistECAL_->Fill(LM,time);
-      }      
-      triggerExclusiveHist_->Fill(0);
-    } 
-    
-    if(!isEcalL1&&!isDTL1&&!isRPCL1&&!isCSCL1&&isHCALL1) {   
-      allOccupancyExclusiveHCAL_->Fill(iphi, ieta);
-      allOccupancyCoarseExclusiveHCAL_->Fill(iphi, ieta);
-      if (ampli > minTimingAmp_) {
-	allFedsTimingHistHCAL_->Fill(time);
-	allFedsTimingPhiEtaHistHCAL_->Fill(iphi,ieta,time);
-        allFedsTimingTTHistHCAL_->Fill(iphi,ieta,time);
-        allFedsTimingLMHistHCAL_->Fill(LM,time);
-      }      
-      triggerExclusiveHist_->Fill(1);
-    }
-
-    if(!isEcalL1&&isDTL1&&!isRPCL1&&!isCSCL1&&!isHCALL1) {
-      allOccupancyExclusiveDT_->Fill(iphi, ieta);
-      allOccupancyCoarseExclusiveDT_->Fill(iphi, ieta);
-      if (ampli > minTimingAmp_) {
-	allFedsTimingHistDT_->Fill(time);
-	allFedsTimingPhiEtaHistDT_->Fill(iphi,ieta,time);
-        allFedsTimingTTHistDT_->Fill(iphi,ieta,time);
-        allFedsTimingLMHistDT_->Fill(LM,time);
-      }      
-      triggerExclusiveHist_->Fill(2);
-    }
-    
-    if(!isEcalL1&&!isDTL1&&isRPCL1&&!isCSCL1&&!isHCALL1) {
-      allOccupancyExclusiveRPC_->Fill(iphi, ieta);
-      allOccupancyCoarseExclusiveRPC_->Fill(iphi, ieta);
-      if (ampli > minTimingAmp_) {
-	allFedsTimingHistRPC_->Fill(time);
-	allFedsTimingPhiEtaHistRPC_->Fill(iphi,ieta,time);
-        allFedsTimingTTHistRPC_->Fill(iphi,ieta,time);
-        allFedsTimingLMHistRPC_->Fill(LM,time);
-      }      
-      triggerExclusiveHist_->Fill(3);
-    }
-
-    if(!isEcalL1&&!isDTL1&&!isRPCL1&&isCSCL1&&!isHCALL1) {   
-      allOccupancyExclusiveCSC_->Fill(iphi, ieta);
-      allOccupancyCoarseExclusiveCSC_->Fill(iphi, ieta);
-      if (ampli > minTimingAmp_) {
-	allFedsTimingHistCSC_->Fill(time);
-	allFedsTimingPhiEtaHistCSC_->Fill(iphi,ieta,time);
-        allFedsTimingTTHistCSC_->Fill(iphi,ieta,time);
-        allFedsTimingLMHistCSC_->Fill(LM,time);
-      }      
-      triggerExclusiveHist_->Fill(4);
-    }
-
-    // Inclusive trigger plots
-
-    if (isEcalL1) { 
-      triggerHist_->Fill(0);
-      allOccupancyECAL_->Fill(iphi, ieta);
-      allOccupancyCoarseECAL_->Fill(iphi, ieta);
-    }
-    if (isHCALL1) {
-      triggerHist_->Fill(1);
-      allOccupancyHCAL_->Fill(iphi, ieta);
-      allOccupancyCoarseHCAL_->Fill(iphi, ieta);
-    }
-    if (isDTL1)   {
-      triggerHist_->Fill(2);
-      allOccupancyDT_->Fill(iphi, ieta);
-      allOccupancyCoarseDT_->Fill(iphi, ieta);
-    }
-    if (isRPCL1)  {
-      triggerHist_->Fill(3);
-      allOccupancyRPC_->Fill(iphi, ieta);
-      allOccupancyCoarseRPC_->Fill(iphi, ieta);
-    }
-    if (isCSCL1)  {
-      triggerHist_->Fill(4);
-      allOccupancyCSC_->Fill(iphi, ieta);
-      allOccupancyCoarseCSC_->Fill(iphi, ieta);
-    }
-
-    // Fill histo for Ecal+muon coincidence
-    if(isEcalL1&&(isCSCL1||isRPCL1||isDTL1)&&!isHCALL1)
-      allFedsTimingHistEcalMuon_->Fill(time);
     
     if (ampli > minTimingAmp_) {
       timingHist->Fill(time);
@@ -630,16 +384,15 @@ CosmicsTiming::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
       {
         //selectedTimingRecHits.push_back(*thishit);
         int myTowerId = ((EBDetId)thisHit->id()).tower().iTT() + 68*(((EBDetId)thisHit->id()).ism()-1);
-        std::vector<EcalRecHit> towerHits = towerIdsAndHits[myTowerId];
-        towerHits.push_back(*thisHit);
+        towerIdsAndHits[myTowerId].push_back(*thisHit);
         
         //---------------------DEBUG
         std::cout << "Pushed back hit for towerID: " << myTowerId << std::endl;
       }
     }
 
-      //-------------------------DEBUG
-      std::cout << "Size of map: " << towerIdsAndHits.size() << std::endl;
+    //-------------------------DEBUG
+    std::cout << "Size of map: " << towerIdsAndHits.size() << std::endl;
 
     for(std::map<int,vector<EcalRecHit> >::const_iterator mapItr = towerIdsAndHits.begin();
         mapItr != towerIdsAndHits.end(); ++mapItr)
@@ -651,39 +404,38 @@ CosmicsTiming::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 
       if(selectedTimingRecHits.size() < 2)
         continue;
+      //Loop to get the average
+      float avgTime = 0;
+      for(std::vector<EcalRecHit>::const_iterator currentHit = selectedTimingRecHits.begin();
+          currentHit != selectedTimingRecHits.end(); ++currentHit)
+      {
+        avgTime+=25*currentHit->time();
+      }
+      int numberOfCrys = selectedTimingRecHits.size();
+      avgTime/=numberOfCrys;
 
       // Now we generate the deltaT's from all the crystals that are in our TT AND the cosmicCluster
       for(std::vector<EcalRecHit>::const_iterator currentHit = selectedTimingRecHits.begin();
-          currentHit != selectedTimingRecHits.end(); ++currentHit)
+          currentHit != selectedTimingRecHits.end()-1; ++currentHit)
       {
 
         //-------------------------DEBUG
         std::cout << "Loop over hits for towerId: " << mapItr->first << std::endl;
-        
-        if(currentHit==selectedTimingRecHits.end()-1)
-          continue;
 
-        bool filledDeltaHist = false;
-        for(std::vector<EcalRecHit>::const_iterator secondHit = currentHit+1;
-            secondHit != selectedTimingRecHits.end(); ++secondHit)
-        {
-          //-------------------------DEBUG
-          std::cout << "Second loop over hits; filling histogram with deltaT: " << std::endl;
-          
-          timingDeltaHist_->Fill(25*secondHit->time()-25*currentHit->time());
-          filledDeltaHist = true;
-        }
-        if(filledDeltaHist)
-        {
-          selectedCryEnergyHist_->Fill(currentHit->energy());
-          selectedCryTimeHist_->Fill(25*currentHit->time());
-          selectedCryRunHist_->Fill(iEvent.id().run());
-          std::cout << "CosmicsTimingAnalyzer: CurrentHit hashedIndex:  "
-            << ((EBDetId)(currentHit->id())).hashedIndex()
-            << " time: " << 25*currentHit->time()
-            << " energy: " << currentHit->energy() << " run: " << iEvent.id().run() 
-            << " event from id: " << iEvent.id().event() << std::endl;
-        }
+        //if(currentHit==selectedTimingRecHits.end()-1)
+        //  continue;
+
+        float valueToFill = (25*currentHit->time()-avgTime)*sqrt(numberOfCrys/(numberOfCrys-1));
+        timingDeltaHist_->Fill(valueToFill);
+
+        selectedCryEnergyHist_->Fill(currentHit->energy());
+        selectedCryTimeHist_->Fill(25*currentHit->time());
+        selectedCryRunHist_->Fill(iEvent.id().run());
+        std::cout << "CosmicsTimingAnalyzer: CurrentHit hashedIndex:  "
+          << ((EBDetId)(currentHit->id())).hashedIndex()
+          << " time: " << 25*currentHit->time()
+          << " energy: " << currentHit->energy() << " run: " << iEvent.id().run() 
+          << " event from id: " << iEvent.id().event() << std::endl;
       }
     }
 
@@ -1195,6 +947,9 @@ CosmicsTiming::beginJob(const edm::EventSetup&)
 void 
 CosmicsTiming::endJob()
 {
+  if(naiveEvtNum_ < 1)
+    return;
+  
   using namespace std;
   if (runInFileName_) {
     fileName_ += "-"+intToString(runNum_)+".graph.root";
