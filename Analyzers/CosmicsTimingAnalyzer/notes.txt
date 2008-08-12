@@ -1,0 +1,9 @@
+S. Cooper
+August 12, 2008
+
+This is a module which will generate a plot of the resolution of the timing
+as reconstructed in Ecal.  It takes cosmic superclusters that are contained
+in one trigger tower and takes the average of all crystals above a threshold
+in that tower/cluster to get a baseline time.  Then the difference in time
+between all but 1 crystal and the average is plotted.  This distribution
+(deltaTbetweenCrys or something like that) is the key resolution plot.
