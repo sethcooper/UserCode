@@ -1,6 +1,6 @@
 es_source = EcalTimingCorrectionESProducer
 {
   untracked bool producedEcalTimingCorrections = true
-  untracked string ecalTimingCorrectionsFile = "IntraTTCorrection/EcalTimingCorrectionESProducer/data/ecalTimingCorrections.txt"
+  untracked string ecalTimingCorrectionFile = "ESProducers/EcalTimingCorrectionESProducer/data/ecalTimingCorrections.txt"
 }
 

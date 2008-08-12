@@ -4,8 +4,7 @@
  * Created: 5 Aug 2008
  **/
 
-#include "IntraTTCorrection/EcalTimingCorrectionESProducer/interface/EcalTimingCorrection.h"
-
+#include "ESProducers/EcalTimingCorrectionESProducer/interface/EcalTimingCorrection.h"
 
 EcalTimingCorrection::EcalTimingCorrection()
 {

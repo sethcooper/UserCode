@@ -8,9 +8,9 @@
 //
 // Author:      
 // Created:     Tue Aug  5 16:04:38 CDT 2008
-// $Id$
+// $Id: EcalTimingCorrectionRcd.cc,v 1.1 2008/08/11 20:20:25 scooper Exp $
 
-#include "IntraTTCorrection/EcalTimingCorrectionESProducer/interface/EcalTimingCorrectionRcd.h"
+#include "ESProducers/EcalTimingCorrectionESProducer/interface/EcalTimingCorrectionRcd.h"
 #include "FWCore/Framework/interface/eventsetuprecord_registration_macro.h"
 
 EVENTSETUP_RECORD_REG(EcalTimingCorrectionRcd);
