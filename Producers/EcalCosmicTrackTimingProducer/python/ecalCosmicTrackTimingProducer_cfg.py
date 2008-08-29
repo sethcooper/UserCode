@@ -28,7 +28,8 @@ process.load("Configuration.StandardSequences.MagneticField_cff")
 process.load("Configuration.GlobalRuns.ForceZeroTeslaField_cff")
 process.load("Configuration.StandardSequences.FrontierConditions_GlobalTag_noesprefer_cff")
 
-process.load("CaloOnlineTools.EcalTools.EcalCosmicTrackTimingProducer_cfi")
+process.load("Producers.EcalCosmicTrackTimingProducer.ecalCosmicTrackTimingProducer_cfi")
+process.dumpEv = cms.EDAnalyzer("EventContentAnalyzer")
 
 process.MessageLogger = cms.Service("MessageLogger",
     #suppressInfo = cms.untracked.vstring('ecalEBunpacker'),
@@ -43,17 +44,31 @@ process.source = cms.Source("PoolSource",
     skipEvents = cms.untracked.uint32(0),
     fileNames = cms.untracked.vstring(#'/store/data/Commissioning08/Cosmics/RAW/CRUZET4_v1/000/057/289/1E1407F1-106D-DD11-97A7-000423D985E4.root'
         #'/store/data/Commissioning08/Cosmics/RAW/CRUZET4_v1/000/058/359/005A40D9-1470-DD11-A2B6-001617C3B6DE.root')
-        '/store/data/Commissioning08/Cosmics/RAW/CRUZET4_v1/000/057/771/00D18762-386E-DD11-A081-0016177CA7A0.root')
+        #'/store/data/Commissioning08/Cosmics/RAW/CRUZET4_v1/000/057/771/00D18762-386E-DD11-A081-0016177CA7A0.root')
+        '/store/data/Commissioning08/Cosmics/RAW/CRUZET4_v1/000/057/553/FC7FC218-896D-DD11-BC54-001617E30CD4.root')
 )
-        
 process.maxEvents = cms.untracked.PSet(
-    input = cms.untracked.int32(-1)
+    input = cms.untracked.int32(50)
 )
 
-process.p = cms.Path(process.triggerTypeFilter*process.ecalEBunpacker*process.ecalUncalibHit*process.ecalRecHit*process.cosmicClusteringSequence*process.ecalCosmicTrackTimingProducer)
+process.outFile = cms.OutputModule("PoolOutputModule",
+    fileName = cms.untracked.string('ecalCosmicTrackTimingProducerTest.root')
+)
+
+import CalibTracker.Configuration.Common.PoolDBESSource_cfi
+process.siStripPedestalFrontier = CalibTracker.Configuration.Common.PoolDBESSource_cfi.poolDBESSource.clone()
+process.siStripPedestalFrontier.connect = 'frontier://PromptProd/CMS_COND_21X_STRIP'
+process.siStripPedestalFrontier.toGet = cms.VPSet(cms.PSet(
+            record = cms.string('SiStripPedestalsRcd'),
+                        tag = cms.string('SiStripPedestals_TKCC_21X_v3_hlt')
+                    ))
+process.siStripPedestalFrontier.BlobStreamerName = 'TBufferBlobStreamingService'
+process.es_prefer_SiStripFake = cms.ESPrefer("PoolDBESSource","siStripPedestalFrontier")
+
+process.p = cms.Path(process.triggerTypeFilter*process.ecalEBunpacker*process.ecalUncalibHit*process.ecalRecHit*process.cosmicClusteringSequence*process.ecalCosmicTrackTimingProducer*process.dumpEv)
+#process.end = cms.EndPath(process.outFile)
 
 process.GlobalTag.globaltag = 'CRUZET4_V1P::All'
-
 process.ecalUncalibHit.EBdigiCollection = 'ecalEBunpacker:ebDigis'
 process.ecalUncalibHit.EEdigiCollection = 'ecalEBunpacker:eeDigis'
 process.ecalRecHit.ChannelStatusToBeExcluded = [1]
@@ -69,5 +84,7 @@ process.EcalTrivialConditionRetriever.producedEcalLaserCorrection = False
 process.EcalTrivialConditionRetriever.producedChannelStatus = False
 process.EcalTrivialConditionRetriever.producedChannelStatus = True
 process.EcalTrivialConditionRetriever.channelStatusFile = 'CaloOnlineTools/EcalTools/data/listCRUZET4.v2.hashed.txt'
-es_prefer_EcalChannelStatus = cms.ESPrefer("EcalTrivialConditionRetriever","EcalChannelStatus")
-
+process.es_prefer_EcalTrivialConditionRetriever = cms.ESPrefer("EcalTrivialConditionRetriever")
+process.triggerTypeFilter.SelectedTriggerType = 1
+process.cosmicBasicClusters.barrelUnHitProducer = "ecalUncalibHit"
+process.cosmicBasicClusters.endcapUnHitProducer = "ecalUncalibHit"
