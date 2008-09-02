@@ -2,19 +2,23 @@ import FWCore.ParameterSet.Config as cms
 
 process = cms.Process("EcalCosmicTrackTimingProducer")
 
-process.load("EventFilter.EcalRawToDigiDev.EcalUnpackerMapping_cfi")
-
-process.load("EventFilter.EcalRawToDigiDev.EcalUnpackerData_cfi")
-
 process.load("Geometry.CaloEventSetup.CaloTopology_cfi")
-
 process.load("Geometry.EcalCommonData.EcalOnly_cfi")
-
-process.load("Geometry.CaloEventSetup.CaloGeometry_cff")
 process.load("Geometry.EcalMapping.EcalMapping_cfi")
 process.load("Geometry.EcalMapping.EcalMappingRecord_cfi")
 process.load("RecoEcal.EgammaClusterProducers.geometryForClustering_cff")
 process.load("RecoEcal.EgammaClusterProducers.cosmicClusteringSequence_cff")
+process.load("Geometry.CMSCommonData.cmsIdealGeometryXML_cfi")
+process.load("Geometry.CaloEventSetup.CaloGeometry_cfi")
+process.load("Geometry.CommonDetUnit.globalTrackingGeometry_cfi")
+process.load("Geometry.MuonNumbering.muonNumberingInitialization_cfi")
+
+process.load("TrackingTools.TrackAssociator.DetIdAssociatorESProducer_cff")
+process.load("TrackPropagation.SteppingHelixPropagator.SteppingHelixPropagatorAny_cfi")
+process.load("TrackPropagation.SteppingHelixPropagator.SteppingHelixPropagatorAlong_cfi")
+process.load("TrackPropagation.SteppingHelixPropagator.SteppingHelixPropagatorOpposite_cfi")
+process.load("TrackingTools.TrackAssociator.default_cfi")
+
 
 import RecoLocalCalo.EcalRecProducers.ecalFixedAlphaBetaFitUncalibRecHit_cfi
 process.ecalUncalibHit = RecoLocalCalo.EcalRecProducers.ecalFixedAlphaBetaFitUncalibRecHit_cfi.ecalFixedAlphaBetaFitUncalibRecHit.clone()
@@ -45,10 +49,11 @@ process.source = cms.Source("PoolSource",
     fileNames = cms.untracked.vstring(#'/store/data/Commissioning08/Cosmics/RAW/CRUZET4_v1/000/057/289/1E1407F1-106D-DD11-97A7-000423D985E4.root'
         #'/store/data/Commissioning08/Cosmics/RAW/CRUZET4_v1/000/058/359/005A40D9-1470-DD11-A2B6-001617C3B6DE.root')
         #'/store/data/Commissioning08/Cosmics/RAW/CRUZET4_v1/000/057/771/00D18762-386E-DD11-A081-0016177CA7A0.root')
-        '/store/data/Commissioning08/Cosmics/RAW/CRUZET4_v1/000/057/553/FC7FC218-896D-DD11-BC54-001617E30CD4.root')
+        #'/store/data/Commissioning08/Cosmics/RAW/CRUZET4_v1/000/057/553/FC7FC218-896D-DD11-BC54-001617E30CD4.root')
+         '/store/data/Commissioning08/Cosmics/RECO/CRUZET4_V2P_CRUZET4_InterimReco_v3/0003/04CA6441-E36E-DD11-9CFF-000423D9997E.root')
 )
 process.maxEvents = cms.untracked.PSet(
-    input = cms.untracked.int32(50)
+    input = cms.untracked.int32(2)
 )
 
 process.outFile = cms.OutputModule("PoolOutputModule",
@@ -65,10 +70,11 @@ process.siStripPedestalFrontier.toGet = cms.VPSet(cms.PSet(
 process.siStripPedestalFrontier.BlobStreamerName = 'TBufferBlobStreamingService'
 process.es_prefer_SiStripFake = cms.ESPrefer("PoolDBESSource","siStripPedestalFrontier")
 
-process.p = cms.Path(process.triggerTypeFilter*process.ecalEBunpacker*process.ecalUncalibHit*process.ecalRecHit*process.cosmicClusteringSequence*process.ecalCosmicTrackTimingProducer*process.dumpEv)
-#process.end = cms.EndPath(process.outFile)
+#process.p = cms.Path(process.triggerTypeFilter*process.ecalEBunpacker*process.ecalUncalibHit*process.ecalRecHit*process.cosmicClusteringSequence*process.ecalCosmicTrackTimingProducer*process.dumpEv)
+process.p = cms.Path(process.ecalCosmicTrackTimingProducer)
+process.end = cms.EndPath(process.outFile)
 
-process.GlobalTag.globaltag = 'CRUZET4_V1P::All'
+process.GlobalTag.globaltag = 'CRUZET4_V3P::All'
 process.ecalUncalibHit.EBdigiCollection = 'ecalEBunpacker:ebDigis'
 process.ecalUncalibHit.EEdigiCollection = 'ecalEBunpacker:eeDigis'
 process.ecalRecHit.ChannelStatusToBeExcluded = [1]

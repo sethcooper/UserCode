@@ -13,7 +13,7 @@
 //
 // Original Author:  Seth Cooper
 //         Created:  Fri Aug 29 09:49:44 CDT 2008
-// $Id$
+// $Id: EcalCosmicTrackTimingProducer.cc,v 1.1 2008/08/29 20:51:13 scooper Exp $
 //
 //
 
@@ -221,11 +221,12 @@ EcalCosmicTrackTimingProducer::produce(edm::Event& iEvent, const edm::EventSetup
     int tracks = 0;
     for(reco::TrackCollection::const_iterator recoTrack = recoTracks->begin(); recoTrack != recoTracks->end(); ++recoTrack){
       
-      if(fabs(recoTrack->d0())>70 || fabs(recoTrack->dz())>70)
-        continue;
-      if(recoTrack->numberOfValidHits()<20)
-        continue;
-      
+      //TODO: for now, make no geometric/quality requirements
+      //if(fabs(recoTrack->d0())>70 || fabs(recoTrack->dz())>70)
+      //  continue;
+      //if(recoTrack->numberOfValidHits()<20)
+      //  continue;
+
       TrackDetMatchInfo info = trackAssociator_.associate(iEvent, iSetup, *recoTrack, trackParameters_);      
       
       for (unsigned int i=0; i<info.crossedEcalIds.size(); i++) {	 
@@ -296,6 +297,8 @@ EcalCosmicTrackTimingProducer::produce(edm::Event& iEvent, const edm::EventSetup
                 bestPhiTrack = ebDet.iphi();
                 bestPhiSeed = seedItr->iphi();
               }
+              //debug
+              LogWarning("EcalCosmicTrackTimingProducer") << "in loop for matching; bestDR : " << bestDr;
             }
           }
         }
@@ -322,6 +325,7 @@ EcalCosmicTrackTimingProducer::produce(edm::Event& iEvent, const edm::EventSetup
       }
       else {
 	edm::LogVerbatim("TrackAssociator") << "could not match cluster seed to track; bestDR : " << bestDr;
+        LogWarning("EcalCosmicTrackTimingProducer") << "could not match cluster seed to track; bestDR : " << bestDr;
         trackTimes->push_back(-999);
 	break; // no match found
       }
@@ -335,10 +339,10 @@ EcalCosmicTrackTimingProducer::produce(edm::Event& iEvent, const edm::EventSetup
       //ratioAssocTracksHist_->AddBinContent(2,numTracks);
       //numberofCosmicsWTrackHist_->Fill(numSeeds);
     }
-    LogWarning("EcalCosmicTrackTimingProducer") << "!!!! Size of trackCollection: " << recoTracks->size()
-      << ";  size of trackTimes vector: " << trackTimes->size();
+    LogWarning("EcalCosmicTrackTimingProducer") << "!!!! Size of recoTracks trackCollection: " << recoTracks->size()
+      << ";  number of associated tracks: " << numAssocTracks << "; size of trackTimes vector: " << trackTimes->size();
   } else {
-    LogWarning("EcalCosmicTrackTimingProducer") << "!!! No TrackAssociator recoTracks !!!";    
+    LogWarning("EcalCosmicTrackTimingProducer") << "!!! No TrackAssociator recoTracks";    
   }
   
   // *** end of TrackAssociator code *** //
