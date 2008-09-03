@@ -13,7 +13,7 @@
 //
 // Original Author:  Seth Cooper
 //         Created:  Fri Aug 29 09:49:44 CDT 2008
-// $Id: EcalCosmicTrackTimingProducer.cc,v 1.2 2008/09/02 15:05:52 scooper Exp $
+// $Id: EcalCosmicTrackTimingProducer.cc,v 1.3 2008/09/03 16:50:19 scooper Exp $
 //
 //
 
@@ -93,13 +93,6 @@ EcalCosmicTrackTimingProducer::EcalCosmicTrackTimingProducer(const edm::Paramete
   barrelClusterCollection_ (iConfig.getParameter<edm::InputTag>("barrelClusterCollection")),
   endcapClusterCollection_ (iConfig.getParameter<edm::InputTag>("endcapClusterCollection"))
 {
-  //register your products
-  /* Examples
-     produces<ExampleData2>();
-
-  //if do put with a label
-  produces<ExampleData2>("label");
-   */
   produces<std::vector<float> >("EcalCosmicTrackTiming");
   //now do what ever other initialization is needed
   // TrackAssociator parameters
@@ -128,22 +121,6 @@ EcalCosmicTrackTimingProducer::produce(edm::Event& iEvent, const edm::EventSetup
 {
   using namespace edm;
   using namespace std;
-  /* This is an event example
-  //Read 'ExampleData' from the Event
-  Handle<ExampleData> pIn;
-  iEvent.getByLabel("example",pIn);
-
-  //Use the ExampleData to create an ExampleData2 which 
-  // is put into the Event
-  std::auto_ptr<ExampleData2> pOut(new ExampleData2(*pIn));
-  iEvent.put(pOut);
-   */
-
-  /* this is an EventSetup example
-  //Read SetupData from the SetupRecord in the EventSetup
-  ESHandle<SetupData> pSetup;
-  iSetup.get<SetupRecord>().get(pSetup);
-   */
   
   bool hasEndcapClusters = true;
   auto_ptr<vector<float> > trackTimes(new vector<float>);
@@ -159,7 +136,7 @@ EcalCosmicTrackTimingProducer::produce(edm::Event& iEvent, const edm::EventSetup
   if (!(hitsEE.isValid())) 
   {
     LogWarning("EcalCosmicTrackTimingProducer") << ecalRecHitCollectionEE_ << " not available";
-    return;
+    //return;
   }
   edm::Handle<reco::SuperClusterCollection> escHandle;
   iEvent.getByLabel(endcapClusterCollection_, escHandle);
@@ -201,11 +178,10 @@ EcalCosmicTrackTimingProducer::produce(edm::Event& iEvent, const edm::EventSetup
       if ((*detitr).subdetId() != EcalBarrel) {std::cout << " subdet is " <<(*detitr).subdetId() << std::endl; continue; }
       EcalRecHitCollection::const_iterator thishit = hits->find((*detitr));
       if (thishit == hits->end()) continue;
-      //The checking above should no longer be needed...... as only those in the cluster would already have rechits..
 
       EcalRecHit myhit = (*thishit);
-
       double thisamp = myhit.energy();
+
       if (thisamp > minRecHitAmpEB_) {numXtalsinCluster++; }
       if (thisamp > secondMin) {secondMin = thisamp; secondTime = myhit.time(); secDet = (EBDetId)(*detitr);}
       if (secondMin > ampli) {std::swap(ampli,secondMin); std::swap(time,secondTime); std::swap(maxDet,secDet);}
@@ -245,7 +221,6 @@ EcalCosmicTrackTimingProducer::produce(edm::Event& iEvent, const edm::EventSetup
       //  }
       //}
       
-      //numberofCrossedEcalIdsHist_->Fill(info.crossedEcalIds.size());
       tracks++;
       if(info.crossedEcalIds.size()>0)
         trackDetIdMap.insert(std::pair<int,std::vector<DetId> > (tracks,info.crossedEcalIds));
@@ -257,11 +232,11 @@ EcalCosmicTrackTimingProducer::produce(edm::Event& iEvent, const edm::EventSetup
     // Now to match recoTracks with cosmic clusters
     int numAssocTracks = 0;
     int numAssocClusters = 0;
-    int numSeeds = seeds.size();
+    //int numSeeds = seeds.size();
+    //int numTracks = trackDetIdMap.size();
     //debug
-    edm::LogVerbatim("TrackAssociator") << "Matching cosmic clusters to tracks...seeds: " << numSeeds;
-    edm::LogVerbatim("TrackAssociator") << "TrackDetIdMap size: " << trackDetIdMap.size();
-    int numTracks = trackDetIdMap.size();
+    //edm::LogVerbatim("TrackAssociator") << "Matching cosmic clusters to tracks...seeds: " << numSeeds;
+    //edm::LogVerbatim("TrackAssociator") << "TrackDetIdMap size: " << trackDetIdMap.size();
     while(trackDetIdMap.size() > 0)
     {
       double bestDr = 1000;
@@ -332,23 +307,13 @@ EcalCosmicTrackTimingProducer::produce(edm::Event& iEvent, const edm::EventSetup
       }
     }
     
-
-    if(numSeeds>0 && numTracks>0) {
-      //ratioAssocClustersHist_->AddBinContent(1,numAssocClusters);
-      //ratioAssocClustersHist_->AddBinContent(2,numSeeds);
-    }
-    if(numTracks>0) {
-      //ratioAssocTracksHist_->AddBinContent(1,numAssocTracks);
-      //ratioAssocTracksHist_->AddBinContent(2,numTracks);
-      //numberofCosmicsWTrackHist_->Fill(numSeeds);
-    }
     //debug
-    LogWarning("EcalCosmicTrackTimingProducer") << "+++++++++++++++++ Size of recoTracks trackCollection: " << recoTracks->size()
-      << "; size of trackTimes vector: " << trackTimes->size() << ";  number of associated tracks: " << numAssocTracks ;
-    for(unsigned int i=0; i<trackTimes->size(); ++i)
-    {
-      LogWarning("EcalCosmicTrackTimingProducer") << "Element: " << i << " Value: " << (*trackTimes)[i];
-    }
+    //LogWarning("EcalCosmicTrackTimingProducer") << "+++++++++++++++++ Size of recoTracks trackCollection: " << recoTracks->size()
+    //  << "; size of trackTimes vector: " << trackTimes->size() << ";  number of associated tracks: " << numAssocTracks ;
+    //for(unsigned int i=0; i<trackTimes->size(); ++i)
+    //{
+    //  LogWarning("EcalCosmicTrackTimingProducer") << "Element: " << i << " Value: " << (*trackTimes)[i];
+    //}
   } else {
     LogWarning("EcalCosmicTrackTimingProducer") << "!!! No TrackAssociator recoTracks";    
   }
