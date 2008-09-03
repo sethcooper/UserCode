@@ -53,11 +53,14 @@ process.source = cms.Source("PoolSource",
          '/store/data/Commissioning08/Cosmics/RECO/CRUZET4_V2P_CRUZET4_InterimReco_v3/0003/04CA6441-E36E-DD11-9CFF-000423D9997E.root')
 )
 process.maxEvents = cms.untracked.PSet(
-    input = cms.untracked.int32(2)
+    input = cms.untracked.int32(2000)
 )
 
 process.outFile = cms.OutputModule("PoolOutputModule",
-    fileName = cms.untracked.string('ecalCosmicTrackTimingProducerTest.root')
+    fileName = cms.untracked.string('ecalCosmicTrackTimingProducerTest.root'),
+    outputCommands = cms.untracked.vstring('drop *',
+           'keep *_ecalCosmicTrackTimingProducer_*_*',
+           'keep *_cosmicMuons_*_*')
 )
 
 import CalibTracker.Configuration.Common.PoolDBESSource_cfi
