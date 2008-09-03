@@ -38,7 +38,7 @@ process.dumpEv = cms.EDAnalyzer("EventContentAnalyzer")
 process.MessageLogger = cms.Service("MessageLogger",
     #suppressInfo = cms.untracked.vstring('ecalEBunpacker'),
     cout = cms.untracked.PSet(
-      threshold = cms.untracked.string('DEBUG')
+      threshold = cms.untracked.string('WARNING')
       ),
     categories = cms.untracked.vstring('EcalCosmicTrackTimingProducer'),
     destinations = cms.untracked.vstring('cout')
@@ -53,7 +53,7 @@ process.source = cms.Source("PoolSource",
          '/store/data/Commissioning08/Cosmics/RECO/CRUZET4_V2P_CRUZET4_InterimReco_v3/0003/04CA6441-E36E-DD11-9CFF-000423D9997E.root')
 )
 process.maxEvents = cms.untracked.PSet(
-    input = cms.untracked.int32(2000)
+    input = cms.untracked.int32(-1)
 )
 
 process.outFile = cms.OutputModule("PoolOutputModule",
