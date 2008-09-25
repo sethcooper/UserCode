@@ -13,7 +13,7 @@
 //
 // Original Author:  Seth COOPER
 //         Created:  Th Nov 22 5:46:22 CEST 2007
-// $Id: CosmicsTiming.h,v 1.8 2008/07/07 15:46:56 torimoto Exp $
+// $Id: CosmicsTiming.h,v 1.1 2008/07/29 19:53:10 scooper Exp $
 //
 //
 
@@ -62,6 +62,9 @@
 #include "DataFormats/EcalDetId/interface/EcalSubdetector.h"
 #include "DataFormats/EcalDetId/interface/EBDetId.h"
 // ***
+
+#include "ESProducers/EcalTimingCorrectionESProducer/interface/EcalTimingCorrection.h"
+#include "ESProducers/EcalTimingCorrectionESProducer/interface/EcalTimingCorrectionRcd.h"
 
 //
 // class declaration
@@ -274,4 +277,5 @@ class CosmicsTiming : public edm::EDAnalyzer {
   std::vector<int> l1Accepts_;
   std::vector<std::string> l1Names_;
 
+  const EcalElectronicsMapping* ecalElectronicsMap_;
 };

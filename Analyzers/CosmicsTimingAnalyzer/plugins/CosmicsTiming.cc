@@ -16,6 +16,7 @@
 #include "DataFormats/DetId/interface/DetId.h"
 #include "Geometry/CaloTopology/interface/CaloTopology.h"
 #include "Geometry/CaloEventSetup/interface/CaloTopologyRecord.h"
+#include "Geometry/EcalMapping/interface/EcalMappingRcd.h"
 
 #include "DataFormats/EgammaReco/interface/BasicCluster.h"
 #include "DataFormats/EgammaReco/interface/BasicClusterFwd.h"
@@ -368,6 +369,14 @@ CosmicsTiming::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
     // Modified July 22, 2008
     // scooper@CERN.CH
 
+    // fetch timing correction
+    edm::ESHandle<EcalTimingCorrection> timingCorrectionP;
+    iSetup.get<EcalTimingCorrectionRcd>().get(timingCorrectionP);
+    const EcalTimingCorrection* timingCorrection = timingCorrectionP.product();
+
+    //EcalTimingCorrection::EcalTimingCorrectionMap::const_iterator timeItr 
+    //      = timingCorrection->getMap().find(std::make_pair(strip,xtal));
+    
     // One map for towerId (= iSM-1+iTT) to RecHits in that tower
     //std::vector<EcalRecHit> selectedTimingRecHits;
     std::map<int,vector<EcalRecHit> > towerIdsAndHits;
@@ -387,12 +396,12 @@ CosmicsTiming::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
         towerIdsAndHits[myTowerId].push_back(*thisHit);
         
         //---------------------DEBUG
-        std::cout << "Pushed back hit for towerID: " << myTowerId << std::endl;
+        //std::cout << "Pushed back hit for towerID: " << myTowerId << std::endl;
       }
     }
 
     //-------------------------DEBUG
-    std::cout << "Size of map: " << towerIdsAndHits.size() << std::endl;
+    //std::cout << "Size of map: " << towerIdsAndHits.size() << std::endl;
 
     for(std::map<int,vector<EcalRecHit> >::const_iterator mapItr = towerIdsAndHits.begin();
         mapItr != towerIdsAndHits.end(); ++mapItr)
@@ -400,7 +409,7 @@ CosmicsTiming::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
       std::vector<EcalRecHit> selectedTimingRecHits = mapItr->second;
       
       //-------------------------DEBUG
-      std::cout << "Loop over map; number of hits for this towerId: " << selectedTimingRecHits.size() << std::endl;
+      //std::cout << "Loop over map; number of hits for this towerId: " << selectedTimingRecHits.size() << std::endl;
 
       if(selectedTimingRecHits.size() < 2)
         continue;
@@ -409,7 +418,10 @@ CosmicsTiming::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
       for(std::vector<EcalRecHit>::const_iterator currentHit = selectedTimingRecHits.begin();
           currentHit != selectedTimingRecHits.end(); ++currentHit)
       {
-        avgTime+=25*currentHit->time();
+        float time = currentHit->time();
+        EcalElectronicsId elecId = ecalElectronicsMap_->getElectronicsId(currentHit->id());
+        time+=(timingCorrection->getMap().find(std::make_pair(elecId.stripId(),elecId.xtalId())))->second;
+        avgTime+=25*time;
       }
       int numberOfCrys = selectedTimingRecHits.size();
       avgTime/=numberOfCrys;
@@ -420,20 +432,23 @@ CosmicsTiming::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
       {
 
         //-------------------------DEBUG
-        std::cout << "Loop over hits for towerId: " << mapItr->first << std::endl;
+        //std::cout << "Loop over hits for towerId: " << mapItr->first << std::endl;
 
         //if(currentHit==selectedTimingRecHits.end()-1)
         //  continue;
 
-        float valueToFill = (25*currentHit->time()-avgTime)*sqrt(numberOfCrys/(numberOfCrys-1));
+        float time = currentHit->time();
+        EcalElectronicsId elecId = ecalElectronicsMap_->getElectronicsId(currentHit->id());
+        time+=(timingCorrection->getMap().find(std::make_pair(elecId.stripId(),elecId.xtalId())))->second;
+        float valueToFill = (25*time-avgTime)*sqrt(numberOfCrys/(numberOfCrys-1));
         timingDeltaHist_->Fill(valueToFill);
 
         selectedCryEnergyHist_->Fill(currentHit->energy());
-        selectedCryTimeHist_->Fill(25*currentHit->time());
+        selectedCryTimeHist_->Fill(time);
         selectedCryRunHist_->Fill(iEvent.id().run());
         std::cout << "CosmicsTimingAnalyzer: CurrentHit hashedIndex:  "
           << ((EBDetId)(currentHit->id())).hashedIndex()
-          << " time: " << 25*currentHit->time()
+          << " time: " << time
           << " energy: " << currentHit->energy() << " run: " << iEvent.id().run() 
           << " event from id: " << iEvent.id().event() << std::endl;
       }
@@ -763,8 +778,12 @@ void CosmicsTiming::initHists(int FED)
 
 // ------------ method called once each job just before starting event loop  ------------
 void 
-CosmicsTiming::beginJob(const edm::EventSetup&)
+CosmicsTiming::beginJob(const edm::EventSetup& eventSetup)
 {
+  edm::ESHandle< EcalElectronicsMapping > handle;
+  eventSetup.get< EcalMappingRcd >().get(handle);
+  ecalElectronicsMap_ = handle.product();
+
   //Here I will init some of the specific histograms
   int numBins = 200;//(int)round(histRangeMax_-histRangeMin_)+1;
 

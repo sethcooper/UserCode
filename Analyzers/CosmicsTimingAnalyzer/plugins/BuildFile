@@ -14,6 +14,7 @@
 <use name=Geometry/CaloEventSetup>
 <use name=PhysicsTools/UtilAlgos>
 <use name=TrackingTools/TrackAssociator>
+<use name=ESProducers/EcalTimingCorrectionESProducer>
 <use name=root>
 <use name=rootcore>
 <library file="plugins.cc CosmicsTiming.cc" name=CosmicsTimingAnalyzerPlugins>
