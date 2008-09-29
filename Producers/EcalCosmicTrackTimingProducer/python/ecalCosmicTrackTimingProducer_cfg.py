@@ -77,7 +77,7 @@ process.es_prefer_SiStripFake = cms.ESPrefer("PoolDBESSource","siStripPedestalFr
 process.p = cms.Path(process.ecalCosmicTrackTimingProducer)
 process.end = cms.EndPath(process.outFile)
 
-process.GlobalTag.globaltag = 'CRUZET4_V3P::All'
+process.GlobalTag.globaltag = 'CRUZET4_V5P::All'
 process.ecalUncalibHit.EBdigiCollection = 'ecalEBunpacker:ebDigis'
 process.ecalUncalibHit.EEdigiCollection = 'ecalEBunpacker:eeDigis'
 process.ecalRecHit.ChannelStatusToBeExcluded = [1]
@@ -92,7 +92,7 @@ process.EcalTrivialConditionRetriever.producedEcalADCToGeVConstant = False
 process.EcalTrivialConditionRetriever.producedEcalLaserCorrection = False
 process.EcalTrivialConditionRetriever.producedChannelStatus = False
 process.EcalTrivialConditionRetriever.producedChannelStatus = True
-process.EcalTrivialConditionRetriever.channelStatusFile = 'CaloOnlineTools/EcalTools/data/listCRUZET4.v2.hashed.txt'
+process.EcalTrivialConditionRetriever.channelStatusFile = 'CaloOnlineTools/EcalTools/data/listCRUZET4.v5.hashed.txt'
 process.es_prefer_EcalTrivialConditionRetriever = cms.ESPrefer("EcalTrivialConditionRetriever")
 process.triggerTypeFilter.SelectedTriggerType = 1
 process.cosmicBasicClusters.barrelUnHitProducer = "ecalUncalibHit"

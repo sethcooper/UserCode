@@ -13,7 +13,7 @@
 //
 // Original Author:  Seth Cooper
 //         Created:  Fri Aug 29 09:49:44 CDT 2008
-// $Id: EcalCosmicTrackTimingProducer.cc,v 1.3 2008/09/03 16:50:19 scooper Exp $
+// $Id: EcalCosmicTrackTimingProducer.cc,v 1.4 2008/09/03 17:24:07 scooper Exp $
 //
 //
 
@@ -34,7 +34,8 @@
 #include "DataFormats/EgammaReco/interface/BasicClusterFwd.h"
 #include "DataFormats/EgammaReco/interface/SuperCluster.h"
 #include "DataFormats/EgammaReco/interface/SuperClusterFwd.h"
-
+#include "Geometry/EcalMapping/interface/EcalElectronicsMapping.h"
+#include "Geometry/EcalMapping/interface/EcalMappingRcd.h"
 
 // *** for TrackAssociation
 #include "DataFormats/TrackReco/interface/Track.h"
@@ -72,6 +73,7 @@ class EcalCosmicTrackTimingProducer : public edm::EDProducer {
 
     TrackDetectorAssociator trackAssociator_;
     TrackAssociatorParameters trackParameters_;
+    const EcalElectronicsMapping* ecalElectronicsMap_;
 
 };
 
@@ -83,6 +85,14 @@ class EcalCosmicTrackTimingProducer : public edm::EDProducer {
 //
 // static data member definitions
 //
+double FEDTimingCorrections[54] = {5.0703, 5.2278, 5.2355, 5.1548, 5.1586, 
+  5.1912, 5.1576, 5.1625, 5.1269,
+  5.643, 5.6891, 5.588, 5.5978, 5.6508, 5.6363, 5.5972, 5.6784, 5.6108,
+  5.6866, 5.6523, 5.6666, 5.7454, 5.729, 5.7751, 5.7546, 5.7835, 5.7529,
+  5.5691, 5.6677, 5.5662, 5.6308, 5.7097, 5.6773, 5.76, 5.8025, 5.9171,
+  5.8771, 5.8926, 5.9011, 5.8447, 5.8142, 5.8475, 5.7123,5.6216, 5.6713,
+  5.3747,5.3564, 5.39, 5.8081, 5.8081, 5.1818, 5.1125, 5.1334, 5.2581};
+
 
 //
 // constructors and destructor
@@ -286,11 +296,12 @@ EcalCosmicTrackTimingProducer::produce(edm::Event& iEvent, const edm::EventSetup
         }
       }
       if(bestDr < 1000) {
-        
         // Find the RecHit corresponding to this DetId
         EcalRecHitCollection::const_iterator thishit = hits->find(bestSeed);
+        EcalElectronicsId elecId = ecalElectronicsMap_->getElectronicsId(bestSeed);
+        int timingCorrectionIndex = elecId.dccId()-1; //FEDid-600-1 = DCCid-1
         if (thishit != hits->end())
-          (*trackTimes)[bestTrack-1] = thishit->time();
+          (*trackTimes)[bestTrack-1] = thishit->time() + 5.7-FEDTimingCorrections[timingCorrectionIndex];
         else
           (*trackTimes)[bestTrack-1] = -999;
         seeds.erase(find(seeds.begin(),seeds.end(), bestSeed));
@@ -326,8 +337,11 @@ EcalCosmicTrackTimingProducer::produce(edm::Event& iEvent, const edm::EventSetup
 
 // ------------ method called once each job just before starting event loop  ------------
 void 
-EcalCosmicTrackTimingProducer::beginJob(const edm::EventSetup&)
+EcalCosmicTrackTimingProducer::beginJob(const edm::EventSetup& eventSetup)
 {
+  edm::ESHandle< EcalElectronicsMapping > handle;
+  eventSetup.get< EcalMappingRcd >().get(handle);
+  ecalElectronicsMap_ = handle.product();
 }
 
 // ------------ method called once each job just after ending the event loop  ------------
