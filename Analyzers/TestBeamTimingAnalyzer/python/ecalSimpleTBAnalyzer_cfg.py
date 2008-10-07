@@ -20,13 +20,13 @@ process.source = cms.Source("PoolSource",
     fileNames = cms.untracked.vstring(#'/store/data/Commissioning08/Cosmics/RAW/CRUZET4_v1/000/057/289/1E1407F1-106D-DD11-97A7-000423D985E4.root'
 #'file:/data/scooper/data/h4b-06/h4b.00013428.A.0.0.root'
 #'file:/data/scooper/data/h4b-06/h4b.00016629.A.0.0.root'
-'file:/export/scratch/users/cooper/h4b.00016428.A.0.0.root',
-'file:/export/scratch/users/cooper/h4b.00016429.A.0.0.root',
-'file:/export/scratch/users/cooper/h4b.00016430.A.0.0.root'
+'file:/data/scooper/data/h4b-06/h4b.00016428.A.0.0.root',
+'file:/data/scooper/data/h4b-06/h4b.00016429.A.0.0.root',
+'file:/data/scooper/data/h4b-06/h4b.00016430.A.0.0.root'
 )
 )
 process.maxEvents = cms.untracked.PSet(
-    input = cms.untracked.int32(1000000)
+    input = cms.untracked.int32(100000)
 )
 
 process.load("EventFilter.EcalTBRawToDigi.ecalTBunpack_cfi")
@@ -37,7 +37,7 @@ process.ecalFixedAlphaBetaFitUncalibRecHit.betaEB = 1.55
 
 process.load("RecoTBCalo.EcalTBTDCReconstructor.ecal2006TBTDCReconstructor_cfi")
 process.load("RecoLocalCalo.EcalRecProducers.ecalRecHit_cfi")
-process.load("RecoTBCalo.EcalSimpleTBAnalysis.ecalSimpleTBAnalyzer_cfi")
+process.load("Analyzers.TestBeamTimingAnalyzer.ecalSimpleTBAnalyzer_cfi")
 
 process.ecalRawTDCDump = cms.EDAnalyzer("EcalTBTDCRawInfoDumper",
     rawInfoCollection = cms.string(""),
