@@ -6,11 +6,11 @@
      <Notes on implementation>
 */
 //
-// $Id: EcalSimpleTBAnalyzer.cc,v 1.7 2007/08/11 05:52:12 innocent Exp $
+// $Id: EcalSimpleTBAnalyzer.cc,v 1.1 2008/10/07 08:25:54 scooper Exp $
 //
 //
 
-#include "RecoTBCalo/EcalSimpleTBAnalysis/interface/EcalSimpleTBAnalyzer.h"
+#include "Analyzers/TestBeamTimingAnalyzer/interface/EcalSimpleTBAnalyzer.h"
 #include "DataFormats/EcalRecHit/interface/EcalUncalibratedRecHit.h"
 #include "DataFormats/EcalRecHit/interface/EcalRecHitCollections.h"
 #include "DataFormats/EcalDigi/interface/EcalDigiCollections.h"
