@@ -18,8 +18,6 @@ process.options = cms.untracked.PSet(
 process.source = cms.Source("PoolSource",
     skipEvents = cms.untracked.uint32(0),
     fileNames = cms.untracked.vstring(#'/store/data/Commissioning08/Cosmics/RAW/CRUZET4_v1/000/057/289/1E1407F1-106D-DD11-97A7-000423D985E4.root'
-#'/store/data/Commissioning08/Cosmics/RAW/CRUZET4_v1/000/058/359/005A40D9-1470-DD11-A2B6-001617C3B6DE.root')
-#'/store/data/Commissioning08/Cosmics/RAW/CRUZET4_v1/000/057/771/00D18762-386E-DD11-A081-0016177CA7A0.root')
 #'file:/data/scooper/data/h4b-06/h4b.00013428.A.0.0.root'
 #'file:/data/scooper/data/h4b-06/h4b.00016629.A.0.0.root'
 'file:/export/scratch/users/cooper/h4b.00016428.A.0.0.root',
@@ -31,15 +29,14 @@ process.maxEvents = cms.untracked.PSet(
     input = cms.untracked.int32(1000000)
 )
 
-#process.load("EventFilter.EcalTBRawToDigi.h4_mapping_cfi")
 process.load("EventFilter.EcalTBRawToDigi.ecalTBunpack_cfi")
 process.load("RecoTBCalo.EcalTBHodoscopeReconstructor.ecal2006TBHodoscopeReconstructor_cfi")
-#process.load("RecoTBCalo.EcalTBRecProducers.ecal2006TBWeightUncalibRecHit_cfi")
 process.load("RecoLocalCalo.EcalRecProducers.ecalFixedAlphaBetaFitUncalibRecHit_cfi")
+# Change beta value to be on the measured alpha-beta line
+process.ecalFixedAlphaBetaFitUncalibRecHit.betaEB = 1.55
+
 process.load("RecoTBCalo.EcalTBTDCReconstructor.ecal2006TBTDCReconstructor_cfi")
-#process.load("RecoTBCalo.EcalTBTDCReconstructor.Ecal2006TBTDCRanges_v2_cff")
 process.load("RecoLocalCalo.EcalRecProducers.ecalRecHit_cfi")
-#process.ecal2006TBWeightUncalibRecHit.EBdigiCollection = 'ebDigis'
 process.load("RecoTBCalo.EcalSimpleTBAnalysis.ecalSimpleTBAnalyzer_cfi")
 
 process.ecalRawTDCDump = cms.EDAnalyzer("EcalTBTDCRawInfoDumper",
