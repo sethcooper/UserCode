@@ -6,7 +6,7 @@
      <Notes on implementation>
 */
 //
-// $Id: EcalSimpleTBAnalyzer.cc,v 1.1 2008/10/07 08:25:54 scooper Exp $
+// $Id: EcalSimpleTBAnalyzer.cc,v 1.2 2008/10/07 08:32:14 scooper Exp $
 //
 //
 
@@ -420,7 +420,10 @@ EcalSimpleTBAnalyzer::analyze( const edm::Event& iEvent, const edm::EventSetup& 
        if (!Xtals5x5[icry].null())
 	 {
 	   amplitude[icry]=(hits->find(Xtals5x5[icry]))->amplitude();
-	   timing[icry]=(hits->find(Xtals5x5[icry]))->jitter();
+           if((hits->find(Xtals5x5[icry]))->chi2() > 0)
+             timing[icry]=(hits->find(Xtals5x5[icry]))->jitter();
+           else
+             timing[icry]=-9999;
 	   amplitude5x5 += amplitude[icry];
 	   // Is in 3x3?
 	   if ( icry == 6  || icry == 7  || icry == 8 ||
@@ -444,6 +447,7 @@ EcalSimpleTBAnalyzer::analyze( const edm::Event& iEvent, const edm::EventSetup& 
    //SIC PLOTS
    double avgTime = -9999;
    int numEnergyBins = 40;
+   int numCrysInAvg = 0;
    double energyBins[40] = {0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1,5,10,20,30,40,50,60,70,80,90,100,110,120,130,140,150,160,170,180,190,200};
    double ampBins[40];
    for(int i=31;i<numEnergyBins;++i)
@@ -460,46 +464,53 @@ EcalSimpleTBAnalyzer::analyze( const edm::Event& iEvent, const edm::EventSetup& 
      recoTime_->Fill(maxHitTime);
      deltaTime_->Fill(maxHitTime-recTDC->offset());
      //fitTimeVsTDC_->Fill(recTDC->offset(),maxHitTime);
+
      for (unsigned int icry=0;icry<25;icry++)
      { 
-       timingHistMap[icry]->Fill(recTDC->offset(),timing[icry]);
-       //Bin by energy
-       double amp = amplitude[icry];
-       int histNum = 0;
-       if(amp < 0)
-         histNum = -9999;
-       for(int i=0;i<numEnergyBins;++i)
+       if(timing[icry] != -9999)  // Imposing chi2 cut of above
        {
-         if(amp >= ampBins[i] && amp < ampBins[i+1])
-           histNum = i+1;
+         timingHistMap[icry]->Fill(recTDC->offset(),timing[icry]);
+         //Bin by energy
+         double amp = amplitude[icry];
+         int histNum = 0;
+         if(amp < 0)
+           histNum = -9999;
+         for(int i=0;i<numEnergyBins;++i)
+         {
+           if(amp >= ampBins[i] && amp < ampBins[i+1])
+             histNum = i+1;
+         }
+         //debug
+         //cout << "Attempting to fill hist number " << histNum << " with timing " << timing[icry] << endl;
+         if(histNum >=0 && histNum <= 49)
+           fitTimeVsTDC_[histNum]->Fill(recTDC->offset(),timing[icry]);
+         avgTime+=timing[icry];
+         numCrysInAvg++;
        }
-       //debug
-       //cout << "Attempting to fill hist number " << histNum << " with timing " << timing[icry] << endl;
-       if(histNum >=0 && histNum <= 49)
-         fitTimeVsTDC_[histNum]->Fill(recTDC->offset(),timing[icry]);
-       avgTime+=timing[icry];
      }
-     avgTime/=25;
+     if(numCrysInAvg > 0) 
+       avgTime/=25;
    }
-   // compute delta from average
-   for(int icry=0;icry<25;++icry) // leave one crystal out here?
-   {
-       //Bin by energy
-       double amp = amplitude[icry];
-       int histNum = 0;
-       if(amp < 0)
-         histNum = -9999;
-       for(int i=0;i<numEnergyBins;++i)
-       {
-         if(amp >= ampBins[i] && amp < ampBins[i+1])
-           histNum = i+1;
-       }
-       double valToFill = 25*(timing[icry]-avgTime)*sqrt(25/24);
-       //debug
-       //cout << "2) Attempting to fill hist number " << histNum << " with timing delta " << valToFill << endl;
-       if(histNum >=0 && histNum <= 49)
-         deltaBetCrys_[histNum]->Fill(valToFill);
-   }
+   //TODO: fix this part to do crys in the same energy bin
+   //// compute delta from average
+   //for(int icry=0;icry<24;++icry)
+   //{
+   //    //Bin by energy
+   //    double amp = amplitude[icry];
+   //    int histNum = 0;
+   //    if(amp < 0)
+   //      histNum = -9999;
+   //    for(int i=0;i<numEnergyBins;++i)
+   //    {
+   //      if(amp >= ampBins[i] && amp < ampBins[i+1])
+   //        histNum = i+1;
+   //    }
+   //    double valToFill = 25*(timing[icry]-avgTime)*sqrt(24/23);
+   //    //debug
+   //    //cout << "2) Attempting to fill hist number " << histNum << " with timing delta " << valToFill << endl;
+   //    if(histNum >=0 && histNum <= 49)
+   //      deltaBetCrys_[histNum]->Fill(valToFill);
+   //}
    
    if (recHodo)
      {
