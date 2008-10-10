@@ -6,7 +6,7 @@
      <Notes on implementation>
 */
 //
-// $Id: TestBeamTimingAnalyzer.cc,v 1.3 2008/10/07 08:40:45 scooper Exp $
+// $Id: TestBeamTimingAnalyzer.cc,v 1.1 2008/10/07 09:33:06 scooper Exp $
 //
 //
 
@@ -114,7 +114,7 @@ TestBeamTimingAnalyzer::beginJob(edm::EventSetup const&) {
     sprintf(htitle,"Fit time vs. TDC time, energy bin %d",i);
     fitTimeVsTDC_[i] = new TH2F(hname,htitle,200,-0.5,1.5,500,-1.5,3.5);
     sprintf(hname,"deltaBetCrysEnergyBin_%d",i);
-    sprintf(htitle,"Difference in time from average, energy bin %d",i);
+    sprintf(htitle,"Difference between crys, energy bin %d",i);
     deltaBetCrys_[i] = new TH1F(hname,htitle,1000,-50,50);
   }
 
@@ -445,15 +445,69 @@ TestBeamTimingAnalyzer::analyze( const edm::Event& iEvent, const edm::EventSetup
    h_e9e25->Fill(amplitude3x3/amplitude5x5);
 
    //SIC PLOTS
-   int numEnergyBins = 40;
-   double energyBins[40] = {0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1,5,10,20,30,40,50,60,70,80,90,100,110,120,130,140,150,160,170,180,190,200};
+   int numEnergyBins = 40;  // MUST change next three array values by hand
+   double energyBins[40] = {0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1,5,10,20,30,40,50,60,70,80,90,100,110,120,130,140,150,160,170,180,190,200};
    double ampBins[40];
-   for(int i=31;i<numEnergyBins;++i)
+   map<int,vector<int> > histBinToCrysMap;  //histogram bin and vector of crys in that bin
+   vector<int> cryVector;
+
+   double avgTime = -9999;
+   int numCrysInAvg = 0;
+   for(int i=32;i<numEnergyBins;++i)
      energyBins[i]=0;
    for(int i=0;i<numEnergyBins;++i)
    {
      ampBins[i] = energyBins[i]/0.035;
+     string title = "Fit time vs. TDC time, "+doubleToString(energyBins[i])+
+       " GeV to "+doubleToString(energyBins[i+1])+" GeV";
+     fitTimeVsTDC_[i]->SetTitle(title.c_str());
+     title = "Difference in time between crys, "+doubleToString(energyBins[i])+
+       " GeV to "+doubleToString(energyBins[i+1])+" GeV";
+     deltaBetCrys_[i]->SetTitle(title.c_str());
    }
+   // figure out which crys are in which energy bins; compute avgTime
+   for (int icry=0;icry<25;icry++)
+   {
+     cryVector.clear();
+     cryVector.push_back(icry);
+     if(timing[icry] != -9999)  // Imposing chi2 cut of above
+     {
+       //Bin by energy
+       double amp = amplitude[icry];
+       int histNum = -1;
+       if(amp > 0)
+       {
+         for(int i=0;i<numEnergyBins-1;++i)
+         {
+           if(amp >= ampBins[i] && amp < ampBins[i+1])
+             histNum = i;
+         }
+         //if(histNum==-1) continue;
+         pair<map<int,vector<int> >::iterator,bool> ret;
+         ret = histBinToCrysMap.insert(make_pair(histNum,cryVector));
+         if(!ret.second)  // no insert done; element exists
+         {
+           //debug
+           //cout << "Element for bin " << histNum << " exists; adding cry " << icry << endl;
+           map<int,vector<int> >::iterator itr;
+           itr = histBinToCrysMap.find(histNum);
+           if(itr != histBinToCrysMap.end())
+             itr->second.push_back(icry);
+         } 
+         //else //debug only
+         //{
+         //  //debug
+         //  cout << "New element for bin " << histNum << " inserted with cry " << icry << endl;
+         //}
+         avgTime+=timing[icry];
+         numCrysInAvg++;
+       }
+     }
+   }
+   if(numCrysInAvg > 0) 
+     avgTime/=numCrysInAvg;
+   
+   //Fill hists involving TDC info
    if (recTDC)
    {
      h_ampltdc->Fill(recTDC->offset(),amplitude[12]);
@@ -461,53 +515,53 @@ TestBeamTimingAnalyzer::analyze( const edm::Event& iEvent, const edm::EventSetup
      recoTime_->Fill(maxHitTime);
      deltaTime_->Fill(maxHitTime-recTDC->offset());
      //fitTimeVsTDC_->Fill(recTDC->offset(),maxHitTime);
-
-     for (unsigned int icry=0;icry<25;icry++)
-     { 
-       if(timing[icry] != -9999)  // Imposing chi2 cut of above
+   }
+   
+   for(map<int,vector<int> >::const_iterator itr = histBinToCrysMap.begin();
+       itr != histBinToCrysMap.end(); ++itr)
+   {
+     vector<int> crys = itr->second;
+     int numCrys = crys.size();
+     for(vector<int>::const_iterator vecItr = crys.begin(); vecItr != crys.end(); ++vecItr)
+     {
+       if(numCrys > 1)
        {
-         timingHistMap[icry]->Fill(recTDC->offset(),timing[icry]);
-         //Bin by energy
-         double amp = amplitude[icry];
-         int histNum = 0;
-         if(amp < 0)
-           histNum = -9999;
-         for(int i=0;i<numEnergyBins;++i)
+         if(vecItr != crys.begin())
          {
-           if(amp >= ampBins[i] && amp < ampBins[i+1])
-             histNum = i+1;
+           double statCorrection = sqrt(2);
+           deltaBetCrys_[itr->first]->Fill(25*(timing[*vecItr]-timing[*crys.begin()])/statCorrection);
          }
+       }
+       if(recTDC)
+       {
+         timingHistMap[*vecItr]->Fill(recTDC->offset(),timing[*vecItr]);
+         fitTimeVsTDC_[itr->first]->Fill(recTDC->offset(),timing[*vecItr]);
          //debug
-         //cout << "Attempting to fill hist number " << histNum << " with timing " << timing[icry] << endl;
-         if(histNum >=0 && histNum <= 49)
-           fitTimeVsTDC_[histNum]->Fill(recTDC->offset(),timing[icry]);
+         //cout << "Filled graphs with cry " << *vecItr << " amplitude: " << amplitude[*vecItr] <<
+         //  " energyBin: " << itr->first << " timing: " << timing[*vecItr] << endl;
        }
      }
    }
-   int histNums[25];  // array of energyBins/histNums indexed by crystal
-   double avgTime = -9999;
-   int numCrysInAvg = 0;
-   // figure out which crys are in which energy bins; compute avgTime
-   for(int icry=0;icry<25;++icry)
-   {
-       //Bin by energy
-       double amp = amplitude[icry];
-       int histNum = 0;
-       if(amp < 0)
-         histNum = -9999;
-       for(int i=0;i<numEnergyBins;++i)
-       {
-         if(amp >= ampBins[i] && amp < ampBins[i+1])
-           histNum = i+1;
-       }
-       histNums[icry] = histNum;
-         avgTime+=timing[icry];
-         numCrysInAvg++;
-   }
-   if(numCrysInAvg > 0) 
-     avgTime/=25;
+     
+     //for(int icry=0;icry<25;++icry)
+     //{
+     //  if(timing[icry] != -9999)  //chi2 cut
+     //  {
+     //    timingHistMap[icry]->Fill(recTDC->offset(),timing[icry]);
+     //    if(histNums[icry] != -9999) //check for those crys that have good timing and bad ampli
+     //      fitTimeVsTDC_[histNums[icry]]->Fill(recTDC->offset(),timing[icry]);
+     //  }
+     //}
    
-   //double valToFill = 25*(timing[icry]-avgTime)*sqrt(24/23);
+   //for(unsigned int ibin=0;ibin < numCrysInBin.size(); ++ibin)
+   //{
+   //  if(numCrysInBin[ibin] > 0)
+   //  {
+   //    double valToFill = 25*(timing[icry])
+
+   //  }
+   //}
+   
    //debug
    //cout << "2) Attempting to fill hist number " << histNum << " with timing delta " << valToFill << endl;
    //if(histNum >=0 && histNum <= 49)
@@ -560,7 +614,18 @@ TestBeamTimingAnalyzer::analyze( const edm::Event& iEvent, const edm::EventSetup
        h_e9e25_mapx->Fill(x,amplitude3x3/amplitude5x5);
        h_e9e25_mapy->Fill(y,amplitude3x3/amplitude5x5);
      }
-
 }
+
+//========================================================================
+std::string
+TestBeamTimingAnalyzer::doubleToString(double num)
+//========================================================================
+{
+  using namespace std;
+  ostringstream myStream;
+  myStream << num << flush;
+  return(myStream.str());
+}
+
 
 DEFINE_FWK_MODULE(TestBeamTimingAnalyzer);

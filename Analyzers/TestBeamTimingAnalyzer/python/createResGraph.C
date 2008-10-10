@@ -93,6 +93,7 @@ void createResGraph(Char_t* infile = 0, int numBins = 40)
     //double p1 = fit->GetParameter(1); //mean
     double p2 = fit->GetParameter(2); //sigma
     double p2err = fit->GetParError(2);
+    cout << "Bin: " << i << " Sigma of fit: " << p2 << endl;
     sigmas.push_back(p2);
     sigmaErrors.push_back(p2err);
     //cout << "param0: " << p0 << " param1: " << p1 << " param2:" << p2 << endl;
@@ -119,10 +120,10 @@ void createResGraph(Char_t* infile = 0, int numBins = 40)
   
   TCanvas* t = new TCanvas();
   t->cd();
-  vector<double>::const_iterator energy = energies.begin()+3;
-  vector<double>::const_iterator sigma = sigmas.begin()+3;
-  vector<double>::const_iterator sigmaErr = sigmaErrors.begin()+3;
-  TGraphErrors* graph2 = new TGraphErrors(energies.size()-3, &(*energy),&(*sigma),&(*energyErrors.begin()),&(*sigmaErr));
+  vector<double>::const_iterator energy = energies.begin()+2;
+  vector<double>::const_iterator sigma = sigmas.begin()+2;
+  vector<double>::const_iterator sigmaErr = sigmaErrors.begin()+2;
+  TGraphErrors* graph2 = new TGraphErrors(energies.size()-2, &(*energy),&(*sigma),&(*energyErrors.begin()),&(*sigmaErr));
   graph2->SetTitle("Non-fitted energy bins excluded");
   graph2->SetMarkerColor(1);
   graph2->SetMarkerStyle(8);
@@ -132,14 +133,14 @@ void createResGraph(Char_t* infile = 0, int numBins = 40)
 
 
   //Draw Fit vs. TDC time
-  TCanvas* t2 = new TCanvas();
-  t2->cd();
-  string histName2 = "fitVsTDCTimeEnergyBin_12";//+intToString(12);
-  TH2F* hist2 = 0;
-  f->GetObject(histName2.c_str(),hist2);
-  TProfile* prof = hist2->ProfileX();
-  prof->Fit("pol1");
-  prof->Draw();
+  //TCanvas* t2 = new TCanvas();
+  //t2->cd();
+  //string histName2 = "fitVsTDCTimeEnergyBin_12";//+intToString(12);
+  //TH2F* hist2 = 0;
+  //f->GetObject(histName2.c_str(),hist2);
+  //TProfile* prof = hist2->ProfileX();
+  //prof->Fit("pol1");
+  //prof->Draw();
 }
 
 std::string intToString(int num)

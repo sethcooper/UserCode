@@ -9,7 +9,7 @@
      <Notes on implementation>
 */
 //
-// $Id: TestBeamTimingAnalyzer.h,v 1.1 2008/10/07 08:25:53 scooper Exp $
+// $Id: TestBeamTimingAnalyzer.h,v 1.1 2008/10/07 09:33:05 scooper Exp $
 //
 
 
@@ -49,7 +49,9 @@ class TestBeamTimingAnalyzer : public edm::EDAnalyzer {
       virtual void analyze( const edm::Event&, const edm::EventSetup& );
       virtual void beginJob(edm::EventSetup const&);
       virtual void endJob();
- private:
+      std::string doubleToString(double num);
+   
+   private:
 
       
       std::string rootfile_;

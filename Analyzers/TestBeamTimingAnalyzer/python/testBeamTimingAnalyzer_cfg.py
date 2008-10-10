@@ -22,11 +22,14 @@ process.source = cms.Source("PoolSource",
 #'file:/data/scooper/data/h4b-06/h4b.00016629.A.0.0.root'
 'file:/data/scooper/data/h4b-06/h4b.00016428.A.0.0.root',
 'file:/data/scooper/data/h4b-06/h4b.00016429.A.0.0.root',
-'file:/data/scooper/data/h4b-06/h4b.00016430.A.0.0.root'
+'file:/data/scooper/data/h4b-06/h4b.00016430.A.0.0.root',
+'file:/data/scooper/data/h4b-06/h4b.00016434.A.0.0.root',
+'file:/data/scooper/data/h4b-06/h4b.00016435.A.0.0.root',
+'file:/data/scooper/data/h4b-06/h4b.00016437.A.0.0.root'
 )
 )
 process.maxEvents = cms.untracked.PSet(
-    input = cms.untracked.int32(100000)
+    input = cms.untracked.int32(-1)
 )
 
 process.load("EventFilter.EcalTBRawToDigi.ecalTBunpack_cfi")
