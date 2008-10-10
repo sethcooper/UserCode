@@ -9,7 +9,7 @@
      <Notes on implementation>
 */
 //
-// $Id: TestBeamTimingAnalyzer.h,v 1.1 2008/10/07 09:33:05 scooper Exp $
+// $Id: TestBeamTimingAnalyzer.h,v 1.2 2008/10/10 08:28:11 scooper Exp $
 //
 
 
@@ -28,6 +28,7 @@
 #include "DataFormats/EcalDigi/interface/EcalDigiCollections.h"
 #include "DataFormats/EcalRecHit/interface/EcalRecHitCollections.h"
 #include "DataFormats/EcalDetId/interface/EBDetId.h"
+#include "Geometry/EcalMapping/interface/EcalElectronicsMapping.h"
 
 #include <string>
 //#include "TTree.h"
@@ -47,7 +48,7 @@ class TestBeamTimingAnalyzer : public edm::EDAnalyzer {
 
 
       virtual void analyze( const edm::Event&, const edm::EventSetup& );
-      virtual void beginJob(edm::EventSetup const&);
+      virtual void beginJob(const edm::EventSetup&);
       virtual void endJob();
       std::string doubleToString(double num);
    
@@ -115,6 +116,8 @@ class TestBeamTimingAnalyzer : public edm::EDAnalyzer {
       TH2F* h_e9e25_mapy;
 
       EBDetId xtalInBeam_;
+
+      const EcalElectronicsMapping* ecalElectronicsMap_;
 };
 
 

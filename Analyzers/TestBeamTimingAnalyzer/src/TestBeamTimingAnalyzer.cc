@@ -6,7 +6,7 @@
      <Notes on implementation>
 */
 //
-// $Id: TestBeamTimingAnalyzer.cc,v 1.1 2008/10/07 09:33:06 scooper Exp $
+// $Id: TestBeamTimingAnalyzer.cc,v 1.2 2008/10/10 08:28:11 scooper Exp $
 //
 //
 
@@ -14,6 +14,9 @@
 #include "DataFormats/EcalRecHit/interface/EcalUncalibratedRecHit.h"
 #include "DataFormats/EcalRecHit/interface/EcalRecHitCollections.h"
 #include "DataFormats/EcalDigi/interface/EcalDigiCollections.h"
+#include "FWCore/Framework/interface/ESHandle.h"
+#include "FWCore/Framework/interface/EventSetup.h"
+#include "Geometry/EcalMapping/interface/EcalMappingRcd.h"
 #include "TBDataFormats/EcalTBObjects/interface/EcalTBHodoscopeRecInfo.h"
 #include "TBDataFormats/EcalTBObjects/interface/EcalTBTDCRecInfo.h"
 #include "TBDataFormats/EcalTBObjects/interface/EcalTBEventHeader.h"
@@ -97,22 +100,27 @@ TestBeamTimingAnalyzer::~TestBeamTimingAnalyzer()
 
 //========================================================================
 void
-TestBeamTimingAnalyzer::beginJob(edm::EventSetup const&) {
+TestBeamTimingAnalyzer::beginJob(const edm::EventSetup& eventSetup) {
 //========================================================================
+
+  //SIC
+  edm::ESHandle< EcalElectronicsMapping > handle;
+  eventSetup.get< EcalMappingRcd >().get(handle);
+  ecalElectronicsMap_ = handle.product();
 
   // Amplitude vs TDC offset
   h_ampltdc = new TH2F("h_ampltdc","Max Amplitude vs TDC offset", 100,0.,1.,1000, 0., 4000.);
 
   TDCValue_ = new TH1F("TDCValue","Value of TDC Offset",200,-0.5,1.5);
-  recoTime_ = new TH1F("recoTime","Reconstructed time of maxEnergy hit",500,-1.5,3.5);
-  deltaTime_ = new TH1F("deltaTime","Reconstructed time - TDC Offset",500,-1.5,3.5);
+  recoTime_ = new TH1F("recoTime","Reconstructed time of maxEnergy hit",700,-3.5,3.5);
+  deltaTime_ = new TH1F("deltaTime","Reconstructed time - TDC Offset",700,-3.5,3.5);
   char hname[50];
   char htitle[50];
   for(int i=0;i<50;++i)
   {
     sprintf(hname,"fitVsTDCTimeEnergyBin_%d",i);
     sprintf(htitle,"Fit time vs. TDC time, energy bin %d",i);
-    fitTimeVsTDC_[i] = new TH2F(hname,htitle,200,-0.5,1.5,500,-1.5,3.5);
+    fitTimeVsTDC_[i] = new TH2F(hname,htitle,200,-0.5,1.5,700,-3.5,3.5);
     sprintf(hname,"deltaBetCrysEnergyBin_%d",i);
     sprintf(htitle,"Difference between crys, energy bin %d",i);
     deltaBetCrys_[i] = new TH1F(hname,htitle,1000,-50,50);
@@ -156,7 +164,7 @@ TestBeamTimingAnalyzer::beginJob(edm::EventSetup const&) {
   {
     sprintf(hname,"fitTimeVsTDC_Cry%d",icry);
     sprintf(htitle,"Fitter time Vs. TDC offset, cry %d",icry);
-    timingHistMap[icry] = new TH2F(hname,htitle,200,-0.5,1.5,500,-1.5,3.5);
+    timingHistMap[icry] = new TH2F(hname,htitle,200,-0.5,1.5,700,-3.5,3.5);
   }
   
   h_e1e9_mapx = new TH2F("h_e1e9_mapx","E1/E9 vs X",80,-20,20,600,0.,1.2);
@@ -520,17 +528,20 @@ TestBeamTimingAnalyzer::analyze( const edm::Event& iEvent, const edm::EventSetup
    for(map<int,vector<int> >::const_iterator itr = histBinToCrysMap.begin();
        itr != histBinToCrysMap.end(); ++itr)
    {
+     //debug
+     //cout << "ENergy bin: " << itr->first << endl;
      vector<int> crys = itr->second;
-     int numCrys = crys.size();
+     int tower1 = (ecalElectronicsMap_->getElectronicsId(Xtals5x5[*crys.begin()])).towerId();
      for(vector<int>::const_iterator vecItr = crys.begin(); vecItr != crys.end(); ++vecItr)
      {
-       if(numCrys > 1)
+       int tower2 = (ecalElectronicsMap_->getElectronicsId(Xtals5x5[*vecItr])).towerId();
+       if(vecItr != crys.begin())// && tower2==tower1) //Require that they are in the same tower
        {
-         if(vecItr != crys.begin())
-         {
-           double statCorrection = sqrt(2);
-           deltaBetCrys_[itr->first]->Fill(25*(timing[*vecItr]-timing[*crys.begin()])/statCorrection);
-         }
+         //debug
+         //cout << "Crystal " << Xtals5x5[*vecItr] << " is in the same tower as crystal: " << Xtals5x5[*crys.begin()]
+         //  << endl;
+         double statCorrection = sqrt(2);
+         deltaBetCrys_[itr->first]->Fill(25*(timing[*vecItr]-timing[*crys.begin()])/statCorrection);
        }
        if(recTDC)
        {

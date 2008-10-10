@@ -51,6 +51,10 @@ process.load("CalibCalorimetry.EcalTrivialCondModules.EcalTrivialCondRetriever_c
 process.EcalTrivialConditionRetriever.weightsForTB = True
 process.load("CalibCalorimetry.EcalLaserCorrection.ecalLaserCorrectionService_cfi")
 
+#Ecal mapping
+process.load("Geometry.EcalMapping.EcalMapping_cfi")
+process.load("Geometry.EcalMapping.EcalMappingRecord_cfi")
+
 process.dumpEv = cms.EDAnalyzer("EventContentAnalyzer")
 
 process.testBeamTimingAnalyzer.hitProducer = "ecalFixedAlphaBetaFitUncalibRecHit"
