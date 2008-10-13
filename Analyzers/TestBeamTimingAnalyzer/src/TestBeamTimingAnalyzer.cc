@@ -6,7 +6,7 @@
      <Notes on implementation>
 */
 //
-// $Id: TestBeamTimingAnalyzer.cc,v 1.2 2008/10/10 08:28:11 scooper Exp $
+// $Id: TestBeamTimingAnalyzer.cc,v 1.3 2008/10/10 18:45:51 scooper Exp $
 //
 //
 
@@ -20,6 +20,10 @@
 #include "TBDataFormats/EcalTBObjects/interface/EcalTBHodoscopeRecInfo.h"
 #include "TBDataFormats/EcalTBObjects/interface/EcalTBTDCRecInfo.h"
 #include "TBDataFormats/EcalTBObjects/interface/EcalTBEventHeader.h"
+//SIC producer
+#include "ESProducers/EcalTimingCorrectionESProducer/interface/EcalTimingCorrection.h"
+#include "ESProducers/EcalTimingCorrectionESProducer/interface/EcalTimingCorrectionRcd.h"
+#include "Geometry/EcalMapping/interface/EcalElectronicsMapping.h"
 
 
 //#include<fstream>
@@ -250,7 +254,12 @@ TestBeamTimingAnalyzer::analyze( const edm::Event& iEvent, const edm::EventSetup
    using namespace edm;
    using namespace cms;
    using namespace std;
-
+   
+   //SIC intraTT corrections
+   // fetch timing correction
+   edm::ESHandle<EcalTimingCorrection> timingCorrectionP;
+   iSetup.get<EcalTimingCorrectionRcd>().get(timingCorrectionP);
+   const EcalTimingCorrection* timingCorrection = timingCorrectionP.product();
 
    Handle<EBDigiCollection> pdigis;
    const EBDigiCollection* digis=0;
@@ -429,9 +438,15 @@ TestBeamTimingAnalyzer::analyze( const edm::Event& iEvent, const edm::EventSetup
 	 {
 	   amplitude[icry]=(hits->find(Xtals5x5[icry]))->amplitude();
            if((hits->find(Xtals5x5[icry]))->chi2() > 0)
-             timing[icry]=(hits->find(Xtals5x5[icry]))->jitter();
+           {
+             double time = (hits->find(Xtals5x5[icry]))->jitter();
+             // Apply intraTT timing correction
+             EcalElectronicsId elecId = ecalElectronicsMap_->getElectronicsId(Xtals5x5[icry]);
+             time-=(timingCorrection->getMap().find(std::make_pair(elecId.stripId(),elecId.xtalId())))->second;
+             timing[icry] = time;
+           }
            else
-             timing[icry]=-9999;
+             timing[icry] = -9999;
 	   amplitude5x5 += amplitude[icry];
 	   // Is in 3x3?
 	   if ( icry == 6  || icry == 7  || icry == 8 ||
@@ -535,7 +550,7 @@ TestBeamTimingAnalyzer::analyze( const edm::Event& iEvent, const edm::EventSetup
      for(vector<int>::const_iterator vecItr = crys.begin(); vecItr != crys.end(); ++vecItr)
      {
        int tower2 = (ecalElectronicsMap_->getElectronicsId(Xtals5x5[*vecItr])).towerId();
-       if(vecItr != crys.begin())// && tower2==tower1) //Require that they are in the same tower
+       if(vecItr != crys.begin() && tower2==tower1) //Require that they are in the same tower
        {
          //debug
          //cout << "Crystal " << Xtals5x5[*vecItr] << " is in the same tower as crystal: " << Xtals5x5[*crys.begin()]

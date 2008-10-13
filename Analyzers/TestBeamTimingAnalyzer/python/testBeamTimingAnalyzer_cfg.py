@@ -55,6 +55,9 @@ process.load("CalibCalorimetry.EcalLaserCorrection.ecalLaserCorrectionService_cf
 process.load("Geometry.EcalMapping.EcalMapping_cfi")
 process.load("Geometry.EcalMapping.EcalMappingRecord_cfi")
 
+#IntraTT timing ES producer
+process.load("ESProducers.EcalTimingCorrectionESProducer.ecalTimingCorrectionESProducer_cfi")
+
 process.dumpEv = cms.EDAnalyzer("EventContentAnalyzer")
 
 process.testBeamTimingAnalyzer.hitProducer = "ecalFixedAlphaBetaFitUncalibRecHit"
