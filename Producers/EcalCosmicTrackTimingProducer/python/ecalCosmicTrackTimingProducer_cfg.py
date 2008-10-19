@@ -60,7 +60,9 @@ process.outFile = cms.OutputModule("PoolOutputModule",
     fileName = cms.untracked.string('ecalCosmicTrackTimingProducerTest.root'),
     outputCommands = cms.untracked.vstring('drop *',
            'keep *_ecalCosmicTrackTimingProducer_*_*',
-           'keep *_cosmicMuons_*_*')
+           'keep *_cosmicMuons_*_*',
+           'keep *_ecalRecHit_*_*'
+)
 )
 
 import CalibTracker.Configuration.Common.PoolDBESSource_cfi
