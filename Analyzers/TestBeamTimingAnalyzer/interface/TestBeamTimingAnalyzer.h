@@ -9,7 +9,7 @@
      <Notes on implementation>
 */
 //
-// $Id: TestBeamTimingAnalyzer.h,v 1.2 2008/10/10 08:28:11 scooper Exp $
+// $Id: TestBeamTimingAnalyzer.h,v 1.3 2008/10/10 18:45:50 scooper Exp $
 //
 
 
@@ -116,6 +116,7 @@ class TestBeamTimingAnalyzer : public edm::EDAnalyzer {
       TH2F* h_e9e25_mapy;
 
       EBDetId xtalInBeam_;
+      TH2F* occupancyOfMaxEneCry_;
 
       const EcalElectronicsMapping* ecalElectronicsMap_;
 };

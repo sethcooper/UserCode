@@ -6,7 +6,7 @@
      <Notes on implementation>
 */
 //
-// $Id: TestBeamTimingAnalyzer.cc,v 1.3 2008/10/10 18:45:51 scooper Exp $
+// $Id: TestBeamTimingAnalyzer.cc,v 1.4 2008/10/13 08:52:37 scooper Exp $
 //
 //
 
@@ -182,6 +182,8 @@ TestBeamTimingAnalyzer::beginJob(const edm::EventSetup& eventSetup) {
 
   h_Shape_ = new TH2F("h_Shape_","Xtal in Beam Shape",250,0,10,350,0,3500);
 
+  occupancyOfMaxEneCry_ = new TH2F("occupancyMaxEneCry","Occupancy of max. energy crystal",360,1,361.,172,-86,86);
+
 }
 
 //========================================================================
@@ -238,6 +240,9 @@ TestBeamTimingAnalyzer::endJob() {
   h_e9e25_mapx->Write(); 
   h_e9e25_mapy->Write(); 
   h_tableIsMoving->Write();
+  occupancyOfMaxEneCry_->GetXaxis()->SetTitle("iphi");
+  occupancyOfMaxEneCry_->GetYaxis()->SetTitle("ieta");
+  occupancyOfMaxEneCry_->Write();
 
   f.Close();
 }
@@ -368,6 +373,10 @@ TestBeamTimingAnalyzer::analyze( const edm::Event& iEvent, const edm::EventSetup
    // Something like 
    // EBFixedWindowSelector<EcalUncalibratedRecHit> Simple5x5Matrix(hits,maxHitId,5,5);
    // std::vector<EcalUncalibratedRecHit> Energies5x5 = Simple5x5Matrix.getHits();
+
+   // SIC
+   // Fill occupancy for max energy cry
+   occupancyOfMaxEneCry_->Fill(maxHitId.iphi(),maxHitId.ieta());
 
 
    EBDetId Xtals5x5[25];

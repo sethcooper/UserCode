@@ -81,19 +81,28 @@ void createResGraph(Char_t* infile = 0, int numBins = 40)
   
   //deltaBetCrysEnergyBin_20 fitVsTDCTimeEnergyBin_36
 
-  for(int i=0;i<numBins;i++)
+  for(int i=0;i<16;i++)
   {
+    TCanvas tc;
+    tc.cd();
     string histName = "deltaBetCrysEnergyBin_"+intToString(i);
     TH1F* hist = 0;
     f->GetObject(histName.c_str(),hist);
-    hist->GetXaxis()->SetTitle("Difference from average time [ns]");
+    hist->GetXaxis()->SetTitle("Difference between crystal pairs [ns]");
+    if(i<10)
+      hist->GetXaxis()->SetRangeUser(-10,10);
+    else
+      hist->GetXaxis()->SetRangeUser(-5,5);
+
     hist->Fit("gaus","Q");
+    histName+=".png";
+    tc.Print(histName.c_str());
     TF1 *fit = hist->GetFunction("gaus");
     //double p0 = fit->GetParameter(0); //const
     //double p1 = fit->GetParameter(1); //mean
     double p2 = fit->GetParameter(2); //sigma
     double p2err = fit->GetParError(2);
-    cout << "Bin: " << i << " Sigma of fit: " << p2 << endl;
+    //cout << "Bin: " << i << " Sigma of fit: " << p2 << endl;
     sigmas.push_back(p2);
     sigmaErrors.push_back(p2err);
     //cout << "param0: " << p0 << " param1: " << p1 << " param2:" << p2 << endl;
@@ -125,11 +134,16 @@ void createResGraph(Char_t* infile = 0, int numBins = 40)
   vector<double>::const_iterator sigmaErr = sigmaErrors.begin()+2;
   TGraphErrors* graph2 = new TGraphErrors(energies.size()-2, &(*energy),&(*sigma),&(*energyErrors.begin()),&(*sigmaErr));
   graph2->SetTitle("Non-fitted energy bins excluded");
+  graph2->GetYaxis()->SetTitle(yTitle.c_str());
+  graph2->GetXaxis()->SetTitle(xTitle.c_str());
+  graph2->GetYaxis()->SetRangeUser(-1,10);
+  graph2->GetXaxis()->SetRangeUser(0,50);
   graph2->SetMarkerColor(1);
   graph2->SetMarkerStyle(8);
   graph2->SetMarkerSize(1);
   graph2->Fit("myfit","R");
   graph2->Draw("AP");
+  t->Print("resolution.png");
 
 
   //Draw Fit vs. TDC time
