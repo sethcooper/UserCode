@@ -6,6 +6,9 @@
 <use name=DataFormats/EcalDetId>
 <use name=Geometry/EcalMapping>
 <use name=ESProducers/EcalTimingCorrectionESProducer>
+<use name=Geometry/CaloGeometry>
+<use name=Geometry/Records>
+<use name=Geometry/CaloEventSetup>
 <use name=root>
 <flags EDM_PLUGIN=1>
 <export>

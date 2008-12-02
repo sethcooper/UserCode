@@ -8,7 +8,7 @@ process.MessageLogger = cms.Service("MessageLogger",
     ),
     categories = cms.untracked.vstring('testBeamTimingAnalyzer'),
     destinations = cms.untracked.vstring('cout'),
-    suppressError = cms.untracked.vstring('ecalFixedAlphaBetaFitUncalibRecHit')
+    suppressError = cms.untracked.vstring('EcalFixedAlphaBetaFitUncalibRecHitProducer')
 )
 
 process.options = cms.untracked.PSet(
@@ -29,7 +29,7 @@ process.source = cms.Source("PoolSource",
 )
 )
 process.maxEvents = cms.untracked.PSet(
-    input = cms.untracked.int32(-1)
+    input = cms.untracked.int32(500000)
 )
 
 process.load("EventFilter.EcalTBRawToDigi.ecalTBunpack_cfi")
@@ -54,6 +54,11 @@ process.load("CalibCalorimetry.EcalLaserCorrection.ecalLaserCorrectionService_cf
 #Ecal mapping
 process.load("Geometry.EcalMapping.EcalMapping_cfi")
 process.load("Geometry.EcalMapping.EcalMappingRecord_cfi")
+
+#Geometry
+process.load("RecoEcal.EgammaClusterProducers.geometryForClustering_cff")
+process.load("Geometry.CMSCommonData.cmsIdealGeometryXML_cfi")
+process.load("Geometry.CaloEventSetup.CaloGeometry_cfi")
 
 #IntraTT timing ES producer
 process.load("ESProducers.EcalTimingCorrectionESProducer.ecalTimingCorrectionESProducer_cfi")

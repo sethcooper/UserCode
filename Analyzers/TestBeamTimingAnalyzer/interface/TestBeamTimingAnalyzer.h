@@ -9,7 +9,7 @@
      <Notes on implementation>
 */
 //
-// $Id: TestBeamTimingAnalyzer.h,v 1.3 2008/10/10 18:45:50 scooper Exp $
+// $Id: TestBeamTimingAnalyzer.h,v 1.4 2008/11/05 10:19:13 scooper Exp $
 //
 
 
@@ -29,6 +29,7 @@
 #include "DataFormats/EcalRecHit/interface/EcalRecHitCollections.h"
 #include "DataFormats/EcalDetId/interface/EBDetId.h"
 #include "Geometry/EcalMapping/interface/EcalElectronicsMapping.h"
+#include "Geometry/CaloGeometry/interface/CaloSubdetectorGeometry.h"
 
 #include <string>
 //#include "TTree.h"
@@ -74,10 +75,25 @@ class TestBeamTimingAnalyzer : public edm::EDAnalyzer {
       TH1F* recoTime_;
       TH1F* deltaTime_;
       TH2F* fitTimeVsTDC_[50];
+      TH2F* deltaTvsTDC_[50];
       TH1F* deltaBetCrys_[50];
+      TH1F* pivotCry_[50];
+      TH2F* distVsTimeHists_[50];
+      TH2F* cryIndicesConsideredHists_[50];
+      TH2F* deltaTvsAverageT_[50];
+      TH1F* deltaTCry2EnergyBin_[50];
+      TH1F* deltaTCry7EnergyBin_[50];
+      TH1F* recoMinusTDCCry7EnergyBin_[50];
+      TH1F* recoMinusTDCCry2EnergyBin_[50];
+      TH1F* recoTimeMinusTDCTimeByCry_[25];
       
       TH2F* timingHistMap[25]; 
 
+      TH1F* deltaT813Bin8_;
+      TH1F* deltaT813Bin6_;
+      TH1F* deltaT713Bin12_;
+      TH1F* deltaT713Bin11_;
+      
       TH2F* h_Shape_;
       
       // Reconstructed energies
@@ -117,8 +133,10 @@ class TestBeamTimingAnalyzer : public edm::EDAnalyzer {
 
       EBDetId xtalInBeam_;
       TH2F* occupancyOfMaxEneCry_;
+      TH2F* distVsTDCHist_;
 
       const EcalElectronicsMapping* ecalElectronicsMap_;
+      const CaloSubdetectorGeometry* geometry_barrel_; 
 };
 
 

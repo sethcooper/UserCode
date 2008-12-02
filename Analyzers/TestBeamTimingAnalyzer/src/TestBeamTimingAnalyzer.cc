@@ -6,7 +6,7 @@
      <Notes on implementation>
 */
 //
-// $Id: TestBeamTimingAnalyzer.cc,v 1.4 2008/10/13 08:52:37 scooper Exp $
+// $Id: TestBeamTimingAnalyzer.cc,v 1.5 2008/11/05 10:19:14 scooper Exp $
 //
 //
 
@@ -24,7 +24,12 @@
 #include "ESProducers/EcalTimingCorrectionESProducer/interface/EcalTimingCorrection.h"
 #include "ESProducers/EcalTimingCorrectionESProducer/interface/EcalTimingCorrectionRcd.h"
 #include "Geometry/EcalMapping/interface/EcalElectronicsMapping.h"
-
+#include "Geometry/CaloGeometry/interface/CaloGeometry.h"
+#include "PhysicsTools/Utilities/interface/deltaR.h"
+#include "Geometry/Records/interface/IdealGeometryRecord.h"
+#include "DataFormats/GeometryVector/interface/GlobalPoint.h"
+#include "Geometry/CaloGeometry/interface/TruncatedPyramid.h"
+#include "Geometry/Records/interface/CaloGeometryRecord.h"
 
 //#include<fstream>
 
@@ -111,25 +116,71 @@ TestBeamTimingAnalyzer::beginJob(const edm::EventSetup& eventSetup) {
   edm::ESHandle< EcalElectronicsMapping > handle;
   eventSetup.get< EcalMappingRcd >().get(handle);
   ecalElectronicsMap_ = handle.product();
-
+  edm::ESHandle<CaloGeometry> theGeometry;
+  edm::ESHandle<CaloSubdetectorGeometry> theBarrelGeometry_handle;
+  eventSetup.get<CaloGeometryRecord>().get( theGeometry );
+  eventSetup.get<EcalBarrelGeometryRecord>().get("EcalBarrel",theBarrelGeometry_handle);
+  geometry_barrel_ = &(*theBarrelGeometry_handle);
+  
   // Amplitude vs TDC offset
   h_ampltdc = new TH2F("h_ampltdc","Max Amplitude vs TDC offset", 100,0.,1.,1000, 0., 4000.);
 
   TDCValue_ = new TH1F("TDCValue","Value of TDC Offset",200,-0.5,1.5);
   recoTime_ = new TH1F("recoTime","Reconstructed time of maxEnergy hit",700,-3.5,3.5);
   deltaTime_ = new TH1F("deltaTime","Reconstructed time - TDC Offset",700,-3.5,3.5);
+  distVsTDCHist_ = new TH2F("distVsTDC","DeltaR from center cry vs. TDC Offset",200,-0.5,1.5,20,0,0.35);
+
   char hname[50];
   char htitle[50];
   for(int i=0;i<50;++i)
   {
     sprintf(hname,"fitVsTDCTimeEnergyBin_%d",i);
     sprintf(htitle,"Fit time vs. TDC time, energy bin %d",i);
-    fitTimeVsTDC_[i] = new TH2F(hname,htitle,200,-0.5,1.5,700,-3.5,3.5);
+    //fitTimeVsTDC_[i] = new TH2F(hname,htitle,200,-0.5,1.5,700,-3.5,3.5);
+    fitTimeVsTDC_[i] = new TH2F(hname,htitle,1000,-50,50,1000,-50,50);
     sprintf(hname,"deltaBetCrysEnergyBin_%d",i);
     sprintf(htitle,"Difference between crys, energy bin %d",i);
     deltaBetCrys_[i] = new TH1F(hname,htitle,1000,-50,50);
+    sprintf(hname,"PivotCryEnergyBin_%d",i);
+    sprintf(htitle,"Pivot Crystal, energy bin %d",i);
+    pivotCry_[i] = new TH1F(hname,htitle,25,0,25);
+    sprintf(hname,"distVsTimeEnergyBin_%d",i);
+    sprintf(htitle,"DeltaR betw. crys vs. time difference, energy bin %d",i);
+    distVsTimeHists_[i] = new TH2F(hname,htitle,1000,-50,50,20,0,0.35);
+    sprintf(hname,"cryIndicesConsideredEnergyBin_%d",i);
+    sprintf(htitle,"Index of Cry2 vs. Cry1 in deltaT graphs, energy bin %d",i);
+    cryIndicesConsideredHists_[i] = new TH2F(hname,htitle,25,0,25,25,0,25);
+    sprintf(hname,"deltaTvsTDCEnergyBin_%d",i);
+    sprintf(htitle,"Time difference vs TDC, energy bin %d",i);
+    deltaTvsTDC_[i] = new TH2F(hname,htitle,20,-0.5,1.5,1000,-50,50);
+    sprintf(hname,"deltaTvsAverageTEnergyBin_%d",i);
+    sprintf(htitle,"Time difference vs Average Time, energy bin %d",i);
+    deltaTvsAverageT_[i] = new TH2F(hname,htitle,1000,-50,50,1000,-50,50);
+    sprintf(hname,"deltaTCry2EnergyBin_%d",i);
+    sprintf(htitle,"Delta T for pivot cry 2 energy bin %d",i);
+    deltaTCry2EnergyBin_[i] = new TH1F(hname,htitle,1000,-50,50);
+    sprintf(hname,"deltaTCry7EnergyBin_%d",i);
+    sprintf(htitle,"Delta T for pivot cry 7 energy bin %d",i);
+    deltaTCry7EnergyBin_[i] = new TH1F(hname,htitle,1000,-50,50);
+    sprintf(hname,"recoMinusTDCCry7EnergyBin_%d",i);
+    sprintf(htitle,"Reco+TDC-1 for pivot cry 7 energy bin %d",i);
+    recoMinusTDCCry7EnergyBin_[i] = new TH1F(hname,htitle,1000,-50,50);
+    sprintf(hname,"recoMinusTDCCry2EnergyBin_%d",i);
+    sprintf(htitle,"Reco+TDC-1 for pivot cry 2 energy bin %d",i);
+    recoMinusTDCCry2EnergyBin_[i] = new TH1F(hname,htitle,1000,-50,50);
+  }
+  for(int i=0;i<25;i++)
+  {
+    sprintf(hname,"recoTimeMinusTDCTimeCry_%d",i);
+    sprintf(htitle,"RecoTime + TDC time -1 for cry %d",i);
+    recoTimeMinusTDCTimeByCry_[i] = new TH1F(hname,htitle,1000,-50,50);
   }
 
+  deltaT813Bin8_ = new TH1F("deltaT813_bin8","Time of cry 13 - cry 8, 0.8 to 0.9 GeV",1000,-50,50);
+  deltaT813Bin6_ = new TH1F("deltaT813_bin6","Time of cry 13 - cry 8, 0.6 to 0.7 GeV",1000,-50,50);
+  deltaT713Bin12_ = new TH1F("deltaT713_bin12","Time of cry 13 - cry 7, 10 to 20 GeV",1000,-50,50);
+  deltaT713Bin11_ = new TH1F("deltaT713_bin11","Time of cry 13 - cry 7, 5 to 10 GeV",1000,-50,50);
+  
   // Reconstructed energies
   h_tableIsMoving = new TH1F("h_tableIsMoving","TableIsMoving", 100000, 0., 100000.);
 
@@ -168,7 +219,8 @@ TestBeamTimingAnalyzer::beginJob(const edm::EventSetup& eventSetup) {
   {
     sprintf(hname,"fitTimeVsTDC_Cry%d",icry);
     sprintf(htitle,"Fitter time Vs. TDC offset, cry %d",icry);
-    timingHistMap[icry] = new TH2F(hname,htitle,200,-0.5,1.5,700,-3.5,3.5);
+    //timingHistMap[icry] = new TH2F(hname,htitle,200,-0.5,1.5,700,-3.5,3.5);
+    timingHistMap[icry] = new TH2F(hname,htitle,1000,-50,50,1000,-50,50);
   }
   
   h_e1e9_mapx = new TH2F("h_e1e9_mapx","E1/E9 vs X",80,-20,20,600,0.,1.2);
@@ -199,6 +251,9 @@ TestBeamTimingAnalyzer::endJob() {
   TDCValue_->Write();
   recoTime_->Write();
   deltaTime_->Write();
+  distVsTDCHist_->SetXTitle("TDC Offset [bx]");
+  distVsTDCHist_->Write();
+
   for(int i=0;i<50;i++)
   {
     fitTimeVsTDC_[i]->GetXaxis()->SetTitle("TDC Offset (bx)");
@@ -206,7 +261,34 @@ TestBeamTimingAnalyzer::endJob() {
     fitTimeVsTDC_[i]->Write();
     deltaBetCrys_[i]->GetXaxis()->SetTitle("Cry time - avg. (ns)");
     deltaBetCrys_[i]->Write();
+    distVsTimeHists_[i]->SetXTitle("DeltaT [ns]");
+    distVsTimeHists_[i]->SetYTitle("DeltaR");
+    distVsTimeHists_[i]->Write();
+    cryIndicesConsideredHists_[i]->SetXTitle("Index of Cry1 (begin)");
+    cryIndicesConsideredHists_[i]->Write();
+    deltaTvsTDC_[i]->SetXTitle("TDC offset");
+    deltaTvsTDC_[i]->Write();
+    deltaTvsAverageT_[i]->SetXTitle("Average time");
+    deltaTvsAverageT_[i]->Write();
+    pivotCry_[i]->SetXTitle("pivot cry index");
+    pivotCry_[i]->Write();
+    deltaTCry2EnergyBin_[i]->SetXTitle("DeltaT");
+    deltaTCry2EnergyBin_[i]->Write();
+    deltaTCry7EnergyBin_[i]->SetXTitle("DeltaT");
+    deltaTCry7EnergyBin_[i]->Write();
+    recoMinusTDCCry2EnergyBin_[i]->Write();
+    recoMinusTDCCry7EnergyBin_[i]->Write();
   }
+  for(int i=0;i<25;i++)
+  {
+    recoTimeMinusTDCTimeByCry_[i]->SetXTitle("reco + TDC -1 [ns]");
+    recoTimeMinusTDCTimeByCry_[i]->Write();
+  }
+  
+  deltaT713Bin12_->Write();
+  deltaT713Bin11_->Write();
+  deltaT813Bin8_->Write();
+  deltaT813Bin6_->Write();
   
   //// Reconstructed energies
   h_e1x1->Write(); 
@@ -229,8 +311,8 @@ TestBeamTimingAnalyzer::endJob() {
   {       
     h_mapx[icry]->Write(); 
     h_mapy[icry]->Write(); 
-    timingHistMap[icry]->GetXaxis()->SetTitle("TDC Offset (bx)");
-    timingHistMap[icry]->GetYaxis()->SetTitle("Fitted time (bx)");
+    timingHistMap[icry]->GetXaxis()->SetTitle("TDC Offset (ns)");
+    timingHistMap[icry]->GetYaxis()->SetTitle("Fitted time (ns)");
     timingHistMap[icry]->Write();
   }
   h_e1e9_mapx->Write(); 
@@ -496,14 +578,50 @@ TestBeamTimingAnalyzer::analyze( const edm::Event& iEvent, const edm::EventSetup
      title = "Difference in time between crys, "+doubleToString(energyBins[i])+
        " GeV to "+doubleToString(energyBins[i+1])+" GeV";
      deltaBetCrys_[i]->SetTitle(title.c_str());
+     title = "DeltaR vs. time difference, "+doubleToString(energyBins[i])+
+       " GeV to "+doubleToString(energyBins[i+1])+" GeV";
+     distVsTimeHists_[i]->SetTitle(title.c_str());
+     title = "Index of cry2 vs. cry1, "+doubleToString(energyBins[i])+
+       " GeV to "+doubleToString(energyBins[i+1])+" GeV";
+     cryIndicesConsideredHists_[i]->SetTitle(title.c_str());
+     title = "Pivot cry, "+doubleToString(energyBins[i])+
+       " GeV to "+doubleToString(energyBins[i+1])+" GeV";
+     pivotCry_[i]->SetTitle(title.c_str());
+     title = "DeltaT cry 2, "+doubleToString(energyBins[i])+
+       " GeV to "+doubleToString(energyBins[i+1])+" GeV";
+     deltaTCry2EnergyBin_[i]->SetTitle(title.c_str());
+     title = "DeltaT cry 7, "+doubleToString(energyBins[i])+
+       " GeV to "+doubleToString(energyBins[i+1])+" GeV";
+     deltaTCry7EnergyBin_[i]->SetTitle(title.c_str());
+     title = "Reco+TDC-1 cry 7, "+doubleToString(energyBins[i])+
+       " GeV to "+doubleToString(energyBins[i+1])+" GeV";
+     recoMinusTDCCry7EnergyBin_[i]->SetTitle(title.c_str());
+     title = "Reco+TDC-1 cry 2, "+doubleToString(energyBins[i])+
+       " GeV to "+doubleToString(energyBins[i+1])+" GeV";
+     recoMinusTDCCry2EnergyBin_[i]->SetTitle(title.c_str());
    }
+   const CaloCellGeometry* centerCell = geometry_barrel_->getGeometry(Xtals5x5[12]);
+   GlobalPoint centerCryPt = (dynamic_cast <const TruncatedPyramid *>  (centerCell))->getPosition(0);
+   double centerCryTime = timing[12];
    // figure out which crys are in which energy bins; compute avgTime
    for (int icry=0;icry<25;icry++)
    {
+     //TODO
+     //Hardcoded crystals to skip!
+     //if(icry==7) continue;
+     
      cryVector.clear();
-     cryVector.push_back(icry);
+     cryVector.push_back(icry);  // vector of id's in 5x5 matrix
      if(timing[icry] != -9999)  // Imposing chi2 cut of above
      {
+       // Fill TDC dist hist
+       if(recTDC)
+       {
+         const CaloCellGeometry *cell1 = geometry_barrel_->getGeometry(Xtals5x5[icry]);
+         GlobalPoint p1 = (dynamic_cast <const TruncatedPyramid *>  (cell1))->getPosition(0);
+         double dist = reco::deltaR(p1,centerCryPt);
+         distVsTDCHist_->Fill(recTDC->offset(),dist);
+       }
        //Bin by energy
        double amp = amplitude[icry];
        int histNum = -1;
@@ -556,6 +674,7 @@ TestBeamTimingAnalyzer::analyze( const edm::Event& iEvent, const edm::EventSetup
      //cout << "ENergy bin: " << itr->first << endl;
      vector<int> crys = itr->second;
      int tower1 = (ecalElectronicsMap_->getElectronicsId(Xtals5x5[*crys.begin()])).towerId();
+     // Loop over crys in the same energy bin
      for(vector<int>::const_iterator vecItr = crys.begin(); vecItr != crys.end(); ++vecItr)
      {
        int tower2 = (ecalElectronicsMap_->getElectronicsId(Xtals5x5[*vecItr])).towerId();
@@ -566,11 +685,50 @@ TestBeamTimingAnalyzer::analyze( const edm::Event& iEvent, const edm::EventSetup
          //  << endl;
          double statCorrection = sqrt(2);
          deltaBetCrys_[itr->first]->Fill(25*(timing[*vecItr]-timing[*crys.begin()])/statCorrection);
+         const CaloCellGeometry *cell1 = geometry_barrel_->getGeometry(Xtals5x5[*vecItr]);
+         GlobalPoint p1 = (dynamic_cast <const TruncatedPyramid *>  (cell1))->getPosition(0);
+         const CaloCellGeometry *cell2 = geometry_barrel_->getGeometry(Xtals5x5[*crys.begin()]);
+         GlobalPoint p2 = (dynamic_cast <const TruncatedPyramid *>  (cell2))->getPosition(0);
+         double dist = reco::deltaR(p1,p2);
+         distVsTimeHists_[itr->first]->Fill(25*(timing[*vecItr]-timing[*crys.begin()])/statCorrection,dist);
+         cryIndicesConsideredHists_[itr->first]->Fill(*crys.begin(),*vecItr);
+         deltaTvsTDC_[itr->first]->Fill(recTDC->offset(),25*(timing[*vecItr]-timing[*crys.begin()])/statCorrection);
+         deltaTvsAverageT_[itr->first]->Fill(12.5*(timing[*vecItr]+timing[*crys.begin()]),25*(timing[*vecItr]-timing[*crys.begin()]));
+         pivotCry_[itr->first]->Fill(*crys.begin());
+         if(*crys.begin()==2)
+         {
+           deltaTCry2EnergyBin_[itr->first]->Fill(25*(timing[*vecItr]-timing[*crys.begin()])/statCorrection);
+           recoMinusTDCCry2EnergyBin_[itr->first]->Fill(25*(timing[*vecItr]-timing[*crys.begin()])/statCorrection+25*recTDC->offset()-1);
+         }
+         else if(*crys.begin()==7)
+         {
+           deltaTCry7EnergyBin_[itr->first]->Fill(25*(timing[*vecItr]-timing[*crys.begin()])/statCorrection);
+           recoMinusTDCCry7EnergyBin_[itr->first]->Fill(25*(timing[*vecItr]-timing[*crys.begin()])/statCorrection+25*recTDC->offset()-1);
+           if(*vecItr==13)
+           {
+             if(itr->first==11)
+               deltaT713Bin11_->Fill(25*(timing[*vecItr]-timing[*crys.begin()])/statCorrection);
+             else if(itr->first==12)
+               deltaT713Bin12_->Fill(25*(timing[*vecItr]-timing[*crys.begin()])/statCorrection);
+           }
+         }
+         else if(*crys.begin()==8)
+         {
+           if(*vecItr==13)
+           {
+             if(itr->first==6)
+               deltaT813Bin6_->Fill(25*(timing[*vecItr]-timing[*crys.begin()])/statCorrection);
+             else if(itr->first==8)
+               deltaT813Bin8_->Fill(25*(timing[*vecItr]-timing[*crys.begin()])/statCorrection);
+           }
+         }
+
+         recoTimeMinusTDCTimeByCry_[*crys.begin()]->Fill(25*(timing[*vecItr]-timing[*crys.begin()])/statCorrection+25*recTDC->offset()-1);
        }
        if(recTDC)
        {
-         timingHistMap[*vecItr]->Fill(recTDC->offset(),timing[*vecItr]);
-         fitTimeVsTDC_[itr->first]->Fill(recTDC->offset(),timing[*vecItr]);
+         timingHistMap[*vecItr]->Fill(25*recTDC->offset(),25*timing[*vecItr]);
+         fitTimeVsTDC_[itr->first]->Fill(25*recTDC->offset(),25*timing[*vecItr]);
          //debug
          //cout << "Filled graphs with cry " << *vecItr << " amplitude: " << amplitude[*vecItr] <<
          //  " energyBin: " << itr->first << " timing: " << timing[*vecItr] << endl;
