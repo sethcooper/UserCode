@@ -13,7 +13,7 @@
 //
 // Original Author:  Seth Cooper
 //         Created:  Thu Sep 27 16:09:01 CDT 2007
-// $Id: EcalDeDxAnalyzer.cc,v 1.16 2008/01/08 22:36:06 scooper Exp $
+// $Id: EcalDeDxAnalyzer.cc,v 1.17 2008/03/12 09:09:44 scooper Exp $
 //
 //
 
@@ -94,20 +94,28 @@ class EcalDeDxAnalyzer : public edm::EDAnalyzer {
       std::string floatToString(float f);
       math::XYZPoint propagateTrack(const reco::Track track);
       math::XYZPoint propagateTrack(const TrackingParticle track);
+      math::XYZPoint propagateThroughEcal(const reco::Track track);
+      math::XYZPoint propagateThroughEcal(const TrackingParticle track);
       //math::XYZPoint EcalDeDxAnalyzer::propagateTrack(const edm::SimTrack track);
       GlobalPoint localPosToGlobalPos(const PSimHit hit);
       GlobalVector localMomToGlobalMom(const PSimHit hit);
       /** Hard-wired numbers defining the surfaces on which the crystal front faces lie. */
-      static float barrelRadius() {return 129.f;} //p81, p50, ECAL TDR
+      //static float barrelRadius() {return 129.f;} //p81, p50, ECAL TDR
+      static float barrelRadius() {return 131.5f;} //changed 6/12/08
+      //static float barrelOuterRadius() {return 152.f;} //p50, ECAL TDR
+      //static float barrelOuterRadius() {return 153.5f;} //changed 6/12/08
+      static float barrelOuterRadius() {return 148.7f;} //changed 6/12/08
       static float barrelHalfLength() {return 270.9f;} //p81, p50, ECAL TDR
       static float endcapRadius() {return 171.1f;} // fig 3.26, p81, ECAL TDR
       static float endcapZ() {return 320.5f;} // fig 3.26, p81, ECAL TDR
       static void initializeSurfaces();
       static void check() {if (!theInit_) initializeSurfaces();}
       static ReferenceCountingPointer<BoundCylinder>  theBarrel_;
+      static ReferenceCountingPointer<BoundCylinder>  theOuterBarrel_;
       static ReferenceCountingPointer<BoundDisk>      theNegativeEtaEndcap_;
       static ReferenceCountingPointer<BoundDisk>      thePositiveEtaEndcap_;
       static const BoundCylinder& barrel()        { check(); return *theBarrel_;}
+      static const BoundCylinder& outerBarrel()        { check(); return *theOuterBarrel_;}
       static const BoundDisk& negativeEtaEndcap() { check(); return *theNegativeEtaEndcap_;}
       static const BoundDisk& positiveEtaEndcap() { check(); return *thePositiveEtaEndcap_;}
       static bool theInit_;
@@ -115,6 +123,7 @@ class EcalDeDxAnalyzer : public edm::EDAnalyzer {
       edm::ESHandle<MagneticField> theMF_;
       //TrackAssociatorBase* associatorByHits_;
       TrajectoryStateOnSurface stateAtECAL_;
+      TrajectoryStateOnSurface stateAfterECAL_;
       mutable PropagatorWithMaterial* forwardPropagator_ ;
       PropagationDirection dir_;
       const TrackerGeometry *trackerGeom;
@@ -126,6 +135,7 @@ class EcalDeDxAnalyzer : public edm::EDAnalyzer {
       edm::InputTag simTrackContainer_;
       TH2D* energyVsMomentum_;
       TH1D* energyHist_;
+      TH1D* energyFitterHist_;
       TH1D* momentumHist_;
       TH1D* highestEnergyHist_;
       TH1D* bozoClusterEnergyHist_;
@@ -141,13 +151,21 @@ class EcalDeDxAnalyzer : public edm::EDAnalyzer {
       TH1D* cluster3x3Hist_;
       TH1D* cluster5x5Hist_;
       TH1D* simHitsEnergyHist_;
+      TH1D* simHitsTimeHist_;
       TH1D* simTrackRecoTrackDeltaEtaHist_;
       TH1D* simTrackRecoTrackDeltaPhiHist_;
+      TH1D* timingHist_;
+      TH1D* fittedTimingHist_;
+      TH2D* fitVsWeightsHist_;
+      TH1D* chi2Fitter_;
+      TH2D* fitTimeVsChi2_;
+      TH2D* phiVsTime_;
+
       TGraph* deDxVsBetaGraph_;
       TF1* betheBlochKFunct;
       TFile* a;
       
-      double dRHitTrack;
+      double dRHitTrack_;
       double minTrackPt_;
       double mcParticleMass_;
       double trackerHitMinP_;
@@ -162,6 +180,7 @@ class EcalDeDxAnalyzer : public edm::EDAnalyzer {
 // constants, enums and typedefs
 //
 ReferenceCountingPointer<BoundCylinder>  EcalDeDxAnalyzer::theBarrel_ = 0;
+ReferenceCountingPointer<BoundCylinder>  EcalDeDxAnalyzer::theOuterBarrel_ = 0;
 ReferenceCountingPointer<BoundDisk>      EcalDeDxAnalyzer::theNegativeEtaEndcap_ = 0;
 ReferenceCountingPointer<BoundDisk>      EcalDeDxAnalyzer::thePositiveEtaEndcap_ = 0;
 bool                                     EcalDeDxAnalyzer::theInit_ = false;
@@ -185,7 +204,7 @@ EcalDeDxAnalyzer::EcalDeDxAnalyzer(const edm::ParameterSet& ps)
    simTrackContainer_          = ps.getParameter<edm::InputTag>("simTrackContainer");
    trackingParticleCollection_ = ps.getParameter<edm::InputTag>("trackingParticleCollection");
    mcParticleMass_             = ps.getUntrackedParameter<double>("mcParticleMass",-1.0);
-   dRHitTrack                  = ps.getParameter<double>("dRTrack");
+   dRHitTrack_                 = ps.getParameter<double>("dRTrack");
    trackerHitMinP_             = ps.getParameter<double>("trackerMinHitP_");
    
    a = new TFile("test.root","RECREATE");
@@ -194,11 +213,12 @@ EcalDeDxAnalyzer::EcalDeDxAnalyzer(const edm::ParameterSet& ps)
    
    energyVsMomentum_ = new TH2D("energy_vs_momentum","energy dep. in ecal vs. momentum",8000,0,2000,100,0,1.5);
    energyHist_ = new TH1D("energy_in_ecal","energy dep. in ecal",1000,0,10.0);
+   energyFitterHist_ = new TH1D("energy_in_ecal_fitter","energy dep. in ecal (fitter)",1000,0,10.0);
    momentumHist_ = new TH1D("tracker_outer_momentum","tracker outer momentum",8000,0,2000);
    highestEnergyHist_ = new TH1D("highest_energy_recHits","highest energy track-matched RecHits",100,0,1.5);
    bozoClusterEnergyHist_ = new TH1D("bozo_cluster_recHits","track-matched bozo clusters",100,0,1.5);
    energyVsBetaHist_ = new TH2D("energy_vs_beta","energy dep. in ecal vs. beta",100,0,1,100,0,1.5);
-   hitEtaPhiHist_ = new TH2D("hit_eta_Phi","eta and phi of ecal RecHits",25,-1.5,1.5,50,-3.2,3.2);
+   hitEtaPhiHist_ = new TH2D("hit_eta_Phi","eta and phi of ecal RecHits",300,-1.5,1.5,720,-3.14,3.14);
    cluster3x3Hist_ = new TH1D("3x3_cluster_energy","E3x3 energy", 100, 0, 1.5);
    cluster5x5Hist_ = new TH1D("5x5_cluster_energy","E5x5 energy", 100, 0, 1.5);
    deDxVsBetaHist_ = new TH2D("dedx_vs_beta","dE/dx vs. beta",25,0,1,60,0,.06);
@@ -214,10 +234,17 @@ EcalDeDxAnalyzer::EcalDeDxAnalyzer(const edm::ParameterSet& ps)
    simTrackEtaHist_ = new TH1D("simTracksEta","Eta of MC tracks",80,-4,4);
    simTrackPhiHist_ = new TH1D("simTracksPhi","Phi of MC tracks",120,-6.4,6.4);
    simHitsEnergyHist_ = new TH1D("simHitsEnergy","Energy of sim hits",200,0,2);
-   ecalHitEtaHist_ = new TH1D("ecalHitsEta","Eta of hits in ecal",340,-3,3);
+   simHitsTimeHist_ = new TH1D("simHitsTime","Time of sim hits",500,-25,25);
+   ecalHitEtaHist_ = new TH1D("ecalHitsEta","Eta of hits in ecal",600,-3,3);
    ecalHitPhiHist_ = new TH1D("ecalHitsPhi","Phi of hits in ecal",720,-3.14,3.14);
    simTrackRecoTrackDeltaEtaHist_ = new TH1D("tracksDeltaEta","Delta eta of sim tracks and reco tracks",1000,-.01,.01);
    simTrackRecoTrackDeltaPhiHist_ = new TH1D("tracksDeltaPhi","Delta phi of sim tracks and reco tracks",2000,-.04,.04);
+   timingHist_ = new TH1D("timingHist","Time of max sample",500,-25,25);
+   fittedTimingHist_ = new TH1D("fittedTimingHist","Time of max sample (fitter)",500,-25,25);
+   fitVsWeightsHist_ = new TH2D("fitVsWeights","fittedTime vs. weightsTime",500,-25,25,500,-25,25);
+   chi2Fitter_ = new TH1D("chi2Fitter","Chi2 of the fitted hits",400,-200,200);
+   fitTimeVsChi2_ = new TH2D("fitTimeVsChi2","chi2 vs. fitted time",500,-25,25,400,-200,200);
+   phiVsTime_ = new TH2D("phiVsTime","phi vs. reco time",500,-25,25,720,-3.14,3.14);
    
    //dRHitTrack = 1; //0.2;
 }
@@ -247,6 +274,11 @@ void EcalDeDxAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& 
   Handle<EBRecHitCollection> EBHits;
   Handle<EERecHitCollection> EEHits;
   Handle<SimTrackContainer> simTracks;
+  
+  //Added for fitter timing
+  Handle<EBRecHitCollection> EBFittedHits;
+  Handle<EERecHitCollection> EEFittedHits;
+  Handle<EcalUncalibratedRecHitCollection> EcalUncalibHits;
 
   try
   {
@@ -254,6 +286,10 @@ void EcalDeDxAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& 
     iEvent.getByLabel(EBHitCollection_, EBHits);
     iEvent.getByLabel(EEHitCollection_, EEHits);
     iEvent.getByLabel(simTrackContainer_, simTracks);
+    //Added for fitter timing
+    iEvent.getByLabel(edm::InputTag("ecalRecHit:ecalFittedRecHitsEB"), EBFittedHits);
+    iEvent.getByLabel(edm::InputTag("ecalRecHit:ecalFittedRecHitsEE"), EEFittedHits);
+    iEvent.getByLabel(edm::InputTag("ecalFixedAlphaBetaFitUncalibRecHit:EcalUncalibRecHitsEB"), EcalUncalibHits);
   }
   catch(cms::Exception& ex)
   {
@@ -278,7 +314,7 @@ void EcalDeDxAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& 
     std::cerr << "Error!  can't get the tracker geometry." << std::endl;
     throw ex;
   }
-  const CaloSubdetectorGeometry *geometry_endcap = geoHandle->getSubdetectorGeometry(DetId::Ecal, EcalEndcap);
+  //const CaloSubdetectorGeometry *geometry_endcap = geoHandle->getSubdetectorGeometry(DetId::Ecal, EcalEndcap);
   const CaloSubdetectorGeometry *geometry_barrel = geoHandle->getSubdetectorGeometry(DetId::Ecal, EcalBarrel);
   trackerGeom = trackerHandle.product();
 
@@ -301,6 +337,7 @@ void EcalDeDxAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& 
     std::vector<PSimHit>::const_iterator hit = simHits.end();
     hit--;
     
+    cout << "PDG id:" << trackItr->pdgId() << endl;
    
     //TODO: Make this an honest-to-goodness Pt cut (in GeV)
     if(hit->pabs() > trackerHitMinP_)
@@ -347,24 +384,181 @@ void EcalDeDxAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& 
   for(PCaloHitContainer::const_iterator myHit = phits->begin(); myHit != phits->end(); myHit++)
   {
     simHitsEnergyHist_->Fill(myHit->energy());
+    simHitsTimeHist_->Fill(myHit->time());
   }
   
   
-  float highestE = -1;
-  double trackMatchedP;
-  EcalRecHit highestEHit;
-  // Loop over the RecHits, first EBRechits
-  // TODO: Should we look at tracks first instead?
-  for(EBRecHitCollection::const_iterator recItr = EBHits->begin(); recItr != EBHits->end(); ++recItr)
+  const reco::TrackCollection* tracks = trackHandle.product();
+  int numTracks = tracks->size();
+ 
+  //debug 
+  //cout << "loop over tracks" << endl;
+  
+  // Loop over tracks
+  for(int j = 0; j < numTracks; j++)
   {
-    int trackFound = findTrack(*recItr, trackHandle.product(), geometry_barrel);
-    if(trackFound != -1)
+    float highestE = -1;
+    double bestDR = 10;
+    reco::TrackRef bestTrack;
+    double trackMatchedP = 0;
+    EcalRecHit highestEHit;
+    EcalRecHit bestHit;
+    //int tracksFound = 0;
+    //bool isSingleCryTrack = false;
+
+    double trackPt = (*tracks)[j].outerPt();
+    if(trackPt < minTrackPt_)
+      continue;
+
+    //Propagate tracks
+    math::XYZPoint ecalHitPt = propagateTrack((*tracks)[j]);
+    math::XYZPoint outerEcalHitPt = propagateThroughEcal((*tracks)[j]);
+
+    for(EBRecHitCollection::const_iterator recItr = EBHits->begin(); recItr != EBHits->end(); ++recItr)
     {
-      const reco::TrackRef track = edm::Ref<reco::TrackCollection>(trackHandle, trackFound);
-      
+      // Get position of the RecHit
+      const CaloCellGeometry *cell_p = geometry_barrel->getGeometry(recItr->id());
+      // Center of xtal
+      GlobalPoint xtalCenter = (dynamic_cast<const TruncatedPyramid*>(cell_p))->getPosition(0);
+
+      double dRtrack = dR(ecalHitPt.eta(), ecalHitPt.phi(), xtalCenter.eta(), xtalCenter.phi());
+      //debug 
+      //cout << "after examining dR..." << endl;
+      if(dRtrack < dRHitTrack_ && dRtrack < bestDR)
+      {
+        //debug 
+        //cout << "new best track found!" << endl;
+        bestDR = dRtrack;
+        bestHit = *recItr;
+        trackMatchedP = (*tracks)[j].outerP();
+        if(recItr->energy() > highestE)
+        {
+          //debug 
+          //cout << "new highest energy hit found!" << endl;
+          highestE = recItr->energy();
+          highestEHit = (*recItr);
+        }
+      }
+    }
+    // Now fill histos and stuff
+    if(bestDR < 10)  // make sure we have a track-matched hit, or else geometry will seg fault
+    {
+      //Now these hits are for all track-matched hits
+      ecalHitEtaHist_->Fill(ecalHitPt.eta());
+      ecalHitPhiHist_->Fill(ecalHitPt.phi());
+      hitEtaPhiHist_->Fill(ecalHitPt.eta(),ecalHitPt.phi());
+      //debug 
+      //cout << "creating caloCellGeom..." << endl;
+      const CaloCellGeometry *cell_p = geometry_barrel->getGeometry(bestHit.id());
+      //debug 
+      //cout << "after creating caloCell..." << endl;
+      const TruncatedPyramid* cryPyramid = dynamic_cast<const TruncatedPyramid*>(cell_p);
+      GlobalPoint ecalSurfaceHitGlobPt(ecalHitPt.x(), ecalHitPt.y(), ecalHitPt.z());
+      //TODO: correction for ecal outer radius variation
+      GlobalPoint ecalOuterHitGlobPt(outerEcalHitPt.x(), outerEcalHitPt.y(), outerEcalHitPt.z());
+      //cout << "Is the surface hit point inside the best hit crystal? " << cryPyramid->inside(ecalSurfaceHitGlobPt) << endl;
+      //cout << "Is the outer hit point inside the best hit crystal? " << cryPyramid->inside(ecalOuterHitGlobPt) << endl;
+
+      //if(cryPyramid->inside(ecalOuterHitGlobPt))  //if the track exits the best-matched crystal
+      if(cryPyramid->inside(ecalOuterHitGlobPt))
+      {
+        double energy = bestHit.energy();
+        energyVsMomentum_->Fill(trackMatchedP, energy);
+        energyHist_->Fill(energy);
+        //Added for fitter energy
+        EBRecHitCollection::const_iterator fittedHit = EBFittedHits->begin();
+        while(fittedHit != EBFittedHits->end() && fittedHit->id() != bestHit.id())
+          fittedHit++;
+        if(fittedHit != EBFittedHits->end())
+          energyFitterHist_->Fill(fittedHit->energy());
+        //Added for fitter timing
+        if(bestHit.energy() > 0.320) // SIC 7/21/08
+        {
+          //find matching uncalibrechit
+          double chi2 = -2011;
+          EcalUncalibratedRecHitCollection::const_iterator uncalibHit = EcalUncalibHits->begin();
+          while(uncalibHit != EcalUncalibHits->end() && uncalibHit->id() != bestHit.id())
+            uncalibHit++;
+          if(uncalibHit != EcalUncalibHits->end())
+          {
+            chi2 = uncalibHit->chi2();
+            chi2Fitter_->Fill(chi2);
+          }
+          timingHist_->Fill(bestHit.time());
+          EBRecHitCollection::const_iterator fittedHit = EBFittedHits->begin();
+          while(fittedHit != EBFittedHits->end() && fittedHit->id() != bestHit.id())
+            fittedHit++;
+          if(fittedHit != EBFittedHits->end())
+          {
+            fittedTimingHist_->Fill(25*fittedHit->time());
+            fitVsWeightsHist_->Fill(bestHit.time(),25*fittedHit->time());
+            phiVsTime_->Fill(25*fittedHit->time(),ecalHitPt.phi());
+            if(chi2 != -2011)
+              fitTimeVsChi2_->Fill(25*fittedHit->time(),chi2);
+          }
+        }
+        momentumHist_->Fill(trackMatchedP);
+        if(mcParticleMass_ > -1)
+        {
+          double beta = trackMatchedP/sqrt(pow(trackMatchedP,2)+pow(mcParticleMass_,2));
+          double gamma = 1/sqrt(1-beta*beta);
+          cout << "Beta is: " << beta << endl;
+          energyVsBetaHist_->Fill(beta, energy);
+          if(beta > .5) //energy/23.0 > .003)
+          {
+            deDxVsGammaBetaHist_->Fill(beta*gamma,energy/23.0);
+            deDxVsBetaHist_->Fill(beta,energy/23.0);
+            cout << "Added point (e/l,beta): " << energy/23.0 << "," << beta << endl;
+            vx.push_back(beta);
+            vy.push_back(energy/23.0);  //TODO: This is only a very rough crystal length approximation
+            //      Can we fix using propagator?
+          }
+
+        }
+      }
+    }
+  }
+
+  
+
+
+//  // Loop over the RecHits, first EBRechits
+//  // TODO: Should we look at tracks first instead?
+//  for(EBRecHitCollection::const_iterator recItr = EBHits->begin(); recItr != EBHits->end(); ++recItr)
+//  {
+//    int trackFound = findTrack(*recItr, trackHandle.product(), geometry_barrel);
+//    if(trackFound != -1)
+//    {
+//      tracksFound++;
+//      const reco::TrackRef track = edm::Ref<reco::TrackCollection>(trackHandle, trackFound);
+//      // Get position of the RecHit
+//      const CaloCellGeometry *cell_p = geometry_barrel->getGeometry(recItr->id());
+//      // Center of xtal
+//      GlobalPoint xtalCenter = (dynamic_cast<const TruncatedPyramid*>(cell_p))->getPosition(0);
+//      //debug
+//      //cout << "track-matched xtal:" << *(dynamic_cast<const TruncatedPyramid*>(cell_p)) << endl;
+//      math::XYZPoint ecalHitPos = propagateTrack(*track);
+//      double dRtrack = dR(ecalHitPos.eta(), ecalHitPos.phi(), xtalCenter.eta(), xtalCenter.phi());
+//      if(dRtrack < bestDR)
+//      {
+//        bestDR = dRtrack;
+//        bestTrack = track;
+//        bestHit = *recItr;
+//      }
+//
+//      double p = track->outerP();
+//      float energy = (recItr->energy());
+//      if(energy > highestE)
+//      {
+//        highestE = energy;
+//        highestEHit = (*recItr);
+//        trackMatchedP = p;
+//      }
+//    }
+//  }
       //double p = 0;
       //Get e, p from MC for zero B field
-      cout << "Number of simTracks:" << simTracks->size() << endl;
+  cout << "Number of simTracks:" << simTracks->size() << endl;
       //for(SimTrackContainer::const_iterator simTrack = simTracks->begin(); simTrack != simTracks->end(); ++simTrack)
       //{
         //if((simTrack->type())==2212)
@@ -374,8 +568,6 @@ void EcalDeDxAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& 
         //}
       //}
 
-      double p = track->outerP();
-      float energy = (recItr->energy());
 //      int simTrackFound = findTrack(*recItr, simTracks, geometry_barrel);
 //      if(simTrackFound != -1 && mcParticleMass_ > -1)
 //      {
@@ -388,87 +580,87 @@ void EcalDeDxAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& 
 //        
 //        deltaPHist_->Fill(betaSim-beta);
 //      }
-      
-      const CaloCellGeometry *cell_p = geometry_barrel->getGeometry((*recItr).id());
-      // Center of xtal
-      GlobalPoint pt = (dynamic_cast <const TruncatedPyramid *> (cell_p))->getPosition(0);
-      //cout << "EBRecHit Energy: " << energy << " Momentum: " << p << endl;
-      if(energy > highestE)
-      {
-        highestE = energy;
-        highestEHit = (*recItr);
-        trackMatchedP = p;
-      }
-      energyVsMomentum_->Fill(p, energy);
-      energyHist_->Fill(energy);
-      momentumHist_->Fill(p);
-      ecalHitEtaHist_->Fill(pt.eta());
-      ecalHitPhiHist_->Fill(pt.phi());
-      hitEtaPhiHist_->Fill(pt.eta(),pt.phi());
-      if(mcParticleMass_ > -1)
-      {
-        double beta = p/sqrt(pow(p,2)+pow(mcParticleMass_,2));
-        double gamma = 1/sqrt(1-beta*beta);
-        energyVsBetaHist_->Fill(beta, energy);
-        if(beta > .5) //energy/23.0 > .003)
-        {
-          deDxVsGammaBetaHist_->Fill(beta*gamma,energy/23.0);
-          deDxVsBetaHist_->Fill(beta,energy/23.0);
-          cout << "Added point (e/l,beta): " << energy/23.0 << "," << beta << endl;
-          vx.push_back(beta);
-          vy.push_back(energy/23.0);  //TODO: This is only a very rough crystal length approximation
-                                      //      Can we fix using propagator?
-        }
-      }
-    }
-  }
-  
-  BozoCluster cluster;
-  if(highestE > -1)
-  {
-    cout << "Highest Energy Hit: " << highestE << endl;
-    highestEnergyHist_->Fill(highestE);
-    cluster = makeBozoCluster(highestEHit, EBHits);
-  }
- if(cluster.getEnergy() != -1 && mcParticleMass_ > -1)
- {
 
-   double beta = trackMatchedP/sqrt(pow(trackMatchedP,2)+pow(mcParticleMass_,2));
-   clusterDeDxVsBetaHist_->Fill(beta, cluster.getEnergy()/23.0);
- }
- 
-//  highestE = -1;
-//  // Now loop over the EERecHits
-//  for(EERecHitCollection::const_iterator recItr = EEHits->begin(); recItr != EEHits->end(); ++recItr)
-//  {
-//    int trackFound = findTrack(*recItr, trackHandle.product(), geometry_endcap);
-//    if(trackFound != -1)
+//  if(tracksFound==1)  //for now, only fill if we have 1 and only 1 track-matched RecHit
+//  {                   //TODO: two or more cry analysis using path length/tracking info
+//    double p = bestTrack->outerP();
+//    float energy = bestHit.energy();
+//    const CaloCellGeometry *cell_p = geometry_barrel->getGeometry(bestHit.id());
+//    // Center of xtal
+//    GlobalPoint pt = (dynamic_cast <const TruncatedPyramid *> (cell_p))->getPosition(0);
+//    cout << "Best EBRecHit Energy: " << energy << " Best recoTrack Momentum: " << p << endl;
+//    energyVsMomentum_->Fill(p, energy);
+//    energyHist_->Fill(energy);
+//    momentumHist_->Fill(p);
+//    ecalHitEtaHist_->Fill(pt.eta());
+//    ecalHitPhiHist_->Fill(pt.phi());
+//    hitEtaPhiHist_->Fill(pt.eta(),pt.phi());
+//    if(mcParticleMass_ > -1)
 //    {
-//      const reco::TrackRef track = edm::Ref<reco::TrackCollection>(trackHandle, trackFound); 
-//      double p = track->outerP();
-//      float energy = (recItr->energy());
-//      cout << "EERecHit Energy: " << energy << " Momentum: " << p << endl;
-//      const CaloCellGeometry *cell_p = geometry_endcap->getGeometry((*recItr).id());
-//      // Center of xtal
-//      GlobalPoint pt = (dynamic_cast <const TruncatedPyramid *> (cell_p))->getPosition(0);
-//      if(energy > highestE)
-//        highestE = energy;
-//      energyVsMomentum_->Fill(p, energy);
-//      energyHist_->Fill(energy);
-//      momentumHist_->Fill(p);
-//      ecalHitEtaHist_->Fill(pt.eta());
-//      ecalHitPhiHist_->Fill(pt.phi());
-//      if(mcParticleMass_ > -1)
+//      double beta = p/sqrt(pow(p,2)+pow(mcParticleMass_,2));
+//      double gamma = 1/sqrt(1-beta*beta);
+//      cout << "Beta is: " << beta << endl;
+//      energyVsBetaHist_->Fill(beta, energy);
+//      if(beta > .5) //energy/23.0 > .003)
 //      {
-//        double beta = p/sqrt(pow(p,2)+pow(mcParticleMass_,2));
-//        energyVsBetaHist_->Fill(beta, energy);
-//        vx.push_back(energy/23.0);  //TODO: This is only a very rough crystal length approximation
-//        vy.push_back(beta);
+//        deDxVsGammaBetaHist_->Fill(beta*gamma,energy/23.0);
+//        deDxVsBetaHist_->Fill(beta,energy/23.0);
+//        cout << "Added point (e/l,beta): " << energy/23.0 << "," << beta << endl;
+//        vx.push_back(beta);
+//        vy.push_back(energy/23.0);  //TODO: This is only a very rough crystal length approximation
+//        //      Can we fix using propagator?
 //      }
 //    }
 //  }
+//  else
+//    cout << "Event contains " << tracksFound << " track-matched recHits" << endl;
+
+//  BozoCluster cluster;
 //  if(highestE > -1)
+//  {
+//    cout << "Highest Energy Hit: " << highestE << endl;
 //    highestEnergyHist_->Fill(highestE);
+//    cluster = makeBozoCluster(highestEHit, EBHits);
+//  }
+//  if(cluster.getEnergy() != -1 && mcParticleMass_ > -1)
+//  {
+//
+//    double beta = trackMatchedP/sqrt(pow(trackMatchedP,2)+pow(mcParticleMass_,2));
+//    clusterDeDxVsBetaHist_->Fill(beta, cluster.getEnergy()/23.0);
+//  }
+
+  //  highestE = -1;
+  //  // Now loop over the EERecHits
+  //  for(EERecHitCollection::const_iterator recItr = EEHits->begin(); recItr != EEHits->end(); ++recItr)
+  //  {
+  //    int trackFound = findTrack(*recItr, trackHandle.product(), geometry_endcap);
+  //    if(trackFound != -1)
+  //    {
+  //      const reco::TrackRef track = edm::Ref<reco::TrackCollection>(trackHandle, trackFound); 
+  //      double p = track->outerP();
+  //      float energy = (recItr->energy());
+  //      cout << "EERecHit Energy: " << energy << " Momentum: " << p << endl;
+  //      const CaloCellGeometry *cell_p = geometry_endcap->getGeometry((*recItr).id());
+  //      // Center of xtal
+  //      GlobalPoint pt = (dynamic_cast <const TruncatedPyramid *> (cell_p))->getPosition(0);
+  //      if(energy > highestE)
+  //        highestE = energy;
+  //      energyVsMomentum_->Fill(p, energy);
+  //      energyHist_->Fill(energy);
+  //      momentumHist_->Fill(p);
+  //      ecalHitEtaHist_->Fill(pt.eta());
+  //      ecalHitPhiHist_->Fill(pt.phi());
+  //      if(mcParticleMass_ > -1)
+  //      {
+  //        double beta = p/sqrt(pow(p,2)+pow(mcParticleMass_,2));
+  //        energyVsBetaHist_->Fill(beta, energy);
+  //        vx.push_back(energy/23.0);  //TODO: This is only a very rough crystal length approximation
+  //        vy.push_back(beta);
+  //      }
+  //    }
+  //  }
+  //  if(highestE > -1)
+  //    highestEnergyHist_->Fill(highestE);
 }
 
 //---------------------------------------------------------------------------------------------------
@@ -479,12 +671,12 @@ int EcalDeDxAnalyzer::findTrack(const EcalRecHit &seed, const reco::TrackCollect
 
   // See if we have a track with pT > minTrackPt_ and dR < dRHitTrack
   unsigned int numTracks = tracks->size();
-  double lowestdR = 1000;
   // Get position of the RecHit
   const CaloCellGeometry *cell_p = geometry_p->getGeometry(seed.id());
   // Center of xtal
   GlobalPoint p = (dynamic_cast<const TruncatedPyramid*>(cell_p))->getPosition(0);
 
+  double lowestdR = 1000;
   for(unsigned int j = 0; j < numTracks; j++)
   {
     //Propagate tracks
@@ -492,7 +684,7 @@ int EcalDeDxAnalyzer::findTrack(const EcalRecHit &seed, const reco::TrackCollect
     double dRtrack = dR(ecalHitPt.eta(), ecalHitPt.phi(), p.eta(), p.phi());
     //double dRtrack = dR((*tracks)[j].eta(), (*tracks)[j].phi(), p.eta(), p.phi());
     //std::cout << "dR of track to hit: " << dRtrack << std::endl;
-    if(dRtrack < dRHitTrack)
+    if(dRtrack < dRHitTrack_)
     {
       double trackPt = (*tracks)[j].outerPt();
       if((trackPt > minTrackPt_) && (dRtrack < lowestdR))
@@ -588,6 +780,50 @@ math::XYZPoint EcalDeDxAnalyzer::propagateTrack(const reco::Track track)
 
 
 //---------------------------------------------------------------------------------------------------
+math::XYZPoint EcalDeDxAnalyzer::propagateThroughEcal(const reco::Track track)
+{
+  trackingRecHit_iterator hit = track.recHitsEnd();
+  hit--;
+  
+  if(hit == track.recHitsBegin())
+    return math::XYZPoint(0.,0.,0.);
+
+  DetId theDetUnitId((*hit)->geographicalId());
+  const GeomDetUnit *theDet =  trackerGeom-> idToDetUnit(theDetUnitId);
+  if(theDet==0)
+    return math::XYZPoint(0.,0.,0.);
+
+  const BoundPlane& bSurface = theDet->surface();
+  GlobalPoint hitPos(bSurface.toGlobal((*hit)->localPosition()).x(),
+      bSurface.toGlobal((*hit)->localPosition()).y(),
+      bSurface.toGlobal((*hit)->localPosition()).z());
+  GlobalVector hitMom(track.outerPx(),track.outerPy(),track.outerPz());
+
+  TrackCharge ch = track.charge();
+  const FreeTrajectoryState FTS (hitPos, hitMom, ch, &(*theMF_));
+  //std::cout << " fts position " << FTS.position()  << " momentum " <<  FTS.momentum()  << std::endl;
+
+  stateAfterECAL_ = forwardPropagator_->propagate(FTS, outerBarrel());
+
+  if(!stateAfterECAL_.isValid() || ( stateAfterECAL_.isValid() && fabs(stateAfterECAL_.globalPosition().eta() ) >1.479 ))
+  {
+    if(FTS.position().eta() > 0.)
+    {
+      stateAtECAL_= forwardPropagator_->propagate( FTS, positiveEtaEndcap());
+    }
+    else
+    {
+      stateAtECAL_= forwardPropagator_->propagate( FTS, negativeEtaEndcap());
+    }
+  }  
+
+  math::XYZPoint ecalImpactPosition(0.,0.,0.);
+  if (stateAfterECAL_.isValid()) ecalImpactPosition = stateAfterECAL_.globalPosition();
+  return ecalImpactPosition;
+}
+
+
+//---------------------------------------------------------------------------------------------------
 math::XYZPoint EcalDeDxAnalyzer::propagateTrack(const TrackingParticle track)
 {
   std::vector<PSimHit> simHits = track.trackPSimHit();
@@ -622,6 +858,41 @@ math::XYZPoint EcalDeDxAnalyzer::propagateTrack(const TrackingParticle track)
   return ecalImpactPosition;
 }
 
+
+//---------------------------------------------------------------------------------------------------
+math::XYZPoint EcalDeDxAnalyzer::propagateThroughEcal(const TrackingParticle track)
+{
+  std::vector<PSimHit> simHits = track.trackPSimHit();
+  if ( simHits.size() == 0 ) return math::XYZPoint(0.,0.,0.);
+  std::vector<PSimHit>::const_iterator hit=simHits.end();
+  hit--;
+
+  GlobalPoint hitPos = localPosToGlobalPos(*hit);
+  GlobalVector hitMom = localMomToGlobalMom(*hit);
+
+  TrackCharge ch=track.charge();
+  const FreeTrajectoryState FTS (hitPos, hitMom , ch  ,  &(*theMF_) );   
+  //std::cout << " fts position " << FTS.position()  << " momentum " <<  FTS.momentum()  << std::endl;   
+
+
+  stateAfterECAL_ = forwardPropagator_->propagate( FTS, outerBarrel() ) ;
+
+  if (!stateAfterECAL_.isValid() || ( stateAfterECAL_.isValid() && fabs(stateAfterECAL_.globalPosition().eta() ) >1.479 )  )
+  {
+    if ( FTS.position().eta() > 0.)
+    {
+      stateAfterECAL_= forwardPropagator_->propagate( FTS, positiveEtaEndcap());
+    }
+    else
+    {
+      stateAfterECAL_= forwardPropagator_->propagate( FTS, negativeEtaEndcap());
+    }
+  }
+
+  math::XYZPoint ecalImpactPosition(0.,0.,0.);
+  if ( stateAfterECAL_.isValid() ) ecalImpactPosition = stateAfterECAL_.globalPosition();
+  return ecalImpactPosition;
+}
 
 //---------------------------------------------------------------------------------------------------
 //math::XYZPoint EcalDeDxAnalyzer::propagateTrack(const edm::SimTrack track)
@@ -809,6 +1080,7 @@ void EcalDeDxAnalyzer::endJob() {
   deDxVsBetaHist_->Write();
   energyVsMomentum_->Write();
   energyHist_->Write();
+  energyFitterHist_->Write();
   momentumHist_->Write();
   highestEnergyHist_->Write();
   bozoClusterEnergyHist_->Write();
@@ -821,8 +1093,17 @@ void EcalDeDxAnalyzer::endJob() {
   cluster3x3Hist_->Write();
   cluster5x5Hist_->Write();
   simHitsEnergyHist_->Write();
+  simHitsTimeHist_->Write();
   simTrackRecoTrackDeltaEtaHist_->Write();
   simTrackRecoTrackDeltaPhiHist_->Write();
+  timingHist_->Write();
+  fittedTimingHist_->Write();
+  fitVsWeightsHist_->GetXaxis()->SetTitle("weights");
+  fitVsWeightsHist_->GetYaxis()->SetTitle("fitter");
+  fitVsWeightsHist_->Write();
+  chi2Fitter_->Write();
+  fitTimeVsChi2_->Write();
+  phiVsTime_->Write();
   
   a->Write();
   a->Close();
@@ -846,6 +1127,12 @@ void EcalDeDxAnalyzer::initializeSurfaces()
   theBarrel_ = new BoundCylinder( Surface::PositionType(0,0,0), rot, 
       SimpleCylinderBounds( barrelRadius()-epsilon, 
         barrelRadius()+epsilon, 
+        -barrelHalfLength(), 
+        barrelHalfLength()));
+  
+  theOuterBarrel_ = new BoundCylinder( Surface::PositionType(0,0,0), rot, 
+      SimpleCylinderBounds( barrelOuterRadius()-epsilon, 
+        barrelOuterRadius()+epsilon, 
         -barrelHalfLength(), 
         barrelHalfLength()));
 
