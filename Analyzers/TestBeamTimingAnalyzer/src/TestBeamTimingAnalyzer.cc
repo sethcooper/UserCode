@@ -6,7 +6,7 @@
      <Notes on implementation>
 */
 //
-// $Id: TestBeamTimingAnalyzer.cc,v 1.5 2008/11/05 10:19:14 scooper Exp $
+// $Id: TestBeamTimingAnalyzer.cc,v 1.6 2008/12/02 16:13:34 scooper Exp $
 //
 //
 
@@ -221,6 +221,12 @@ TestBeamTimingAnalyzer::beginJob(const edm::EventSetup& eventSetup) {
     sprintf(htitle,"Fitter time Vs. TDC offset, cry %d",icry);
     //timingHistMap[icry] = new TH2F(hname,htitle,200,-0.5,1.5,700,-3.5,3.5);
     timingHistMap[icry] = new TH2F(hname,htitle,1000,-50,50,1000,-50,50);
+    sprintf(hname,"amplitude_Cry%d",icry);
+    sprintf(htitle,"Amplitude of cry %d",icry);
+    amplitudeHistMap[icry] = new TH1F(hname,htitle,1500,0,1500);
+    sprintf(hname,"recoTime_Cry%d",icry);
+    sprintf(htitle,"Fitted time of cry %d",icry);
+    timing1DHistMap[icry] = new TH1F(hname,htitle,1000,-50,50);
   }
   
   h_e1e9_mapx = new TH2F("h_e1e9_mapx","E1/E9 vs X",80,-20,20,600,0.,1.2);
@@ -314,6 +320,10 @@ TestBeamTimingAnalyzer::endJob() {
     timingHistMap[icry]->GetXaxis()->SetTitle("TDC Offset (ns)");
     timingHistMap[icry]->GetYaxis()->SetTitle("Fitted time (ns)");
     timingHistMap[icry]->Write();
+    amplitudeHistMap[icry]->SetXTitle("ADC");
+    amplitudeHistMap[icry]->Write();
+    timing1DHistMap[icry]->SetXTitle("reco time [ns]");
+    timing1DHistMap[icry]->Write();
   }
   h_e1e9_mapx->Write(); 
   h_e1e9_mapy->Write(); 
@@ -419,14 +429,15 @@ TestBeamTimingAnalyzer::analyze( const edm::Event& iEvent, const edm::EventSetup
    if (evtHeader->tableIsMoving())
      h_tableIsMoving->Fill(evtHeader->eventNumber());
 
-   // Crystal hit by beam
-   if (xtalInBeam_.null())
-     {
-       xtalInBeam_ = EBDetId(1,evtHeader->crystalInBeam(),EBDetId::SMCRYSTALMODE);
-       std::cout<< "Xtal In Beam is " << xtalInBeam_.ic() << std::endl;
-     }
-   else if (xtalInBeam_ != EBDetId(1,evtHeader->crystalInBeam(),EBDetId::SMCRYSTALMODE))
-     return;
+   //TODO:  I DON'T CARE ABOUT THE XTAL IN BEAM!  ONLY THE MAX ENERGY XTAL!
+   //// Crystal hit by beam
+   //if (xtalInBeam_.null())
+   //  {
+   //    xtalInBeam_ = EBDetId(1,evtHeader->crystalInBeam(),EBDetId::SMCRYSTALMODE);
+   //    std::cout<< "Xtal In Beam is " << xtalInBeam_.ic() << std::endl;
+   //  }
+   //else if (xtalInBeam_ != EBDetId(1,evtHeader->crystalInBeam(),EBDetId::SMCRYSTALMODE))
+   //  return;
 
    if (evtHeader->tableIsMoving())
      return;
@@ -459,6 +470,11 @@ TestBeamTimingAnalyzer::analyze( const edm::Event& iEvent, const edm::EventSetup
    // SIC
    // Fill occupancy for max energy cry
    occupancyOfMaxEneCry_->Fill(maxHitId.iphi(),maxHitId.ieta());
+   //TODO
+   //WARNING
+   //HERE I HARDCODE A CRYSTAL, THIS WILL ONLY WORK FOR SPECIFIC DATA
+   if(!(maxHitId.iphi()==15 && maxHitId.ieta()==11))
+     return;
 
 
    EBDetId Xtals5x5[25];
@@ -468,8 +484,11 @@ TestBeamTimingAnalyzer::analyze( const edm::Event& iEvent, const edm::EventSetup
        unsigned int column= icry %5;
       try
 	{
-	  int ieta=xtalInBeam_.ieta()+column-2;
-          int iphi=xtalInBeam_.iphi()+row-2;
+	  //int ieta=xtalInBeam_.ieta()+column-2;
+          //TODO:  FIX IT SO THAT WE ARE CENTERED AROUND THE CRYSTAL WE KNOW!
+          //int iphi=xtalInBeam_.iphi()+row-2;
+	  int ieta=maxHitId.ieta()+column-2;
+          int iphi=maxHitId.iphi()+row-2;
           EBDetId tempId(ieta, iphi,EBDetId::ETAPHIMODE);
 	  if (tempId.ism()==1) 
 	    Xtals5x5[icry]=tempId;
@@ -523,6 +542,16 @@ TestBeamTimingAnalyzer::analyze( const edm::Event& iEvent, const edm::EventSetup
    double amplitude3x3=0;  
    double amplitude5x5=0;  
    
+   //SIC mod: timing calibrations by crystal; note that these are in nanoseconds
+   double timingCalibration[25] = {-1.02404,0.022598,0.885618,0.509537,-14.7309,0.175059,1.04142,0.136042,-0.0152886,0.194175,0.750944,
+                                    0.0630639,-1.03885,-0.503469,0.865187,0.0605064,-0.196362,-0.953989,-0.365989,0.127206,-1.6023,
+                                   -0.0675091,-0.437251,-0.22262,-6.19947};
+   for(int i=0; i<25; ++i)
+   {
+     // convert to BX
+     timingCalibration[i]/=25.0;
+   }
+   
    for (unsigned int icry=0;icry<25;icry++)
      {
        if (!Xtals5x5[icry].null())
@@ -534,6 +563,9 @@ TestBeamTimingAnalyzer::analyze( const edm::Event& iEvent, const edm::EventSetup
              // Apply intraTT timing correction
              EcalElectronicsId elecId = ecalElectronicsMap_->getElectronicsId(Xtals5x5[icry]);
              time-=(timingCorrection->getMap().find(std::make_pair(elecId.stripId(),elecId.xtalId())))->second;
+             //TODO: SIC mod!  Apply the timing "calibration"
+             //time-=timingCalibration[icry];
+
              timing[icry] = time;
            }
            else
@@ -614,13 +646,17 @@ TestBeamTimingAnalyzer::analyze( const edm::Event& iEvent, const edm::EventSetup
      cryVector.push_back(icry);  // vector of id's in 5x5 matrix
      if(timing[icry] != -9999)  // Imposing chi2 cut of above
      {
-       // Fill TDC dist hist
+       timing1DHistMap[icry]->Fill(25*timing[icry]);
+       amplitudeHistMap[icry]->Fill(amplitude[icry]);
+       // Fill TDC hists
        if(recTDC)
        {
          const CaloCellGeometry *cell1 = geometry_barrel_->getGeometry(Xtals5x5[icry]);
          GlobalPoint p1 = (dynamic_cast <const TruncatedPyramid *>  (cell1))->getPosition(0);
          double dist = reco::deltaR(p1,centerCryPt);
          distVsTDCHist_->Fill(recTDC->offset(),dist);
+         timingHistMap[icry]->Fill(25*recTDC->offset(),25*timing[icry]);
+         recoTimeMinusTDCTimeByCry_[icry]->Fill(25*(timing[icry]+recTDC->offset()-1));
        }
        //Bin by energy
        double amp = amplitude[icry];
@@ -678,6 +714,8 @@ TestBeamTimingAnalyzer::analyze( const edm::Event& iEvent, const edm::EventSetup
      for(vector<int>::const_iterator vecItr = crys.begin(); vecItr != crys.end(); ++vecItr)
      {
        int tower2 = (ecalElectronicsMap_->getElectronicsId(Xtals5x5[*vecItr])).towerId();
+       fitTimeVsTDC_[itr->first]->Fill(25*recTDC->offset(),25*timing[*vecItr]);
+       //TODO:  Now I have turned ON the sameTT requirement!
        if(vecItr != crys.begin() && tower2==tower1) //Require that they are in the same tower
        {
          //debug
@@ -723,15 +761,6 @@ TestBeamTimingAnalyzer::analyze( const edm::Event& iEvent, const edm::EventSetup
            }
          }
 
-         recoTimeMinusTDCTimeByCry_[*crys.begin()]->Fill(25*(timing[*vecItr]-timing[*crys.begin()])/statCorrection+25*recTDC->offset()-1);
-       }
-       if(recTDC)
-       {
-         timingHistMap[*vecItr]->Fill(25*recTDC->offset(),25*timing[*vecItr]);
-         fitTimeVsTDC_[itr->first]->Fill(25*recTDC->offset(),25*timing[*vecItr]);
-         //debug
-         //cout << "Filled graphs with cry " << *vecItr << " amplitude: " << amplitude[*vecItr] <<
-         //  " energyBin: " << itr->first << " timing: " << timing[*vecItr] << endl;
        }
      }
    }

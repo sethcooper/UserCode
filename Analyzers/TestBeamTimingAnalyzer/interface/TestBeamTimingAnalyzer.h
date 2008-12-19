@@ -9,7 +9,7 @@
      <Notes on implementation>
 */
 //
-// $Id: TestBeamTimingAnalyzer.h,v 1.4 2008/11/05 10:19:13 scooper Exp $
+// $Id: TestBeamTimingAnalyzer.h,v 1.5 2008/12/02 16:13:33 scooper Exp $
 //
 
 
@@ -88,6 +88,8 @@ class TestBeamTimingAnalyzer : public edm::EDAnalyzer {
       TH1F* recoTimeMinusTDCTimeByCry_[25];
       
       TH2F* timingHistMap[25]; 
+      TH1F* amplitudeHistMap[25];
+      TH1F* timing1DHistMap[25];
 
       TH1F* deltaT813Bin8_;
       TH1F* deltaT813Bin6_;
