@@ -29,7 +29,7 @@ process.source = cms.Source("PoolSource",
 )
 )
 process.maxEvents = cms.untracked.PSet(
-    input = cms.untracked.int32(100000)
+    input = cms.untracked.int32(1000)
 )
 
 process.load("EventFilter.EcalTBRawToDigi.ecalTBunpack_cfi")
@@ -52,6 +52,13 @@ process.load("CalibCalorimetry.EcalLaserCorrection.ecalLaserCorrectionService_cf
 #Ecal mapping
 process.load("Geometry.EcalMapping.EcalMapping_cfi")
 process.load("Geometry.EcalMapping.EcalMappingRecord_cfi")
+process.load("Geometry.CaloEventSetup.CaloGeometry_cff")
+process.load("Geometry.CaloEventSetup.CaloTopology_cfi")
+process.load("Geometry.EcalCommonData.EcalOnly_cfi")
+
+#IntraTT timing ES producer
+process.load("ESProducers.EcalTimingCorrectionESProducer.ecalTimingCorrectionESProducer_cfi")
+
 
 process.dumpEv = cms.EDAnalyzer("EventContentAnalyzer")
 

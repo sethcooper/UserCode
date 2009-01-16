@@ -6,7 +6,7 @@
      <Notes on implementation>
 */
 //
-// $Id: TestBeamTimingAnalyzer.cc,v 1.6 2008/12/02 16:13:34 scooper Exp $
+// $Id: TestBeamTimingAnalyzer.cc,v 1.7 2008/12/19 17:47:44 scooper Exp $
 //
 //
 
@@ -262,8 +262,8 @@ TestBeamTimingAnalyzer::endJob() {
 
   for(int i=0;i<50;i++)
   {
-    fitTimeVsTDC_[i]->GetXaxis()->SetTitle("TDC Offset (bx)");
-    fitTimeVsTDC_[i]->GetYaxis()->SetTitle("Fitted time (bx)");
+    fitTimeVsTDC_[i]->GetXaxis()->SetTitle("TDC Offset [ns]");
+    fitTimeVsTDC_[i]->GetYaxis()->SetTitle("Fitted time [ns]");
     fitTimeVsTDC_[i]->Write();
     deltaBetCrys_[i]->GetXaxis()->SetTitle("Cry time - avg. (ns)");
     deltaBetCrys_[i]->Write();
@@ -473,8 +473,17 @@ TestBeamTimingAnalyzer::analyze( const edm::Event& iEvent, const edm::EventSetup
    //TODO
    //WARNING
    //HERE I HARDCODE A CRYSTAL, THIS WILL ONLY WORK FOR SPECIFIC DATA
+   
+   //SM6 data
    if(!(maxHitId.iphi()==15 && maxHitId.ieta()==11))
      return;
+
+   //SM13 data -- 1st 100k events
+   //if(!(maxHitId.iphi()==9 && maxHitId.ieta()==12))
+   //  return;
+   //SM13 data -- 2nd 100k events
+   //if(!(maxHitId.iphi()==9 && maxHitId.ieta()==13))
+   //  return;
 
 
    EBDetId Xtals5x5[25];
@@ -509,7 +518,11 @@ TestBeamTimingAnalyzer::analyze( const edm::Event& iEvent, const edm::EventSetup
    double gain_save[10];    for(int i=0; i < 10; ++i) gain_save[i]=0.0;
    
    // find the rechit corresponding digi and the max sample
-   EBDigiCollection::const_iterator myDg = digis->find(xtalInBeam_);
+   
+   EBDigiCollection::const_iterator myDg = digis->begin();
+   while(myDg->id() != Xtals5x5[6] && myDg != digis->end())
+     myDg++;
+
    int sMax = -1;
    double eMax = 0.;
    if (myDg != digis->end())
@@ -530,11 +543,16 @@ TestBeamTimingAnalyzer::analyze( const edm::Event& iEvent, const edm::EventSetup
 	   if(gainSample != 1) gain_switch = true;
 	 }
        // std::cout << std::endl;
+       float chi2 = (hits->find(Xtals5x5[6]))->chi2();
+       if(chi2 > 0)
+       {
+         for(int i =0; i < 10; ++i) {
+           h_Shape_->Fill(double(i)+recTDC->offset(),samples_save[i]);
+         }
+       }
      }
-
-   for(int i =0; i < 10; ++i) {
-     h_Shape_->Fill(double(i)+recTDC->offset(),samples_save[i]);
-   }
+   //else
+   //  throw cms::Exception("Exception") << "Can't find maxHitId in digis" << std::endl;
 
    double amplitude[25];
    double timing[25];
@@ -543,9 +561,37 @@ TestBeamTimingAnalyzer::analyze( const edm::Event& iEvent, const edm::EventSetup
    double amplitude5x5=0;  
    
    //SIC mod: timing calibrations by crystal; note that these are in nanoseconds
-   double timingCalibration[25] = {-1.02404,0.022598,0.885618,0.509537,-14.7309,0.175059,1.04142,0.136042,-0.0152886,0.194175,0.750944,
-                                    0.0630639,-1.03885,-0.503469,0.865187,0.0605064,-0.196362,-0.953989,-0.365989,0.127206,-1.6023,
-                                   -0.0675091,-0.437251,-0.22262,-6.19947};
+   //double timingCalibration[25] = {-1.0072,-0.0208481,0.849423,0.450663,-46.7874,0.237886,1.04807,0.118216,-0.0699673,0.0734554,0.742545,
+   //                                0.0762089,-1.04483,-0.574597,0.725996,0.0385395,-0.182683,-0.962116,-0.415584,0.0744227,-1.73904,
+   //                                -0.120794,-0.489065,-0.135128,-7.3209};
+   //    
+   //                                
+   //                                
+   double timingCalibration[25] = {-1.00584 ,
+     -0.0208175,
+     0.849423 ,
+     0.450663 ,
+     -46.7874 ,
+     0.237886 ,
+     1.04807  ,
+     0.118216 ,
+     -0.0699673,
+     0.0734554,
+     0.742545 ,
+     0.0762089,
+     -1.04483 ,
+     -0.574597,
+     0.725996 ,
+     0.0385382,
+     -0.182674,
+     -0.962115,
+     -0.415584,
+     0.0744227,
+     -1.77231 ,
+     -0.120792,
+     -0.489065,
+     -0.135128,
+     -6.23559};
    for(int i=0; i<25; ++i)
    {
      // convert to BX
@@ -557,7 +603,9 @@ TestBeamTimingAnalyzer::analyze( const edm::Event& iEvent, const edm::EventSetup
        if (!Xtals5x5[icry].null())
 	 {
 	   amplitude[icry]=(hits->find(Xtals5x5[icry]))->amplitude();
-           if((hits->find(Xtals5x5[icry]))->chi2() > 0)
+           float chi2 = (hits->find(Xtals5x5[icry]))->chi2();
+           //TODO: ONLY GET THE TIMING OF CRYS WITH MAX SAMPLE = 4
+           if(chi2 > 0)
            {
              double time = (hits->find(Xtals5x5[icry]))->jitter();
              // Apply intraTT timing correction
@@ -565,6 +613,19 @@ TestBeamTimingAnalyzer::analyze( const edm::Event& iEvent, const edm::EventSetup
              time-=(timingCorrection->getMap().find(std::make_pair(elecId.stripId(),elecId.xtalId())))->second;
              //TODO: SIC mod!  Apply the timing "calibration"
              //time-=timingCalibration[icry];
+             time+=timingCalibration[icry];
+
+             //Below done using run 35, cry 12 as best fit line
+             //double calibration = 0.0301*((25*time-23.49)/-0.9699)-1.51;
+             //time-=(calibration/25);
+             //if(chi2==1005)
+             //{
+             //  //time*=0.926;
+             //  time*=0.85;
+             //  time+=0.08;
+             //}
+             //else if(chi2==1006)
+             //  time+=0.04; // 1 ns in bx
 
              timing[icry] = time;
            }
@@ -592,7 +653,7 @@ TestBeamTimingAnalyzer::analyze( const edm::Event& iEvent, const edm::EventSetup
 
    //SIC PLOTS
    int numEnergyBins = 40;  // MUST change next three array values by hand
-   double energyBins[40] = {0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1,5,10,20,30,40,50,60,70,80,90,100,110,120,130,140,150,160,170,180,190,200};
+   double energyBins[40] = {0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1,2,3,4,5,7.5,10,20,30,40,50,60,70,80,90,100,110,120,130,140,150,160,170,180};
    double ampBins[40];
    map<int,vector<int> > histBinToCrysMap;  //histogram bin and vector of crys in that bin
    vector<int> cryVector;
