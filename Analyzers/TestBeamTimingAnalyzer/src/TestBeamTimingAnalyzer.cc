@@ -6,7 +6,7 @@
      <Notes on implementation>
 */
 //
-// $Id: TestBeamTimingAnalyzer.cc,v 1.7 2008/12/19 17:47:44 scooper Exp $
+// $Id: TestBeamTimingAnalyzer.cc,v 1.8 2009/01/16 23:31:25 scooper Exp $
 //
 //
 
@@ -560,38 +560,20 @@ TestBeamTimingAnalyzer::analyze( const edm::Event& iEvent, const edm::EventSetup
    double amplitude3x3=0;  
    double amplitude5x5=0;  
    
-   //SIC mod: timing calibrations by crystal; note that these are in nanoseconds
+   //TODO: SIC mod: timing calibrations by crystal; note that these are in nanoseconds
    //double timingCalibration[25] = {-1.0072,-0.0208481,0.849423,0.450663,-46.7874,0.237886,1.04807,0.118216,-0.0699673,0.0734554,0.742545,
    //                                0.0762089,-1.04483,-0.574597,0.725996,0.0385395,-0.182683,-0.962116,-0.415584,0.0744227,-1.73904,
    //                                -0.120794,-0.489065,-0.135128,-7.3209};
    //    
    //                                
    //                                
-   double timingCalibration[25] = {-1.00584 ,
-     -0.0208175,
-     0.849423 ,
-     0.450663 ,
-     -46.7874 ,
-     0.237886 ,
-     1.04807  ,
-     0.118216 ,
-     -0.0699673,
-     0.0734554,
-     0.742545 ,
-     0.0762089,
-     -1.04483 ,
-     -0.574597,
-     0.725996 ,
-     0.0385382,
-     -0.182674,
-     -0.962115,
-     -0.415584,
-     0.0744227,
-     -1.77231 ,
-     -0.120792,
-     -0.489065,
-     -0.135128,
-     -6.23559};
+   //double timingCalibration[25] = {-1.00584 ,-0.0208175,0.849423 ,0.450663 ,-46.7874 ,0.237886 ,1.04807,0.118216 ,-0.0699673,0.0734554,
+   //                                0.742545 ,0.0762089,-1.04483 ,-0.574597,0.725996 ,0.0385382,-0.182674,-0.962115,-0.415584,0.0744227,
+   //                                -1.77231 ,-0.120792,-0.489065,-0.135128,-6.23559};
+   //Calibs from run 63 (SM6)
+   double timingCalibration[25] = {-1.71951,0.0284033,0.877131,0.549921,-25.137,0.341129,0.984495,-0.000478582,-0.153683,0.0939122,
+                                   0.788314,0.00871419,-1.22424,-0.667453,0.740226,0.0784437,-0.237598,-1.09129,-0.497459,0.0852364,
+                                   -1.74415,-0.00308915,-0.470862,-0.0410496,-11.2362};
    for(int i=0; i<25; ++i)
    {
      // convert to BX
@@ -612,8 +594,8 @@ TestBeamTimingAnalyzer::analyze( const edm::Event& iEvent, const edm::EventSetup
              EcalElectronicsId elecId = ecalElectronicsMap_->getElectronicsId(Xtals5x5[icry]);
              time-=(timingCorrection->getMap().find(std::make_pair(elecId.stripId(),elecId.xtalId())))->second;
              //TODO: SIC mod!  Apply the timing "calibration"
-             //time-=timingCalibration[icry];
-             time+=timingCalibration[icry];
+             time-=timingCalibration[icry];
+             //time+=timingCalibration[icry];
 
              //Below done using run 35, cry 12 as best fit line
              //double calibration = 0.0301*((25*time-23.49)/-0.9699)-1.51;
@@ -717,7 +699,10 @@ TestBeamTimingAnalyzer::analyze( const edm::Event& iEvent, const edm::EventSetup
          double dist = reco::deltaR(p1,centerCryPt);
          distVsTDCHist_->Fill(recTDC->offset(),dist);
          timingHistMap[icry]->Fill(25*recTDC->offset(),25*timing[icry]);
-         recoTimeMinusTDCTimeByCry_[icry]->Fill(25*(timing[icry]+recTDC->offset()-1));
+         //TODO: Now only crys with timing > 15 ns or < 10 ns are allowed in the plot
+         //    (excluding ripple region)
+         if(25*timing[icry]>15 || 25*timing[icry]<10)
+           recoTimeMinusTDCTimeByCry_[icry]->Fill(25*(timing[icry]+recTDC->offset()-1));
        }
        //Bin by energy
        double amp = amplitude[icry];
