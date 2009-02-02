@@ -9,7 +9,7 @@
      <Notes on implementation>
 */
 //
-// $Id: TestBeamTimingAnalyzer.h,v 1.5 2008/12/02 16:13:33 scooper Exp $
+// $Id: TestBeamTimingAnalyzer.h,v 1.6 2008/12/19 17:47:43 scooper Exp $
 //
 
 
@@ -52,6 +52,7 @@ class TestBeamTimingAnalyzer : public edm::EDAnalyzer {
       virtual void beginJob(const edm::EventSetup&);
       virtual void endJob();
       std::string doubleToString(double num);
+      std::string intToString(int num);
    
    private:
 
@@ -85,7 +86,8 @@ class TestBeamTimingAnalyzer : public edm::EDAnalyzer {
       TH1F* deltaTCry7EnergyBin_[50];
       TH1F* recoMinusTDCCry7EnergyBin_[50];
       TH1F* recoMinusTDCCry2EnergyBin_[50];
-      TH1F* recoTimeMinusTDCTimeByCry_[25];
+      std::map<int,TH1F> recoTimeMinusTDCTimeByCry_;
+      //TH1F* recoTimeMinusTDCTimeByCry_[25];
       
       TH2F* timingHistMap[25]; 
       TH1F* amplitudeHistMap[25];

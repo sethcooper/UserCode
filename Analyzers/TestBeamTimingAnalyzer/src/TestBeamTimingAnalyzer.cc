@@ -6,7 +6,7 @@
      <Notes on implementation>
 */
 //
-// $Id: TestBeamTimingAnalyzer.cc,v 1.8 2009/01/16 23:31:25 scooper Exp $
+// $Id: TestBeamTimingAnalyzer.cc,v 1.9 2009/01/29 16:18:25 scooper Exp $
 //
 //
 
@@ -169,12 +169,12 @@ TestBeamTimingAnalyzer::beginJob(const edm::EventSetup& eventSetup) {
     sprintf(htitle,"Reco+TDC-1 for pivot cry 2 energy bin %d",i);
     recoMinusTDCCry2EnergyBin_[i] = new TH1F(hname,htitle,1000,-50,50);
   }
-  for(int i=0;i<25;i++)
-  {
-    sprintf(hname,"recoTimeMinusTDCTimeCry_%d",i);
-    sprintf(htitle,"RecoTime + TDC time -1 for cry %d",i);
-    recoTimeMinusTDCTimeByCry_[i] = new TH1F(hname,htitle,1000,-50,50);
-  }
+  //for(int i=0;i<25;i++)
+  //{
+  //  sprintf(hname,"recoTimeMinusTDCTimeCry_%d",i);
+  //  sprintf(htitle,"RecoTime + TDC time -1 for cry %d",i);
+  //  recoTimeMinusTDCTimeByCry_[i] = new TH1F(hname,htitle,1000,-50,50);
+  //}
 
   deltaT813Bin8_ = new TH1F("deltaT813_bin8","Time of cry 13 - cry 8, 0.8 to 0.9 GeV",1000,-50,50);
   deltaT813Bin6_ = new TH1F("deltaT813_bin6","Time of cry 13 - cry 8, 0.6 to 0.7 GeV",1000,-50,50);
@@ -183,18 +183,6 @@ TestBeamTimingAnalyzer::beginJob(const edm::EventSetup& eventSetup) {
   
   // Reconstructed energies
   h_tableIsMoving = new TH1F("h_tableIsMoving","TableIsMoving", 100000, 0., 100000.);
-
-  h_e1x1 = new TH1F("h_e1x1","E1x1 energy", 1000, 0., 4000.);
-  h_e3x3 = new TH1F("h_e3x3","E3x3 energy", 1000, 0., 4000.);
-  h_e5x5 = new TH1F("h_e5x5","E5x5 energy", 1000, 0., 4000.);
-
-  h_e1x1_center = new TH1F("h_e1x1_center","E1x1 energy", 1000, 0., 4000.);
-  h_e3x3_center = new TH1F("h_e3x3_center","E3x3 energy", 1000, 0., 4000.);
-  h_e5x5_center = new TH1F("h_e5x5_center","E5x5 energy", 1000, 0., 4000.);
-
-  h_e1e9 = new TH1F("h_e1e9","E1/E9 ratio", 600, 0., 1.2);
-  h_e1e25 = new TH1F("h_e1e25","E1/E25 ratio", 600, 0., 1.2);
-  h_e9e25 = new TH1F("h_e9e25","E9/E25 ratio", 600, 0., 1.2);
 
   h_bprofx = new TH1F("h_bprofx","Beam Profile X",100,-20.,20.);
   h_bprofy = new TH1F("h_bprofy","Beam Profile Y",100,-20.,20.);
@@ -229,15 +217,6 @@ TestBeamTimingAnalyzer::beginJob(const edm::EventSetup& eventSetup) {
     timing1DHistMap[icry] = new TH1F(hname,htitle,1000,-50,50);
   }
   
-  h_e1e9_mapx = new TH2F("h_e1e9_mapx","E1/E9 vs X",80,-20,20,600,0.,1.2);
-  h_e1e9_mapy = new TH2F("h_e1e9_mapy","E1/E9 vs Y",80,-20,20,600,0.,1.2);
-
-  h_e1e25_mapx = new TH2F("h_e1e25_mapx","E1/E25 vs X",80,-20,20,600,0.,1.2);
-  h_e1e25_mapy = new TH2F("h_e1e25_mapy","E1/E25 vs Y",80,-20,20,600,0.,1.2);
-
-  h_e9e25_mapx = new TH2F("h_e9e25_mapx","E9/E25 vs X",80,-20,20,600,0.,1.2);
-  h_e9e25_mapy = new TH2F("h_e9e25_mapy","E9/E25 vs Y",80,-20,20,600,0.,1.2);
-
   h_Shape_ = new TH2F("h_Shape_","Xtal in Beam Shape",250,0,10,350,0,3500);
 
   occupancyOfMaxEneCry_ = new TH2F("occupancyMaxEneCry","Occupancy of max. energy crystal",360,1,361.,172,-86,86);
@@ -257,55 +236,48 @@ TestBeamTimingAnalyzer::endJob() {
   TDCValue_->Write();
   recoTime_->Write();
   deltaTime_->Write();
-  distVsTDCHist_->SetXTitle("TDC Offset [bx]");
-  distVsTDCHist_->Write();
+  //distVsTDCHist_->SetXTitle("TDC Offset [bx]");
+  //distVsTDCHist_->Write();
 
   for(int i=0;i<50;i++)
   {
     fitTimeVsTDC_[i]->GetXaxis()->SetTitle("TDC Offset [ns]");
     fitTimeVsTDC_[i]->GetYaxis()->SetTitle("Fitted time [ns]");
     fitTimeVsTDC_[i]->Write();
-    deltaBetCrys_[i]->GetXaxis()->SetTitle("Cry time - avg. (ns)");
+    deltaBetCrys_[i]->GetXaxis()->SetTitle("t1 - t2 [ns]");
     deltaBetCrys_[i]->Write();
     distVsTimeHists_[i]->SetXTitle("DeltaT [ns]");
     distVsTimeHists_[i]->SetYTitle("DeltaR");
     distVsTimeHists_[i]->Write();
-    cryIndicesConsideredHists_[i]->SetXTitle("Index of Cry1 (begin)");
-    cryIndicesConsideredHists_[i]->Write();
+    //cryIndicesConsideredHists_[i]->SetXTitle("Index of Cry1 (begin)");
+    //cryIndicesConsideredHists_[i]->Write();
     deltaTvsTDC_[i]->SetXTitle("TDC offset");
     deltaTvsTDC_[i]->Write();
     deltaTvsAverageT_[i]->SetXTitle("Average time");
     deltaTvsAverageT_[i]->Write();
-    pivotCry_[i]->SetXTitle("pivot cry index");
-    pivotCry_[i]->Write();
+    //pivotCry_[i]->SetXTitle("pivot cry index");
+    //pivotCry_[i]->Write();
     deltaTCry2EnergyBin_[i]->SetXTitle("DeltaT");
-    deltaTCry2EnergyBin_[i]->Write();
+    //deltaTCry2EnergyBin_[i]->Write();
     deltaTCry7EnergyBin_[i]->SetXTitle("DeltaT");
-    deltaTCry7EnergyBin_[i]->Write();
-    recoMinusTDCCry2EnergyBin_[i]->Write();
-    recoMinusTDCCry7EnergyBin_[i]->Write();
+    //deltaTCry7EnergyBin_[i]->Write();
+    //recoMinusTDCCry2EnergyBin_[i]->Write();
+    //recoMinusTDCCry7EnergyBin_[i]->Write();
   }
-  for(int i=0;i<25;i++)
+
+  for(std::map<int,TH1F>::const_iterator mapItr = recoTimeMinusTDCTimeByCry_.begin();
+      mapItr != recoTimeMinusTDCTimeByCry_.end(); ++mapItr)
   {
-    recoTimeMinusTDCTimeByCry_[i]->SetXTitle("reco + TDC -1 [ns]");
-    recoTimeMinusTDCTimeByCry_[i]->Write();
+    //mapItr->second.SetXTitle("reco + TDC -1 [ns]");
+    mapItr->second.Write();
   }
   
-  deltaT713Bin12_->Write();
-  deltaT713Bin11_->Write();
-  deltaT813Bin8_->Write();
-  deltaT813Bin6_->Write();
+  //deltaT713Bin12_->Write();
+  //deltaT713Bin11_->Write();
+  //deltaT813Bin8_->Write();
+  //deltaT813Bin6_->Write();
   
   //// Reconstructed energies
-  h_e1x1->Write(); 
-  h_e3x3->Write(); 
-  h_e5x5->Write(); 
-  h_e1x1_center->Write(); 
-  h_e3x3_center->Write(); 
-  h_e5x5_center->Write(); 
-  h_e1e9->Write(); 
-  h_e1e25->Write(); 
-  h_e9e25->Write(); 
   h_bprofx->Write(); 
   h_bprofy->Write(); 
   h_qualx->Write(); 
@@ -325,12 +297,6 @@ TestBeamTimingAnalyzer::endJob() {
     timing1DHistMap[icry]->SetXTitle("reco time [ns]");
     timing1DHistMap[icry]->Write();
   }
-  h_e1e9_mapx->Write(); 
-  h_e1e9_mapy->Write(); 
-  h_e1e25_mapx->Write(); 
-  h_e1e25_mapy->Write(); 
-  h_e9e25_mapx->Write(); 
-  h_e9e25_mapy->Write(); 
   h_tableIsMoving->Write();
   occupancyOfMaxEneCry_->GetXaxis()->SetTitle("iphi");
   occupancyOfMaxEneCry_->GetYaxis()->SetTitle("ieta");
@@ -352,11 +318,11 @@ TestBeamTimingAnalyzer::analyze( const edm::Event& iEvent, const edm::EventSetup
    using namespace cms;
    using namespace std;
    
-   //SIC intraTT corrections
+   //TODO: SIC intraTT corrections
    // fetch timing correction
-   edm::ESHandle<EcalTimingCorrection> timingCorrectionP;
-   iSetup.get<EcalTimingCorrectionRcd>().get(timingCorrectionP);
-   const EcalTimingCorrection* timingCorrection = timingCorrectionP.product();
+   //edm::ESHandle<EcalTimingCorrection> timingCorrectionP;
+   //iSetup.get<EcalTimingCorrectionRcd>().get(timingCorrectionP);
+   //const EcalTimingCorrection* timingCorrection = timingCorrectionP.product();
 
    Handle<EBDigiCollection> pdigis;
    const EBDigiCollection* digis=0;
@@ -473,11 +439,9 @@ TestBeamTimingAnalyzer::analyze( const edm::Event& iEvent, const edm::EventSetup
    //TODO
    //WARNING
    //HERE I HARDCODE A CRYSTAL, THIS WILL ONLY WORK FOR SPECIFIC DATA
-   
    //SM6 data
-   if(!(maxHitId.iphi()==15 && maxHitId.ieta()==11))
-     return;
-
+   //if(!(maxHitId.iphi()==15 && maxHitId.ieta()==11))
+   //  return;
    //SM13 data -- 1st 100k events
    //if(!(maxHitId.iphi()==9 && maxHitId.ieta()==12))
    //  return;
@@ -485,154 +449,49 @@ TestBeamTimingAnalyzer::analyze( const edm::Event& iEvent, const edm::EventSetup
    //if(!(maxHitId.iphi()==9 && maxHitId.ieta()==13))
    //  return;
 
+//   double samples_save[10]; for(int i=0; i < 10; ++i) samples_save[i]=0.0;
+//   double gain_save[10];    for(int i=0; i < 10; ++i) gain_save[i]=0.0;
+//   
+//   // find the rechit corresponding digi and the max sample
+//   
+//   EBDigiCollection::const_iterator myDg = digis->begin();
+//   while(myDg->id() != Xtals5x5[6] && myDg != digis->end())
+//     myDg++;
 
-   EBDetId Xtals5x5[25];
-   for (unsigned int icry=0;icry<25;icry++)
-     {
-       unsigned int row = icry / 5;
-       unsigned int column= icry %5;
-      try
-	{
-	  //int ieta=xtalInBeam_.ieta()+column-2;
-          //TODO:  FIX IT SO THAT WE ARE CENTERED AROUND THE CRYSTAL WE KNOW!
-          //int iphi=xtalInBeam_.iphi()+row-2;
-	  int ieta=maxHitId.ieta()+column-2;
-          int iphi=maxHitId.iphi()+row-2;
-          EBDetId tempId(ieta, iphi,EBDetId::ETAPHIMODE);
-	  if (tempId.ism()==1) 
-	    Xtals5x5[icry]=tempId;
-	  else
-            Xtals5x5[icry]=EBDetId(0);
-	  ///       std::cout << "** Xtal in the matrix **** row " << row  << ", column " << column << ", xtal " << Xtals5x5[icry].ic() << std::endl;
-	}
-      catch ( std::runtime_error &e )
-	{
-	  Xtals5x5[icry]=EBDetId(0);   
-        }
-     } 
-
-
-   
-   bool gain_switch = false;
-   double samples_save[10]; for(int i=0; i < 10; ++i) samples_save[i]=0.0;
-   double gain_save[10];    for(int i=0; i < 10; ++i) gain_save[i]=0.0;
-   
-   // find the rechit corresponding digi and the max sample
-   
-   EBDigiCollection::const_iterator myDg = digis->begin();
-   while(myDg->id() != Xtals5x5[6] && myDg != digis->end())
-     myDg++;
-
-   int sMax = -1;
-   double eMax = 0.;
-   if (myDg != digis->end())
-     {
-       EBDataFrame myDigi = (*myDg);
-       for (int sample = 0; sample < myDigi.size(); ++sample)
-	 {
-	   double analogSample = myDigi.sample(sample).adc();
-	   double gainSample   = myDigi.sample(sample).gainId();
-	   samples_save[sample] = analogSample;
-	   gain_save[sample]    = gainSample;
-	   //  std::cout << analogSample << " ";
-	   if ( eMax < analogSample )
-	     {
-	       eMax = analogSample;
-	       sMax = sample;
-	     }
-	   if(gainSample != 1) gain_switch = true;
-	 }
-       // std::cout << std::endl;
-       float chi2 = (hits->find(Xtals5x5[6]))->chi2();
-       if(chi2 > 0)
-       {
-         for(int i =0; i < 10; ++i) {
-           h_Shape_->Fill(double(i)+recTDC->offset(),samples_save[i]);
-         }
-       }
-     }
+//   int sMax = -1;
+//   double eMax = 0.;
+//   if (myDg != digis->end())
+//     {
+//       EBDataFrame myDigi = (*myDg);
+//       for (int sample = 0; sample < myDigi.size(); ++sample)
+//	 {
+//	   double analogSample = myDigi.sample(sample).adc();
+//	   double gainSample   = myDigi.sample(sample).gainId();
+//	   samples_save[sample] = analogSample;
+//	   gain_save[sample]    = gainSample;
+//	   //  std::cout << analogSample << " ";
+//	   if ( eMax < analogSample )
+//	     {
+//	       eMax = analogSample;
+//	       sMax = sample;
+//	     }
+//	   if(gainSample != 1) gain_switch = true;
+//	 }
+//       // std::cout << std::endl;
+//       float chi2 = (hits->find(Xtals5x5[6]))->chi2();
+//       if(chi2 > 0)
+//       {
+//         for(int i =0; i < 10; ++i) {
+//           h_Shape_->Fill(double(i)+recTDC->offset(),samples_save[i]);
+//         }
+//       }
+//     }
    //else
    //  throw cms::Exception("Exception") << "Can't find maxHitId in digis" << std::endl;
 
-   double amplitude[25];
-   double timing[25];
    
-   double amplitude3x3=0;  
-   double amplitude5x5=0;  
+//   //TODO: SIC mod: timing calibrations by crystal; note that these should be in BX
    
-   //TODO: SIC mod: timing calibrations by crystal; note that these are in nanoseconds
-   //double timingCalibration[25] = {-1.0072,-0.0208481,0.849423,0.450663,-46.7874,0.237886,1.04807,0.118216,-0.0699673,0.0734554,0.742545,
-   //                                0.0762089,-1.04483,-0.574597,0.725996,0.0385395,-0.182683,-0.962116,-0.415584,0.0744227,-1.73904,
-   //                                -0.120794,-0.489065,-0.135128,-7.3209};
-   //    
-   //                                
-   //                                
-   //double timingCalibration[25] = {-1.00584 ,-0.0208175,0.849423 ,0.450663 ,-46.7874 ,0.237886 ,1.04807,0.118216 ,-0.0699673,0.0734554,
-   //                                0.742545 ,0.0762089,-1.04483 ,-0.574597,0.725996 ,0.0385382,-0.182674,-0.962115,-0.415584,0.0744227,
-   //                                -1.77231 ,-0.120792,-0.489065,-0.135128,-6.23559};
-   //Calibs from run 63 (SM6)
-   double timingCalibration[25] = {-1.71951,0.0284033,0.877131,0.549921,-25.137,0.341129,0.984495,-0.000478582,-0.153683,0.0939122,
-                                   0.788314,0.00871419,-1.22424,-0.667453,0.740226,0.0784437,-0.237598,-1.09129,-0.497459,0.0852364,
-                                   -1.74415,-0.00308915,-0.470862,-0.0410496,-11.2362};
-   for(int i=0; i<25; ++i)
-   {
-     // convert to BX
-     timingCalibration[i]/=25.0;
-   }
-   
-   for (unsigned int icry=0;icry<25;icry++)
-     {
-       if (!Xtals5x5[icry].null())
-	 {
-	   amplitude[icry]=(hits->find(Xtals5x5[icry]))->amplitude();
-           float chi2 = (hits->find(Xtals5x5[icry]))->chi2();
-           //TODO: ONLY GET THE TIMING OF CRYS WITH MAX SAMPLE = 4
-           if(chi2 > 0)
-           {
-             double time = (hits->find(Xtals5x5[icry]))->jitter();
-             // Apply intraTT timing correction
-             EcalElectronicsId elecId = ecalElectronicsMap_->getElectronicsId(Xtals5x5[icry]);
-             time-=(timingCorrection->getMap().find(std::make_pair(elecId.stripId(),elecId.xtalId())))->second;
-             //TODO: SIC mod!  Apply the timing "calibration"
-             time-=timingCalibration[icry];
-             //time+=timingCalibration[icry];
-
-             //Below done using run 35, cry 12 as best fit line
-             //double calibration = 0.0301*((25*time-23.49)/-0.9699)-1.51;
-             //time-=(calibration/25);
-             //if(chi2==1005)
-             //{
-             //  //time*=0.926;
-             //  time*=0.85;
-             //  time+=0.08;
-             //}
-             //else if(chi2==1006)
-             //  time+=0.04; // 1 ns in bx
-
-             timing[icry] = time;
-           }
-           else
-             timing[icry] = -9999;
-	   amplitude5x5 += amplitude[icry];
-	   // Is in 3x3?
-	   if ( icry == 6  || icry == 7  || icry == 8 ||
-		icry == 11 || icry == 12 || icry ==13 ||
-		icry == 16 || icry == 17 || icry ==18   )
-	     {
-	       amplitude3x3+=amplitude[icry];
-	     }
-	 }
-     }
-
-
-   h_e1x1->Fill(amplitude[12]);
-   h_e3x3->Fill(amplitude3x3);
-   h_e5x5->Fill(amplitude5x5);
-
-   h_e1e9->Fill(amplitude[12]/amplitude3x3);
-   h_e1e25->Fill(amplitude[12]/amplitude5x5);
-   h_e9e25->Fill(amplitude3x3/amplitude5x5);
-
    //SIC PLOTS
    int numEnergyBins = 40;  // MUST change next three array values by hand
    double energyBins[40] = {0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1,2,3,4,5,7.5,10,20,30,40,50,60,70,80,90,100,110,120,130,140,150,160,170,180};
@@ -675,43 +534,63 @@ TestBeamTimingAnalyzer::analyze( const edm::Event& iEvent, const edm::EventSetup
        " GeV to "+doubleToString(energyBins[i+1])+" GeV";
      recoMinusTDCCry2EnergyBin_[i]->SetTitle(title.c_str());
    }
-   const CaloCellGeometry* centerCell = geometry_barrel_->getGeometry(Xtals5x5[12]);
-   GlobalPoint centerCryPt = (dynamic_cast <const TruncatedPyramid *>  (centerCell))->getPosition(0);
-   double centerCryTime = timing[12];
+   //const CaloCellGeometry* centerCell = geometry_barrel_->getGeometry(Xtals5x5[12]);
+   //GlobalPoint centerCryPt = (dynamic_cast <const TruncatedPyramid *>  (centerCell))->getPosition(0);
+   //double centerCryTime = timing[12];
    // figure out which crys are in which energy bins; compute avgTime
-   for (int icry=0;icry<25;icry++)
+   for(EcalUncalibratedRecHitCollection::const_iterator uncalibHitItr = hits->begin();
+       uncalibHitItr != hits->end(); ++uncalibHitItr) 
    {
-     //TODO
-     //Hardcoded crystals to skip!
-     //if(icry==7) continue;
-     
      cryVector.clear();
-     cryVector.push_back(icry);  // vector of id's in 5x5 matrix
-     if(timing[icry] != -9999)  // Imposing chi2 cut of above
+     if(uncalibHitItr->chi2() > 0)  // Imposing chi2 cut
      {
-       timing1DHistMap[icry]->Fill(25*timing[icry]);
-       amplitudeHistMap[icry]->Fill(amplitude[icry]);
+       int cryHash = ((EBDetId)uncalibHitItr->id()).hashedIndex();
+       cryVector.push_back(cryHash);
+       double cryTime = uncalibHitItr->jitter();
+       double cryAmp = uncalibHitItr->amplitude();
+       //timing1DHistMap[icry]->Fill(25*cryTime);
+       //amplitudeHistMap[icry]->Fill(cryAmp);
        // Fill TDC hists
        if(recTDC)
        {
-         const CaloCellGeometry *cell1 = geometry_barrel_->getGeometry(Xtals5x5[icry]);
-         GlobalPoint p1 = (dynamic_cast <const TruncatedPyramid *>  (cell1))->getPosition(0);
-         double dist = reco::deltaR(p1,centerCryPt);
-         distVsTDCHist_->Fill(recTDC->offset(),dist);
-         timingHistMap[icry]->Fill(25*recTDC->offset(),25*timing[icry]);
+         //const CaloCellGeometry *cell1 = geometry_barrel_->getGeometry(uncalibHitItr->id());
+         //GlobalPoint p1 = (dynamic_cast <const TruncatedPyramid *>  (cell1))->getPosition(0);
+         //double dist = reco::deltaR(p1,centerCryPt);
+         //distVsTDCHist_->Fill(recTDC->offset(),dist);
+         //timingHistMap[icry]->Fill(25*recTDC->offset(),25*cryTime);
          //TODO: Now only crys with timing > 15 ns or < 10 ns are allowed in the plot
          //    (excluding ripple region)
-         if(25*timing[icry]>15 || 25*timing[icry]<10)
-           recoTimeMinusTDCTimeByCry_[icry]->Fill(25*(timing[icry]+recTDC->offset()-1));
+         //if(25*timing[icry]>15 || 25*timing[icry]<10)
+         string hname = "recoTimeMinusTDCTimeCry_";
+         hname+=intToString(cryHash);
+         string htitle = "RecoTime + TDC time -1 for cry ";
+         htitle+=intToString(cryHash);
+         TH1F temp(hname.c_str(),htitle.c_str(),1000,-50,50);
+         pair<map<int,TH1F >::iterator,bool> retVal;
+         retVal = recoTimeMinusTDCTimeByCry_.insert(make_pair(cryHash,temp));
+         // retVal->first points to the newly inserted pair or already existing pair
+         //   in the case where insertion fails
+         std::cout << "I MADE IT HERE1!" << std::endl;
+         map<int,TH1F>::iterator iter;
+         iter = recoTimeMinusTDCTimeByCry_.find(cryHash);
+         if(iter != recoTimeMinusTDCTimeByCry_.end())
+         {
+           //debug
+           std::cout << "Found map element for cryHash " << cryHash 
+             << "; filling..." << std::endl;
+           iter->second.Fill(25*(cryTime+recTDC->offset()-1));
+         }
+         std::cout << "I MADE IT PAST FILLING!" << std::endl;
+         //delete temp;
+         //std::cout << "I MADE IT PAST DELETE!" << std::endl;
        }
        //Bin by energy
-       double amp = amplitude[icry];
        int histNum = -1;
-       if(amp > 0)
+       if(cryAmp > 0)
        {
          for(int i=0;i<numEnergyBins-1;++i)
          {
-           if(amp >= ampBins[i] && amp < ampBins[i+1])
+           if(cryAmp >= ampBins[i] && cryAmp < ampBins[i+1])
              histNum = i;
          }
          //if(histNum==-1) continue;
@@ -724,14 +603,9 @@ TestBeamTimingAnalyzer::analyze( const edm::Event& iEvent, const edm::EventSetup
            map<int,vector<int> >::iterator itr;
            itr = histBinToCrysMap.find(histNum);
            if(itr != histBinToCrysMap.end())
-             itr->second.push_back(icry);
+             itr->second.push_back(((EBDetId)uncalibHitItr->id()).hashedIndex());
          } 
-         //else //debug only
-         //{
-         //  //debug
-         //  cout << "New element for bin " << histNum << " inserted with cry " << icry << endl;
-         //}
-         avgTime+=timing[icry];
+         avgTime+=cryTime;
          numCrysInAvg++;
        }
      }
@@ -742,7 +616,7 @@ TestBeamTimingAnalyzer::analyze( const edm::Event& iEvent, const edm::EventSetup
    //Fill hists involving TDC info
    if (recTDC)
    {
-     h_ampltdc->Fill(recTDC->offset(),amplitude[12]);
+     h_ampltdc->Fill(recTDC->offset(),maxHit);
      TDCValue_->Fill(recTDC->offset());
      recoTime_->Fill(maxHitTime);
      deltaTime_->Fill(maxHitTime-recTDC->offset());
@@ -755,12 +629,45 @@ TestBeamTimingAnalyzer::analyze( const edm::Event& iEvent, const edm::EventSetup
      //debug
      //cout << "ENergy bin: " << itr->first << endl;
      vector<int> crys = itr->second;
-     int tower1 = (ecalElectronicsMap_->getElectronicsId(Xtals5x5[*crys.begin()])).towerId();
+     EBDetId firstHitInBinId = EBDetId::unhashIndex(*crys.begin());
+     int tower1 = ecalElectronicsMap_->getElectronicsId(firstHitInBinId).towerId();
+     // Find correct uncalibRecHit
+     EBUncalibratedRecHitCollection::const_iterator firstHitInBin = hits->begin();
+     while(firstHitInBin != hits->end() && firstHitInBin->id() != firstHitInBinId)
+       firstHitInBin++;
+     if(firstHitInBin==hits->end())
+     {
+       std::cout << "ERROR: Cannot find uncalibRecHit matching Id of first cry (hash " << *crys.begin() 
+         << ") in energy bin for hist number: "
+         << itr->first << std::endl;
+       continue;
+     }
+     const CaloCellGeometry *cell2 = geometry_barrel_->getGeometry(firstHitInBinId);
+     GlobalPoint p2 = (dynamic_cast <const TruncatedPyramid *>  (cell2))->getPosition(0);
+     double firstHitTime = firstHitInBin->jitter();
+
      // Loop over crys in the same energy bin
      for(vector<int>::const_iterator vecItr = crys.begin(); vecItr != crys.end(); ++vecItr)
      {
-       int tower2 = (ecalElectronicsMap_->getElectronicsId(Xtals5x5[*vecItr])).towerId();
-       fitTimeVsTDC_[itr->first]->Fill(25*recTDC->offset(),25*timing[*vecItr]);
+       //DEBUG
+       //std::cout << "LOOP OVER CYS IN SAME E BIN" << std::endl;
+       EBDetId currentHitInBinId = EBDetId::unhashIndex(*vecItr);
+       int tower2 = ecalElectronicsMap_->getElectronicsId(currentHitInBinId).towerId();
+       // Find correct uncalibRecHit
+       EBUncalibratedRecHitCollection::const_iterator currentHitInBin = hits->begin();
+       while(currentHitInBin != hits->end() && currentHitInBin->id() != currentHitInBinId)
+         currentHitInBin++;
+       //DEBUG
+       //std::cout << "FOUND CORRECT UCALIB HIT" << std::endl;
+       if(currentHitInBin==hits->end())
+       {
+         std::cout << "ERROR: Cannot find uncalibRecHit matching Id of a cry (hash " << *vecItr << 
+           ") in energy bin for hist number: "
+           << itr->first << std::endl;
+         continue;
+       }
+
+       fitTimeVsTDC_[itr->first]->Fill(25*recTDC->offset(),25*currentHitInBin->jitter());
        //TODO:  Now I have turned ON the sameTT requirement!
        if(vecItr != crys.begin() && tower2==tower1) //Require that they are in the same tower
        {
@@ -768,44 +675,15 @@ TestBeamTimingAnalyzer::analyze( const edm::Event& iEvent, const edm::EventSetup
          //cout << "Crystal " << Xtals5x5[*vecItr] << " is in the same tower as crystal: " << Xtals5x5[*crys.begin()]
          //  << endl;
          double statCorrection = sqrt(2);
-         deltaBetCrys_[itr->first]->Fill(25*(timing[*vecItr]-timing[*crys.begin()])/statCorrection);
-         const CaloCellGeometry *cell1 = geometry_barrel_->getGeometry(Xtals5x5[*vecItr]);
+         deltaBetCrys_[itr->first]->Fill(25*(currentHitInBin->jitter()-firstHitTime)/statCorrection);
+         const CaloCellGeometry *cell1 = geometry_barrel_->getGeometry(currentHitInBinId);
          GlobalPoint p1 = (dynamic_cast <const TruncatedPyramid *>  (cell1))->getPosition(0);
-         const CaloCellGeometry *cell2 = geometry_barrel_->getGeometry(Xtals5x5[*crys.begin()]);
-         GlobalPoint p2 = (dynamic_cast <const TruncatedPyramid *>  (cell2))->getPosition(0);
          double dist = reco::deltaR(p1,p2);
-         distVsTimeHists_[itr->first]->Fill(25*(timing[*vecItr]-timing[*crys.begin()])/statCorrection,dist);
-         cryIndicesConsideredHists_[itr->first]->Fill(*crys.begin(),*vecItr);
-         deltaTvsTDC_[itr->first]->Fill(recTDC->offset(),25*(timing[*vecItr]-timing[*crys.begin()])/statCorrection);
-         deltaTvsAverageT_[itr->first]->Fill(12.5*(timing[*vecItr]+timing[*crys.begin()]),25*(timing[*vecItr]-timing[*crys.begin()]));
-         pivotCry_[itr->first]->Fill(*crys.begin());
-         if(*crys.begin()==2)
-         {
-           deltaTCry2EnergyBin_[itr->first]->Fill(25*(timing[*vecItr]-timing[*crys.begin()])/statCorrection);
-           recoMinusTDCCry2EnergyBin_[itr->first]->Fill(25*(timing[*vecItr]-timing[*crys.begin()])/statCorrection+25*recTDC->offset()-1);
-         }
-         else if(*crys.begin()==7)
-         {
-           deltaTCry7EnergyBin_[itr->first]->Fill(25*(timing[*vecItr]-timing[*crys.begin()])/statCorrection);
-           recoMinusTDCCry7EnergyBin_[itr->first]->Fill(25*(timing[*vecItr]-timing[*crys.begin()])/statCorrection+25*recTDC->offset()-1);
-           if(*vecItr==13)
-           {
-             if(itr->first==11)
-               deltaT713Bin11_->Fill(25*(timing[*vecItr]-timing[*crys.begin()])/statCorrection);
-             else if(itr->first==12)
-               deltaT713Bin12_->Fill(25*(timing[*vecItr]-timing[*crys.begin()])/statCorrection);
-           }
-         }
-         else if(*crys.begin()==8)
-         {
-           if(*vecItr==13)
-           {
-             if(itr->first==6)
-               deltaT813Bin6_->Fill(25*(timing[*vecItr]-timing[*crys.begin()])/statCorrection);
-             else if(itr->first==8)
-               deltaT813Bin8_->Fill(25*(timing[*vecItr]-timing[*crys.begin()])/statCorrection);
-           }
-         }
+         distVsTimeHists_[itr->first]->Fill(25*(currentHitInBin->jitter()-firstHitTime)/statCorrection,dist);
+         //cryIndicesConsideredHists_[itr->first]->Fill(*crys.begin(),*vecItr);
+         deltaTvsTDC_[itr->first]->Fill(recTDC->offset(),25*(currentHitInBin->jitter()-firstHitTime)/statCorrection);
+         deltaTvsAverageT_[itr->first]->Fill(12.5*(currentHitInBin->jitter()+firstHitTime),25*(currentHitInBin->jitter()-firstHitTime));
+         //pivotCry_[itr->first]->Fill(*crys.begin());
 
        }
      }
@@ -853,40 +731,24 @@ TestBeamTimingAnalyzer::analyze( const edm::Event& iEvent, const edm::EventSetup
        h_slopex->Fill(xslope);
        h_slopey->Fill(yslope);
 
-       //Fill central events
-
-       
-       if ( fabs(x + 2.5) < 2.5 && fabs(y + 0.5) < 2.5)
-	 {
-	   h_e1x1_center->Fill(amplitude[12]);
-	   h_e3x3_center->Fill(amplitude3x3);
-	   h_e5x5_center->Fill(amplitude5x5);
-	   
-	   h_e1e9->Fill(amplitude[12]/amplitude3x3);
-	   h_e1e25->Fill(amplitude[12]/amplitude5x5);
-	   h_e9e25->Fill(amplitude3x3/amplitude5x5);
-	 }
-
-       for (unsigned int icry=0;icry<25;icry++)
-	 {       
-	   h_mapx[icry]->Fill(x,amplitude[icry]);
-	   h_mapy[icry]->Fill(y,amplitude[icry]);
-	 }
-
-       h_e1e9_mapx->Fill(x,amplitude[12]/amplitude3x3);
-       h_e1e9_mapy->Fill(y,amplitude[12]/amplitude3x3);
-
-       h_e1e25_mapx->Fill(x,amplitude[12]/amplitude5x5);
-       h_e1e25_mapy->Fill(y,amplitude[12]/amplitude5x5);
-
-       h_e9e25_mapx->Fill(x,amplitude3x3/amplitude5x5);
-       h_e9e25_mapy->Fill(y,amplitude3x3/amplitude5x5);
      }
 }
 
 //========================================================================
 std::string
 TestBeamTimingAnalyzer::doubleToString(double num)
+//========================================================================
+{
+  using namespace std;
+  ostringstream myStream;
+  myStream << num << flush;
+  return(myStream.str());
+}
+
+
+//========================================================================
+std::string
+TestBeamTimingAnalyzer::intToString(int num)
 //========================================================================
 {
   using namespace std;
