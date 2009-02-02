@@ -6,7 +6,7 @@
      <Notes on implementation>
 */
 //
-// $Id: TestBeamTimingAnalyzer.cc,v 1.9 2009/01/29 16:18:25 scooper Exp $
+// $Id: TestBeamTimingAnalyzer.cc,v 1.10 2009/02/02 17:15:23 scooper Exp $
 //
 //
 
@@ -568,21 +568,12 @@ TestBeamTimingAnalyzer::analyze( const edm::Event& iEvent, const edm::EventSetup
          TH1F temp(hname.c_str(),htitle.c_str(),1000,-50,50);
          pair<map<int,TH1F >::iterator,bool> retVal;
          retVal = recoTimeMinusTDCTimeByCry_.insert(make_pair(cryHash,temp));
-         // retVal->first points to the newly inserted pair or already existing pair
-         //   in the case where insertion fails
-         std::cout << "I MADE IT HERE1!" << std::endl;
          map<int,TH1F>::iterator iter;
          iter = recoTimeMinusTDCTimeByCry_.find(cryHash);
          if(iter != recoTimeMinusTDCTimeByCry_.end())
          {
-           //debug
-           std::cout << "Found map element for cryHash " << cryHash 
-             << "; filling..." << std::endl;
            iter->second.Fill(25*(cryTime+recTDC->offset()-1));
          }
-         std::cout << "I MADE IT PAST FILLING!" << std::endl;
-         //delete temp;
-         //std::cout << "I MADE IT PAST DELETE!" << std::endl;
        }
        //Bin by energy
        int histNum = -1;
