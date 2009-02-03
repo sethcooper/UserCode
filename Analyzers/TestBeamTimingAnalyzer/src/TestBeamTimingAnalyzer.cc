@@ -6,7 +6,7 @@
      <Notes on implementation>
 */
 //
-// $Id: TestBeamTimingAnalyzer.cc,v 1.10 2009/02/02 17:15:23 scooper Exp $
+// $Id: TestBeamTimingAnalyzer.cc,v 1.11 2009/02/02 17:32:25 scooper Exp $
 //
 //
 
@@ -122,6 +122,8 @@ TestBeamTimingAnalyzer::beginJob(const edm::EventSetup& eventSetup) {
   eventSetup.get<EcalBarrelGeometryRecord>().get("EcalBarrel",theBarrelGeometry_handle);
   geometry_barrel_ = &(*theBarrelGeometry_handle);
   
+  names = new std::vector<std::string>();
+
   // Amplitude vs TDC offset
   h_ampltdc = new TH2F("h_ampltdc","Max Amplitude vs TDC offset", 100,0.,1.,1000, 0., 4000.);
 
@@ -229,6 +231,11 @@ TestBeamTimingAnalyzer::endJob() {
 //========================================================================
 
   TFile f(rootfile_.c_str(),"RECREATE");
+
+  histoNames_ = new TTree("histoNames","Names of written histos");
+  histoNames_->Branch("names","vector<string>",&names);
+  histoNames_->Fill();
+  histoNames_->Write();
 
   // Amplitude vs TDC offset
   h_ampltdc->Write(); 
@@ -568,6 +575,8 @@ TestBeamTimingAnalyzer::analyze( const edm::Event& iEvent, const edm::EventSetup
          TH1F temp(hname.c_str(),htitle.c_str(),1000,-50,50);
          pair<map<int,TH1F >::iterator,bool> retVal;
          retVal = recoTimeMinusTDCTimeByCry_.insert(make_pair(cryHash,temp));
+         if(retVal.second) //insertion was done
+           names->push_back(hname);
          map<int,TH1F>::iterator iter;
          iter = recoTimeMinusTDCTimeByCry_.find(cryHash);
          if(iter != recoTimeMinusTDCTimeByCry_.end())

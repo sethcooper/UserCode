@@ -9,7 +9,7 @@
      <Notes on implementation>
 */
 //
-// $Id: TestBeamTimingAnalyzer.h,v 1.6 2008/12/19 17:47:43 scooper Exp $
+// $Id: TestBeamTimingAnalyzer.h,v 1.7 2009/02/02 17:15:23 scooper Exp $
 //
 
 
@@ -36,6 +36,7 @@
 #include "TH1.h"
 #include "TGraph.h"
 #include "TH2.h"
+#include "TTree.h"
 #include<fstream>
 #include<map>
 //#include<stl_pair>
@@ -68,6 +69,8 @@ class TestBeamTimingAnalyzer : public edm::EDAnalyzer {
       std::string tdcRecInfoProducer_;
       std::string eventHeaderCollection_;
       std::string eventHeaderProducer_;
+
+      std::vector<std::string>* names;
 
       // Amplitude vs TDC offset
       TH2F* h_ampltdc;
@@ -141,6 +144,7 @@ class TestBeamTimingAnalyzer : public edm::EDAnalyzer {
 
       const EcalElectronicsMapping* ecalElectronicsMap_;
       const CaloSubdetectorGeometry* geometry_barrel_; 
+      TTree* histoNames_;
 };
 
 
