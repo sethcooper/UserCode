@@ -13,7 +13,7 @@
 //
 // Original Author:  Seth COOPER
 //         Created:  Wed Dec 17 23:20:43 CET 2008
-// $Id$
+// $Id: HSCPTimingAnalyzer.cc,v 1.1 2009/02/05 17:27:17 scooper Exp $
 //
 //
 
@@ -32,14 +32,23 @@
 #include "FWCore/ServiceRegistry/interface/Service.h"
 #include "PhysicsTools/UtilAlgos/interface/TFileService.h"
 #include "TH1.h"
+#include "TH2.h"
 #include "TProfile.h"
 #include "TGraph.h"
 #include "SimDataFormats/TrackingHit/interface/PSimHit.h"
 #include "SimDataFormats/CaloHit/interface/PCaloHitContainer.h"
 #include "DataFormats/EcalDetId/interface/EBDetId.h"
+#include "DataFormats/EcalDetId/interface/EEDetId.h"
 #include "DataFormats/EcalRecHit/interface/EcalRecHitCollections.h"
 #include "DataFormats/EcalRecHit/interface/EcalRecHit.h"
 #include "DataFormats/EcalDigi/interface/EcalDigiCollections.h"
+
+// *** for TrackAssociation
+#include "DataFormats/TrackReco/interface/Track.h"
+//#include "DataFormats/Common/interface/Handle.h"
+#include "TrackingTools/TrackAssociator/interface/TrackDetectorAssociator.h"
+#include "TrackingTools/TrackAssociator/interface/TrackAssociatorParameters.h"
+#include "DataFormats/EcalDetId/interface/EcalSubdetector.h"
 
 // class decleration
 //
@@ -68,6 +77,10 @@ class HSCPTimingAnalyzer : public edm::EDAnalyzer {
       TH1D* recHitEnergyHist_;
       TH1D* recHitMaxEnergyHist_;
       TH1D* recHitMaxEnergyTimingHist_;
+      TH1D* energyOfTrackMatchedHits_;
+      TH1D* timeOfTrackMatchedHits_;
+      TH2D* timeVsEnergyOfTrackMatchedHits_;
+      TH1D* crossedEnergy_;
 
       TProfile* recHitMaxEnergyShapeProfile_;
       TGraph* recHitMaxEnergyShapeGraph_;
@@ -75,6 +88,10 @@ class HSCPTimingAnalyzer : public edm::EDAnalyzer {
       std::vector<double> sampleNumbers_;
       std::vector<double> amplitudes_;
 
+      TrackDetectorAssociator trackAssociator_;
+      TrackAssociatorParameters trackParameters_;
+
+      double minTrackPt_;
 };
 
 //
@@ -92,17 +109,27 @@ edm::Service<TFileService> fileService;
 HSCPTimingAnalyzer::HSCPTimingAnalyzer(const edm::ParameterSet& iConfig) :
   EBHitCollection_ (iConfig.getParameter<edm::InputTag>("EBRecHitCollection")),
   EBUncalibRecHits_ (iConfig.getParameter<edm::InputTag>("EBUncalibRecHits")),
-  EBDigiCollection_ (iConfig.getParameter<edm::InputTag>("EBDigiCollection"))
+  EBDigiCollection_ (iConfig.getParameter<edm::InputTag>("EBDigiCollection")),
+  minTrackPt_ (iConfig.getParameter<double>("minimumTrackPt"))
 {
    //now do what ever initialization is needed
-   simHitsEnergyHist_ = fileService->make<TH1D>("simHitsEnergy","Energy of sim hits",200,0,2);
-   simHitsTimeHist_ = fileService->make<TH1D>("simHitsTime","Time of sim hits",500,-25,25);
-   recHitTimeSimHitTimeHist_ = fileService->make<TH1D>("recHitTimeSimHitTime","RecHit time - simHit time",500,-25,25);
+   simHitsEnergyHist_ = fileService->make<TH1D>("simHitsEnergy","Energy of sim hits [GeV]",200,0,2);
+   simHitsTimeHist_ = fileService->make<TH1D>("simHitsTime","Time of sim hits [ns]",500,-25,25);
+   recHitTimeSimHitTimeHist_ = fileService->make<TH1D>("recHitTimeSimHitTime","RecHit time - simHit time [ns]",500,-25,25);
    recHitTimeHist_ = fileService->make<TH1D>("recHitTime","RecHit time",500,-25,25);
-   recHitEnergyHist_ = fileService->make<TH1D>("recHitEnergy","RecHit energy (GeV)",500,-1,1);
-   recHitMaxEnergyHist_ = fileService->make<TH1D>("recHitMaxEnergy","Energy of max. ene. recHit (GeV)",500,-1,1);
-   recHitMaxEnergyTimingHist_ = fileService->make<TH1D>("recHitMaxEnergyTiming","Timing of max ene. recHit (ns)",500,-25,25);
-   recHitMaxEnergyShapeProfile_ = fileService->make<TProfile>("recHitMaxEnergyShapeProfile","Shape of max energy hits (ADC)",10,0,10);
+   recHitEnergyHist_ = fileService->make<TH1D>("recHitEnergy","RecHit energy [GeV]",500,0,2);
+   recHitMaxEnergyHist_ = fileService->make<TH1D>("recHitMaxEnergy","Energy of max. ene. recHit [GeV]",500,0,2);
+   recHitMaxEnergyTimingHist_ = fileService->make<TH1D>("recHitMaxEnergyTiming","Timing of max ene. recHit [ns]",500,-25,25);
+   recHitMaxEnergyShapeProfile_ = fileService->make<TProfile>("recHitMaxEnergyShapeProfile","Shape of max energy hits [ADC]",10,0,10);
+   energyOfTrackMatchedHits_ = fileService->make<TH1D>("summedEnergyOfTrackMatchedHits", "Energy of track-matched hits [GeV]",500,0,2);
+   timeOfTrackMatchedHits_ = fileService->make<TH1D>("timeOfTrackMatchedHits", "Time of track-matched hits [ns]",500,-25,25);
+   timeVsEnergyOfTrackMatchedHits_ = fileService->make<TH2D>("timeVsEnergyOfTrackMatchedHits","Time [ns] vs. energy [GeV] for track-matched hits",500,0,2,500,-25,25);
+   crossedEnergy_ = fileService->make<TH1D>("crossedEcalEnergy", "Total energy of track-crossing xtals [GeV]",500,0,2);
+
+   // TrackAssociator parameters
+   edm::ParameterSet trkParameters = iConfig.getParameter<edm::ParameterSet>("TrackAssociatorParameters");
+   trackParameters_.loadParameters(trkParameters);
+   trackAssociator_.useDefaultPropagator();
 }
 
 
@@ -128,29 +155,46 @@ HSCPTimingAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSe
   Handle<PCaloHitContainer> ebSimHits;
   iEvent.getByLabel("g4SimHits", "EcalHitsEB", ebSimHits);
   if(!ebSimHits.isValid())
+  {
+    std::cout << "Cannot get simHits from event!" << std::endl;
     return;
+  }
 
   Handle<EBRecHitCollection> ebRecHits;
   Handle<EERecHitCollection> eeRecHits;  //TODO: implement EE?
   iEvent.getByLabel(EBHitCollection_,ebRecHits);
   if(!ebRecHits.isValid())
+  {
+    std::cout << "Cannot get ebRecHits from event!" << std::endl;
     return;
+  }
 
   Handle<EcalUncalibratedRecHitCollection> EBUncalibRecHitsHandle_;
   iEvent.getByLabel(EBUncalibRecHits_, EBUncalibRecHitsHandle_);
   if(!EBUncalibRecHitsHandle_.isValid())
+  {
+    std::cout << "Cannot get ebUncalibRecHits from event!" << std::endl;
     return;
+  }
 
   Handle<EBDigiCollection> ebDigis;
   iEvent.getByLabel(EBDigiCollection_,ebDigis);
   if(!ebDigis.isValid())
+  {
+    std::cout << "Cannot get ebDigis from event!" << std::endl;
     return;
+  }
 
-  //Handle<reco::TrackCollection> trackHandle;
-  //iEvent.getByLabel("generalTracks", trackHandle);
-  //if(!trackHandle.isValid())
-  //  return;
+  Handle<reco::TrackCollection> recoTracks;
+  iEvent.getByLabel("generalTracks", recoTracks);
+  if(!recoTracks.isValid())
+  {
+    std::cout << "Cannot get generalTracks from event!" << std::endl;
+    return;
+  }
 
+  //debug
+  std::cout << "Processing event " << iEvent.id().event() << std::endl;
 
   const PCaloHitContainer* phits=0;
   phits = ebSimHits.product();
@@ -161,7 +205,12 @@ HSCPTimingAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSe
     EBDetId simHitId = EBDetId(mySimHit->id());
 
     EcalUncalibratedRecHitCollection::const_iterator thisUncalibRecHit =  EBUncalibRecHitsHandle_->find(mySimHit->id());
-    if(thisUncalibRecHit->chi2() < 0 || thisUncalibRecHit==EBUncalibRecHitsHandle_->end())
+    if(thisUncalibRecHit==EBUncalibRecHitsHandle_->end())
+    {
+      std::cout << "Could not find simHit detId in uncalibRecHitCollection!" << std::endl;
+      continue;
+    }
+    if(thisUncalibRecHit->chi2() < 0)
       continue;
 
     EBRecHitCollection::const_iterator recHitItr = ebRecHits->begin();
@@ -170,7 +219,10 @@ HSCPTimingAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSe
       ++recHitItr;
     }
     if(recHitItr==ebRecHits->end())
+    {
+      std::cout << "Could not find simHit detId: " << simHitId << "in RecHitCollection!" << std::endl;
       continue;
+    }
 
     recHitTimeSimHitTimeHist_->Fill(25*recHitItr->time()-mySimHit->time());
   }
@@ -182,7 +234,12 @@ HSCPTimingAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSe
       recHitItr != ebRecHits->end(); ++recHitItr)
   {
     EcalUncalibratedRecHitCollection::const_iterator thisUncalibRecHit =  EBUncalibRecHitsHandle_->find(recHitItr->id());
-    if(thisUncalibRecHit->chi2() < 0 || thisUncalibRecHit==EBUncalibRecHitsHandle_->end())
+    if(thisUncalibRecHit==EBUncalibRecHitsHandle_->end())
+    {
+      std::cout << "Could not find recHit detId in uncalibRecHitCollection!" << std::endl;
+      continue;
+    }
+    if(thisUncalibRecHit->chi2() < 0)
       continue;
 
     recHitTimeHist_->Fill(25*recHitItr->time());
@@ -190,14 +247,14 @@ HSCPTimingAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSe
     if(recHitItr->energy() > maxEnergy)
     {
       maxEnergy = recHitItr->energy();
-      bestTime = recHitItr->time();
+      bestTime = 25*recHitItr->time();
       maxDetId = recHitItr->id();
     }
   }
   if(maxEnergy > -9999)
   {
     recHitMaxEnergyHist_->Fill(maxEnergy);
-    recHitMaxEnergyTimingHist_->Fill(25*bestTime);
+    recHitMaxEnergyTimingHist_->Fill(bestTime);
 
     EBDigiCollection::const_iterator digiItr = ebDigis->begin();
     while(digiItr != ebDigis->end() && digiItr->id() != maxDetId)
@@ -223,6 +280,54 @@ HSCPTimingAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSe
     }
   }
 
+  // Loop over recoTracks and use TrackAssociator
+  for(reco::TrackCollection::const_iterator recoTrack = recoTracks->begin(); recoTrack != recoTracks->end(); ++recoTrack)
+  {
+    std::cout << "RecoTrack found with Pt (GeV): "  << recoTrack->outerPt() << std::endl;
+    // XXX: Pt Cut
+    if(recoTrack->outerPt() < minTrackPt_)
+      continue;
+
+    TrackDetMatchInfo info = trackAssociator_.associate(iEvent, iSetup, *recoTrack, trackParameters_);
+    //Debug
+    std::cout << "!!Found " << info.crossedEcalIds.size() << " crossed Ecal DetId's" << std::endl;
+
+    double summedEnergy = 0;
+    
+    for (unsigned int i=0; i<info.crossedEcalIds.size(); i++)
+    {
+      // only checks for barrel
+      if (info.crossedEcalIds[i].det() == DetId::Ecal && info.crossedEcalIds[i].subdetId() == 1)
+      {
+        EBDetId ebDetId (info.crossedEcalIds[i]);
+
+        //XXX: Chi2 cut
+        EcalUncalibratedRecHitCollection::const_iterator thisUncalibRecHit =  EBUncalibRecHitsHandle_->find(ebDetId);
+        if(thisUncalibRecHit==EBUncalibRecHitsHandle_->end())
+        {
+          std::cout << "Could not find crossedEcal detId: " << ebDetId << " in uncalibRecHitCollection!" << std::endl;
+          continue;
+        }
+        if(thisUncalibRecHit->chi2() < 0)
+          continue;
+
+        EcalRecHitCollection::const_iterator thishit = ebRecHits->find(ebDetId);
+        if (thishit == ebRecHits->end()) 
+        {
+          std::cout << "Could not find crossedEcal detId: " << ebDetId << " in recHitCollection!" << std::endl;
+          continue;
+        }
+
+        EcalRecHit myhit = (*thishit);
+        timeOfTrackMatchedHits_->Fill(25*myhit.time());
+        timeVsEnergyOfTrackMatchedHits_->Fill(myhit.energy(),25*myhit.time());
+        summedEnergy+=myhiy.energy();
+      }
+    }
+    if(summedEnergy > 0)
+      energyOfTrackMatchedHits_->Fill(myhit.energy());
+    crossedEnergy_->Fill(info.ecalCrossedEnergy());
+  }      
 }
 
 
