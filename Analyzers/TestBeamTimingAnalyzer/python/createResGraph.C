@@ -1,12 +1,36 @@
 #include <string>
+#include <iostream>
+#include <TH1.h>
+#include <TH2.h>
+#include <TFile.h>
+#include <TCanvas.h>
+#include <TStyle.h>
+#include <TGraph.h>
+#include <TLatex.h>
+#include <TGraphErrors.h>
+#include <TMath.h>
+#include <TF1.h>
 #include <vector>
+#include <sstream>
 
-void createResGraph(Char_t* infile = 0, int numBins = 40)  
+
+std::string intToString(int num)
 {
+  using namespace std;
+  ostringstream myStream;
+  myStream << num << flush;
+  return(myStream.str()); //returns the string form of the stringstream object
+}
+
+int main(int argc, char* argv[])
+{
+  using namespace std;
+
+  char* infile = argv[1];
   if (!infile)
   {
     cout << " No input file specified !" << endl;
-    return;
+    return -1;
   }
   
   TFile* f = new TFile(infile);
@@ -118,7 +142,8 @@ void createResGraph(Char_t* infile = 0, int numBins = 40)
     gStyle->SetStatX(0.9);
 
     histName+=".png";
-    tc->Print(histName.c_str());
+    //XXX
+    //tc->Print(histName.c_str());
     TF1 *fit = hist->GetFunction("gaus");
     //double p0 = fit->GetParameter(0); //const
     //double p1 = fit->GetParameter(1); //mean
@@ -133,7 +158,7 @@ void createResGraph(Char_t* infile = 0, int numBins = 40)
 
   //turn off x errors
   energyErrors.clear();
-  for(int i=0;i<numBins;++i)
+  for(int i=0;i<40;++i)
     energyErrors.push_back(0);
 
   vector<double> aOverSigmas;
@@ -178,9 +203,15 @@ void createResGraph(Char_t* infile = 0, int numBins = 40)
   myfit->SetParameter(1,0.4);
   graph2->Fit("myfit","R");
   graph2->Draw("AP");
+  float sqrtPar0 = TMath::Sqrt(myfit->GetParameter(0));
+  float sqrtPar1 = TMath::Sqrt(myfit->GetParameter(1));
+  char buffer [50];
+  sprintf(buffer,"#sigma(#Deltat)=#frac{%f}{A/#sigma}#oplus%f",sqrtPar0,sqrtPar1);
+  TLatex latex;
+  latex.DrawLatex(280,3.45,buffer);
   t->Print("resolution.png");
 
-
+  return 0;
   //Draw Fit vs. TDC time
   //TCanvas* t2 = new TCanvas();
   //t2->cd();
@@ -192,10 +223,3 @@ void createResGraph(Char_t* infile = 0, int numBins = 40)
   //prof->Draw();
 }
 
-std::string intToString(int num)
-{
-  using namespace std;
-  ostringstream myStream;
-  myStream << num << flush;
-  return(myStream.str()); //returns the string form of the stringstream object
-}
