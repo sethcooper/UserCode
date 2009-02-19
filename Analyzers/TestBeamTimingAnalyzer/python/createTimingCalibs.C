@@ -28,7 +28,7 @@ void createTimingCalibs(char* infile = 0)
 
   TCanvas* can2 = new TCanvas();
   can2->cd();
-  TH2F* calibsVsErrors = new TH2F("timingCalibsAndErrors","TimingCalibs vs. errors [ns]",60,0,2,60,0,3);
+  TH2F* calibsVsErrors = new TH2F("timingCalibsAndErrors","TimingCalibs vs. errors [ns]",60,0,2,60,0,10);
   
   TCanvas* can3 = new TCanvas();
   can3->cd();
