@@ -13,7 +13,7 @@
 //
 // Original Author:  Seth COOPER
 //         Created:  Wed Dec 17 23:20:43 CET 2008
-// $Id: HSCPTimingAnalyzer.cc,v 1.2 2009/02/11 15:37:40 scooper Exp $
+// $Id: HSCPTimingAnalyzer.cc,v 1.3 2009/02/19 20:05:26 scooper Exp $
 //
 //
 
@@ -50,6 +50,14 @@
 #include "TrackingTools/TrackAssociator/interface/TrackAssociatorParameters.h"
 #include "DataFormats/EcalDetId/interface/EcalSubdetector.h"
 
+// *** for probability/likelihood stuff
+#include "RooRealVar.h"
+#include "RooDataSet.h"
+#include "RooArgSet.h"
+#include "RooLandau.h"
+#include "RooGaussian.h"
+
+
 // class decleration
 //
 
@@ -84,6 +92,12 @@ class HSCPTimingAnalyzer : public edm::EDAnalyzer {
       TH2D* recHitTimeVsSimHitTime_;
       TH1D* simHitsPerEventHist_;
       TH2D* recHitTimeSimHitTimeVsEnergy_;
+      TH1D* probOfMuon_;
+      TH1D* probOfHSCP_;
+      TH2D* probMuonVsProbHSCP_;
+      //XXX: possible thoughts for later...
+      TH2D* probMuonMinusProbHSCPVsRecEnergy_;
+      TH2D* probMuonMinusProbHSCPVsRecTime_;
 
       TProfile* recHitMaxEnergyShapeProfile_;
       TGraph* recHitMaxEnergyShapeGraph_;
@@ -131,11 +145,17 @@ HSCPTimingAnalyzer::HSCPTimingAnalyzer(const edm::ParameterSet& iConfig) :
    recHitTimeVsSimHitTime_ = fileService->make<TH2D>("recHitTimeVsSimHitTime","recHitTime vs. simHitTime [ns]",500,-25,25,500,-25,25);
    simHitsPerEventHist_ = fileService->make<TH1D>("simHitsPerEvent","Number of SimHits per event",25,0,25);
    recHitTimeSimHitTimeVsEnergy_ = fileService->make<TH2D>("recHitTimeSimHitTimeVsEnergy","recHitTime-simHitTime vs. RecHit energy",500,0,2,500,-25,25);
+   probOfMuon_ = fileService->make<TH1D>("probOfMuon","Probability that particle is a muon",100,0,1);
+   probOfHSCP_ = fileService->make<TH1D>("probOfHSCP","Probability that particle is an HSCP",100,0,1);
+   probMuonVsProbHSCP_ = fileService->make<TH2D>("probMuonVsProbHSCP","probMuon vs. probHSCP",100,0,1,100,0,1);
+   probMuonMinusProbHSCPVsRecEnergy_ = fileService->make<TH2D>("probMuonMinusProbHSCPRecEne","probMuon-probHSCP vs. energy [GeV]",500,0,2,100,0,1);
+   probMuonMinusProbHSCPVsRecTime_ = fileService->make<TH2D>("probMuonMinusProbHSCPRecTime","probMuon-probHSCP vs. time [ns]",500,-25,25,100,0,1);
 
    // TrackAssociator parameters
    edm::ParameterSet trkParameters = iConfig.getParameter<edm::ParameterSet>("TrackAssociatorParameters");
    trackParameters_.loadParameters(trkParameters);
    trackAssociator_.useDefaultPropagator();
+
 }
 
 
@@ -338,6 +358,7 @@ HSCPTimingAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSe
     //std::cout << "!!Found " << info.crossedEcalIds.size() << " crossed Ecal DetId's" << std::endl;
 
     double summedEnergy = 0;
+    double myTime = -99;
     
     for (unsigned int i=0; i<info.crossedEcalIds.size(); i++)
     {
@@ -367,11 +388,57 @@ HSCPTimingAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSe
         timeOfTrackMatchedHits_->Fill(25*myhit.time());
         timeVsEnergyOfTrackMatchedHits_->Fill(myhit.energy(),25*myhit.time());
         summedEnergy+=myhit.energy();
+        if(myTime=-99)
+          myTime=25*myhit.time();
       }
     }
     if(summedEnergy > 0)
       energyOfTrackMatchedHits_->Fill(summedEnergy);
     crossedEnergy_->Fill(info.ecalCrossedEnergy());
+
+    // Initialize template functions
+    // TODO: make mean,sigma,etc. into parameters!
+    //
+    RooRealVar xLandauEnergy("x","x",0,5);
+    RooRealVar xGaussianEnergy("x","x",0,5);
+    RooRealVar xGaussianTimeMuons("x","x",-25,25);
+    RooRealVar xGaussianTimeHSCPs("x","x",-25,25);
+    //RooRealVar landauMean("lMean","lMean",0.3183);
+    //RooRealVar landauSigma("lSigma","lSigma",0.05487);
+    RooRealVar landauEnergyMean("leMean","leMean",0.2654);
+    RooRealVar landauEnergySigma("leSigma","leSigma",0.03383);
+    RooRealVar gaussianEnergyMean("geMean","geMean",0.5188);
+    RooRealVar gaussianEnergySigma("geSigma","geSigma",0.05863);
+    RooRealVar gaussianTimeMuonsMean("gmMean","gmMean",2.658);
+    RooRealVar gaussianTimeMuonsSigma("gmSigma","gmSigma",3.655);
+    RooRealVar gaussianTimeHSCPsMean("ghMean","ghMean",6.39);
+    RooRealVar gaussianTimeHSCPsSigma("ghSigma","ghSigma",2.472);
+    //name,title,variable,mean,sigma
+    RooLandau landauEnergy("landauEnergy","landauEnergy",xLandauEnergy,landauEnergyMean,landauEnergySigma);
+    RooGaussian gaussianEnergy("gaussianEnergy","gaussianEnergy",xGaussianEnergy,gaussianEnergyMean,gaussianEnergySigma);
+    RooGaussian gaussianTimeMuons("gaussianTimeMuons","gaussianTimeMuons",xGaussianTimeMuons,gaussianTimeMuonsMean,gaussianTimeMuonsSigma);
+    RooGaussian gaussianTimeHSCPs("gaussianTimeHSCPs","gaussianTimeHSCPs",xGaussianTimeHSCPs,gaussianTimeHSCPsMean,gaussianTimeHSCPsSigma);
+    xLandauEnergy = summedEnergy;
+    xGaussianEnergy = summedEnergy;
+    xGaussianTimeMuons = myTime;
+    xGaussianTimeHSCPs = myTime;
+    //Two-var formula?
+    //double muonLikelihood = 10000*landauEnergy.getVal()*10000*gaussianTimeMuons.getVal();
+    //double HSCPLikelihood = gaussianEnergy.getVal()*gaussianTimeHSCPs.getVal();
+    //double muonProb = muonLikelihood/(muonLikelihood+HSCPLikelihood);
+    //double hscpProb = HSCPLikelihood/(muonLikelihood+HSCPLikelihood);
+    //Old energy-only formulation
+    //double muonProb = 10000*landau.getVal()/(10000*landau.getVal()+gaussian.getVal());
+    //double hscpProb = gaussian.getVal()/(10000*landau.getVal()+gaussian.getVal());
+    //Time-only formulation
+    double muonProb = 10000*gaussianTimeMuons.getVal()/(10000*gaussianTimeMuons.getVal()+gaussianTimeHSCPs.getVal());
+    double hscpProb = gaussianTimeHSCPs.getVal()/(10000*gaussianTimeMuons.getVal()+gaussianTimeHSCPs.getVal());
+    std::cout << "Energy: " << summedEnergy << " HSCP prob: " << hscpProb << " MUON prob: " << muonProb << std::endl;
+    probOfMuon_->Fill(muonProb);
+    probOfHSCP_->Fill(hscpProb);
+    probMuonVsProbHSCP_->Fill(hscpProb,muonProb);
+    probMuonMinusProbHSCPVsRecTime_->Fill(myTime,muonProb-hscpProb);
+    probMuonMinusProbHSCPVsRecEnergy_->Fill(summedEnergy,muonProb-hscpProb);
   }      
 }
 
