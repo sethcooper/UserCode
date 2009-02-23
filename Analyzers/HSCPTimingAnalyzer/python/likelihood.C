@@ -175,15 +175,15 @@ int main(int argc, char* argv[])
     return -1;
   }
 
-  RooRealVar energy("energy","energy",0,10);
+  RooRealVar energy("energy","energy",0,10,"GeV");
   RooDataHist energyData("energyData","dataset with energy",energy,energyHist);
-  RooRealVar time("time","time",-25,25);
+  RooRealVar time("time","time",-25,25, "ns");
   RooDataHist timeData("TimeData","dataset with time",time,timeHist);
 
-  RooRealVar xLandauEnergy("x","x",0,5);
-  RooRealVar xGaussianEnergy("x","x",0,5);
-  RooRealVar xGaussianTimeMuons("x","x",-25,25);
-  RooRealVar xGaussianTimeHSCPs("x","x",-25,25);
+  //RooRealVar xLandauEnergy("x","x",0,5);
+  //RooRealVar xGaussianEnergy("x","x",0,5);
+  //RooRealVar xGaussianTimeMuons("x","x",-25,25);
+  //RooRealVar xGaussianTimeHSCPs("x","x",-25,25);
   RooRealVar landauEnergyMean("leMean","leMean",0.2654);
   RooRealVar landauEnergySigma("leSigma","leSigma",0.03383);
   RooRealVar gaussianEnergyMean("geMean","geMean",0.5188);
@@ -195,27 +195,40 @@ int main(int argc, char* argv[])
   //name,title,variable,mean,sigma
   RooLandau* landauEnergy = new RooLandau("landauEnergy","landauEnergy",energy,landauEnergyMean,landauEnergySigma);
   RooGaussian* gaussianEnergy = new RooGaussian("gaussianEnergy","gaussianEnergy",energy,gaussianEnergyMean,gaussianEnergySigma);
-  RooGaussian* gaussianTimeMuons = new RooGaussian("gaussianTimeMuons","gaussianTimeMuons",xGaussianTimeMuons,gaussianTimeMuonsMean,gaussianTimeMuonsSigma);
-  RooGaussian* gaussianTimeHSCPs = new RooGaussian("gaussianTimeHSCPs","gaussianTimeHSCPs",xGaussianTimeHSCPs,gaussianTimeHSCPsMean,gaussianTimeHSCPsSigma);
+  RooGaussian* gaussianTimeMuons = new RooGaussian("gaussianTimeMuons","gaussianTimeMuons",time,gaussianTimeMuonsMean,gaussianTimeMuonsSigma);
+  RooGaussian* gaussianTimeHSCPs = new RooGaussian("gaussianTimeHSCPs","gaussianTimeHSCPs",time,gaussianTimeHSCPsMean,gaussianTimeHSCPsSigma);
 
-  RooRealVar fsig("fsig","signal fraction",0.5,0,1);
-  RooAddPdf energyModel("model","model",RooArgList(*gaussianEnergy,*landauEnergy),fsig);
+  RooRealVar signalFractionEnergy("signalFractionEnergy","signal fraction (energy)",0.5,0,1);
+  RooAddPdf energyModel("energyModel","energyModel",RooArgList(*gaussianEnergy,*landauEnergy),signalFractionEnergy);
 
-  //RooFitResult* fitRes= energyModel.fitTo(energyData);
-  //fitRes->Print();
+  RooRealVar signalFractionTime("signalFractionTime","signal fraction (time)",0.5,0,1);
+  RooAddPdf timeModel("timeModel","timeModel",RooArgList(*gaussianTimeHSCPs,*gaussianTimeMuons),signalFractionTime);
+
+  // Fit, including maximizing signal fraction
   energyModel.fitTo(energyData);
+  timeModel.fitTo(timeData);
 
-  TCanvas* canvas = new TCanvas();
-  canvas->cd();
+  //Plot energy curves
+  TCanvas* energyCanvas = new TCanvas();
+  energyCanvas->cd();
+  RooPlot* energyFrame = energy.frame();
+  energyData.plotOn(energyFrame);
+  energyModel.plotOn(energyFrame);
+  energyModel.plotOn(energyFrame,Components("gaussianEnergy"),LineStyle(kDashed));
+  energyModel.paramOn(energyFrame);
+  energyFrame->Draw("e0");
+  energyCanvas->Print("energyLikelihood.png");
 
-  RooPlot* frame = energy.frame();
-  energyData.plotOn(frame);
-  energyModel.plotOn(frame);
-  energyModel.plotOn(frame,Components("gaussianEnergy"),LineStyle(kDashed));
-  energyModel.paramOn(frame);
-  frame->Draw("e0");
-  canvas->Print("testGraph.png");
-
+  //Plot time curves
+  TCanvas* timeCanvas = new TCanvas();
+  timeCanvas->cd();
+  RooPlot* timeFrame = time.frame();
+  timeData.plotOn(timeFrame);
+  timeModel.plotOn(timeFrame);
+  timeModel.plotOn(timeFrame,Components("gaussianTimeHSCPs"),LineStyle(kDashed));
+  timeModel.paramOn(timeFrame);
+  timeFrame->Draw("e0");
+  timeCanvas->Print("timeLikelihood.png");
   f->Close();
   return 0;
 }
