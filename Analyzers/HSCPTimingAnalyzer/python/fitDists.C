@@ -1,23 +1,11 @@
-#ifndef __CINT__
-#include "RooGlobalFunc.h"
-#endif
-#include "RooExtendPdf.h"
 #include <iostream>
 #include "TFile.h"
 #include "TH1.h"
 #include "TStyle.h"
-#include "RooRealVar.h"
-#include "RooLandau.h"
-#include "RooGaussian.h"
-#include "RooDataSet.h"
-#include "RooDataHist.h"
-#include "RooAddPdf.h"
 #include "TCanvas.h"
-#include "RooPlot.h"
-#include "RooFitResult.h"
 #include <memory>
-
-using namespace RooFit;
+#include "TF1.h"
+#include "TMath.h"
 
 void SetEStyle()
 {
@@ -142,6 +130,60 @@ void SetEStyle()
   EStyle->cd();
 }
 
+// Code pilfered from the ROOT tutorials
+Double_t langaufun(Double_t *x, Double_t *par) {
+
+  //Fit parameters:
+  //par[0]=Width (scale) parameter of Landau density
+  //par[1]=Most Probable (MP, location) parameter of Landau density
+  //par[2]=Total area (integral -inf to inf, normalization constant)
+  //par[3]=Width (sigma) of convoluted Gaussian function
+  //
+  //In the Landau distribution (represented by the CERNLIB approximation), 
+  //the maximum is located at x=-0.22278298 with the location parameter=0.
+  //This shift is corrected within this function, so that the actual
+  //maximum is identical to the MP parameter.
+
+  // Numeric constants
+  Double_t invsq2pi = 0.3989422804014;   // (2 pi)^(-1/2)
+  Double_t mpshift  = -0.22278298;       // Landau maximum location
+
+  // Control constants
+  Double_t np = 100.0;      // number of convolution steps
+  Double_t sc =   5.0;      // convolution extends to +-sc Gaussian sigmas
+
+  // Variables
+  Double_t xx;
+  Double_t mpc;
+  Double_t fland;
+  Double_t sum = 0.0;
+  Double_t xlow,xupp;
+  Double_t step;
+  Double_t i;
+
+
+  // MP shift correction
+  mpc = par[1] - mpshift * par[0]; 
+
+  // Range of convolution integral
+  xlow = x[0] - sc * par[3];
+  xupp = x[0] + sc * par[3];
+
+  step = (xupp-xlow) / np;
+
+  // Convolution integral of Landau and Gaussian by sum
+  for(i=1.0; i<=np/2; i++) {
+    xx = xlow + (i-.5) * step;
+    fland = TMath::Landau(xx,mpc,par[0]) / par[0];
+    sum += fland * TMath::Gaus(x[0],xx,par[3]);
+
+    xx = xupp - (i-.5) * step;
+    fland = TMath::Landau(xx,mpc,par[0]) / par[0];
+    sum += fland * TMath::Gaus(x[0],xx,par[3]);
+  }
+
+  return (par[2] * step * sum * invsq2pi / par[3]);
+}
 
 
 int main(int argc, char* argv[])
@@ -176,87 +218,33 @@ int main(int argc, char* argv[])
     return -1;
   }
 
-  //SetEStyle();
+  SetEStyle();
   gStyle->SetMarkerSize(0.5);
 
   energyHist->Rebin();
   timeHist->Rebin();
+  energyHist->Rebin();
+  timeHist->Rebin();
 
-  RooRealVar energy("energy","energy",0,10,"GeV");
-  RooDataHist energyData("energyData","dataset with energy",energy,energyHist);
-  RooRealVar time("time","time",-25,25, "ns");
-  RooDataHist timeData("TimeData","dataset with time",time,timeHist);
+  TCanvas tc;
+  tc.cd();
 
-  //RooRealVar xLandauEnergy("x","x",0,5);
-  //RooRealVar xGaussianEnergy("x","x",0,5);
-  //RooRealVar xGaussianTimeMuons("x","x",-25,25);
-  //RooRealVar xGaussianTimeHSCPs("x","x",-25,25);
-  RooRealVar landauEnergyMean("leMean","leMean",0.2654);
-  RooRealVar landauEnergySigma("leSigma","leSigma",0.03383);
-  RooRealVar gaussianEnergyMean("geMean","geMean",0.5188);
-  RooRealVar gaussianEnergySigma("geSigma","geSigma",0.05863);
-  RooRealVar gaussianTimeMuonsMean("gmMean","gmMean",2.658);
-  RooRealVar gaussianTimeMuonsSigma("gmSigma","gmSigma",3.655);
-  RooRealVar gaussianTimeHSCPsMean("ghMean","ghMean",6.39);
-  RooRealVar gaussianTimeHSCPsSigma("ghSigma","ghSigma",2.472);
-  //name,title,variable,mean,sigma
-  RooLandau* landauEnergy = new RooLandau("landauEnergy","landauEnergy",energy,landauEnergyMean,landauEnergySigma);
-  RooGaussian* gaussianEnergy = new RooGaussian("gaussianEnergy","gaussianEnergy",energy,gaussianEnergyMean,gaussianEnergySigma);
-  RooGaussian* gaussianTimeMuons = new RooGaussian("gaussianTimeMuons","gaussianTimeMuons",time,gaussianTimeMuonsMean,gaussianTimeMuonsSigma);
-  RooGaussian* gaussianTimeHSCPs = new RooGaussian("gaussianTimeHSCPs","gaussianTimeHSCPs",time,gaussianTimeHSCPsMean,gaussianTimeHSCPsSigma);
+  double startValues[4] = {1,0.3,5,0.5};
+  double parlimitslo[4] = {0,0,0,0};
+  double parlimitshi[4] = {100,100,100,100};
+  TF1* myFit = new TF1("myFit",langaufun,0,2,4);
+  myFit->SetParameters(startValues);
+  myFit->SetParNames("Width","MP","Area","GSigma");
+  for (int i=0; i<4; i++)
+  {
+    myFit->SetParLimits(i, parlimitslo[i], parlimitshi[i]);
+  }
 
-  RooRealVar sigFracEne("sigFracE","signal fraction (energy)",0.5,0,1);
-  RooAddPdf energyModel("energyModel","energyModel",RooArgList(*gaussianEnergy,*landauEnergy),sigFracEne);
+  energyHist->Fit("myFit","RB");
 
-  RooRealVar sigFracTime("sigFracT","signal fraction (time)",0.5,0,1);
-  RooAddPdf timeModel("timeModel","timeModel",RooArgList(*gaussianTimeHSCPs,*gaussianTimeMuons),sigFracTime);
+  energyHist->Draw();
 
-  //Plot once before fitting
-  TCanvas* combinedCanvasBef = new TCanvas("combinedCanvasBef","combinedCanvasBef",1,1,1800,600);
-  combinedCanvasBef->Divide(2,1);
-  combinedCanvasBef->cd(1);
-  //Plot energy curves
-  RooPlot* energyFrameBef = energy.frame();
-  energyData.plotOn(energyFrameBef);
-  energyModel.plotOn(energyFrameBef);
-  energyModel.plotOn(energyFrameBef,Components("gaussianEnergy"),LineStyle(kDashed));
-  energyModel.paramOn(energyFrameBef);
-  energyFrameBef->Draw("e0");
-  combinedCanvasBef->cd(2);
-  //Plot time curves
-  RooPlot* timeFrameBef = time.frame();
-  timeData.plotOn(timeFrameBef);
-  timeModel.plotOn(timeFrameBef);
-  timeModel.plotOn(timeFrameBef,Components("gaussianTimeHSCPs"),LineStyle(kDashed));
-  timeModel.paramOn(timeFrameBef);
-  timeFrameBef->Draw("e0");
-  combinedCanvasBef->Print("plotLikelihoodsBeforeFit.png");
+  tc.Print("energyDistPlotFitted.png");
 
-  // Fit, including maximizing signal fraction
-  energyModel.fitTo(energyData);
-  timeModel.fitTo(timeData);
-
-  TCanvas* combinedCanvas = new TCanvas("combinedCanvas","combinedCanvas",1,1,1800,600);
-  combinedCanvas->Divide(2,1);
-  combinedCanvas->cd(1);
-  //Plot energy curves
-  RooPlot* energyFrame = energy.frame();
-  energyData.plotOn(energyFrame);
-  energyModel.plotOn(energyFrame);
-  energyModel.plotOn(energyFrame,Components("gaussianEnergy"),LineStyle(kDashed));
-  energyModel.paramOn(energyFrame);
-  energyFrame->Draw("e0");
-  combinedCanvas->cd(2);
-  //Plot time curves
-  RooPlot* timeFrame = time.frame();
-  timeData.plotOn(timeFrame);
-  timeModel.plotOn(timeFrame);
-  timeModel.plotOn(timeFrame,Components("gaussianTimeHSCPs"),LineStyle(kDashed));
-  timeModel.paramOn(timeFrame);
-  timeFrame->Draw("e0");
-  //Print, close
-  combinedCanvas->Print("plotLikelihoods.png");
-
-  f->Close();
   return 0;
 }
