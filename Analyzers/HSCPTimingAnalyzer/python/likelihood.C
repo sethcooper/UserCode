@@ -3,6 +3,7 @@
 #endif
 #include "RooExtendPdf.h"
 #include <iostream>
+#include <fstream>
 #include "TFile.h"
 #include "TH1.h"
 #include "TStyle.h"
@@ -16,6 +17,10 @@
 #include "RooPlot.h"
 #include "RooFitResult.h"
 #include <memory>
+#include "TMath.h"
+#include "RooAbsPdf.h"
+#include "TF1.h"
+#include "LandauGauss.h"
 
 using namespace RooFit;
 
@@ -121,7 +126,7 @@ void SetEStyle()
   EStyle->SetOptStat(1111111);
 
   //Move stats box
-  //EStyle->SetStatX(0.85);
+  EStyle->SetStatX(0.75);
 
   //marker settings
   EStyle->SetMarkerStyle(8);
@@ -142,8 +147,7 @@ void SetEStyle()
   EStyle->cd();
 }
 
-
-
+//XXX: Main
 int main(int argc, char* argv[])
 {
   using namespace std;
@@ -176,11 +180,18 @@ int main(int argc, char* argv[])
     return -1;
   }
 
+  cout << "****************BEGINNING FIT FOR FILE: " << infile << endl;
+
   //SetEStyle();
   gStyle->SetMarkerSize(0.5);
+  gStyle->SetStatX(0.4);
+  gStyle->SetStatW(0.3);
 
   energyHist->Rebin();
-  timeHist->Rebin();
+  timeHist->Rebin();  // to 250 bins
+  energyHist->Rebin();
+  timeHist->Rebin();  // to 125 bins
+  timeHist->Rebin();  // to 50 bins, each 1 ns wide; sigma is about 3 ns
 
   RooRealVar energy("energy","energy",0,10,"GeV");
   RooDataHist energyData("energyData","dataset with energy",energy,energyHist);
@@ -191,22 +202,38 @@ int main(int argc, char* argv[])
   //RooRealVar xGaussianEnergy("x","x",0,5);
   //RooRealVar xGaussianTimeMuons("x","x",-25,25);
   //RooRealVar xGaussianTimeHSCPs("x","x",-25,25);
-  RooRealVar landauEnergyMean("leMean","leMean",0.2654);
-  RooRealVar landauEnergySigma("leSigma","leSigma",0.03383);
-  RooRealVar gaussianEnergyMean("geMean","geMean",0.5188);
-  RooRealVar gaussianEnergySigma("geSigma","geSigma",0.05863);
-  RooRealVar gaussianTimeMuonsMean("gmMean","gmMean",2.658);
-  RooRealVar gaussianTimeMuonsSigma("gmSigma","gmSigma",3.655);
-  RooRealVar gaussianTimeHSCPsMean("ghMean","ghMean",6.39);
-  RooRealVar gaussianTimeHSCPsSigma("ghSigma","ghSigma",2.472);
+  // Hard-coding the langaus parameters for Pt=50 GeV muons
+  //RooRealVar langausEnergyWidth("langausWidth","landgausWidth",0.01309);
+  //RooRealVar langausEnergyMP("langausMP","langausMP",0.281);
+  //RooRealVar langausEnergyArea("langausArea","langausArea",15.21);
+  //RooRealVar langausEnergyGSigma("langausGSigma","langausGSigma",0.06304);
+  //// Hard-coding the gaussian parameters for KKTau300 and the muons
+  //RooRealVar gaussianEnergyMean("geMean","geMean",0.5188);
+  //RooRealVar gaussianEnergySigma("geSigma","geSigma",0.05863);
+  //RooRealVar gaussianTimeMuonsMean("gmMean","gmMean",2.473);
+  //RooRealVar gaussianTimeMuonsSigma("gmSigma","gmSigma",3.084);
+  //RooRealVar gaussianTimeHSCPsMean("ghMean","ghMean",6.39);
+  //RooRealVar gaussianTimeHSCPsSigma("ghSigma","ghSigma",2.472);
+
+  RooRealVar langausEnergyWidth("langausWidth","landgausWidth",0.005,0.025);
+  RooRealVar langausEnergyMP("langausMP","langausMP",0.200,0.400);
+  RooRealVar langausEnergyArea("langausArea","langausArea",1,25);
+  RooRealVar langausEnergyGSigma("langausGSigma","langausGSigma",0.030,0.070);
+  RooRealVar gaussianEnergyMean("geMean","geMean",0.45,0.65);
+  RooRealVar gaussianEnergySigma("geSigma","geSigma",0.04,0.07);
+  RooRealVar gaussianTimeMuonsMean("gmMean","gmMean",1.5,3.5);
+  RooRealVar gaussianTimeMuonsSigma("gmSigma","gmSigma",3,8);
+  RooRealVar gaussianTimeHSCPsMean("ghMean","ghMean",5,8);
+  RooRealVar gaussianTimeHSCPsSigma("ghSigma","ghSigma",2,7);
   //name,title,variable,mean,sigma
-  RooLandau* landauEnergy = new RooLandau("landauEnergy","landauEnergy",energy,landauEnergyMean,landauEnergySigma);
+  //RooLandau* landauEnergy = new RooLandau("landauEnergy","landauEnergy",energy,landauEnergyMean,landauEnergySigma);
+  LandauGauss* langausEnergy = new LandauGauss("lanGausEnergy","lanGausEnergy",energy,langausEnergyWidth,langausEnergyMP,langausEnergyArea,langausEnergyGSigma);
   RooGaussian* gaussianEnergy = new RooGaussian("gaussianEnergy","gaussianEnergy",energy,gaussianEnergyMean,gaussianEnergySigma);
   RooGaussian* gaussianTimeMuons = new RooGaussian("gaussianTimeMuons","gaussianTimeMuons",time,gaussianTimeMuonsMean,gaussianTimeMuonsSigma);
   RooGaussian* gaussianTimeHSCPs = new RooGaussian("gaussianTimeHSCPs","gaussianTimeHSCPs",time,gaussianTimeHSCPsMean,gaussianTimeHSCPsSigma);
 
   RooRealVar sigFracEne("sigFracE","signal fraction (energy)",0.5,0,1);
-  RooAddPdf energyModel("energyModel","energyModel",RooArgList(*gaussianEnergy,*landauEnergy),sigFracEne);
+  RooAddPdf energyModel("energyModel","energyModel",RooArgList(*gaussianEnergy,*langausEnergy),sigFracEne);
 
   RooRealVar sigFracTime("sigFracT","signal fraction (time)",0.5,0,1);
   RooAddPdf timeModel("timeModel","timeModel",RooArgList(*gaussianTimeHSCPs,*gaussianTimeMuons),sigFracTime);
@@ -244,19 +271,85 @@ int main(int argc, char* argv[])
   energyData.plotOn(energyFrame);
   energyModel.plotOn(energyFrame);
   energyModel.plotOn(energyFrame,Components("gaussianEnergy"),LineStyle(kDashed));
-  energyModel.paramOn(energyFrame);
+  energyModel.paramOn(energyFrame,Layout(0.55));
   energyFrame->Draw("e0");
   combinedCanvas->cd(2);
   //Plot time curves
+  gStyle->SetStatX(0.8);
   RooPlot* timeFrame = time.frame();
   timeData.plotOn(timeFrame);
   timeModel.plotOn(timeFrame);
   timeModel.plotOn(timeFrame,Components("gaussianTimeHSCPs"),LineStyle(kDashed));
   timeModel.paramOn(timeFrame);
   timeFrame->Draw("e0");
-  //Print, close
+  //Print
   combinedCanvas->Print("plotLikelihoods.png");
 
+
+  //Loop over hists: energyHist, timeHist and calculate the likelihood
+  float logEnergyLikelihood = 0;
+  float logEnergyLikelihoodBack = 0;
+  RooArgSet* energyArgSet = new RooArgSet(energy);
+  for(int bin = 1; bin < energyHist->GetNbinsX(); bin++)
+  {
+    int numBinEntries = energyHist->GetBinContent(bin);
+    energy = energyHist->GetBinCenter(bin);
+    if(numBinEntries > 0)
+    {
+      logEnergyLikelihood+=log(energyModel.getVal(energyArgSet))*numBinEntries;
+      logEnergyLikelihoodBack+=log(langausEnergy->getVal(energyArgSet))*numBinEntries;
+    }
+    //debug
+    //if(numBinEntries > 0)
+    //{
+    //  cout << "Energy bin entries: " << numBinEntries << ".  Probs at " << energyHist->GetBinCenter(bin) << ": " << endl;
+    //  cout << "\t S+B prob: " << energyModel.getVal(energyArgSet) << endl;
+    //  cout << "\t B only prob: " << langausEnergy->getVal(energyArgSet) << endl;
+    //  cout << "\t S+B - B prob: " << energyModel.getVal(energyArgSet) - langausEnergy->getVal(energyArgSet) << endl;
+    //  cout << "\t S+B LL so far: " << logEnergyLikelihood << " vs. B only LL so far: " << logEnergyLikelihoodBack << endl;
+    //  //cout << "Total likelihood at bin: " << log(energyModel.getVal())*numBinEntries << " likelihood so far: " << logEnergyLikelihood << endl;
+    //}
+  }
+  float logTimeLikelihood = 0;
+  float logTimeLikelihoodBack = 0;
+  RooArgSet* timeArgSet = new RooArgSet(time);
+  for(int bin = 1; bin < timeHist->GetNbinsX(); bin++)
+  {
+    int numBinEntries = timeHist->GetBinContent(bin);
+    time = timeHist->GetBinCenter(bin);
+    if(numBinEntries > 0)
+    {
+      logTimeLikelihood+=log(timeModel.getVal(timeArgSet))*numBinEntries;
+      logTimeLikelihoodBack+=log(gaussianTimeMuons->getVal(timeArgSet))*numBinEntries;
+    }
+  }
+
+  delete energyArgSet;
+  delete timeArgSet;
   f->Close();
+
+  cout << "Energy likelihood for S+B model: " << logEnergyLikelihood << " Likelihood for B only model: " << logEnergyLikelihoodBack << endl;
+  cout << "Energy (log) likelihood difference: " << logEnergyLikelihood-logEnergyLikelihoodBack << endl;
+  cout << "Time likelihood for S+B model: " << logTimeLikelihood << " Likelihood for B only model: " << logTimeLikelihoodBack << endl;
+  cout << "Time (log) likelihood difference: " << logTimeLikelihood-logTimeLikelihoodBack << endl;
+  
+  ofstream outputStream("likelihoodDifferences_muons.txt",ios::app);
+  if(!outputStream.is_open())
+  {
+    cout << "ERROR: Unable to write to file (file is not open)." << endl;
+    return -1;
+  }
+  if(!outputStream.good())
+  {
+    cout << "ERROR: Unable to write to file (file is not open)." << endl;
+    return -1;
+  }
+
+  // Get to the end of the file
+  outputStream.seekp(0,ios::end);
+  // Energy, tab, time
+  outputStream << logEnergyLikelihood-logEnergyLikelihoodBack << "\t" << logTimeLikelihood-logTimeLikelihoodBack << endl;
+  outputStream.close();
+
   return 0;
 }
