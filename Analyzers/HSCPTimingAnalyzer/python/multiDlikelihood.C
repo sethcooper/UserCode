@@ -10,8 +10,8 @@
 #include "TCanvas.h"
 #include "TMath.h"
 #include "TF1.h"
-#include "TNtuple.h"
 #include "TTree.h"
+#include "TCut.h"
 #include "RooExtendPdf.h"
 #include "RooRealVar.h"
 #include "RooLandau.h"
@@ -181,14 +181,28 @@ int main(int argc, char* argv[])
   gStyle->SetStatX(0.4);
   gStyle->SetStatW(0.3);
 
-  RooRealVar energy("energy","energy",0,2,"GeV");
-  RooRealVar time("time","time",-25,25, "ns");
+  RooRealVar energy("energy","energy",0.404038867,2.5,"GeV");
+  RooRealVar time("time","time",1.363982,25, "ns");
+  RooRealVar chi2("chi2","chi2",0,10);
 
   //TFile* myfile = new TFile("tmp.root","RECREATE");
   //myfile->cd();
-  RooDataSet* energyTimeData = new RooDataSet("energyTimeData","energyTimeData",energyTimeTNtuple,RooArgSet(energy,time));//,"energy>0.400");
+  //RooFormulaVar myForm("myForm","chi2 > 0",RooArgSet(chi2));
+  //RooFormulaVar myForm("myForm","chi2 < 1",RooArgSet(chi2));
+  RooDataSet* energyTimeChi2Data = new RooDataSet("energyTimeChi2Data","energyChi2TimeData",energyTimeTNtuple,RooArgSet(energy,time,chi2));
+  TCut chi2Cut1 = "chi2 < 0.96227527";
+  TCut chi2Cut2 = "chi2 > 0";
+  RooDataSet* energyTimeDataChi2cut = (RooDataSet*) energyTimeChi2Data->reduce(chi2Cut1);
+  RooDataSet* energyTimeData = new RooDataSet("energyTimeData","energyTimeData",energyTimeDataChi2cut,RooArgSet(energy,time));
+  //TCut energyCut = "energy > 0.320";
+  //RooDataSet* energyTimeData = (RooDataSet*) energyTimeDataRaw->reduce(energyCut);
 
-  cout << "****************Created RooDataSet" << endl;
+  // 1-D datasets
+  RooDataSet* energyData = new RooDataSet("energyData","energyData",energyTimeData,RooArgSet(energy));
+  RooDataSet* timeData = new RooDataSet("timeDataRaw","timeDataRaw",energyTimeData,RooArgSet(time));
+
+  int numEntries = energyTimeData->numEntries();
+  cout << "****************Created RooDataSet with " << numEntries << " entries!" << endl;
 
   //RooRealVar xLandauEnergy("x","x",0,5);
   //RooRealVar xGaussianEnergy("x","x",0,5);
@@ -207,16 +221,17 @@ int main(int argc, char* argv[])
   //RooRealVar gaussianTimeHSCPsMean("ghMean","ghMean",6.39);
   //RooRealVar gaussianTimeHSCPsSigma("ghSigma","ghSigma",2.472);
 
-  RooRealVar langausEnergyWidth("langausWidth","landgausWidth",0.005,0.025);
-  RooRealVar langausEnergyMP("langausMP","langausMP",0.200,0.400);
-  RooRealVar langausEnergyArea("langausArea","langausArea",1,25);
-  RooRealVar langausEnergyGSigma("langausGSigma","langausGSigma",0.030,0.070);
-  RooRealVar gaussianEnergyMean("geMean","geMean",0.45,0.65);
-  RooRealVar gaussianEnergySigma("geSigma","geSigma",0.04,0.07);
-  RooRealVar gaussianTimeMuonsMean("gmMean","gmMean",1.5,3.5);
-  RooRealVar gaussianTimeMuonsSigma("gmSigma","gmSigma",3,8);
-  RooRealVar gaussianTimeHSCPsMean("ghMean","ghMean",5,8);
-  RooRealVar gaussianTimeHSCPsSigma("ghSigma","ghSigma",2,7);
+  RooRealVar gaussianEnergyMean("E_hgMean","E_hgMean",0.5167);
+  RooRealVar gaussianEnergySigma("E_hgSigma","E_hgSigma",0.06243);
+  RooRealVar langausEnergyArea("E_langausArea","E_langausArea",75.53);
+  RooRealVar langausEnergyGSigma("E_langausGSigma","E_langausGSigma",0.03954);
+  RooRealVar langausEnergyMP("E_langausMP","E_langausMP",0.317);
+  RooRealVar langausEnergyWidth("E_langausWidth","E_landgausWidth",0.01606);
+  RooRealVar gaussianTimeHSCPsMean("T_hMean","T_hMean",6.538);
+  RooRealVar gaussianTimeHSCPsSigma("T_hSigma","T_hSigma",2.291);
+  RooRealVar gaussianTimeMuonsMean("T_muMean","T_muMean",2.338);
+  RooRealVar gaussianTimeMuonsSigma("T_muSigma","T_muSigma",2.991);
+
   //name,title,variable,mean,sigma
   LandauGauss* langausEnergy = new LandauGauss("lanGausEnergy","lanGausEnergy",energy,langausEnergyWidth,langausEnergyMP,langausEnergyArea,langausEnergyGSigma);
   RooGaussian* gaussianEnergy = new RooGaussian("gaussianEnergy","gaussianEnergy",energy,gaussianEnergyMean,gaussianEnergySigma);
@@ -230,35 +245,52 @@ int main(int argc, char* argv[])
   RooProdPdf energyAndTimeModel("energyAndTimeModel","energyAndTimeModel",RooArgSet(energyModel,timeModel));
 
   // Make background-only model
-  RooProdPdf energyAndTimeBackModel("energyAndTimeBackModel","energyAndTimeBackModel",RooArgSet(*langausEnergy,*gaussianTimeMuons));
+  LandauGauss* langausEnergyBack = new LandauGauss("lanGausEnergyBack","lanGausEnergyBack",energy,langausEnergyWidth,langausEnergyMP,langausEnergyArea,langausEnergyGSigma);
+  RooGaussian* gaussianTimeMuonsBack = new RooGaussian("gaussianTimeMuonsBack","gaussianTimeMuonsBack",time,gaussianTimeMuonsMean,gaussianTimeMuonsSigma);
+  RooProdPdf energyAndTimeBackModel("energyAndTimeBackModel","energyAndTimeBackModel",RooArgSet(*langausEnergyBack,*gaussianTimeMuonsBack));
 
-  //Plot once before fitting
-  //TCanvas* combinedCanvasBef = new TCanvas("combinedCanvasBef","combinedCanvasBef",1,1,1800,600);
-  //combinedCanvasBef->Divide(2,1);
-  //combinedCanvasBef->cd(1);
-  ////Plot energy curves
-  //RooPlot* energyFrameBef = energy.frame();
-  //energyData.plotOn(energyFrameBef);
-  //energyModel.plotOn(energyFrameBef);
-  //energyModel.plotOn(energyFrameBef,Components("gaussianEnergy"),LineStyle(kDashed));
-  //energyModel.paramOn(energyFrameBef);
-  //energyFrameBef->Draw("e0");
-  //combinedCanvasBef->cd(2);
-  ////Plot time curves
-  //RooPlot* timeFrameBef = time.frame();
-  //timeData.plotOn(timeFrameBef);
-  //timeModel.plotOn(timeFrameBef);
-  //timeModel.plotOn(timeFrameBef,Components("gaussianTimeHSCPs"),LineStyle(kDashed));
-  //timeModel.paramOn(timeFrameBef);
-  //timeFrameBef->Draw("e0");
-  //combinedCanvasBef->Print("plotLikelihoodsBeforeFit.png");
+  // 1-D model vars -- background
+  RooRealVar backEnergyArea("E_backArea","E_backArea",75.53);
+  RooRealVar backEnergyGSigma("E_backGSigma","E_backGSigma",0.03954);
+  RooRealVar backEnergyMP("E_backMP","E_backMP",0.317);
+  RooRealVar backEnergyWidth("E_backWidth","E_backWidth",0.01606);
+  RooRealVar backTimeMean("T_backMean","T_backMean",2.338);
+  RooRealVar backTimeSigma("T_backSigma","T_backSigma",2.991); 
+  //LandauGauss* backEnergyModel1D = new LandauGauss("backEnergyModel1D","backEnergyModel1D",energy,backEnergyWidth,backEnergyMP,backEnergyArea,backEnergyGSigma);
+  //RooGaussian* backTimeModel1D = new RooGaussian("backTimeModel1D","backTimeModel1D",time,backTimeMean,backTimeSigma);
 
-  // Fit, including maximizing signal fraction
+  // 1-D model vars -- background+signal
+  RooRealVar gaussianEnergyMean1("E_hgMean1","E_hgMean1",0.5167);
+  RooRealVar gaussianEnergySigma1("E_hgSigma1","E_hgSigma1",0.06243);
+  RooRealVar langausEnergyArea1("E_langausArea1","E_langausArea1",75.53);
+  RooRealVar langausEnergyGSigma1("E_langausGSigma1","E_langausGSigma1",0.03954);
+  RooRealVar langausEnergyMP1("E_langausMP1","E_langausMP1",0.317);
+  RooRealVar langausEnergyWidth1("E_langausWidth1","E_landgausWidth1",0.01606);
+  RooRealVar gaussianTimeHSCPsMean1("T_hMean1","T_hMean1",6.538);
+  RooRealVar gaussianTimeHSCPsSigma1("T_hSigma1","T_hSigma1",2.291);
+  RooRealVar gaussianTimeMuonsMean1("T_muMean1","T_muMean1",2.338);
+  RooRealVar gaussianTimeMuonsSigma1("T_muSigma1","T_muSigma1",2.991);
+  LandauGauss* langausEnergy1D = new LandauGauss("lanGausEnergy1D","lanGausEnergy1D",energy,langausEnergyWidth1,langausEnergyMP1,langausEnergyArea1,langausEnergyGSigma1);
+  RooGaussian* gaussianEnergy1D = new RooGaussian("gaussianEnergy1D","gaussianEnergy1D",energy,gaussianEnergyMean1,gaussianEnergySigma1);
+  RooGaussian* gaussianTimeMuons1D = new RooGaussian("gaussianTimeMuons1D","gaussianTimeMuons1D",time,gaussianTimeMuonsMean1,gaussianTimeMuonsSigma1);
+  RooGaussian* gaussianTimeHSCPs1D = new RooGaussian("gaussianTimeHSCPs1D","gaussianTimeHSCPs1D",time,gaussianTimeHSCPsMean1,gaussianTimeHSCPsSigma1);
+  RooRealVar sigFracE("sigFracE","signal fractionE",0.5,0,1);
+  RooRealVar sigFracT("sigFracT","signal fractionT",0.5,0,1);
+  RooAddPdf energyModel1D("energyModel1D","energyModel1D",RooArgList(*gaussianEnergy1D,*langausEnergy1D),sigFracE);
+  RooAddPdf timeModel1D("timeModel1D","timeModel1D",RooArgList(*gaussianTimeHSCPs1D,*gaussianTimeMuons1D),sigFracT);
+
+  // Fit, maximizing signal fraction
   energyAndTimeModel.fitTo(*energyTimeData);
-  energyAndTimeBackModel.fitTo(*energyTimeData);
+  energyModel1D.fitTo(*energyData);
+  timeModel1D.fitTo(*timeData);
+  //TODO: fix this background model fitting issue...
+  // Well, you can't fit a function with fixed parameters...
+  //energyAndTimeBackModel.fitTo(*energyTimeData);
+  //backEnergyModel1D.fitTo(*energyData);
+  // backTimeModel1D.fitTo(*timeData);
 
-  TCanvas* combinedCanvas = new TCanvas("combinedCanvas","combinedCanvas",1,1,1800,600);
-  combinedCanvas->Divide(2,1);
+  TCanvas* combinedCanvas = new TCanvas("combinedCanvas","combinedCanvas",1,1,1800,1600);
+  combinedCanvas->Divide(1,2);
   combinedCanvas->cd(1);
   //Plot energy curves
   RooPlot* energyFrame = energy.frame();
@@ -273,7 +305,7 @@ int main(int argc, char* argv[])
   energyTimeData->plotOn(timeFrame);
   energyAndTimeModel.plotOn(timeFrame);
   energyAndTimeModel.plotOn(timeFrame,Components("gaussianTimeHSCPs"),LineStyle(kDashed));
-  energyAndTimeModel.paramOn(timeFrame);
+  energyAndTimeModel.paramOn(timeFrame,Layout(0.7));
   timeFrame->Draw("e0");
   //Print
   combinedCanvas->Print("plotLikelihoods.png");
@@ -281,11 +313,32 @@ int main(int argc, char* argv[])
   //Make 2-D plot of PDF
   TH1* hh_model = energyAndTimeModel.createHistogram("hh_model",energy,Binning(50),YVar(time,Binning(50))) ;
   hh_model->SetLineColor(kBlue);
-  TCanvas* modelCanvas = new TCanvas("2DCanvas","2DCanvas",400,400);
+  TCanvas* modelCanvas = new TCanvas("2DCanvas","2DCanvas",600,600);
   modelCanvas->cd();
   hh_model->Draw("surf");
-  //energyTimeData->Draw();
+  //energyTimeData->Draw("energy");
+  //energyTimeData->Draw("time");
   modelCanvas->Print("plotLikelihoods2D_data.png");
+
+  // 1-D plots
+  TCanvas* combinedCanvas1D = new TCanvas("combinedCanvas1D","combinedCanvas1D",1,1,1800,1600);
+  combinedCanvas1D->Divide(1,2);
+  combinedCanvas1D->cd(1);
+  RooPlot* energyFrame2 = energy.frame();
+  energyData->plotOn(energyFrame2);
+  energyModel1D.plotOn(energyFrame2);
+  energyModel1D.plotOn(energyFrame2,Components("gaussianEnergy1D"),LineStyle(kDashed));
+  energyModel1D.paramOn(energyFrame2,Layout(0.55));
+  energyFrame2->Draw("e0");
+  combinedCanvas1D->cd(2);
+  RooPlot* timeFrame2 = time.frame();
+  timeData->plotOn(timeFrame2);
+  timeModel1D.plotOn(timeFrame2);
+  timeModel1D.plotOn(timeFrame2,Components("gaussianTimeHSCPs1D"),LineStyle(kDashed));
+  timeModel1D.paramOn(timeFrame2,Layout(0.7));
+  timeFrame2->Draw("e0");
+  //Print
+  combinedCanvas1D->Print("plotLikelihoods1D.png");
 
   //Loop over hists: energyHist, timeHist and calculate the likelihood
   float logLikelihood = 0;
@@ -293,17 +346,17 @@ int main(int argc, char* argv[])
   float ntupEnergy, ntupTime;
   energyTimeTNtuple->SetBranchAddress("energy",&ntupEnergy);
   energyTimeTNtuple->SetBranchAddress("time",&ntupTime);
-  RooArgSet* energyTimeArgSet = new RooArgSet(energy,time);
   for(int entry = 1; entry < energyTimeTNtuple->GetEntries(); entry++)
   {
     energyTimeTNtuple->GetEntry(entry);
     energy = ntupEnergy;
     time = ntupTime;
-    logLikelihood+=log(energyAndTimeModel.getVal(energyTimeArgSet));
-    logLikelihoodBack+=log(energyAndTimeBackModel.getVal(energyTimeArgSet));
+    logLikelihood+=log(energyAndTimeModel.getVal(new RooArgSet(energy,time)));
+    logLikelihoodBack+=log(energyAndTimeBackModel.getVal(new RooArgSet(energy,time)));
+    //std::cout << "LogLikelihood = " << log(energyAndTimeModel.getVal(energyTimeArgSet)) << std::endl;
+    //std::cout << "LogLikelihoodBack = " << log(energyAndTimeBackModel.getVal(energyTimeArgSet)) << std::endl;
   }
 
-  delete energyTimeArgSet;
   f->Close();
 
   cout << "Likelihood for S+B model: " << logLikelihood << " Likelihood for B only model: " << logLikelihoodBack << endl;
