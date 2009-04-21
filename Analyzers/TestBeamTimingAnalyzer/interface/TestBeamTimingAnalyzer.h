@@ -9,7 +9,7 @@
      <Notes on implementation>
 */
 //
-// $Id: TestBeamTimingAnalyzer.h,v 1.7 2009/02/02 17:15:23 scooper Exp $
+// $Id: TestBeamTimingAnalyzer.h,v 1.8 2009/02/03 21:49:34 scooper Exp $
 //
 
 
@@ -57,8 +57,8 @@ class TestBeamTimingAnalyzer : public edm::EDAnalyzer {
    
    private:
 
-      
       std::string rootfile_;
+      std::string calibrationFile_;
       std::string digiCollection_;
       std::string digiProducer_;
       std::string hitCollection_;
@@ -69,6 +69,8 @@ class TestBeamTimingAnalyzer : public edm::EDAnalyzer {
       std::string tdcRecInfoProducer_;
       std::string eventHeaderCollection_;
       std::string eventHeaderProducer_;
+      double minimumAmpForCalib_;
+      bool useOddEvents_;
 
       std::vector<std::string>* names;
 
@@ -91,6 +93,7 @@ class TestBeamTimingAnalyzer : public edm::EDAnalyzer {
       TH1F* recoMinusTDCCry2EnergyBin_[50];
       std::map<int,TH1F> recoTimeMinusTDCTimeByCry_;
       //TH1F* recoTimeMinusTDCTimeByCry_[25];
+      TH2F* crysConsideredEtaPhiHists_[50];
       
       TH2F* timingHistMap[25]; 
       TH1F* amplitudeHistMap[25];
@@ -145,6 +148,8 @@ class TestBeamTimingAnalyzer : public edm::EDAnalyzer {
       const EcalElectronicsMapping* ecalElectronicsMap_;
       const CaloSubdetectorGeometry* geometry_barrel_; 
       TTree* histoNames_;
+      std::map<int,double> timingCalibMap_;
+
 };
 
 

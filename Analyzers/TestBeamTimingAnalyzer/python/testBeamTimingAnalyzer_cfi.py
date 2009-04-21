@@ -11,5 +11,7 @@ testBeamTimingAnalyzer = cms.EDAnalyzer("TestBeamTimingAnalyzer",
    eventHeaderCollection = cms.string(""),
    rootfile = cms.untracked.string("testBeamTimingAnalyzer.root"),
    digiCollection = cms.string("ebDigis"),
-   digiProducer = cms.string("ecalTBunpack")
+   digiProducer = cms.string("ecalTBunpack"),
+   minimumAmpForCalib = cms.double(29.0),
+   useOddEvents = cms.bool(True)
 )
