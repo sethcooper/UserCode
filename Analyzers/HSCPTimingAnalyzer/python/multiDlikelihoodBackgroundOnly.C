@@ -314,51 +314,85 @@ int main(int argc, char* argv[])
   TCanvas projectionCanvas1("Energy0to0.2","energy 0 to 0.2 GeV");
   projectionCanvas1.cd();
   energy.setRange("signal",0,0.2);
-  RooPlot* frame = time.frame();
-  energyTimeData->plotOn(frame,CutRange("signal"));
-  energyAndTimeBackModel.plotOn(frame,ProjectionRange("signal"));
-  energyAndTimeBackModel.paramOn(frame);
-  frame->Draw("e0");
+  //RooPlot* frame = time.frame();
+  //energyTimeData->plotOn(frame,CutRange("signal"));
+  //energyAndTimeBackModel.plotOn(frame,ProjectionRange("signal"));
+  //energyAndTimeBackModel.paramOn(frame);
+  //frame->Draw("e0");
+  TH1D* energy0to2Hist = energyTimeData->createHistogram(time,energy,"energy>0 && energy<0.2")->ProjectionX();
+  energy0to2Hist->Fit("gaus");
+  energy0to2Hist->Draw();
   projectionCanvas1.Write();
+
   // Projection 0.2 < E < 0.4
   TCanvas projectionCanvas2("Energy0.2to0.4","energy 0.2 to 0.4 GeV");
   projectionCanvas2.cd();
   energy.setRange("signal",0.2,0.4);
-  RooPlot* frame2 = time.frame();
-  energyTimeData->plotOn(frame2,CutRange("signal"));
-  energyAndTimeBackModel.plotOn(frame2,ProjectionRange("signal"));
-  energyAndTimeBackModel.paramOn(frame2);
-  frame2->Draw("e0");
+  //RooPlot* frame2 = time.frame();
+  //energyTimeData->plotOn(frame2,CutRange("signal"));
+  //energyAndTimeBackModel.plotOn(frame2,ProjectionRange("signal"));
+  //energyAndTimeBackModel.paramOn(frame2);
+  //frame2->Draw("e0");
+  TH1D* energy2to4Hist = energyTimeData->createHistogram(time,energy,"energy>0.2 && energy<0.4")->ProjectionX();
+  energy2to4Hist->Fit("gaus");
+  energy2to4Hist->Draw();
   projectionCanvas2.Write();
+
+  // Projection 0.2 < E < 0.28
+  TCanvas projectionCanvas6("Energy0.2to0.28","energy 0.2 to 0.28 GeV");
+  projectionCanvas6.cd();
+  energy.setRange("signal",0.2,0.28);
+  TH1D* energy2to28Hist = energyTimeData->createHistogram(time,energy,"energy>0.2 && energy<0.28")->ProjectionX();
+  energy2to28Hist->Fit("gaus");
+  energy2to28Hist->Draw();
+  projectionCanvas6.Write();
+  // Projection 0.28 < E < 0.4
+  TCanvas projectionCanvas7("Energy0.28to0.4","energy 0.28 to 0.4 GeV");
+  projectionCanvas7.cd();
+  energy.setRange("signal",0.28,0.4);
+  TH1D* energy28to4Hist = energyTimeData->createHistogram(time,energy,"energy>0.28 && energy<0.4")->ProjectionX();
+  energy28to4Hist->Fit("gaus");
+  energy28to4Hist->Draw();
+  projectionCanvas7.Write();
+  
   // Projection 0.4 < E < 0.6
   TCanvas projectionCanvas3("Energy0.4to0.6","energy 0.4 to 0.6 GeV");
   projectionCanvas3.cd();
   energy.setRange("signal",0.4,0.6);
-  RooPlot* frame3 = time.frame();
-  energyTimeData->plotOn(frame3,CutRange("signal"));
-  energyAndTimeBackModel.plotOn(frame3,ProjectionRange("signal"));
-  energyAndTimeBackModel.paramOn(frame3);
-  frame3->Draw("e0");
+  //RooPlot* frame3 = time.frame();
+  //energyTimeData->plotOn(frame3,CutRange("signal"));
+  //energyAndTimeBackModel.plotOn(frame3,ProjectionRange("signal"));
+  //energyAndTimeBackModel.paramOn(frame3);
+  TH1D* energy4to6Hist = energyTimeData->createHistogram(time,energy,"energy>0.4 && energy<0.6")->ProjectionX();
+  energy4to6Hist->Fit("gaus");
+  energy4to6Hist->Draw();
   projectionCanvas3.Write();
+  
   // Projection 0.6 < E < 0.8
   TCanvas projectionCanvas4("Energy0.6to0.8","energy 0.6 to 0.8 GeV");
   projectionCanvas4.cd();
   energy.setRange("signal",0.6,0.8);
-  RooPlot* frame4 = time.frame();
-  energyTimeData->plotOn(frame4,CutRange("signal"));
-  energyAndTimeBackModel.plotOn(frame4,ProjectionRange("signal"));
-  energyAndTimeBackModel.paramOn(frame4);
-  frame4->Draw("e0");
+  //RooPlot* frame4 = time.frame();
+  //energyTimeData->plotOn(frame4,CutRange("signal"));
+  //energyAndTimeBackModel.plotOn(frame4,ProjectionRange("signal"));
+  //energyAndTimeBackModel.paramOn(frame4);
+  TH1D* energy6to8Hist = energyTimeData->createHistogram(time,energy,"energy>0.6 && energy<0.8")->ProjectionX();
+  energy6to8Hist->Fit("gaus");
+  energy6to8Hist->Draw();
   projectionCanvas4.Write();
+  
   // Projection 0.8 < E < 1.0
   TCanvas projectionCanvas5("Energy0.8to1.0","energy 0.8 to 1.0 GeV");
   projectionCanvas5.cd();
   energy.setRange("signal",0.8,1.0);
-  RooPlot* frame5 = time.frame();
-  energyTimeData->plotOn(frame5,CutRange("signal"));
-  energyAndTimeBackModel.plotOn(frame5,ProjectionRange("signal"));
-  energyAndTimeBackModel.paramOn(frame5);
-  frame5->Draw("e0");
+  //RooPlot* frame5 = time.frame();
+  //energyTimeData->plotOn(frame5,CutRange("signal"));
+  //energyAndTimeBackModel.plotOn(frame5,ProjectionRange("signal"));
+  //energyAndTimeBackModel.paramOn(frame5);
+  TH1D* energy8to10Hist = energyTimeData->createHistogram(time,energy,"energy>0.8 && energy<1.0")->ProjectionX();
+  energy8to10Hist->Fit("gaus");
+  energy8to10Hist->Draw();
+  //frame5->Draw("e0");
   projectionCanvas5.Write();
 
 

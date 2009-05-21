@@ -6,7 +6,6 @@
 <use name=TrackingTools/TrackAssociator>
 <use name=rootcore>
 <flags EDM_PLUGIN=1>
-<lib name=RooFit>
 <export>
    <lib name=AnalyzersHSCPTimingAnalyzer>
    <use name=FWCore/Framework>

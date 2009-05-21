@@ -13,7 +13,7 @@
 //
 // Original Author:  Seth COOPER
 //         Created:  Wed Dec 17 23:20:43 CET 2008
-// $Id: HSCPTimingAnalyzer.cc,v 1.3 2009/02/19 20:05:26 scooper Exp $
+// $Id: HSCPTimingAnalyzer.cc,v 1.4 2009/02/23 16:33:35 scooper Exp $
 //
 //
 
@@ -30,11 +30,15 @@
 #include "FWCore/ParameterSet/interface/ParameterSet.h"
 //
 #include "FWCore/ServiceRegistry/interface/Service.h"
-#include "PhysicsTools/UtilAlgos/interface/TFileService.h"
+//#include "PhysicsTools/UtilAlgos/interface/TFileService.h"
 #include "TH1.h"
 #include "TH2.h"
 #include "TProfile.h"
 #include "TGraph.h"
+#include "TNtuple.h"
+#include "TTree.h"
+#include "TFile.h"
+#include "TROOT.h"
 #include "SimDataFormats/TrackingHit/interface/PSimHit.h"
 #include "SimDataFormats/CaloHit/interface/PCaloHitContainer.h"
 #include "DataFormats/EcalDetId/interface/EBDetId.h"
@@ -49,13 +53,6 @@
 #include "TrackingTools/TrackAssociator/interface/TrackDetectorAssociator.h"
 #include "TrackingTools/TrackAssociator/interface/TrackAssociatorParameters.h"
 #include "DataFormats/EcalDetId/interface/EcalSubdetector.h"
-
-// *** for probability/likelihood stuff
-#include "RooRealVar.h"
-#include "RooDataSet.h"
-#include "RooArgSet.h"
-#include "RooLandau.h"
-#include "RooGaussian.h"
 
 
 // class decleration
@@ -92,15 +89,14 @@ class HSCPTimingAnalyzer : public edm::EDAnalyzer {
       TH2D* recHitTimeVsSimHitTime_;
       TH1D* simHitsPerEventHist_;
       TH2D* recHitTimeSimHitTimeVsEnergy_;
-      TH1D* probOfMuon_;
-      TH1D* probOfHSCP_;
-      TH2D* probMuonVsProbHSCP_;
-      //XXX: possible thoughts for later...
-      TH2D* probMuonMinusProbHSCPVsRecEnergy_;
-      TH2D* probMuonMinusProbHSCPVsRecTime_;
+      TH1D* recHitsPerTrackHist_;
 
       TProfile* recHitMaxEnergyShapeProfile_;
       TGraph* recHitMaxEnergyShapeGraph_;
+
+      TTree* energyAndTimeNTuple_;
+
+      TFile* file_;
 
       std::vector<double> sampleNumbers_;
       std::vector<double> amplitudes_;
@@ -109,6 +105,11 @@ class HSCPTimingAnalyzer : public edm::EDAnalyzer {
       TrackAssociatorParameters trackParameters_;
 
       double minTrackPt_;
+      std::string fileName_;
+
+      float energy_;
+      float time_;
+      float chi2_;
 };
 
 //
@@ -118,7 +119,7 @@ class HSCPTimingAnalyzer : public edm::EDAnalyzer {
 //
 // static data member definitions
 //
-edm::Service<TFileService> fileService;
+//edm::Service<TFileService> fileService;
 
 //
 // constructors and destructor
@@ -127,29 +128,36 @@ HSCPTimingAnalyzer::HSCPTimingAnalyzer(const edm::ParameterSet& iConfig) :
   EBHitCollection_ (iConfig.getParameter<edm::InputTag>("EBRecHitCollection")),
   EBUncalibRecHits_ (iConfig.getParameter<edm::InputTag>("EBUncalibRecHits")),
   EBDigiCollection_ (iConfig.getParameter<edm::InputTag>("EBDigiCollection")),
-  minTrackPt_ (iConfig.getParameter<double>("minimumTrackPt"))
+  minTrackPt_ (iConfig.getParameter<double>("minimumTrackPt")),
+  fileName_ (iConfig.getParameter<std::string>("RootFileName"))
 {
    //now do what ever initialization is needed
-   simHitsEnergyHist_ = fileService->make<TH1D>("simHitsEnergy","Energy of sim hits [GeV]",200,0,2);
-   simHitsTimeHist_ = fileService->make<TH1D>("simHitsTime","Time of sim hits [ns]",500,-25,25);
-   recHitTimeSimHitTimeHist_ = fileService->make<TH1D>("recHitTimeSimHitTime","RecHit time - simHit time [ns]",500,-25,25);
-   recHitTimeHist_ = fileService->make<TH1D>("recHitTime","RecHit time",500,-25,25);
-   recHitEnergyHist_ = fileService->make<TH1D>("recHitEnergy","RecHit energy [GeV]",500,0,2);
-   recHitMaxEnergyHist_ = fileService->make<TH1D>("recHitMaxEnergy","Energy of max. ene. recHit [GeV]",500,0,2);
-   recHitMaxEnergyTimingHist_ = fileService->make<TH1D>("recHitMaxEnergyTiming","Timing of max ene. recHit [ns]",500,-25,25);
-   recHitMaxEnergyShapeProfile_ = fileService->make<TProfile>("recHitMaxEnergyShapeProfile","Shape of max energy hits [ADC]",10,0,10);
-   energyOfTrackMatchedHits_ = fileService->make<TH1D>("summedEnergyOfTrackMatchedHits", "Energy of track-matched hits [GeV]",500,0,2);
-   timeOfTrackMatchedHits_ = fileService->make<TH1D>("timeOfTrackMatchedHits", "Time of track-matched hits [ns]",500,-25,25);
-   timeVsEnergyOfTrackMatchedHits_ = fileService->make<TH2D>("timeVsEnergyOfTrackMatchedHits","Time [ns] vs. energy [GeV] for track-matched hits",500,0,2,500,-25,25);
-   crossedEnergy_ = fileService->make<TH1D>("crossedEcalEnergy", "Total energy of track-crossing xtals [GeV]",500,0,2);
-   recHitTimeVsSimHitTime_ = fileService->make<TH2D>("recHitTimeVsSimHitTime","recHitTime vs. simHitTime [ns]",500,-25,25,500,-25,25);
-   simHitsPerEventHist_ = fileService->make<TH1D>("simHitsPerEvent","Number of SimHits per event",25,0,25);
-   recHitTimeSimHitTimeVsEnergy_ = fileService->make<TH2D>("recHitTimeSimHitTimeVsEnergy","recHitTime-simHitTime vs. RecHit energy",500,0,2,500,-25,25);
-   probOfMuon_ = fileService->make<TH1D>("probOfMuon","Probability that particle is a muon",100,0,1);
-   probOfHSCP_ = fileService->make<TH1D>("probOfHSCP","Probability that particle is an HSCP",100,0,1);
-   probMuonVsProbHSCP_ = fileService->make<TH2D>("probMuonVsProbHSCP","probMuon vs. probHSCP",100,0,1,100,0,1);
-   probMuonMinusProbHSCPVsRecEnergy_ = fileService->make<TH2D>("probMuonMinusProbHSCPRecEne","probMuon-probHSCP vs. energy [GeV]",500,0,2,100,0,1);
-   probMuonMinusProbHSCPVsRecTime_ = fileService->make<TH2D>("probMuonMinusProbHSCPRecTime","probMuon-probHSCP vs. time [ns]",500,-25,25,100,0,1);
+   file_ = new TFile(fileName_.c_str(),"RECREATE");
+   //gROOT->cd();  // Causes Root Fill error after ~ 8k events
+   file_->cd();
+
+   simHitsEnergyHist_ = new TH1D("simHitsEnergy","Energy of sim hits [GeV]",200,0,2);
+   simHitsTimeHist_ = new TH1D("simHitsTime","Time of sim hits [ns]",500,-25,25);
+   recHitTimeSimHitTimeHist_ = new TH1D("recHitTimeSimHitTime","RecHit time - simHit time [ns]",500,-25,25);
+   recHitTimeHist_ = new TH1D("recHitTime","RecHit time",500,-25,25);
+   recHitEnergyHist_ = new TH1D("recHitEnergy","RecHit energy [GeV]",500,0,2);
+   recHitMaxEnergyHist_ = new TH1D("recHitMaxEnergy","Energy of max. ene. recHit [GeV]",500,0,2);
+   recHitMaxEnergyTimingHist_ = new TH1D("recHitMaxEnergyTiming","Timing of max ene. recHit [ns]",500,-25,25);
+   recHitMaxEnergyShapeProfile_ = new TProfile("recHitMaxEnergyShapeProfile","Shape of max energy hits [ADC]",10,0,10);
+   energyOfTrackMatchedHits_ = new TH1D("summedEnergyOfTrackMatchedHits", "Energy of track-matched hits [GeV]",500,0,2);
+   timeOfTrackMatchedHits_ = new TH1D("timeOfTrackMatchedHits", "Time of track-matched hits [ns]",500,-25,25);
+   timeVsEnergyOfTrackMatchedHits_ = new TH2D("timeVsEnergyOfTrackMatchedHits","Time [ns] vs. energy [GeV] for track-matched hits",500,0,2,500,-25,25);
+   crossedEnergy_ = new TH1D("crossedEcalEnergy", "Total energy of track-crossing xtals [GeV]",500,0,2);
+   recHitTimeVsSimHitTime_ = new TH2D("recHitTimeVsSimHitTime","recHitTime vs. simHitTime [ns]",500,-25,25,500,-25,25);
+   simHitsPerEventHist_ = new TH1D("simHitsPerEvent","Number of SimHits per event",25,0,25);
+   recHitTimeSimHitTimeVsEnergy_ = new TH2D("recHitTimeSimHitTimeVsEnergy","recHitTime-simHitTime vs. RecHit energy",500,0,2,500,-25,25);
+   recHitsPerTrackHist_ = new TH1D("ecalRecHitsPerTrack","Number of Ecal RecHits per track",10,0,10);
+
+   //energyAndTimeNTuple_ = fileService->make<TNtuple>("energyAndTimeNTuple","Energy and Time for track-matched RecHits","energy:time");
+   energyAndTimeNTuple_ = new TTree("energyAndTimeNTuple","Energy and Time for track-matched RecHits");
+   energyAndTimeNTuple_->Branch("energy",&energy_,"energy/F");
+   energyAndTimeNTuple_->Branch("time",&time_,"time/F");
+   energyAndTimeNTuple_->Branch("chi2",&chi2_,"chi2/F");
 
    // TrackAssociator parameters
    edm::ParameterSet trkParameters = iConfig.getParameter<edm::ParameterSet>("TrackAssociatorParameters");
@@ -345,6 +353,7 @@ HSCPTimingAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSe
     }
   }
 
+
   // Loop over recoTracks and use TrackAssociator
   for(reco::TrackCollection::const_iterator recoTrack = recoTracks->begin(); recoTrack != recoTracks->end(); ++recoTrack)
   {
@@ -359,6 +368,7 @@ HSCPTimingAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSe
 
     double summedEnergy = 0;
     double myTime = -99;
+    int recHitsPerTrack = 0;
     
     for (unsigned int i=0; i<info.crossedEcalIds.size(); i++)
     {
@@ -367,15 +377,15 @@ HSCPTimingAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSe
       {
         EBDetId ebDetId (info.crossedEcalIds[i]);
 
-        //XXX: Chi2 cut
+        //XXX: Chi2 info
         EcalUncalibratedRecHitCollection::const_iterator thisUncalibRecHit =  EBUncalibRecHitsHandle_->find(ebDetId);
         if(thisUncalibRecHit==EBUncalibRecHitsHandle_->end())
         {
           std::cout << "Could not find crossedEcal detId: " << ebDetId << " in uncalibRecHitCollection!" << std::endl;
           continue;
         }
-        if(thisUncalibRecHit->chi2() < 0)
-          continue;
+        //if(thisUncalibRecHit->chi2() < 0)
+        //  continue;
 
         EcalRecHitCollection::const_iterator thishit = ebRecHits->find(ebDetId);
         if (thishit == ebRecHits->end()) 
@@ -385,63 +395,51 @@ HSCPTimingAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSe
         }
 
         EcalRecHit myhit = (*thishit);
-        timeOfTrackMatchedHits_->Fill(25*myhit.time());
-        timeVsEnergyOfTrackMatchedHits_->Fill(myhit.energy(),25*myhit.time());
-        summedEnergy+=myhit.energy();
-        if(myTime=-99)
-          myTime=25*myhit.time();
+        myTime=25*myhit.time();
+
+        if(thisUncalibRecHit->chi2() > 0)
+        {
+          timeOfTrackMatchedHits_->Fill(myTime);
+          timeVsEnergyOfTrackMatchedHits_->Fill(myhit.energy(),myTime);
+          summedEnergy+=myhit.energy();
+          recHitsPerTrack++;
+        }
+        // Fill TTree in any case
+        energy_ = myhit.energy();
+        time_ = myTime;
+        chi2_ = thisUncalibRecHit->chi2();
+        energyAndTimeNTuple_->Fill();
+
+        if(myTime > 20 || myTime < -20)
+        {
+          EBDigiCollection::const_iterator digiItr = ebDigis->begin();
+          while(digiItr != ebDigis->end() && digiItr->id() != maxDetId)
+            ++digiItr;
+          if(digiItr==ebDigis->end())
+            return;
+          EBDataFrame df(*digiItr);
+          double pedestal = 200;
+          //if(df.sample(0).gainId()!=1 || df.sample(1).gainId()!=1) return; //goes to the next digi
+          //else {
+          //  pedestal = (double)(df.sample(0).adc()+df.sample(1).adc())/(double)2;
+          //}
+          for (int i=0; (unsigned int)i< digiItr->size(); ++i )
+          {
+            double gain = 12.;
+            if(df.sample(i).gainId()==1)
+              gain = 1.;
+            else if(df.sample(i).gainId()==2)
+              gain = 2.;
+          }
+        }
       }
     }
     if(summedEnergy > 0)
       energyOfTrackMatchedHits_->Fill(summedEnergy);
     crossedEnergy_->Fill(info.ecalCrossedEnergy());
-
-    // Initialize template functions
-    // TODO: make mean,sigma,etc. into parameters!
-    //
-    RooRealVar xLandauEnergy("x","x",0,5);
-    RooRealVar xGaussianEnergy("x","x",0,5);
-    RooRealVar xGaussianTimeMuons("x","x",-25,25);
-    RooRealVar xGaussianTimeHSCPs("x","x",-25,25);
-    //RooRealVar landauMean("lMean","lMean",0.3183);
-    //RooRealVar landauSigma("lSigma","lSigma",0.05487);
-    RooRealVar landauEnergyMean("leMean","leMean",0.2654);
-    RooRealVar landauEnergySigma("leSigma","leSigma",0.03383);
-    RooRealVar gaussianEnergyMean("geMean","geMean",0.5188);
-    RooRealVar gaussianEnergySigma("geSigma","geSigma",0.05863);
-    RooRealVar gaussianTimeMuonsMean("gmMean","gmMean",2.658);
-    RooRealVar gaussianTimeMuonsSigma("gmSigma","gmSigma",3.655);
-    RooRealVar gaussianTimeHSCPsMean("ghMean","ghMean",6.39);
-    RooRealVar gaussianTimeHSCPsSigma("ghSigma","ghSigma",2.472);
-    //name,title,variable,mean,sigma
-    RooLandau landauEnergy("landauEnergy","landauEnergy",xLandauEnergy,landauEnergyMean,landauEnergySigma);
-    RooGaussian gaussianEnergy("gaussianEnergy","gaussianEnergy",xGaussianEnergy,gaussianEnergyMean,gaussianEnergySigma);
-    RooGaussian gaussianTimeMuons("gaussianTimeMuons","gaussianTimeMuons",xGaussianTimeMuons,gaussianTimeMuonsMean,gaussianTimeMuonsSigma);
-    RooGaussian gaussianTimeHSCPs("gaussianTimeHSCPs","gaussianTimeHSCPs",xGaussianTimeHSCPs,gaussianTimeHSCPsMean,gaussianTimeHSCPsSigma);
-    xLandauEnergy = summedEnergy;
-    xGaussianEnergy = summedEnergy;
-    xGaussianTimeMuons = myTime;
-    xGaussianTimeHSCPs = myTime;
-    //Two-var formula?
-    //double muonLikelihood = 10000*landauEnergy.getVal()*10000*gaussianTimeMuons.getVal();
-    //double HSCPLikelihood = gaussianEnergy.getVal()*gaussianTimeHSCPs.getVal();
-    //double muonProb = muonLikelihood/(muonLikelihood+HSCPLikelihood);
-    //double hscpProb = HSCPLikelihood/(muonLikelihood+HSCPLikelihood);
-    //Old energy-only formulation
-    //double muonProb = 10000*landau.getVal()/(10000*landau.getVal()+gaussian.getVal());
-    //double hscpProb = gaussian.getVal()/(10000*landau.getVal()+gaussian.getVal());
-    //Time-only formulation
-    double muonProb = 10000*gaussianTimeMuons.getVal()/(10000*gaussianTimeMuons.getVal()+gaussianTimeHSCPs.getVal());
-    double hscpProb = gaussianTimeHSCPs.getVal()/(10000*gaussianTimeMuons.getVal()+gaussianTimeHSCPs.getVal());
-    std::cout << "Energy: " << summedEnergy << " HSCP prob: " << hscpProb << " MUON prob: " << muonProb << std::endl;
-    probOfMuon_->Fill(muonProb);
-    probOfHSCP_->Fill(hscpProb);
-    probMuonVsProbHSCP_->Fill(hscpProb,muonProb);
-    probMuonMinusProbHSCPVsRecTime_->Fill(myTime,muonProb-hscpProb);
-    probMuonMinusProbHSCPVsRecEnergy_->Fill(summedEnergy,muonProb-hscpProb);
-  }      
+    recHitsPerTrackHist_->Fill(recHitsPerTrack);
+  }
 }
-
 
 // ------------ method called once each job just before starting event loop  ------------
 void 
@@ -453,9 +451,33 @@ HSCPTimingAnalyzer::beginJob(const edm::EventSetup&)
 void 
 HSCPTimingAnalyzer::endJob()
 {
-   recHitMaxEnergyShapeGraph_ = fileService->make<TGraph>(sampleNumbers_.size(), &(*sampleNumbers_.begin()),&(*amplitudes_.begin()));
+   recHitMaxEnergyShapeGraph_ = new TGraph(sampleNumbers_.size(), &(*sampleNumbers_.begin()),&(*amplitudes_.begin()));
    recHitMaxEnergyShapeGraph_->SetTitle("Shape of max energy hits (ADC)");
    recHitMaxEnergyShapeGraph_->SetName("recHitMaxEnergyShapeGraph");
+
+   file_->cd();
+
+   simHitsTimeHist_->Write();
+   simHitsEnergyHist_->Write();
+   recHitTimeSimHitTimeHist_->Write();
+   recHitTimeHist_->Write();
+   recHitEnergyHist_->Write();
+   recHitMaxEnergyHist_->Write();
+   recHitMaxEnergyTimingHist_->Write();
+   energyOfTrackMatchedHits_->Write();
+   timeOfTrackMatchedHits_->Write();
+   timeVsEnergyOfTrackMatchedHits_->Write();
+   crossedEnergy_->Write();
+   recHitTimeVsSimHitTime_->Write();
+   simHitsPerEventHist_->Write();
+   recHitTimeSimHitTimeVsEnergy_->Write();
+   recHitsPerTrackHist_->Write();
+
+   recHitMaxEnergyShapeProfile_->Write();
+   recHitMaxEnergyShapeGraph_->Write();
+
+   energyAndTimeNTuple_->Write();
+   file_->Close();
 }
 
 //define this as a plug-in
