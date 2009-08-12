@@ -35,6 +35,7 @@
 #include "Geometry/CaloGeometry/interface/CaloGeometry.h"
 #include "Geometry/CaloGeometry/interface/TruncatedPyramid.h"
 #include "Geometry/Records/interface/IdealGeometryRecord.h"
+#include "Geometry/Records/interface/CaloGeometryRecord.h"
 #include "FWCore/Framework/interface/ESHandle.h"
 #include "DataFormats/GeometryVector/interface/GlobalPoint.h"
 #include "DataFormats/DetId/interface/DetId.h"
@@ -71,9 +72,6 @@ private:
 EEGeometryDump::EEGeometryDump(const edm::ParameterSet & iConfig)
 {
   //now do what ever initialization is needed
-
-  std::cout << "ctor" << std::endl;
-
 }
 
 
@@ -102,56 +100,44 @@ void EEGeometryDump::beginJob(const edm::EventSetup & iSetup)
   using namespace std;
   using namespace edm;
   
-  // make EE DetIDs for whole EE+
-
-  EEDetId eeId;
-
   ESHandle < CaloGeometry > geoHandle;
-  iSetup.get < IdealGeometryRecord > ().get(geoHandle);
+  iSetup.get < CaloGeometryRecord > ().get(geoHandle);
   const CaloSubdetectorGeometry *geometry_p =
       geoHandle->getSubdetectorGeometry(DetId::Ecal, EcalEndcap);
-
-  EBDetId myId1  = EBDetId(19, 1, 1);
-  EBDetId myId2  = EBDetId(19,20, 1);
 
   const CaloSubdetectorGeometry *geometry_pp =
     geoHandle->getSubdetectorGeometry(DetId::Ecal, EcalBarrel);
 
-  const CaloCellGeometry *cell1 = geometry_pp->getGeometry(myId1);
-  GlobalPoint p1 = (dynamic_cast <const TruncatedPyramid *>  (cell1))->getPosition(0);
-  cout <<  "myId1" << p1.eta() << '\t' << p1.phi() << endl;
+  EBDetId myId1  = EBDetId(-15,68);
+  //EBDetId myId2  = EBDetId(19,20, 1);
 
-  const CaloCellGeometry *cell2 = geometry_pp->getGeometry(myId2);
-  GlobalPoint p2 = (dynamic_cast <const TruncatedPyramid *> (cell2))->getPosition(0);
-  cout <<  "myId2" << p2.eta() << '\t' << p2.phi() << endl;
+  const CaloCellGeometry *cell_p = geometry_pp->getGeometry(myId1);
+  const CaloCellGeometry::CornersVec& cellCorners (cell_p->getCorners());
+  for(int i=0; i<7; ++i)
+    std::cout << "Corner: " << i << " eta: " << cellCorners[i].eta() << " phi: " 
+      << cellCorners[i].phi() << std::endl;
 
-  for (int i = 86; i <= 95; i++) 
-  {
-    for (int j = 46; j <= 55; j++) 
-    {
-      if (eeId.validDetId(i, j, +1)) 
-      {
-        eeId = EEDetId(i, j, +1);
-        const CaloCellGeometry *cell_p = geometry_p->getGeometry(eeId);
-
-        //Get position of center of crystal
-        GlobalPoint p = (dynamic_cast <const TruncatedPyramid *> (cell_p))->getPosition(0);
-        
-        int ieta, iphi;
-       // if(p.eta() < 1.740)
-       // {
-          ieta = (int) ceil(p.eta()/0.087);
-          iphi = (int) ceil(p.phi()*(180.0/3.141592)); //5.0);
-      //  }
-      //  else
-      //  {
-      //    ieta = (int) ceil(p.eta()/0.090);
-      //    iphi = (int) ceil(p.phi()*(180.0/3.141592)/10.0);
-      //  }
-        cout << i << " " << j << " " << p.eta() << " "  << p.phi() << endl;
-      }
-    }
-  }
+  //for (int ieta = -85; ieta < 86; ++ieta)
+  //{
+  //  float etaAvgZ = 0;
+  //  int numCrys = 0;
+  //  for (int iphi = 1; iphi < 361; ++iphi)
+  //  {
+  //    if (EBDetId::validDetId(ieta,iphi))
+  //    {
+  //      EBDetId det = EBDetId(ieta,iphi);
+  //      const CaloCellGeometry *cell_p = geometry_pp->getGeometry(det);
+  //      //Get position of center of crystal
+  //      GlobalPoint p = (dynamic_cast <const TruncatedPyramid *> (cell_p))->getPosition(0);
+  //      etaAvgZ+=p.z();
+  //      numCrys++;
+  //      cout << "ieta: " << ieta << " iphi: " << iphi << " eta,phi: " << p.eta() << "," <<
+  //        p.phi() << endl;
+  //    }
+  //  }
+  //  etaAvgZ/=numCrys;
+  //  //cout << etaAvgZ << "," << endl;
+  //}
 }
 
 // ------------ method called once each job just after ending the event loop  ------------
