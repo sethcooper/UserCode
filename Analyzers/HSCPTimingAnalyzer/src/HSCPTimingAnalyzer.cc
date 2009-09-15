@@ -13,7 +13,7 @@
 //
 // Original Author:  Seth COOPER
 //         Created:  Wed Dec 17 23:20:43 CET 2008
-// $Id: HSCPTimingAnalyzer.cc,v 1.7 2009/08/04 07:20:26 scooper Exp $
+// $Id: HSCPTimingAnalyzer.cc,v 1.8 2009/09/15 08:24:13 scooper Exp $
 //
 //
 
@@ -210,6 +210,7 @@ class HSCPTimingAnalyzer : public edm::EDAnalyzer {
       float cryTime_;
       float cryChi2_;
       float cryTrackLength_;
+      float cryDeDx_;
       float muonPt_;
       int numCrysCrossed_;
       int eventNum_;
@@ -309,6 +310,7 @@ HSCPTimingAnalyzer::HSCPTimingAnalyzer(const edm::ParameterSet& iConfig) :
    energyAndTimeNTuple_->Branch("crystalTime",&cryTime_,"cryTime/F");
    energyAndTimeNTuple_->Branch("crystalChi2",&cryChi2_,"cryChi2/F");
    energyAndTimeNTuple_->Branch("crystalTrackLength",&cryTrackLength_,"cryTrackLength/F");
+   energyAndTimeNTuple_->Branch("crystalDeDx",&cryDeDx_,"cryDeDx/F");
    energyAndTimeNTuple_->Branch("muonPt",&muonPt_,"muonPt/F");
    energyAndTimeNTuple_->Branch("numCrysCrossed",&numCrysCrossed_,"numCrysCrossed/I");
    energyAndTimeNTuple_->Branch("eventNum",&eventNum_,"eventNum/I");
@@ -510,25 +512,14 @@ HSCPTimingAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSe
     recHitTimeHist_->Fill(25*recHitItr->time());
     recHitEnergyHist_->Fill(0.97*recHitItr->energy());
   }
-  //if(maxEnergy > -9999)
-  //{
-    //SIC TODO TEST XXX
-    //if(maxEnergy>1)
-    //{
-      //recHitMaxEnergyHist_->Fill(maxEnergy);
-      //recHitMaxEnergyTimingHist_->Fill(bestTime);
-    //}
-    // Changed this to max-energy track-matched cry
-
-  //}
-
 
   // Now loop over Reco::Muon
   for(reco::MuonCollection::const_iterator MUit = theMuons->begin(); MUit != theMuons->end () ; ++MUit)
   {
     //XXX: Cut on GlobalMuon criteria
     // However, this is not necessary in the general case...
-    //if(!MUit->isGlobalMuon()) continue;
+    // But without it, at the moment, we produce an exception.
+    if(!MUit->isGlobalMuon()) continue;
 
     //std::cout << "RecoTrack found with Pt (GeV): "  << recoTrack->outerPt() << std::endl;
     // XXX: Pt Cut
@@ -548,18 +539,6 @@ HSCPTimingAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSe
     FreeTrajectoryState innInnerState = tsTransform.innerFreeState(*muonInnerTrack, &*bField_);
     FreeTrajectoryState innOuterState = tsTransform.outerFreeState(*muonInnerTrack, &*bField_);
     
-    //float pointX, pointY, pointZ;
-    //float directionX, directionY, directionZ;
-    //pointX = (float)muonInnerTrack->outerPosition().x();
-    //pointY = (float)muonInnerTrack->outerPosition().y();
-    //pointZ = (float)muonInnerTrack->outerPosition().z();
-    //directionX = (float)muonInnerTrack->outerMomentum().x();
-    //directionY = (float)muonInnerTrack->outerMomentum().y();
-    //directionZ = (float)muonInnerTrack->outerMomentum().z();
-
-    //GlobalPoint point(pointX, pointY, pointZ);
-    //GlobalVector direction(directionX, directionY, directionZ);
-
     // Build set of points in Ecal (necklace) using the propagator
     std::vector<SteppingHelixStateInfo> neckLace;
     neckLace = calcEcalDeposit(&glbInnerState, &glbOuterState,&innInnerState, &innOuterState, trackParameters_);
@@ -582,7 +561,7 @@ HSCPTimingAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSe
     }
     
     numCrysCrossed_ = muonCrossedXtalCurvedMap.size();
-    //XXX: Only look at events where 1 cry was crossed, for now
+    //XXX: Only look at events where 1 cry was crossed, for now (used for all-EB samples)
     if(numCrysCrossed_ != 1)
       return;
     
@@ -592,7 +571,8 @@ HSCPTimingAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSe
     //XXX: Energy cut on muon timing hist
     //if(myMuonEnergy.emMax > 1)
     //XXX: Only plot muons in the endcaps for now and put in a big energy cut
-    if(ecalDet.subdetId()==EcalEndcap && myMuonEnergy.emMax > 5)
+    //if(ecalDet.subdetId()==EcalEndcap && myMuonEnergy.emMax > 5)
+    if(myMuonEnergy.emMax > energyCut_)
     {
       muonEcalMaxEnergyTimingHist_->Fill(myMuonEnergy.ecal_time);
       muonEcalMaxEnergyHist_->Fill(myMuonEnergy.emMax);
@@ -637,6 +617,7 @@ HSCPTimingAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSe
         cryTime_ = -999;
         cryEnergy_ = -999;
         cryChi2_ = -999;
+        cryDeDx_ = -999;
         energyAndTimeNTuple_->Fill();
         continue;
       }
@@ -725,8 +706,9 @@ HSCPTimingAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSe
 
       // Fill TTree branch arrays
       cryTime_ = thisHit->time();
-      cryEnergy_ = thisHit->energy();
+      cryEnergy_ = contCorr_*0.97*thisHit->energy();
       cryChi2_ = thisUncalibRecHit->chi2();
+      cryDeDx_ = contCorr_*1000*0.97*thisHit->energy()/trackLengthInXtal;
       energyAndTimeNTuple_->Fill();
     }
     numCrysCrossedVsNumHitsFoundHist_->Fill(numRecHitsFound,numCrysCrossed_);
