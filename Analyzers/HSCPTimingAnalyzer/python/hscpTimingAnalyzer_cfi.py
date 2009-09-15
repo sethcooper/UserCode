@@ -9,6 +9,7 @@ hscpTimingAnalyzer = cms.EDAnalyzer('HSCPTimingAnalyzer',
     RootFileName = cms.untracked.string("hscpTimingAnalyzer.root"),
     muonCollection = cms.InputTag("muons"),
     trackCollection = cms.InputTag("generalTracks"),
+    energyCut = cms.untracked.double(0.0),
 #    TrackAssociatorParameterBlock = cms.PSet(
 #      TrackAssociatorParameters = cms.PSet(
 #        muonMaxDistanceSigmaX = cms.double(0.0),
