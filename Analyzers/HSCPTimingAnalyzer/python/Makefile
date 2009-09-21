@@ -1,11 +1,15 @@
+CC=gcc
+CFLAGS=-Wall -O2 -g `root-config --cflags`
+LIBS=`root-config --libs` -lRooFit -lRooFitCore -lMinuit
+
 all : LandauGauss.lib bgOnly sigOnly multiDlikelihood.C
-	gcc -Wall -o multiD -g `root-config --libs --cflags` -lRooFit -lRooFitCore multiDlikelihood.C LandauGauss.lib
+	$(CC) $(CFLAGS) $(LIBS) -o multiD multiDlikelihood.C LandauGauss.lib
 
 LandauGauss.lib : LandauGauss.o
-	gcc -shared -g -o LandauGauss.lib LandauGaussDict.C LandauGauss.o `root-config --libs --cflags` -lRooFit -lRooFitCore -lMinuit
+	$(CC) $(CFLAGS) $(LIBS) -shared -o LandauGauss.lib LandauGaussDict.C LandauGauss.o 
 
 LandauGauss.o : LandauGaussDict.C
-	gcc -fPIC -g -c LandauGauss.cxx `root-config --cflags --libs` -lRooFit -lRooFitCore -lMinuit
+	$(CC) $(CFLAGS) $(LIBS) -fPIC -c LandauGauss.cxx 
 
 LandauGaussDict.C : LandauGauss.h LandauGauss.cxx
 	rootcint -f LandauGaussDict.C -c LandauGauss.h
@@ -15,7 +19,7 @@ clean :
 
 
 bgOnly: LandauGauss.lib multiDlikelihoodBackgroundOnly.C
-	gcc -Wall -o multiDback -g `root-config --libs --cflags` -lRooFit -lRooFitCore multiDlikelihoodBackgroundOnly.C LandauGauss.lib
+	$(CC) $(CFLAGS) $(LIBS) -o multiDback multiDlikelihoodBackgroundOnly.C LandauGauss.lib
 
 sigOnly: multiDlikelihoodSignalOnly.C
-	gcc -Wall -o multiDsig -g `root-config --libs --cflags` -lRooFit -lRooFitCore multiDlikelihoodSignalOnly.C
+	$(CC) $(CFLAGS) $(LIBS) -o multiDsig multiDlikelihoodSignalOnly.C
