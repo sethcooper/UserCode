@@ -8,7 +8,6 @@
 <use name=rootinteractive>
 <use name=DataFormats/CaloRecHit>
 <use name=Geometry/CaloGeometry>
-<use name=Geometry/CaloEventSetup>
 <flags EDM_PLUGIN=1>
 <export>
    <lib name=AnalyzersEcalTimeCalibGraphs>

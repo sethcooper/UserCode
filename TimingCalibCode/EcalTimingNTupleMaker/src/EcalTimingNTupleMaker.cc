@@ -9,13 +9,15 @@
 // Original Author:  J. Haupt  
 //
 // 
-#include "Analyzers/EcalTimingNTupleMaker/interface/EcalTimingNTupleMaker.h"
+#include "TimingCalibCode/EcalTimingNTupleMaker/interface/EcalTimingNTupleMaker.h"
 #include "DataFormats/EcalRecHit/interface/EcalUncalibratedRecHit.h"
 #include "DataFormats/EcalRecHit/interface/EcalRecHitCollections.h"
 #include "DataFormats/EcalDetId/interface/EBDetId.h"
 #include "DataFormats/EcalDigi/interface/EcalDigiCollections.h"
 #include "DataFormats/EcalDigi/interface/EcalPnDiodeDigi.h"
-#include <DataFormats/EcalRawData/interface/EcalRawDataCollections.h>
+#include "DataFormats/EcalRawData/interface/EcalRawDataCollections.h"
+#include "FWCore/Framework/interface/MakerMacros.h"
+
 
 #include "FWCore/Framework/interface/EventSetup.h"
 #include "FWCore/Framework/interface/ESHandle.h"
@@ -1061,4 +1063,4 @@ double EcalTimingNTupleMaker::timecorr(const CaloSubdetectorGeometry *geometry_p
    return (time/25.-1.5);
 }
 
-
+DEFINE_FWK_MODULE(EcalTimingNTupleMaker);

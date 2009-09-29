@@ -1,5 +1,4 @@
 <use name=FWCore/Framework>
-<use name=Foundation/PluginManager>
 <use name=FWCore/ParameterSet>
 <use name=clhep>
 <use name=DataFormats/EcalDigi>
@@ -9,12 +8,10 @@
 <lib name=Minuit>
 <use name=Geometry/EcalMapping>
 <use name=Geometry/CaloGeometry>
-<use name=Geometry/CaloEventSetup>
 <flags EDM_PLUGIN=1>
 <export>
    <lib name=AnalyzersEcalTimingNTupleMaker>
    <use name=FWCore/Framework>
-   <use name=Foundation/PluginManager>
    <use name=FWCore/ParameterSet>
    <use name=DataFormats/EcalDigi>
    <use name=DataFormats/EcalRecHit>
@@ -23,6 +20,4 @@
    <lib name=Minuit>
    <use name=Geometry/EcalMapping>
    <use name=Geometry/CaloGeometry>
-   <use name=Geometry/CaloEventSetup>
-
 </export>
