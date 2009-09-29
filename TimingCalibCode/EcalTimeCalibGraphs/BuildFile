@@ -1,0 +1,18 @@
+<use name=FWCore/Framework>
+<use name=FWCore/PluginManager>
+<use name=FWCore/ParameterSet>
+<use name=DataFormats/EcalDetId>
+<use name=Geometry/EcalMapping>
+<use name=PhysicsTools/UtilAlgos>
+<use name=root>
+<use name=rootinteractive>
+<use name=DataFormats/CaloRecHit>
+<use name=Geometry/CaloGeometry>
+<use name=Geometry/CaloEventSetup>
+<flags EDM_PLUGIN=1>
+<export>
+   <lib name=AnalyzersEcalTimeCalibGraphs>
+   <use name=FWCore/Framework>
+   <use name=FWCore/PluginManager>
+   <use name=FWCore/ParameterSet>
+</export>
