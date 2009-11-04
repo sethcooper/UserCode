@@ -197,13 +197,17 @@ int main(int argc, char* argv[])
   //myfile->cd();
   //RooFormulaVar myForm("myForm","chi2 > 0",RooArgSet(chi2));
   //RooFormulaVar myForm("myForm","chi2 < 1",RooArgSet(chi2));
-  RooDataSet* energyTimeChi2Data = new RooDataSet("energyTimeChi2Data","energyChi2TimeData",energyTimeTNtuple,RooArgSet(energy,time,chi2));
-  TCut chi2Cut1 = "chi2 < 0.96";
-  TCut chi2Cut2 = "chi2 > 0";
-  RooDataSet* energyTimeDataChi2cut = (RooDataSet*) energyTimeChi2Data->reduce(chi2Cut2);
-  TCut cut1 = "energy > 0.4 || time < 15";
-  RooDataSet* energyTimeCutData = (RooDataSet*) energyTimeDataChi2cut->reduce(cut1);
-  RooDataSet* energyTimeData = new RooDataSet("energyTimeData","energyTimeData",energyTimeCutData,RooArgSet(energy,time));
+  
+  //RooDataSet* energyTimeChi2Data = new RooDataSet("energyTimeChi2Data","energyChi2TimeData",energyTimeTNtuple,RooArgSet(energy,time,chi2));
+  //TCut chi2Cut1 = "chi2 < 0.96";
+  //TCut chi2Cut2 = "chi2 > 0";
+  //RooDataSet* energyTimeDataChi2cut = (RooDataSet*) energyTimeChi2Data->reduce(chi2Cut2);
+  //TCut cut1 = "energy > 0.4 || time < 15";
+  //RooDataSet* energyTimeCutData = (RooDataSet*) energyTimeDataChi2cut->reduce(cut1);
+  //RooDataSet* energyTimeData = new RooDataSet("energyTimeData","energyTimeData",energyTimeCutData,RooArgSet(energy,time));
+  RooDataSet* energyTimeData = new RooDataSet("energyTimeData","energyTimeData",energyTimeTNtuple,RooArgSet(energy,time));
+
+  
   //TCut energyCut = "energy > 0.320";
   //RooDataSet* energyTimeData = (RooDataSet*) energyTimeDataRaw->reduce(energyCut);
 
@@ -304,7 +308,7 @@ int main(int argc, char* argv[])
   //energyTimeData->Draw();
   //energyTimeData->Draw("time");
   //Print
-  combinedCanvas->Print("plotLikelihoods.png");
+  //combinedCanvas->Print("plotLikelihoods.png");
   combinedCanvas->Write();
   hh_model->Write();
   hh1->Write();
@@ -412,7 +416,7 @@ int main(int argc, char* argv[])
   backTimeModel1D->paramOn(timeFrame2,Layout(0.7));
   timeFrame2->Draw("e0");
   //Print
-  combinedCanvas1D->Print("plotLikelihoods1D.png");
+  //combinedCanvas1D->Print("plotLikelihoods1D.png");
   combinedCanvas1D->Write();
 
   output.Close();
