@@ -177,10 +177,10 @@ int main(int argc, char* argv[])
   std::stringstream roofitstream;
   
   TFile* f = new TFile(infile);
-  //string dirName="hscpTimingAnalyzer/";
+  string dirName="hscpTimingAnalyzer/";
   string ntupleName = "energyAndTimeNTuple";
-  //string fullPath = dirName+ntupleName;
-  TTree* energyTimeTNtuple = (TTree*)f->Get(ntupleName.c_str());
+  string fullPath = dirName+ntupleName;
+  TTree* energyTimeTNtuple = (TTree*)f->Get(fullPath.c_str());
   if(!energyTimeTNtuple)
   {
     cout << "****************No TNtuplewith name " << ntupleName << " found in file: " << infile << endl;
@@ -197,11 +197,17 @@ int main(int argc, char* argv[])
   gStyle->SetStatW(0.3);
 
   // ************************ Define observables *******************************
-  RooRealVar crystalEnergy("crystalEnergy","crystalEnergy",0.4,2.5,"GeV"); // 400 MeV energy cut in 1 cry
+  //RooRealVar crystalEnergy("crystalEnergy","crystalEnergy",0.4,2.5,"GeV"); // 400 MeV energy cut in 1 cry
+  
+  //RooRealVar crystalEnergy("crystalEnergy","crystalEnergy",0.2,2.5,"GeV"); // higher cut will be done with dE/dx below
+  // Using this instead of above for Ledovskoy, DEC 10 2009
+  RooRealVar crystalEnergy("crystalEnergy","crystalEnergy",0,2.5,"GeV");
   RooRealVar crystalTime("crystalTime","crystalTime",-25,25, "ns");
   RooRealVar crystalChi2("crystalChi2","crystalChi2",0,100000);
   RooRealVar crystalTrackLength("crystalTrackLength","crystalTrackLength",0,24,"cm");
-  RooRealVar crystalDeDx("crystalDeDx","crystalDeDx",17.4,50,"MeV/cm"); // 400 MeV energy cut in 1 cry
+  //RooRealVar crystalDeDx("crystalDeDx","crystalDeDx",17.4,50,"MeV/cm"); // 400 MeV energy cut in 1 cry
+  // Using this instead of above for Ledovskoy, DEC 10 2009
+  RooRealVar crystalDeDx("crystalDeDx","crystalDeDx",0,100,"MeV/cm");
 
   // *********************** Load dataset **************************************
   RooDataSet* dedxTimeChi2TrackLengthData = new RooDataSet("dedxTimeChi2Data","dedxChi2TimeData",energyTimeTNtuple,
@@ -235,24 +241,31 @@ int main(int argc, char* argv[])
     return -2;
   }
   
-  
   // **************** Parameters ***********************************************
-  // Hard-coding the dE/dx and time parameters for Pt=50 GeV muons
-  RooRealVar landauDeDxMuonMean("landauDeDxMuonMean","landauDeDxMuonMean",15.18);
-  RooRealVar landauDeDxMuonSigma("landauDeDxMuonSigma","landauDeDxMuonSigma",1.194);
-  RooRealVar gaussianTimeMuonMean("gTimeMuonMean","gTimeMuonMean",2.329);
-  //RooRealVar gaussDeDxMuonMean("gaussDeDxMuonMean","gaussDeDxMuonMean",5,1,10); // floating to get best fit
+  //***** Floating
+  //RooRealVar gaussDeDxMuonMean("gaussDeDxMuonMean","gaussDeDxMuonMean",5,1,10);
   //RooRealVar gaussDeDxMuonSigma("gaussDeDxMuonSigma","gaussDeDxMuonSigma",1,0.6,5);
   //RooRealVar landauDeDxMuonMean("landauDeDxMuonMean","landauDeDxMuonMean",15.1,5,25);
   //RooRealVar landauDeDxMuonSigma("landauDeDxMuonSigma","landauDeDxMuonSigma",1.1,0.1,5);
   //RooRealVar gaussianTimeMuonMean("gTimeMuonMean","gTimeMuonMean",2.3,-2,4);
-  // Hard-coding the gaussian dE/dx and time parameters for kktau
-  RooRealVar gaussianDeDxHSCPMean("geMean","geMean",23.035);
-  RooRealVar gaussianDeDxHSCPSigma("geSigma","geSigma",2.2299);
-  RooRealVar gaussianTimeHSCPMean("ghMean","ghMean",6.708);
-  //RooRealVar gaussianDeDxHSCPMean("geMean","geMean",23.,1,100); // floating to get best fit
+  //***** FIXED params, now based on new samples (singlecry 50 GeV pt muons) SIC NOV 6 2009
+  //RooRealVar landauDeDxMuonMean("landauDeDxMuonMean","landauDeDxMuonMean",12.9);
+  //RooRealVar landauDeDxMuonSigma("landauDeDxMuonSigma","landauDeDxMuonSigma",0.5);
+  //RooRealVar gaussianTimeMuonMean("gTimeMuonMean","gTimeMuonMean",2.48);
+  //***** FIXED PARAMS; V2 -- based on new sample (single cry filtered muons 50 GeV pt) all run 5 files
+  //***** SIC DEC 10 2009
+  RooRealVar landauDeDxMuonMean("landauDeDxMuonMean","landauDeDxMuonMean",13.0);
+  RooRealVar landauDeDxMuonSigma("landauDeDxMuonSigma","landauDeDxMuonSigma",0.59);
+  RooRealVar gaussianTimeMuonMean("gTimeMuonMean","gTimeMuonMean",2.46);
+
+  //***** Floating
+  //RooRealVar gaussianDeDxHSCPMean("geMean","geMean",23.,1,100);
   //RooRealVar gaussianDeDxHSCPSigma("geSigma","geSigma",2.,0.1,10);
   //RooRealVar gaussianTimeHSCPMean("ghMean","ghMean",6.,-2.,10);
+  //***** FIXED params, now based on new samples (singlecry kk tau) SIC NOV 6 2009
+  RooRealVar gaussianDeDxHSCPMean("geMean","geMean",23.5);
+  RooRealVar gaussianDeDxHSCPSigma("geSigma","geSigma",2.23);
+  RooRealVar gaussianTimeHSCPMean("ghMean","ghMean",6.89);
   
   // Background-only model -- muon
   //RooRealVar gaussDeDxMuonMeanBack("gaussDeDxMuonMeanBack","gaussDeDxMuMeanBack",10,1,1000);
@@ -263,17 +276,17 @@ int main(int argc, char* argv[])
   //RooRealVar landauDeDxMuonMeanBack("landauDeDxMuonMeanBack","landauDeDxMuMeanBack",14.1); // old param values
   //RooRealVar landauDeDxMuonSigmaBack("landauDeDxMuonSigmaBack","landauDeDxMuSigmaBack",2.183); //
   //RooRealVar gaussianTimeMuonMeanBack("gTimeMuonMeanBack","gTimeMuonMeanBack",2.33); //
-  RooRealVar landauDeDxMuonMeanBack("landauDeDxMuonMeanBack","landauDeDxMuMeanBack",15.18);
-  RooRealVar landauDeDxMuonSigmaBack("landauDeDxMuonSigmaBack","landauDeDxMuSigmaBack",1.194);
-  RooRealVar gaussianTimeMuonMeanBack("gTimeMuonMeanBack","gTimeMuonMeanBack",2.329);
+  RooRealVar landauDeDxMuonMeanBack("landauDeDxMuonMeanBack","landauDeDxMuMeanBack",13.0);
+  RooRealVar landauDeDxMuonSigmaBack("landauDeDxMuonSigmaBack","landauDeDxMuSigmaBack",0.59);
+  RooRealVar gaussianTimeMuonMeanBack("gTimeMuonMeanBack","gTimeMuonMeanBack",2.46);
 
   // Signal-only model -- kktau
-  RooRealVar gaussianDeDxHSCPMeanSignal("geMeanSignal","geMeanSignal",23.035);
-  RooRealVar gaussianDeDxHSCPSigmaSignal("geSigmaSignal","geSigmaSignal",2.2299);
-  RooRealVar gaussianTimeHSCPMeanSignal("ghMeanSignal","ghMeanSignal",6.708);
+  RooRealVar gaussianDeDxHSCPMeanSignal("geMeanSignal","geMeanSignal",23.5);
+  RooRealVar gaussianDeDxHSCPSigmaSignal("geSigmaSignal","geSigmaSignal",2.23);
+  RooRealVar gaussianTimeHSCPMeanSignal("ghMeanSignal","ghMeanSignal",6.89);
   
   // **************** Create PDFs **********************************************
-  RooRealVar gausTimeSig("gausTimeSig","gausTimeSig",3);//testing
+  //RooRealVar gausTimeSig("gausTimeSig","gausTimeSig",3);//testing
   //RooRealVar a("a","a",1.5766); // (0.042 GeV)/E = A/sigma
   //RooRealVar b("b","b",0.3527); // these are old
   RooRealVar a("a","a",0.8895); // from ecal craft timing note
@@ -302,7 +315,6 @@ int main(int argc, char* argv[])
   //RooProdPdf dedxAndTimeModel("dedxAndTimeModel","dedxAndTimeModel",gaussianDeDxHSCP,Conditional(gaussianTimeHSCP,crystalTime));
   //Background only
   //RooProdPdf dedxAndTimeModel("dedxAndTimeModel","dedxAndTimeModel",landauDeDxMuon,Conditional(gaussianTimeMuon,crystalTime));
-  //RooProdPdf dedxAndTimeModel("dedxAndTimeModel","dedxAndTimeModel",langausDeDxMuon,Conditional(gaussianTimeMuon,crystalTime));
 
   // Make background-only model
   RooLandau landauDeDxMuonBack("landauDeDxMuonBack","landauDeDxMuonBack",crystalDeDx,landauDeDxMuonMeanBack,landauDeDxMuonSigmaBack);
@@ -325,16 +337,17 @@ int main(int argc, char* argv[])
   //RooLandau backEnergyModel1D = new RooLandau("backEnergyModel1D","backEnergyModel1D",crystalDeDx,backDeDxMP,backDeDxSigma);
   //RooGaussian* backTimeModel1D = new RooGaussian("backTimeModel1D","backTimeModel1D",time,backTimeMean,timingRes);
   
-  // 1-D model vars -- background+signal
-  RooRealVar gaussianDeDxMean1("dEdx_hMean1","dEdx_hMean1",23.035);
-  RooRealVar gaussianDeDxSigma1("dEdx_hSigma1","dEdx_hSigma1",2.23);
-  RooRealVar landauDeDxMP1("dEdx_landauMP1","dEdx_landauMP1",15.2);
-  RooRealVar landauDeDxSigma1("dEdx_landauSigma1","dEdx_landauSigma1",1.19);
-  RooRealVar gaussianTimeHSCPMean1("T_hMean1","T_hMean1",6.79);
-  RooRealVar gaussianTimeHSCPSigma1("T_hSigma1","T_hSigma1",4.69);
-  RooRealVar gaussianTimeMuonMean1("T_muMean1","T_muMean1",2.84);
-  RooRealVar gaussianTimeMuonSigma1("T_muSigma1","T_muSigma1",3.99);
+  // 1-D model vars -- background+signal (floating)
+  RooRealVar gaussianDeDxMean1("dEdx_hMean1","dEdx_hMean1",23.035,1,100);
+  RooRealVar gaussianDeDxSigma1("dEdx_hSigma1","dEdx_hSigma1",2.23,0.1,10);
+  RooRealVar landauDeDxMP1("dEdx_landauMP1","dEdx_landauMP1",15.2,5,30);
+  RooRealVar landauDeDxSigma1("dEdx_landauSigma1","dEdx_landauSigma1",1.19,0.1,10);
+  RooRealVar gaussianTimeHSCPMean1("T_hMean1","T_hMean1",6.79,-2,10);
+  RooRealVar gaussianTimeHSCPSigma1("T_hSigma1","T_hSigma1",4.69,0.5,10);
+  RooRealVar gaussianTimeMuonMean1("T_muMean1","T_muMean1",2.84,-5,5);
+  RooRealVar gaussianTimeMuonSigma1("T_muSigma1","T_muSigma1",3.99,0.5,10);
   RooLandau landauDeDx1D("landauDeDxMuon1","landauDeDxMuon1",crystalDeDx,landauDeDxMP1,landauDeDxSigma1);
+
   //crystalDeDx.setBins(10000,"cache");
   //RooFFTConvPdf langausDeDxMuon1("langausDeDxMuon","landau (X) gauss",crystalDeDx,landauDeDxMuon,gaussianDeDxMuon);
   RooGaussian gaussianDeDx1D("gaussianDeDx1D","gaussianDeDx1D",crystalDeDx,gaussianDeDxMean1,gaussianDeDxSigma1);
@@ -343,16 +356,17 @@ int main(int argc, char* argv[])
   RooRealVar sigFracE("sigFracE","signal fractionE",0.5,0,1);
   RooRealVar sigFracT("sigFracT","signal fractionT",0.5,0,1);
   // Signal + background
-  RooAddPdf dedxModel1D("dedxModel1D","dedxModel1D",RooArgList(gaussianDeDx1D,landauDeDx1D),sigFracE);
-  RooAddPdf timeModel1D("timeModel1D","timeModel1D",RooArgList(gaussianTimeHSCP1D,gaussianTimeMuon1D),sigFracT);
+  //RooAddPdf dedxModel1D("dedxModel1D","dedxModel1D",RooArgList(gaussianDeDx1D,landauDeDx1D),sigFracE);
+  //RooAddPdf timeModel1D("timeModel1D","timeModel1D",RooArgList(gaussianTimeHSCP1D,gaussianTimeMuon1D),sigFracT);
   // Signal only
   //RooGaussian dedxModel1D = gaussianDeDx1D;
   //RooGaussian timeModel1D = gaussianTimeHSCP1D;
   // Background only
-  //RooLandau dedxModel1D = landauDeDx1D;
-  //RooGaussian timeModel1D = gaussianTimeMuon1D;
+  RooLandau dedxModel1D = landauDeDx1D;
+  RooGaussian timeModel1D = gaussianTimeMuon1D;
 
   // 1-D fits
+  std::cout << "Performing 1-D fits" << std::endl;
   dedxModel1D.fitTo(*dedxData);
   timeModel1D.fitTo(*timeData);
 
