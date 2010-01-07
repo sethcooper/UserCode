@@ -13,7 +13,7 @@
 //
 // Original Author:  Seth COOPER
 //         Created:  Wed Dec 17 23:20:43 CET 2008
-// $Id: HSCPTimingAnalyzer.cc,v 1.9 2009/09/15 09:07:59 scooper Exp $
+// $Id: HSCPTimingAnalyzer.cc,v 1.10 2009/11/04 13:41:18 scooper Exp $
 //
 //
 
@@ -22,8 +22,12 @@
 #include <memory>
 #include <vector>
 #include <map>
+<<<<<<< HSCPTimingAnalyzer.cc
+#include <string>
+=======
 #include <string>
 
+>>>>>>> 1.10
 // user include files
 #include "FWCore/Framework/interface/Frameworkfwd.h"
 #include "FWCore/Framework/interface/EDAnalyzer.h"
@@ -32,10 +36,9 @@
 #include "FWCore/ParameterSet/interface/ParameterSet.h"
 #include "FWCore/Framework/interface/ESHandle.h"
 #include "FWCore/Framework/interface/EventSetup.h"
-
-//
+// ROOT stuff
 #include "FWCore/ServiceRegistry/interface/Service.h"
-//#include "PhysicsTools/UtilAlgos/interface/TFileService.h"
+#include "PhysicsTools/UtilAlgos/interface/TFileService.h"
 #include "TH1.h"
 #include "TH2.h"
 #include "TProfile.h"
@@ -44,7 +47,6 @@
 #include "TTree.h"
 #include "TFile.h"
 #include "TROOT.h"
-
 // DataFormats
 #include "SimDataFormats/TrackingHit/interface/PSimHit.h"
 #include "SimDataFormats/CaloHit/interface/PCaloHitContainer.h"
@@ -67,10 +69,8 @@
 #include "Geometry/CaloGeometry/interface/CaloSubdetectorGeometry.h"
 #include "Geometry/CommonDetUnit/interface/GlobalTrackingGeometry.h"
 #include "RecoCaloTools/Navigation/interface/CaloNavigator.h"
-
 // Magnetic field
 #include "MagneticField/Records/interface/IdealMagneticFieldRecord.h"
-
 // *** for TrackAssociation
 #include "DataFormats/TrackReco/interface/Track.h"
 //#include "DataFormats/Common/interface/Handle.h"
@@ -87,7 +87,7 @@
 #include "TrackPropagation/SteppingHelixPropagator/interface/SteppingHelixPropagator.h"
 
 
-// class decleration
+// class declaration
 //
 
 class HSCPTimingAnalyzer : public edm::EDAnalyzer {
@@ -203,7 +203,7 @@ class HSCPTimingAnalyzer : public edm::EDAnalyzer {
       TH1F* singleCryCrossedTime_;
       TH1F* singleCryCrossedDeDx_;
 
-      TProfile* energyFractionInTrackMatchedXtalsProfile_;
+      //TProfile* energyFractionInTrackMatchedXtalsProfile_;
       
       TH2F* numCrysCrossedVsNumHitsFoundHist_;
       TH2F* deDxVsMomHist_;
@@ -217,6 +217,19 @@ class HSCPTimingAnalyzer : public edm::EDAnalyzer {
       TH1D* muonEcalMaxEnergyTimingHist_;
       TH1D* muonEcalMaxEnergyHist_;
       
+<<<<<<< HSCPTimingAnalyzer.cc
+      TH1F* energy1OverEnergy9Hist_;
+      TH2F* energy1VsE1OverE9Hist_;
+      TH2F* energy9VsE1OverE9Hist_;
+      
+      TH1F* timePullDistEBHist_;
+      TH1F* timePullDistEEHist_;
+
+      TH2F* TsigTvsArmsEBHist_;
+      TH2F* TsigTvsArmsEEHist_;
+      
+      //TProfile* recHitMaxEnergyShapeProfile_;
+=======
       TH1F* energy1OverEnergy9Hist_;
       TH2F* energy1VsE1OverE9Hist_;
       TH2F* energy9VsE1OverE9Hist_;
@@ -228,6 +241,7 @@ class HSCPTimingAnalyzer : public edm::EDAnalyzer {
       TH2F* TsigTvsArmsEEHist_;
       
       TProfile* recHitMaxEnergyShapeProfile_;
+>>>>>>> 1.10
       TGraph* recHitMaxEnergyShapeGraph_;
 
       TTree* energyAndTimeNTuple_;
@@ -263,7 +277,7 @@ class HSCPTimingAnalyzer : public edm::EDAnalyzer {
 //
 // static data member definitions
 //
-//edm::Service<TFileService> fileService;
+edm::Service<TFileService> fileService;
 
 bool lessThanRecHitEnergy(const EcalRecHit& hit1, const EcalRecHit& hit2)
 {
@@ -285,15 +299,41 @@ HSCPTimingAnalyzer::HSCPTimingAnalyzer(const edm::ParameterSet& iConfig) :
   EBUncalibRecHits_ (iConfig.getParameter<edm::InputTag>("EBUncalibRecHits")),
   EEUncalibRecHits_ (iConfig.getParameter<edm::InputTag>("EEUncalibRecHits")),
   minTrackPt_ (iConfig.getParameter<double>("minimumTrackPt")),
-  fileName_ (iConfig.getUntrackedParameter<std::string>("RootFileName","hscpTimingAnalyzer.root")),
+  //fileName_ (iConfig.getUntrackedParameter<std::string>("RootFileName","hscpTimingAnalyzer.root")),
   contCorr_ (iConfig.getUntrackedParameter<double>("containmentCorrection",1.09)),
   energyCut_ (iConfig.getUntrackedParameter<double>("energyCut",0))
 {
    //now do what ever initialization is needed
-   file_ = new TFile(fileName_.c_str(),"RECREATE");
+   //file_ = new TFile(fileName_.c_str(),"RECREATE");
    //gROOT->cd();  // Causes Root Fill error after ~ 8k events
-   file_->cd();
+   //file_->cd();
 
+<<<<<<< HSCPTimingAnalyzer.cc
+   simHitsEnergyHist_ = fileService->make<TH1D>("simHitsEnergy","Energy of sim hits [GeV]",2500,0,10);
+   simHitsTimeHist_ = fileService->make<TH1D>("simHitsTime","Time of sim hits [ns]",500,-25,25);
+   recHitTimeSimHitTimeHist_ = fileService->make<TH1D>("recHitTimeSimHitTime","RecHit time - simHit time [ns]",500,-25,25);
+   recHitTimeHist_ = fileService->make<TH1D>("recHitTime","RecHit time",500,-25,25);
+   recHitEnergyHist_ = fileService->make<TH1D>("recHitEnergy","RecHit energy [GeV]",2500,0,10);
+   recHitMaxEnergyHist_ = fileService->make<TH1D>("recHitMaxEnergy","Energy of max. ene. recHit [GeV]",2500,0,10);
+   recHitMinEnergyHist_ = fileService->make<TH1D>("recHitMinEnergy","Energy of min. ene. recHit [GeV]",2500,0,10);
+   recHitMaxEnergyTimingHist_ = fileService->make<TH1D>("recHitMaxEnergyTiming","Timing of max ene. recHit [ns]",500,-25,25);
+   //recHitMaxEnergyShapeProfile_ = fileService->make<TProfile>("recHitMaxEnergyShapeProfile","Shape of max energy hits [ADC]",10,0,10);
+   //energyOfTrackMatchedHits_ = fileService->make<TH1D>("energyOfTrackMatchedHits", "Energy of track-matched hits [GeV]",2500,0,10);
+   energyOfTrackMatchedHitsEB_ = fileService->make<TH1D>("energyOfTrackMatchedHitsEB", "Energy of track-matched hits EB [GeV]",2500,0,10);
+   energyOfTrackMatchedHitsEE_ = fileService->make<TH1D>("energyOfTrackMatchedHitsEE", "Energy of track-matched hits EE [GeV]",2500,0,10);
+   outOfTimeEnergyOfTrackMatchedHitsEB_ = fileService->make<TH1F>("OOTenergyOfTrackMatchedHitsEB", "OOT Energy of track-matched hits EB [GeV]",2500,0,10);
+   outOfTimeEnergyOfTrackMatchedHitsEE_ = fileService->make<TH1F>("OOTenergyOfTrackMatchedHitsEE", "OOT Energy of track-matched hits EE [GeV]",2500,0,10);
+   //timeOfTrackMatchedHits_ = fileService->make<TH1D>("timeOfTrackMatchedHits", "Time of track-matched hits [ns]",500,-25,25);
+   timeOfTrackMatchedHitsEB_ = fileService->make<TH1D>("timeOfTrackMatchedHitsEB", "Time of track-matched hits EB [ns]",500,-25,25);
+   timeOfTrackMatchedHitsEE_ = fileService->make<TH1D>("timeOfTrackMatchedHitsEE", "Time of track-matched hits EE [ns]",500,-25,25);
+   //timeVsEnergyOfTrackMatchedHits_ = fileService->make<TH2D>("timeVsEnergyOfTrackMatchedHits","Time [ns] vs. energy [GeV] for track-matched hits",2500,0,10,500,-25,25);
+   timeOfTrackMatchedHitsEB1GeVcut_ = fileService->make<TH1F>("timeOfTrackMatchedHitsEB1GeVcut", "Time of track-matched hits EB > 1 GeV [ns]",500,-25,25);
+   timeOfTrackMatchedHitsEB3GeVcut_ = fileService->make<TH1F>("timeOfTrackMatchedHitsEB3GeVcut", "Time of track-matched hits EB > 3 GeV [ns]",500,-25,25);
+   timeOfTrackMatchedHitsEB5GeVcut_ = fileService->make<TH1F>("timeOfTrackMatchedHitsEB5GeVcut", "Time of track-matched hits EB > 5 GeV [ns]",500,-25,25);
+   timeOfTrackMatchedHitsEE1GeVcut_ = fileService->make<TH1F>("timeOfTrackMatchedHitsEE1GeVcut", "Time of track-matched hits EE > 1 GeV [ns]",500,-25,25);
+   timeOfTrackMatchedHitsEE3GeVcut_ = fileService->make<TH1F>("timeOfTrackMatchedHitsEE3GeVcut", "Time of track-matched hits EE > 3 GeV [ns]",500,-25,25);
+   timeOfTrackMatchedHitsEE5GeVcut_ = fileService->make<TH1F>("timeOfTrackMatchedHitsEE5GeVcut", "Time of track-matched hits EE > 5 GeV [ns]",500,-25,25);
+=======
    simHitsEnergyHist_ = new TH1D("simHitsEnergy","Energy of sim hits [GeV]",2500,0,10);
    simHitsTimeHist_ = new TH1D("simHitsTime","Time of sim hits [ns]",500,-25,25);
    recHitTimeSimHitTimeHist_ = new TH1D("recHitTimeSimHitTime","RecHit time - simHit time [ns]",500,-25,25);
@@ -351,19 +391,77 @@ HSCPTimingAnalyzer::HSCPTimingAnalyzer(const edm::ParameterSet& iConfig) :
    deDxMaxEnergyCryHist_ = new TH1F("deDxMaxEneTrkMatCry","dE/dx of max. energy track-matched cry [MeV/cm]",10000,0,5000);
    deDxMinEnergyCryHist_ = new TH1F("deDxMinEneTrkMatCry","dE/dx of min. energy track-matched cry [MeV/cm]",10000,0,5000);
    deDxTotalHist_ = new TH1F("dedxTotalHist","dE/dx of all track-matched xtals (summed);dE/dx [MeV/cm]",10000,0,5000);
+>>>>>>> 1.10
    
-   singleCryCrossedEnergy_ = new TH1F("singleCryCrossedEnergy","Energy of recHits from 1 cry crossed evts [GeV]",2500,0,10);
-   singleCryCrossedTime_ = new TH1F("singleCryCrossedTiming","Timing of recHits from 1 cry crossed evts [ns]",500,-25,25);
-   singleCryCrossedDeDx_ = new TH1F("singleCryCrossedDeDx","dE/dx of recHits from 1 cry crossed evts;dE/dx [MeV/cm]",10000,0,5000);
+   timeVsEnergyOfTrackMatchedHitsEB_ = fileService->make<TH2D>("timeVsEnergyOfTrackMatchedHitsEB","Time [ns] vs. energy [GeV] for track-matched hits EB",2500,0,10,500,-25,25);
+   timeVsEnergyOfTrackMatchedHitsEE_ = fileService->make<TH2D>("timeVsEnergyOfTrackMatchedHitsEE","Time [ns] vs. energy [GeV] for track-matched hits EE",2500,0,10,500,-25,25);
+
+   timeChi2VsEnergyOfTrackMatchedHitsEB_ = fileService->make<TH2F>("timeChi2VsEnergyOfTrackMatchedHitsEB","TimeChi2 vs. energy [GeV] for track-matched hits EB",2500,0,10,1000,0,1000);
+   timeChi2VsEnergyOfTrackMatchedHitsEE_ = fileService->make<TH2F>("timeChi2VsEnergyOfTrackMatchedHitsEE","TimeChi2 vs. energy [GeV] for track-matched hits EE",2500,0,10,1000,0,1000);
+
+   timeVsDeDxOfTrackMatchedHits_ = fileService->make<TH2D>("timeVsDeDxOfTrackMatchedHits","Time [ns] vs. dE/dx [Mev/cm] for track-matched hits",10000,0,5000,500,-25,25);
+   crossedEnergy_ = fileService->make<TH1D>("crossedEcalEnergy", "Total energy of track-crossing xtals [GeV]",2500,0,10);
+   crossedLength_ = fileService->make<TH1D>("crossedEcalTrackLength","Total track length in Ecal; [cm]",500,0,50);
+   recHitTimeVsSimHitTime_ = fileService->make<TH2D>("recHitTimeVsSimHitTime","recHitTime vs. simHitTime [ns]",500,-25,25,500,-25,25);
+   simHitsPerEventHist_ = fileService->make<TH1D>("simHitsPerEvent","Number of SimHits per event",25,0,25);
+   recHitTimeSimHitTimeVsEnergy_ = fileService->make<TH2D>("recHitTimeSimHitTimeVsEnergy","recHitTime-simHitTime vs. RecHit energy",2500,0,10,500,-25,25);
+   recHitsPerTrackHist_ = fileService->make<TH1D>("ecalRecHitsPerTrack","Number of Ecal RecHits per track",10,0,10);
+
+   deDxHist_ = fileService->make<TH1F>("dedxHist","dE/dx of each crystal;dE/dx [MeV/cm]",10000,0,5000);
+   deDxVsMomHist_ = fileService->make<TH2F>("dedxVsMomHist","dE/dx of each crystal;p [GeV/c];dE/#rho dx [MeV cm^{2}/g]",500,0,500,20,0,20);
+   trackLengthPerCryHist_ = fileService->make<TH1F>("trackLengthPerCry","Track length in each crystal; [cm]",500,0,50);
+   numMatchedCrysPerEventHist_ = fileService->make<TH1F>("numMatchedCrysPerEvent","Number of track-matched (crossed) crystals per event",10,0,10);
+   numCrysCrossedVsNumHitsFoundHist_ = fileService->make<TH2F>("crysCrossedVsHitsFound","Number of crystals crossed vs. number of RecHits found",10,0,10,10,0,10);
+   hit1EnergyVsHit2EnergyHist_ = fileService->make<TH2F>("hit1EnergyVsHit2Energy","Max energy hit vs. hit 2 energy [GeV]",500,0,5,500,0,5);
+   hit1LengthVsHit2LengthHist_ = fileService->make<TH2F>("hit1LengthVsHit2Length","Max energy hit length vs. hit 2 length [cm]",500,0,50,500,0,50);
+   hit1DeDxVsHit2DeDxHist_ = fileService->make<TH2F>("hit1DeDxVsHit2DeDx","Hit 1 dE/dx vs. hit 2 dE/dx [MeV/cm]",200,0,100,200,0,100);
+
+   deDx3x3Hist_ = fileService->make<TH1F>("dedx3x3Hist","dE/dx of crystals using 3x3 cluster energy [MeV/cm]",10000,0,5000);
+   deDx3x3CorrectedHist_ = fileService->make<TH1F>("dedx3x3CorrectedHist","dE/dx of crystals using 3x3 cluster energy with cont. corr. [MeV/cm]",10000,0,5000);
+   deDx5x5Hist_ = fileService->make<TH1F>("dedx5x5Hist","dE/dx of crystals using 5x5 cluster energy [MeV/cm]",10000,0,5000);
+   deDx5x5CorrectedHist_ = fileService->make<TH1F>("dedx5x5CorrectedHist","dE/dx of crystals using 5x5 cluster energy with cont. corr. [MeV/cm]",10000,0,5000);
+   numCrysIn5x5Hist_ = fileService->make<TH1F>("numCrysIn5x5","Number of recHits in 5x5 around main cry",25,1,26);
+   numCrysIn3x3Hist_ = fileService->make<TH1F>("numCrysIn3x3","Number of recHits in 3x3 around main cry",9,1,10);
+   deDxMaxEnergyCryHist_ = fileService->make<TH1F>("deDxMaxEneTrkMatCry","dE/dx of max. energy track-matched cry [MeV/cm]",10000,0,5000);
+   deDxMinEnergyCryHist_ = fileService->make<TH1F>("deDxMinEneTrkMatCry","dE/dx of min. energy track-matched cry [MeV/cm]",10000,0,5000);
+   deDxTotalHist_ = fileService->make<TH1F>("dedxTotalHist","dE/dx of all track-matched xtals (summed);dE/dx [MeV/cm]",10000,0,5000);
    
-   muonEcalMaxEnergyTimingHist_ = new TH1D("muonEcalRecHitMaxEnergyTiming","Timing of max ene. recHit from muon [ns]",500,-25,25);
-   muonEcalMaxEnergyHist_ = new TH1D("muonEcalRecHitMaxEnergy","Energy of max ene. recHit from muon [GeV]",2500,0,10);
+   singleCryCrossedEnergy_ = fileService->make<TH1F>("singleCryCrossedEnergy","Energy of recHits from 1 cry crossed evts [GeV]",2500,0,10);
+   singleCryCrossedTime_ = fileService->make<TH1F>("singleCryCrossedTiming","Timing of recHits from 1 cry crossed evts [ns]",500,-25,25);
+   singleCryCrossedDeDx_ = fileService->make<TH1F>("singleCryCrossedDeDx","dE/dx of recHits from 1 cry crossed evts;dE/dx [MeV/cm]",10000,0,5000);
    
+   muonEcalMaxEnergyTimingHist_ = fileService->make<TH1D>("muonEcalRecHitMaxEnergyTiming","Timing of max ene. recHit from muon [ns]",500,-25,25);
+   muonEcalMaxEnergyHist_ = fileService->make<TH1D>("muonEcalRecHitMaxEnergy","Energy of max ene. recHit from muon [GeV]",2500,0,10);
+   
+<<<<<<< HSCPTimingAnalyzer.cc
+   energy1OverEnergy9Hist_ = fileService->make<TH1F>("e1OverE9","Energy of matched xtal over 3x3 energy",44,0,1.1);
+   energy1VsE1OverE9Hist_ = fileService->make<TH2F>("e1VsE1OverE9","Energy of matched xtal vs e1/e9;;[GeV]",44,0,1.1,2500,0,10);
+   energy9VsE1OverE9Hist_ = fileService->make<TH2F>("e9VsE1OverE9","Energy of 3x3 xtal array vs e1/e9;;[GeV]",44,0,1.1,2500,0,10);
+   
+   //energyFractionInTrackMatchedXtalsProfile_ = fileService->make<TProfile>("energyFractionInMatchedXtals","Fraction of crossedEnergy for 2 matched xtals (from most-to-least energy)",5,0,5);
+   
+   timeError999EnergyHist_ = fileService->make<TH1F>("energyOfHitsWithError999", "Energy of track-matched hits EB with error 999 [GeV]",2500,0,10);
+
+   timePullDistEBHist_ = fileService->make<TH1F>("pullDistTimeEB","Pull of time, EB",200,-10,10);
+   timePullDistEEHist_ = fileService->make<TH1F>("pullDistTimeEE","Pull of time, EE",200,-10,10);
+
+   TsigTvsArmsEBHist_ = fileService->make<TH2F>("TsigTvsArmsEB","t/#sigma_{t} vs. A/1.26 ADC EB",2000,0,1000,200,-10,10);
+   TsigTvsArmsEEHist_ = fileService->make<TH2F>("TsigTvsArmsEE","t/#sigma_{t} vs. A/2.87 ADC EE",2000,0,1000,200,-10,10);
+
+   energyVsDeDxHist_ = fileService->make<TH2F>("energyVsDeDx","energyVsDeDx;dE/dx [MeV/cm];energy [GeV]",140,0,70,250,0,1);
+   for(int i=0;i<25;++i)
+   {
+     std::string name="energyInDeDxSlice_";
+     name+=intToString(i);
+     energyInDeDxSlice_[i] = fileService->make<TH1F>(name.c_str(),name.c_str(),250,0,1);
+   }
+=======
    energy1OverEnergy9Hist_ = new TH1F("e1OverE9","Energy of matched xtal over 3x3 energy",44,0,1.1);
    energy1VsE1OverE9Hist_ = new TH2F("e1VsE1OverE9","Energy of matched xtal vs e1/e9;;[GeV]",44,0,1.1,2500,0,10);
    energy9VsE1OverE9Hist_ = new TH2F("e9VsE1OverE9","Energy of 3x3 xtal array vs e1/e9;;[GeV]",44,0,1.1,2500,0,10);
    
    energyFractionInTrackMatchedXtalsProfile_ = new TProfile("energyFractionInMatchedXtals","Fraction of crossedEnergy for 2 matched xtals (from most-to-least energy)",5,0,5);
+>>>>>>> 1.10
    
    timeError999EnergyHist_ = new TH1F("energyOfHitsWithError999", "Energy of track-matched hits EB with error 999 [GeV]",2500,0,10);
 
@@ -384,7 +482,7 @@ HSCPTimingAnalyzer::HSCPTimingAnalyzer(const edm::ParameterSet& iConfig) :
    //energyAndTimeNTuple_ = fileService->make<TNtuple>("energyAndTimeNTuple","Energy and Time for track-matched RecHits","energy:time");
    // Let's make an entry for each track-matched crystal we find in the event
    // For crossed RecHits that are missing, insert -1,-1,-1 for energy/time/chi2 ?
-   energyAndTimeNTuple_ = new TTree("energyAndTimeNTuple","Energy and Time for track-matched RecHits");
+   energyAndTimeNTuple_ = fileService->make<TTree>("energyAndTimeNTuple","Energy and Time for track-matched RecHits");
    energyAndTimeNTuple_->Branch("crystalEnergy",&cryEnergy_,"cryEnergy/F");
    energyAndTimeNTuple_->Branch("crystalTime",&cryTime_,"cryTime/F");
    energyAndTimeNTuple_->Branch("crystalChi2",&cryChi2_,"cryChi2/F");
@@ -424,15 +522,17 @@ HSCPTimingAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSe
   eventNum_ = iEvent.id().event();
 
   Handle<PCaloHitContainer> ebSimHits;
-  iEvent.getByLabel("g4SimHits", "EcalHitsEB", ebSimHits);
+  //iEvent.getByLabel("g4SimHits", "EcalHitsEB", ebSimHits);
   if(!ebSimHits.isValid())
   {
     std::cout << "Cannot get simHits from event!" << std::endl;
+    //XXX Turn off (testing on data)
     return;
   }
-  if(!ebSimHits->size() > 0)
+  else if(!ebSimHits->size() > 0)
   {
     std::cout << "EBSimHits size is 0!" << std::endl;
+    //XXX Turn off (testing on data)
     return;
   }
 
@@ -493,7 +593,7 @@ HSCPTimingAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSe
   }
   if(!ebDigis->size() > 0)
   {
-    std::cout << "EBDigiss size is 0!" << std::endl;
+    std::cout << "EBDigis size is 0!" << std::endl;
     return;
   }
 
@@ -504,9 +604,10 @@ HSCPTimingAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSe
     std::cout << "Cannot get RecoTracks named " << trackCollection_ << " from event!" << std::endl;
     return;
   }
-  if(!ebSimHits->size() > 0)
+  if(!recoTracks->size() > 0)
   {
     std::cout << "GeneralTracks size is 0!" << std::endl;
+    //XXX Turn off for testing on data
     return;
   }
   
@@ -545,22 +646,46 @@ HSCPTimingAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSe
   TrajectoryStateTransform tsTransform;
 
   //debug
-  //std::cout << "Processing event " << iEvent.id().event() << std::endl;
+  std::cout << "Processing event " << iEvent.id().event() << std::endl;
 
   int numSimHits = 0;
   const PCaloHitContainer* phits=0;
-  phits = ebSimHits.product();
-  for(PCaloHitContainer::const_iterator mySimHit = phits->begin(); mySimHit != phits->end(); mySimHit++)
+  if(ebSimHits.isValid())
   {
-    simHitsEnergyHist_->Fill(mySimHit->energy());
-    simHitsTimeHist_->Fill(mySimHit->time());
-    EBDetId simHitId = EBDetId(mySimHit->id());
-    //std::cout << "SimHit DetId found: " << simHitId << std::endl;
-    //std::cout << "SimHit hashedIndex: " << simHitId.hashedIndex() << std::endl;
-    //std::cout << "SimHit energy: " << mySimHit->energy() << " time: " << mySimHit->time()
-    //  << std::endl;
-    numSimHits++;
+    phits = ebSimHits.product();
+    for(PCaloHitContainer::const_iterator mySimHit = phits->begin(); mySimHit != phits->end(); mySimHit++)
+    {
+      simHitsEnergyHist_->Fill(mySimHit->energy());
+      simHitsTimeHist_->Fill(mySimHit->time());
+      EBDetId simHitId = EBDetId(mySimHit->id());
+      //std::cout << "SimHit DetId found: " << simHitId << std::endl;
+      //std::cout << "SimHit hashedIndex: " << simHitId.hashedIndex() << std::endl;
+      //std::cout << "SimHit energy: " << mySimHit->energy() << " time: " << mySimHit->time()
+      //  << std::endl;
+      numSimHits++;
 
+      EcalUncalibratedRecHitCollection::const_iterator thisUncalibRecHit =  EBUncalibRecHitsHandle_->find(mySimHit->id());
+      if(thisUncalibRecHit==EBUncalibRecHitsHandle_->end())
+      {
+        //std::cout << "Could not find simHit detId in uncalibRecHitCollection!" << std::endl;
+        continue;
+      }
+      if(thisUncalibRecHit->chi2() < 0)
+        continue;
+
+<<<<<<< HSCPTimingAnalyzer.cc
+      EBRecHitCollection::const_iterator recHitItr = ebRecHits->begin();
+      while(recHitItr != ebRecHits->end() && (recHitItr->id() != simHitId))
+      {
+        ++recHitItr;
+      }
+      if(recHitItr==ebRecHits->end())
+      {
+        // Commented out for debugging ease, Aug 3 2009
+        //std::cout << "Could not find simHit detId: " << simHitId << "in RecHitCollection!" << std::endl;
+        continue;
+      }
+=======
     EcalUncalibratedRecHitCollection::const_iterator thisUncalibRecHit =  EBUncalibRecHitsHandle_->find(mySimHit->id());
     if(thisUncalibRecHit==EBUncalibRecHitsHandle_->end())
     {
@@ -569,26 +694,16 @@ HSCPTimingAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSe
     }
     if(thisUncalibRecHit->chi2() < 0)
       continue;
+>>>>>>> 1.10
 
-    EBRecHitCollection::const_iterator recHitItr = ebRecHits->begin();
-    while(recHitItr != ebRecHits->end() && (recHitItr->id() != simHitId))
-    {
-      ++recHitItr;
+      recHitTimeSimHitTimeHist_->Fill(25*recHitItr->time()-mySimHit->time());
+      recHitTimeVsSimHitTime_->Fill(mySimHit->time(),25*recHitItr->time());
+      recHitTimeSimHitTimeVsEnergy_->Fill(0.97*recHitItr->energy(),25*recHitItr->time()-mySimHit->time());
+      //std::cout << "    SIMHIT MATCHED to recHit detId: " << (EBDetId)recHitItr->id() << std::endl;
+      //std::cout << "    RECHIT TIME: " << 25*recHitItr->time() << " ENERGY: " << recHitItr->energy() << std::endl;
     }
-    if(recHitItr==ebRecHits->end())
-    {
-      // Commented out for debugging ease, Aug 3 2009
-      //std::cout << "Could not find simHit detId: " << simHitId << "in RecHitCollection!" << std::endl;
-      continue;
-    }
-
-    recHitTimeSimHitTimeHist_->Fill(25*recHitItr->time()-mySimHit->time());
-    recHitTimeVsSimHitTime_->Fill(mySimHit->time(),25*recHitItr->time());
-    recHitTimeSimHitTimeVsEnergy_->Fill(0.97*recHitItr->energy(),25*recHitItr->time()-mySimHit->time());
-    //std::cout << "    SIMHIT MATCHED to recHit detId: " << (EBDetId)recHitItr->id() << std::endl;
-    //std::cout << "    RECHIT TIME: " << 25*recHitItr->time() << " ENERGY: " << recHitItr->energy() << std::endl;
-  }
-  simHitsPerEventHist_->Fill(numSimHits);
+    simHitsPerEventHist_->Fill(numSimHits);
+  } // if simhit handle is valid
 
   for(EBRecHitCollection::const_iterator recHitItr = ebRecHits->begin();
       recHitItr != ebRecHits->end(); ++recHitItr)
@@ -596,7 +711,7 @@ HSCPTimingAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSe
     EcalUncalibratedRecHitCollection::const_iterator thisUncalibRecHit =  EBUncalibRecHitsHandle_->find(recHitItr->id());
     if(thisUncalibRecHit==EBUncalibRecHitsHandle_->end())
     {
-      std::cout << "Could not find simHit detId in uncalibRecHitCollection!" << std::endl;
+      std::cout << "Could not find recHit detId in uncalibRecHitCollection!" << std::endl;
       continue;
     }
     if(thisUncalibRecHit->chi2() < 0)
@@ -606,20 +721,45 @@ HSCPTimingAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSe
     recHitEnergyHist_->Fill(0.97*recHitItr->energy());
   }
 
+  //debug
+  //std::cout << "Loop over reco::Muon" << std::endl;
+
   // Now loop over Reco::Muon
   for(reco::MuonCollection::const_iterator MUit = theMuons->begin(); MUit != theMuons->end () ; ++MUit)
   {
+    //std::cout << "RecoMuon found." << std::endl;
+    
+    //XXX SIC DEBUG -- muon energy
+    reco::MuonEnergy myMuonEnergy = MUit->calEnergy();
+    DetId ecalDet = myMuonEnergy.ecal_id();
+    //std::cout << "Muon ecalEnergy: " << myMuonEnergy.emMax << " muon ecalTime: " << myMuonEnergy.ecal_time << std::endl;
+    // Energy cut on muon timing hist
+    //if(myMuonEnergy.emMax > 1)
+    // Only plot muons in the endcaps for now and put in a big energy cut
+    //if(ecalDet.subdetId()==EcalEndcap && myMuonEnergy.emMax > 5)
+    //if(myMuonEnergy.emMax > energyCut_)
+    //{
+      muonEcalMaxEnergyTimingHist_->Fill(myMuonEnergy.ecal_time);
+      muonEcalMaxEnergyHist_->Fill(myMuonEnergy.emMax);
+    //}
+
+      
     //XXX: Cut on GlobalMuon criteria
     // However, this is not necessary in the general case...
     // But without it, at the moment, we produce an exception.
     if(!MUit->isGlobalMuon()) continue;
 
-    //std::cout << "RecoTrack found with Pt (GeV): "  << recoTrack->outerPt() << std::endl;
     // XXX: Pt Cut
+<<<<<<< HSCPTimingAnalyzer.cc
+    //if(MUit->globalTrack()->outerPt() < minTrackPt_)
+    //  continue;
+    //XXX: TURNED OFF FOR NEW RATIOS METHOD TEST
+=======
     //if(MUit->globalTrack()->outerPt() < minTrackPt_)
     //  continue;
     //XXX: TURNED OFF FOR NEW RATIOS METHOD TEST
     
+>>>>>>> 1.10
 
     // Fill tree branch
     muonPt_ = MUit->globalTrack()->outerPt();
@@ -660,18 +800,6 @@ HSCPTimingAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSe
     //  return;
     //XXX: SIC TURNED THIS OFF FOR NEW RATIO METHOD TESTING
     
-    //XXX SIC DEBUG -- muon
-    reco::MuonEnergy myMuonEnergy = MUit->calEnergy();
-    DetId ecalDet = myMuonEnergy.ecal_id();
-    //XXX: Energy cut on muon timing hist
-    //if(myMuonEnergy.emMax > 1)
-    //XXX: Only plot muons in the endcaps for now and put in a big energy cut
-    //if(ecalDet.subdetId()==EcalEndcap && myMuonEnergy.emMax > 5)
-    if(myMuonEnergy.emMax > energyCut_)
-    {
-      muonEcalMaxEnergyTimingHist_->Fill(myMuonEnergy.ecal_time);
-      muonEcalMaxEnergyHist_->Fill(myMuonEnergy.emMax);
-    }
     numMatchedCrysPerEventHist_->Fill(numCrysCrossed_);
     double crossedEnergy = 0;
     double crossedLength = 0;
@@ -681,6 +809,9 @@ HSCPTimingAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSe
     if(muonCrossedXtalCurvedMap.find(ecalDet.rawId())==muonCrossedXtalCurvedMap.end())
     {
       std::cout << "!!Muon maxEnergy DetId does not match any crossed crys!" << std::endl;
+    }
+    else
+    {
       if(ecalDet.subdetId()==EcalEndcap)
         std::cout << "!!Muon found ECAL DetId " << EEDetId((ecalDet)) <<  " energy: " << myMuonEnergy.emMax <<
           " time: " << myMuonEnergy.ecal_time << std::endl;
@@ -995,7 +1126,7 @@ HSCPTimingAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSe
       //if(maxEnergyHit.time() > 14 || maxEnergyHit.time() < -2)
       //  std::cout << "\tStrange time: " << maxEnergyHit.time() << " hit; sample: " << i << " amplitude: " << df.sample(i).adc() << std::endl;
 
-      recHitMaxEnergyShapeProfile_->Fill(i,pedestal+(df.sample(i).adc()-pedestal)*gain);
+      //recHitMaxEnergyShapeProfile_->Fill(i,pedestal+(df.sample(i).adc()-pedestal)*gain);
     }
 
     // Fill hit1 vs. hit2 hists
@@ -1013,8 +1144,8 @@ HSCPTimingAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSe
         {
           if(secondHit->energy() > firstHit->energy())
             swap(secondHit,firstHit);
-          energyFractionInTrackMatchedXtalsProfile_->Fill(0.,firstHit->energy()/crossedEnergy);
-          energyFractionInTrackMatchedXtalsProfile_->Fill(1.,secondHit->energy()/crossedEnergy);
+          //energyFractionInTrackMatchedXtalsProfile_->Fill(0.,firstHit->energy()/crossedEnergy);
+          //energyFractionInTrackMatchedXtalsProfile_->Fill(1.,secondHit->energy()/crossedEnergy);
           hit1EnergyVsHit2EnergyHist_->Fill(0.97*secondHit->energy(),0.97*firstHit->energy());
           hit1LengthVsHit2LengthHist_->Fill(secondCryItr->second,firstCryItr->second);
           hit1DeDxVsHit2DeDxHist_->Fill(1000*0.97*secondHit->energy()/secondCryItr->second,1000*0.97*firstHit->energy()/firstCryItr->second);
@@ -1134,6 +1265,7 @@ int HSCPTimingAnalyzer::getDetailedTrackLengthInXtals(std::map<int,float>& XtalI
     EEDetId closestEndcapDetIdToProbe = ((theEndcapSubdetGeometry -> getClosestCell(probe_gp)).rawId());
 
     // check if the probe is inside the xtal
+<<<<<<< HSCPTimingAnalyzer.cc
     if( (closestEndcapDetIdToProbe) && (theGeometry->getSubdetectorGeometry(closestEndcapDetIdToProbe)->
           getGeometry(closestEndcapDetIdToProbe)->inside(probe_gp)) )
     {
@@ -1156,6 +1288,39 @@ int HSCPTimingAnalyzer::getDetailedTrackLengthInXtals(std::map<int,float>& XtalI
 
     if( (closestBarrelDetIdToProbe) && (theGeometry->getSubdetectorGeometry(closestBarrelDetIdToProbe)->
           getGeometry(closestBarrelDetIdToProbe)->inside(probe_gp)) )
+=======
+    if( (closestEndcapDetIdToProbe) && (theGeometry->getSubdetectorGeometry(closestEndcapDetIdToProbe)->
+          getGeometry(closestEndcapDetIdToProbe)->inside(probe_gp)) )
+>>>>>>> 1.10
+    {
+<<<<<<< HSCPTimingAnalyzer.cc
+      //std::cout << "BARREL " << std::endl;
+      double step = ((*itr).position() - (*(itr-1)).position()).mag();
+      addStepToXtal(XtalInfo, muonCrossedXtalMap, closestBarrelDetIdToProbe,step);
+=======
+      //std::cout << "ENDCAP " << std::endl;
+      //std::cout << "point = " << probe_gp << "   eta = " << probe_gp.eta() << std::endl;
+      double step = ((*itr).position() - (*(itr-1)).position()).mag();
+      addStepToXtal(XtalInfo, muonCrossedXtalMap, closestEndcapDetIdToProbe,step);
+>>>>>>> 1.10
+      totalLengthCurved += step;
+
+      if (firstPoint == false)
+      {
+        internalPointCurved = probe_gp ;
+        //internalMomentumCurved = probe_gv ;
+        firstPoint = true ;
+      }
+
+      externalPointCurved = probe_gp ;
+      //externalMomentumCurved = probe_gv ;
+    }
+<<<<<<< HSCPTimingAnalyzer.cc
+
+=======
+
+    if( (closestBarrelDetIdToProbe) && (theGeometry->getSubdetectorGeometry(closestBarrelDetIdToProbe)->
+          getGeometry(closestBarrelDetIdToProbe)->inside(probe_gp)) )
     {
       //std::cout << "BARREL " << std::endl;
       double step = ((*itr).position() - (*(itr-1)).position()).mag();
@@ -1173,6 +1338,7 @@ int HSCPTimingAnalyzer::getDetailedTrackLengthInXtals(std::map<int,float>& XtalI
       //externalMomentumCurved = probe_gv ;
     }
 
+>>>>>>> 1.10
     else
     {
       // 3x3 matrix surrounding the probe
@@ -1315,12 +1481,78 @@ HSCPTimingAnalyzer::beginJob(const edm::EventSetup&)
 void 
 HSCPTimingAnalyzer::endJob()
 {
-   recHitMaxEnergyShapeGraph_ = new TGraph(sampleNumbers_.size(), &(*sampleNumbers_.begin()),&(*amplitudes_.begin()));
+   recHitMaxEnergyShapeGraph_ = fileService->make<TGraph>(sampleNumbers_.size(), &(*sampleNumbers_.begin()),&(*amplitudes_.begin()));
    recHitMaxEnergyShapeGraph_->SetTitle("Shape of max energy hits (ADC)");
    recHitMaxEnergyShapeGraph_->SetName("recHitMaxEnergyShapeGraph");
 
-   file_->cd();
+   //file_->cd();
 
+<<<<<<< HSCPTimingAnalyzer.cc
+   //simHitsTimeHist_->Write();
+   //simHitsEnergyHist_->Write();
+   //recHitTimeSimHitTimeHist_->Write();
+   //recHitTimeHist_->Write();
+   //recHitEnergyHist_->Write();
+   //recHitMaxEnergyHist_->Write();
+   //recHitMinEnergyHist_->Write();
+   //recHitMaxEnergyTimingHist_->Write();
+   ////energyOfTrackMatchedHits_->Write();
+   ////timeOfTrackMatchedHits_->Write();
+   ////timeVsEnergyOfTrackMatchedHits_->Write();
+   //energyOfTrackMatchedHitsEB_->Write();
+   //timeOfTrackMatchedHitsEB_->Write();
+   //timeVsEnergyOfTrackMatchedHitsEB_->Write();
+   //energyOfTrackMatchedHitsEE_->Write();
+   //timeOfTrackMatchedHitsEE_->Write();
+   //timeVsEnergyOfTrackMatchedHitsEE_->Write();
+
+   //outOfTimeEnergyOfTrackMatchedHitsEB_->Write();
+   //outOfTimeEnergyOfTrackMatchedHitsEE_->Write();
+
+   //timeOfTrackMatchedHitsEB1GeVcut_->Write();
+   //timeOfTrackMatchedHitsEB3GeVcut_->Write();
+   //timeOfTrackMatchedHitsEB5GeVcut_->Write();
+   //timeOfTrackMatchedHitsEE1GeVcut_->Write();
+   //timeOfTrackMatchedHitsEE3GeVcut_->Write();
+   //timeOfTrackMatchedHitsEE5GeVcut_->Write();
+   //
+   //timeChi2VsEnergyOfTrackMatchedHitsEB_->Write();
+   //timeChi2VsEnergyOfTrackMatchedHitsEE_->Write();
+
+   //timeVsDeDxOfTrackMatchedHits_->Write();
+   //crossedEnergy_->Write();
+   //crossedLength_->Write();
+   //recHitTimeVsSimHitTime_->Write();
+   //simHitsPerEventHist_->Write();
+   //recHitTimeSimHitTimeVsEnergy_->Write();
+   //recHitsPerTrackHist_->Write();
+   //recHitMaxEnergyShapeProfile_->Write();
+   //recHitMaxEnergyShapeGraph_->Write();
+
+   //deDxHist_->Write();
+   //trackLengthPerCryHist_->Write();
+   //numMatchedCrysPerEventHist_->Write();
+   //numCrysCrossedVsNumHitsFoundHist_->Write();
+   //deDxVsMomHist_->Write();
+   //hit1EnergyVsHit2EnergyHist_->Write();
+   //hit1LengthVsHit2LengthHist_->Write();
+   //hit1DeDxVsHit2DeDxHist_->Write();
+
+   //deDx3x3Hist_->Write();
+   //deDx3x3CorrectedHist_->Write();
+   //deDx5x5Hist_->Write();
+   //deDx5x5CorrectedHist_->Write();
+   //numCrysIn5x5Hist_->Write();
+   //numCrysIn3x3Hist_->Write();
+   //deDxTotalHist_->Write();
+   //deDxMaxEnergyCryHist_->Write();
+   //deDxMinEnergyCryHist_->Write();
+
+   //singleCryCrossedEnergy_->Write();
+   //singleCryCrossedTime_->Write();
+   //singleCryCrossedDeDx_->Write();
+   //
+=======
    simHitsTimeHist_->Write();
    simHitsEnergyHist_->Write();
    recHitTimeSimHitTimeHist_->Write();
@@ -1385,9 +1617,42 @@ HSCPTimingAnalyzer::endJob()
    singleCryCrossedTime_->Write();
    singleCryCrossedDeDx_->Write();
    
+>>>>>>> 1.10
    muonEcalMaxEnergyTimingHist_->Write();
    muonEcalMaxEnergyHist_->Write();
 
+<<<<<<< HSCPTimingAnalyzer.cc
+   //energy1OverEnergy9Hist_->Write();
+   //energy1VsE1OverE9Hist_->Write();
+   //energy9VsE1OverE9Hist_->Write();
+
+   //energyFractionInTrackMatchedXtalsProfile_->Write();
+
+   //timeError999EnergyHist_->Write();
+
+   //timePullDistEBHist_->Write();
+   //timePullDistEEHist_->Write();
+
+   //TsigTvsArmsEBHist_->Write();
+   //TsigTvsArmsEEHist_->Write();
+
+   //energyVsDeDxHist_->Write();
+   ////XXX: SIC TURNED OFF B/C NOT NEEDED
+   ////for(int i=0;i<25;++i)
+   ////  energyInDeDxSlice_[i]->Write();
+   //
+   //energyAndTimeNTuple_->Write();
+   //file_->Close();
+}
+
+// ------------ Get the string from an int -----------------------------------------------
+std::string HSCPTimingAnalyzer::intToString(int num)
+{
+  using namespace std;
+  ostringstream myStream;
+  myStream << num << flush;
+  return(myStream.str()); //returns the string form of the stringstream object
+=======
    energy1OverEnergy9Hist_->Write();
    energy1VsE1OverE9Hist_->Write();
    energy9VsE1OverE9Hist_->Write();
@@ -1409,6 +1674,7 @@ HSCPTimingAnalyzer::endJob()
    
    energyAndTimeNTuple_->Write();
    file_->Close();
+>>>>>>> 1.10
 }
 
 // ------------ Get the string from an int -----------------------------------------------
