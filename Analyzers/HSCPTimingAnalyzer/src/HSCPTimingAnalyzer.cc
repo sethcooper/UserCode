@@ -13,7 +13,7 @@
 //
 // Original Author:  Seth COOPER
 //         Created:  Wed Dec 17 23:20:43 CET 2008
-// $Id: HSCPTimingAnalyzer.cc,v 1.9 2009/09/15 09:07:59 scooper Exp $
+// $Id: HSCPTimingAnalyzer.cc,v 1.13 2010/01/07 17:17:23 scooper Exp $
 //
 //
 
@@ -424,7 +424,7 @@ HSCPTimingAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSe
   eventNum_ = iEvent.id().event();
 
   Handle<PCaloHitContainer> ebSimHits;
-  //iEvent.getByLabel("g4SimHits", "EcalHitsEB", ebSimHits);
+  iEvent.getByLabel("g4SimHits", "EcalHitsEB", ebSimHits);
   if(!ebSimHits.isValid())
   {
     std::cout << "Cannot get simHits from event!" << std::endl;
