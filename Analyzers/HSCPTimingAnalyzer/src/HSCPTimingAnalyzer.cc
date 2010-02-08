@@ -13,7 +13,7 @@
 //
 // Original Author:  Seth COOPER
 //         Created:  Wed Dec 17 23:20:43 CET 2008
-// $Id: HSCPTimingAnalyzer.cc,v 1.13 2010/01/07 17:17:23 scooper Exp $
+// $Id: HSCPTimingAnalyzer.cc,v 1.14 2010/01/08 18:18:22 scooper Exp $
 //
 //
 
@@ -819,14 +819,14 @@ HSCPTimingAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSe
         //if(thisUncalibRecHit->chi2()!=-999)
         //{
           timeVsEnergyOfTrackMatchedHitsEB_->Fill(thisHit->energy(),thisHit->time());
-          timeChi2VsEnergyOfTrackMatchedHitsEB_->Fill(thisHit->energy(),thisUncalibRecHit->chi2());
+          timeChi2VsEnergyOfTrackMatchedHitsEB_->Fill(thisHit->energy(),25*thisUncalibRecHit->chi2());
           timeOfTrackMatchedHitsEB_->Fill(thisHit->time());
           energyOfTrackMatchedHitsEB_->Fill(thisHit->energy());
           outOfTimeEnergyOfTrackMatchedHitsEB_->Fill(thisHit->outOfTimeEnergy());
           
           if(thisHit->energy()>0.2 && thisUncalibRecHit->chi2() > 0) // Only fill pull for energy > 200 MeV
-            //timePullDistEBHist_->Fill((thisHit->time())/(25*thisUncalibRecHit->chi2()));
-            timePullDistEBHist_->Fill((thisHit->time())/(37/thisUncalibRecHit->amplitude()/1.2));
+            timePullDistEBHist_->Fill((thisHit->time()-1)/(25*thisUncalibRecHit->chi2()));
+            //timePullDistEBHist_->Fill((thisHit->time()-1)/(37/thisUncalibRecHit->amplitude()/1.2));
           if(thisUncalibRecHit->chi2() > 0)
             TsigTvsArmsEBHist_->Fill(thisUncalibRecHit->amplitude()/1.26,thisHit->time()/(25*thisUncalibRecHit->chi2()));
 
@@ -857,8 +857,8 @@ HSCPTimingAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSe
           outOfTimeEnergyOfTrackMatchedHitsEE_->Fill(thisHit->outOfTimeEnergy());
           
           if(thisHit->energy()>0.2 && thisUncalibRecHit->chi2() > 0) // Only fill pull for energy > 200 MeV
-            //timePullDistEEHist_->Fill((thisHit->time())/(25*thisUncalibRecHit->chi2()));
-            timePullDistEEHist_->Fill((thisHit->time())/(37/thisUncalibRecHit->amplitude()/2.0));
+            timePullDistEEHist_->Fill((thisHit->time()-1)/(25*thisUncalibRecHit->chi2()));
+            //timePullDistEEHist_->Fill((thisHit->time()-1)/(37/thisUncalibRecHit->amplitude()/2.0));
           if(thisUncalibRecHit->chi2() > 0)
             TsigTvsArmsEEHist_->Fill(thisUncalibRecHit->amplitude()/2.87,thisHit->time()/(25*thisUncalibRecHit->chi2()));
           
@@ -938,7 +938,7 @@ HSCPTimingAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSe
       // Fill TTree branch arrays
       cryTime_ = thisHit->time();
       cryEnergy_ = contCorr_*0.97*thisHit->energy();
-      cryChi2_ = thisUncalibRecHit->chi2();
+      cryChi2_ = 25*thisUncalibRecHit->chi2();
       cryDeDx_ = contCorr_*1000*0.97*thisHit->energy()/trackLengthInXtal;
       energyAndTimeNTuple_->Fill();
 
