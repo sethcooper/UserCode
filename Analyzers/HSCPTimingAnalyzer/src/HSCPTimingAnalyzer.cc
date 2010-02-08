@@ -13,7 +13,7 @@
 //
 // Original Author:  Seth COOPER
 //         Created:  Wed Dec 17 23:20:43 CET 2008
-// $Id: HSCPTimingAnalyzer.cc,v 1.15 2010/02/08 17:56:41 scooper Exp $
+// $Id: HSCPTimingAnalyzer.cc,v 1.16 2010/02/08 18:22:41 scooper Exp $
 //
 //
 
@@ -167,6 +167,7 @@ class HSCPTimingAnalyzer : public edm::EDAnalyzer {
       TH1D* energyOfTrackMatchedHitsEB_;
       TH1D* timeOfTrackMatchedHitsEB_;
       TH2D* timeVsEnergyOfTrackMatchedHitsEB_;
+
       TH1D* energyOfTrackMatchedHitsEE_;
       TH1D* timeOfTrackMatchedHitsEE_;
       TH2D* timeVsEnergyOfTrackMatchedHitsEE_;
@@ -199,9 +200,12 @@ class HSCPTimingAnalyzer : public edm::EDAnalyzer {
       TH1F* deDxMaxEnergyCryHist_;
       TH1F* deDxMinEnergyCryHist_;
       TH1F* deDxTotalHist_;
+      //XXX: separate into EE/EB; make more general
       TH1F* singleCryCrossedEnergy_;
       TH1F* singleCryCrossedTime_;
       TH1F* singleCryCrossedDeDx_;
+      TH1F* singleCryCrossedTrackLength_;
+      TH1F* singleCryCrossedChi2_;
 
       //TProfile* energyFractionInTrackMatchedXtalsProfile_;
       
@@ -355,6 +359,8 @@ HSCPTimingAnalyzer::HSCPTimingAnalyzer(const edm::ParameterSet& iConfig) :
    singleCryCrossedEnergy_ = fileService->make<TH1F>("singleCryCrossedEnergy","Energy of recHits from 1 cry crossed evts [GeV]",2500,0,10);
    singleCryCrossedTime_ = fileService->make<TH1F>("singleCryCrossedTiming","Timing of recHits from 1 cry crossed evts [ns]",500,-25,25);
    singleCryCrossedDeDx_ = fileService->make<TH1F>("singleCryCrossedDeDx","dE/dx of recHits from 1 cry crossed evts;dE/dx [MeV/cm]",10000,0,5000);
+   singleCryCrossedTrackLength_ = fileService->make<TH1F>("singleCryCrossedTrackLength","Ecal track length from 1 cry crossed evts;length [cm]",2500,0,25);
+   singleCryCrossedChi2_ = fileService->make<TH1F>("singleCryCrossedChi2","Chi2 (#sigma_{T}) of recHits from 1 cry crossed evts;#sigma_{T} [ns]",150,0,15);
    
    muonEcalMaxEnergyTimingHist_ = fileService->make<TH1D>("muonEcalRecHitMaxEnergyTiming","Timing of max ene. recHit from muon [ns]",500,-25,25);
    muonEcalMaxEnergyHist_ = fileService->make<TH1D>("muonEcalRecHitMaxEnergy","Energy of max ene. recHit from muon [GeV]",2500,0,10);
@@ -889,6 +895,8 @@ HSCPTimingAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSe
         singleCryCrossedEnergy_->Fill(contCorr_*0.97*thisHit->energy());
         singleCryCrossedTime_->Fill(thisHit->time());
         singleCryCrossedDeDx_->Fill(contCorr_*1000*0.97*thisHit->energy()/trackLengthInXtal);
+        singleCryCrossedTrackLength_->Fill(trackLengthInXtal);
+        singleCryCrossedChi2_->Fill(25*thisUncalibRecHit->chi2());
       }
 
       //XXX: SIC: TURNED OFF FOR NEW RATIOS TESTING
