@@ -13,7 +13,7 @@
 //
 // Original Author:  Seth COOPER
 //         Created:  Wed Dec 17 23:20:43 CET 2008
-// $Id: HSCPTimingAnalyzer.cc,v 1.14 2010/01/08 18:18:22 scooper Exp $
+// $Id: HSCPTimingAnalyzer.cc,v 1.15 2010/02/08 17:56:41 scooper Exp $
 //
 //
 
@@ -1221,60 +1221,6 @@ int HSCPTimingAnalyzer::getDetailedTrackLengthInXtals(std::map<int,float>& XtalI
 
   return 0;
 
-//  GlobalPoint origin(0., 0., 0.);
-//  internalPointCurved = origin;
-//  externalPointCurved = origin;
-//
-//  bool firstPoint = false;
-//  //const CaloSubdetectorGeometry *theSubdetGeometry = theGeometry->getSubdetectorGeometry(DetId::Ecal,1);
-//  const CaloSubdetectorGeometry* theBarrelSubdetGeometry = theGeometry->getSubdetectorGeometry(DetId::Ecal,1);
-//  const CaloSubdetectorGeometry* theEndcapSubdetGeometry = theGeometry->getSubdetectorGeometry(DetId::Ecal,2);
-//
-//  for(std::vector<SteppingHelixStateInfo>::const_iterator itr = (neckLace.begin() + 1); itr != neckLace.end(); ++itr)
-//  {
-//    GlobalPoint probe_gp = (*itr).position();
-//    std::vector<DetId> surroundingMatrix;
-//    EBDetId closestDetIdToProbe((theSubdetGeometry->getClosestCell(probe_gp)).rawId());
-//
-//    // check if the probe is inside the xtal
-//    if(theGeometry->getSubdetectorGeometry(closestDetIdToProbe)->getGeometry(closestDetIdToProbe)->inside(probe_gp))
-//    {
-//      double step = ((*itr).position()-(*(itr-1)).position()).mag();
-//      addStepToXtal(XtalInfo, muonCrossedXtalMap, closestDetIdToProbe,step);
-//      totalLengthCurved += step;
-//
-//      if (firstPoint == false)
-//      {
-//        internalPointCurved = probe_gp ;
-//        firstPoint = true ;
-//      }
-//      externalPointCurved = probe_gp ;
-//    }
-//    else
-//    {
-//      // 3x3 matrix surrounding the probe
-//      surroundingMatrix = matrixDetId( theTopology, closestDetIdToProbe, -1, 1, -1, 1 );
-//
-//      for( unsigned int k=0; k<surroundingMatrix.size(); ++k ) {
-//        if(theGeometry->getSubdetectorGeometry(surroundingMatrix.at(k))->getGeometry(surroundingMatrix.at(k))->inside(probe_gp))  
-//        {
-//          double step = ((*itr).position() - (*(itr-1)).position()).mag();
-//          addStepToXtal(XtalInfo, muonCrossedXtalMap, surroundingMatrix[k],step);
-//          totalLengthCurved += step;
-//
-//          if (firstPoint == false)
-//          {
-//            internalPointCurved = probe_gp ;
-//            firstPoint = true ;
-//          }
-//          externalPointCurved = probe_gp ;
-//        }
-//      }
-//      // clear neighborhood matrix
-//      surroundingMatrix.clear();
-//    }
-//  }
-//  return 0;
 }
 
 // ------------ addStepToXtal -----------------------------------------------------------
@@ -1335,89 +1281,6 @@ HSCPTimingAnalyzer::endJob()
    recHitMaxEnergyShapeGraph_ = fileService->make<TGraph>(sampleNumbers_.size(), &(*sampleNumbers_.begin()),&(*amplitudes_.begin()));
    recHitMaxEnergyShapeGraph_->SetTitle("Shape of max energy hits (ADC)");
    recHitMaxEnergyShapeGraph_->SetName("recHitMaxEnergyShapeGraph");
-
-   //file_->cd();
-
-   //simHitsTimeHist_->Write();
-   //simHitsEnergyHist_->Write();
-   //recHitTimeSimHitTimeHist_->Write();
-   //recHitTimeHist_->Write();
-   //recHitEnergyHist_->Write();
-   //recHitMaxEnergyHist_->Write();
-   //recHitMinEnergyHist_->Write();
-   //recHitMaxEnergyTimingHist_->Write();
-   ////energyOfTrackMatchedHits_->Write();
-   ////timeOfTrackMatchedHits_->Write();
-   ////timeVsEnergyOfTrackMatchedHits_->Write();
-   //energyOfTrackMatchedHitsEB_->Write();
-   //timeOfTrackMatchedHitsEB_->Write();
-   //timeVsEnergyOfTrackMatchedHitsEB_->Write();
-   //energyOfTrackMatchedHitsEE_->Write();
-   //timeOfTrackMatchedHitsEE_->Write();
-   //timeVsEnergyOfTrackMatchedHitsEE_->Write();
-
-   //outOfTimeEnergyOfTrackMatchedHitsEB_->Write();
-   //outOfTimeEnergyOfTrackMatchedHitsEE_->Write();
-
-   //timeOfTrackMatchedHitsEB1GeVcut_->Write();
-   //timeOfTrackMatchedHitsEB3GeVcut_->Write();
-   //timeOfTrackMatchedHitsEB5GeVcut_->Write();
-   //timeOfTrackMatchedHitsEE1GeVcut_->Write();
-   //timeOfTrackMatchedHitsEE3GeVcut_->Write();
-   //timeOfTrackMatchedHitsEE5GeVcut_->Write();
-   //
-   //timeChi2VsEnergyOfTrackMatchedHitsEB_->Write();
-   //timeChi2VsEnergyOfTrackMatchedHitsEE_->Write();
-
-   //timeVsDeDxOfTrackMatchedHits_->Write();
-   //crossedEnergy_->Write();
-   //crossedLength_->Write();
-   //recHitTimeVsSimHitTime_->Write();
-   //simHitsPerEventHist_->Write();
-   //recHitTimeSimHitTimeVsEnergy_->Write();
-   //recHitsPerTrackHist_->Write();
-   //recHitMaxEnergyShapeProfile_->Write();
-   //recHitMaxEnergyShapeGraph_->Write();
-
-   //deDxHist_->Write();
-   //trackLengthPerCryHist_->Write();
-   //numMatchedCrysPerEventHist_->Write();
-   //numCrysCrossedVsNumHitsFoundHist_->Write();
-   //deDxVsMomHist_->Write();
-   //hit1EnergyVsHit2EnergyHist_->Write();
-   //hit1LengthVsHit2LengthHist_->Write();
-   //hit1DeDxVsHit2DeDxHist_->Write();
-
-   //deDx3x3Hist_->Write();
-   //deDx3x3CorrectedHist_->Write();
-   //deDx5x5Hist_->Write();
-   //deDx5x5CorrectedHist_->Write();
-   //numCrysIn5x5Hist_->Write();
-   //numCrysIn3x3Hist_->Write();
-   //deDxTotalHist_->Write();
-   //deDxMaxEnergyCryHist_->Write();
-   //deDxMinEnergyCryHist_->Write();
-
-   //singleCryCrossedEnergy_->Write();
-   //singleCryCrossedTime_->Write();
-   //singleCryCrossedDeDx_->Write();
-   //
-   muonEcalMaxEnergyTimingHist_->Write();
-   muonEcalMaxEnergyHist_->Write();
-
-   //energy1OverEnergy9Hist_->Write();
-   //energy1VsE1OverE9Hist_->Write();
-   //energy9VsE1OverE9Hist_->Write();
-
-   //energyFractionInTrackMatchedXtalsProfile_->Write();
-
-   //timeError999EnergyHist_->Write();
-
-   //timePullDistEBHist_->Write();
-   //timePullDistEEHist_->Write();
-
-   //TsigTvsArmsEBHist_->Write();
-   //TsigTvsArmsEEHist_->Write();
 
    //energyVsDeDxHist_->Write();
    ////XXX: SIC TURNED OFF B/C NOT NEEDED
