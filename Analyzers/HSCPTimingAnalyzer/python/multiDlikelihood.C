@@ -42,13 +42,8 @@ using namespace RooFit;
 TFile* myInputRootFile_;
 TTree* energyTimeTNtuple_;
 
-TH2* energyVsTimeEBHist_;
-TH1* singleCryCrossedEnergyHist_;
-TH1* singleCryCrossedTimingHist_;
-TH1* singleCryCrossedDeDxHist_;
-TH1* singleCryCrossedTrackLengthHist_;
-TH1* singleCryCrossedChi2Hist_;
-
+// **************************************************************************************
+// *******************  Function to set up my nice TStyle  ******************************
 void SetEStyle()
 {
   TStyle* EStyle = new TStyle("EStyle", "E's not Style");
@@ -197,49 +192,6 @@ void parseArguments(int arc, char* argv[])
   else
     cout << "****************TNtuple found with " << energyTimeTNtuple_->GetEntries() << " entries." << endl;
 
-  // Get hists out of the file for RooDataHists --> RooHistPDFs
-  string fullHistEvsTPath = dirName+"timeVsEnergyOfTrackMatchedHitsEB";
-  energyVsTimeEBHist_ = (TH2*)myInputRootFile_->Get(fullHistEvsTPath.c_str());
-  if(!energyVsTimeEBHist_)
-  {
-    cout << "**************** " << "timeVsEnergyOfTrackMatchedHitsEB" << " not found in file: " << infile << endl;
-    exit(-2);
-  }
-  string fullCryEPath = dirName+"singleCryCrossedEnergy";
-  singleCryCrossedEnergyHist_ = (TH1*)myInputRootFile_->Get(fullCryEPath.c_str());
-  if(!singleCryCrossedEnergyHist_)
-  {
-    cout << "**************** " << "singleCryCrossedEnergy " << " not found in file: " << infile << endl;
-    exit(-2);
-  }
-  string fullCryTPath = dirName+"singleCryCrossedTiming";
-  singleCryCrossedTimingHist_ = (TH1*)myInputRootFile_->Get(fullCryTPath.c_str());
-  if(!singleCryCrossedTimingHist_)
-  {
-    cout << "**************** " << "singleCryCrossedTiming" << " not found in file: " << infile << endl;
-    exit(-2);
-  }
-  string fullCryDeDxPath = dirName+"singleCryCrossedDeDx";
-  singleCryCrossedDeDxHist_ = (TH1*)myInputRootFile_->Get(fullCryDeDxPath.c_str());
-  if(!singleCryCrossedDeDxHist_)
-  {
-    cout << "**************** " << "singleCryCrossedDeDx " << " not found in file: " << infile << endl;
-    exit(-2);
-  }
-  string fullCryTLPath = dirName+"singleCryCrossedTrackLength";
-  singleCryCrossedTrackLengthHist_ = (TH1*)myInputRootFile_->Get(fullCryTLPath.c_str());
-  if(!singleCryCrossedTrackLengthHist_)
-  {
-    cout << "**************** " << "singleCryCrossedTrackLength" << " not found in file: " << infile << endl;
-    exit(-2);
-  }
-  string fullCryC2Path = dirName+"singleCryCrossedChi2";
-  singleCryCrossedChi2Hist_ = (TH1*)myInputRootFile_->Get(fullCryC2Path.c_str());
-  if(!singleCryCrossedChi2Hist_)
-  {
-    cout << "**************** " << "singleCryCrossedChi2Hist" << " not found in file: " << infile << endl;
-    exit(-2);
-  }
 }
 
 //XXX: Main
@@ -262,13 +214,14 @@ int main(int argc, char* argv[])
   
   //RooRealVar crystalEnergy("crystalEnergy","crystalEnergy",0.2,2.5,"GeV"); // higher cut will be done with dE/dx below
   // Using this instead of above for Ledovskoy, DEC 10 2009
-  RooRealVar crystalEnergy("crystalEnergy","crystalEnergy",0,2.5,"GeV");
+  RooRealVar crystalEnergy("crystalEnergy","crystalEnergy",0,5,"GeV");
   RooRealVar crystalTime("crystalTime","crystalTime",-25,25, "ns");
-  RooRealVar crystalChi2("crystalChi2","crystalChi2",0,100000);
-  RooRealVar crystalTrackLength("crystalTrackLength","crystalTrackLength",0,24,"cm");
+  RooRealVar crystalChi2("crystalChi2","crystalChi2",0,10000);
+  RooRealVar crystalTrackLength("crystalTrackLength","crystalTrackLength",0,25,"cm");
   //RooRealVar crystalDeDx("crystalDeDx","crystalDeDx",17.4,50,"MeV/cm"); // 400 MeV energy cut in 1 cry
   // Using this instead of above for Ledovskoy, DEC 10 2009
   RooRealVar crystalDeDx("crystalDeDx","crystalDeDx",0,100,"MeV/cm");
+
 
   // *********************** Load dataset **************************************
   RooDataSet* dedxTimeChi2TrackLengthData = new RooDataSet("dedxTimeChi2Data","dedxChi2TimeData",energyTimeTNtuple_,
@@ -282,7 +235,7 @@ int main(int argc, char* argv[])
   //TCut cut1 = "energy > 0.4 || time < 15";
   //TCut energyCut1 = "crystalEnergy > 0.4";
   TCut trackLengthCut = "crystalTrackLength > 23.05 && crystalTrackLength < 23.15";
-  RooDataSet* dedxTimeChi2CutTLCutData = (RooDataSet*) dedxTimeChi2CutData->reduce(trackLengthCut);
+  //RooDataSet* dedxTimeChi2CutTLCutData = (RooDataSet*) dedxTimeChi2CutData->reduce(trackLengthCut);
   //cout << "Number of entries after trackLength cut is: " << dedxTimeChi2CutTLCutData->numEntries() << endl;
   //RooDataSet* dedxTimeEnergyCutData = (RooDataSet*) dedxTimeDataChi2cut->reduce(energyCut1);
   // Dataset with only dE/dx, time
@@ -301,6 +254,18 @@ int main(int argc, char* argv[])
     cout << "Number of entries in the dataset is too few to continue. " << endl;
     return -3;
   }
+
+  // New Feb 9 2010
+  // Make RooDataHists out of my histograms
+  RooDataHist timeVsEnergyEBDataHist("timeVsEnergyEBDataHist","timeVsEnergyEBDataHist",
+      RooArgSet(crystalEnergy,crystalTime),*dedxTimeChi2TrackLengthData);
+
+
+  // For complete RooHistPDF model
+  RooDataHist myDataHist("myDataHist","myDataHist",
+      RooArgSet(crystalEnergy,crystalTime,crystalDeDx,crystalChi2,crystalTrackLength),*dedxTimeChi2TrackLengthData);
+  
+
   
   // **************** Parameters ***********************************************
   //***** Floating
