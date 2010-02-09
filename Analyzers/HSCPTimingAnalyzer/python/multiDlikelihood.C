@@ -38,6 +38,17 @@
 
 using namespace RooFit;
 
+// Globals
+TFile* myInputRootFile_;
+TTree* energyTimeTNtuple_;
+
+TH2* energyVsTimeEBHist_;
+TH1* singleCryCrossedEnergyHist_;
+TH1* singleCryCrossedTimingHist_;
+TH1* singleCryCrossedDeDxHist_;
+TH1* singleCryCrossedTrackLengthHist_;
+TH1* singleCryCrossedChi2Hist_;
+
 void SetEStyle()
 {
   TStyle* EStyle = new TStyle("EStyle", "E's not Style");
@@ -162,34 +173,84 @@ void SetEStyle()
   EStyle->cd();
 }
 
+// **************************************************************************************
+// *******************  Function to parse arguments and load hists **********************
+void parseArguments(int arc, char* argv[])
+{
+  char* infile = argv[1];
+  if (!infile)
+  {
+    cout << " No input file specified !" << endl;
+    exit(-1);
+  }
+
+  myInputRootFile_ = new TFile(infile);
+  string dirName="hscpTimingAnalyzer/";
+  string ntupleName = "energyAndTimeNTuple";
+  string fullPath = dirName+ntupleName;
+  energyTimeTNtuple_ = (TTree*)myInputRootFile_->Get(fullPath.c_str());
+  if(!energyTimeTNtuple_)
+  {
+    cout << "****************No TNtuple with name " << ntupleName << " found in file: " << infile << endl;
+    exit(-2);
+  }
+  else
+    cout << "****************TNtuple found with " << energyTimeTNtuple_->GetEntries() << " entries." << endl;
+
+  // Get hists out of the file for RooDataHists --> RooHistPDFs
+  string fullHistEvsTPath = dirName+"timeVsEnergyOfTrackMatchedHitsEB";
+  energyVsTimeEBHist_ = (TH2*)myInputRootFile_->Get(fullHistEvsTPath.c_str());
+  if(!energyVsTimeEBHist_)
+  {
+    cout << "**************** " << "timeVsEnergyOfTrackMatchedHitsEB" << " not found in file: " << infile << endl;
+    exit(-2);
+  }
+  string fullCryEPath = dirName+"singleCryCrossedEnergy";
+  singleCryCrossedEnergyHist_ = (TH1*)myInputRootFile_->Get(fullCryEPath.c_str());
+  if(!singleCryCrossedEnergyHist_)
+  {
+    cout << "**************** " << "singleCryCrossedEnergy " << " not found in file: " << infile << endl;
+    exit(-2);
+  }
+  string fullCryTPath = dirName+"singleCryCrossedTiming";
+  singleCryCrossedTimingHist_ = (TH1*)myInputRootFile_->Get(fullCryTPath.c_str());
+  if(!singleCryCrossedTimingHist_)
+  {
+    cout << "**************** " << "singleCryCrossedTiming" << " not found in file: " << infile << endl;
+    exit(-2);
+  }
+  string fullCryDeDxPath = dirName+"singleCryCrossedDeDx";
+  singleCryCrossedDeDxHist_ = (TH1*)myInputRootFile_->Get(fullCryDeDxPath.c_str());
+  if(!singleCryCrossedDeDxHist_)
+  {
+    cout << "**************** " << "singleCryCrossedDeDx " << " not found in file: " << infile << endl;
+    exit(-2);
+  }
+  string fullCryTLPath = dirName+"singleCryCrossedTrackLength";
+  singleCryCrossedTrackLengthHist_ = (TH1*)myInputRootFile_->Get(fullCryTLPath.c_str());
+  if(!singleCryCrossedTrackLengthHist_)
+  {
+    cout << "**************** " << "singleCryCrossedTrackLength" << " not found in file: " << infile << endl;
+    exit(-2);
+  }
+  string fullCryC2Path = dirName+"singleCryCrossedChi2";
+  singleCryCrossedChi2Hist_ = (TH1*)myInputRootFile_->Get(fullCryC2Path.c_str());
+  if(!singleCryCrossedChi2Hist_)
+  {
+    cout << "**************** " << "singleCryCrossedChi2Hist" << " not found in file: " << infile << endl;
+    exit(-2);
+  }
+}
+
 //XXX: Main
 int main(int argc, char* argv[])
 {
   using namespace std;
 
-  char* infile = argv[1];
-  if (!infile)
-  {
-    cout << " No input file specified !" << endl;
-    return -1;
-  }
+  stringstream roofitstream;
 
-  std::stringstream roofitstream;
-  
-  TFile* f = new TFile(infile);
-  string dirName="hscpTimingAnalyzer/";
-  string ntupleName = "energyAndTimeNTuple";
-  string fullPath = dirName+ntupleName;
-  TTree* energyTimeTNtuple = (TTree*)f->Get(fullPath.c_str());
-  if(!energyTimeTNtuple)
-  {
-    cout << "****************No TNtuplewith name " << ntupleName << " found in file: " << infile << endl;
-    return -1;
-  }
-  else
-    cout << "****************TNtuple found with " << energyTimeTNtuple->GetEntries() << " entries." << endl;
-
-  //cout << "****************Beginning fit for file: " << infile << endl;
+  // parse arguments and load data
+  parseArguments(argc, argv);
 
   SetEStyle();
   gStyle->SetMarkerSize(0.5);
@@ -210,7 +271,7 @@ int main(int argc, char* argv[])
   RooRealVar crystalDeDx("crystalDeDx","crystalDeDx",0,100,"MeV/cm");
 
   // *********************** Load dataset **************************************
-  RooDataSet* dedxTimeChi2TrackLengthData = new RooDataSet("dedxTimeChi2Data","dedxChi2TimeData",energyTimeTNtuple,
+  RooDataSet* dedxTimeChi2TrackLengthData = new RooDataSet("dedxTimeChi2Data","dedxChi2TimeData",energyTimeTNtuple_,
       RooArgSet(crystalDeDx,crystalTime,crystalChi2,crystalEnergy,crystalTrackLength));
 
   cout << "Number of entries in initial dataset is: " << dedxTimeChi2TrackLengthData->numEntries() << endl;
@@ -238,7 +299,7 @@ int main(int argc, char* argv[])
   if(numEntries < 10)
   {
     cout << "Number of entries in the dataset is too few to continue. " << endl;
-    return -2;
+    return -3;
   }
   
   // **************** Parameters ***********************************************
@@ -666,7 +727,7 @@ int main(int argc, char* argv[])
   likelihoodPlotCanvas->Write();
   
   outputFile->Close();
-  f->Close();
+  myInputRootFile_->Close();
 
   cout << "-LogLikelihood for SB model: " << logLikelihood << " -LogLikelihood for B only model: " << logLikelihoodBack
     << " -LogLikelihood for S only model: " << logLikelihoodSignal << endl;
