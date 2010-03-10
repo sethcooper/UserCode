@@ -1,10 +1,10 @@
 import FWCore.ParameterSet.Config as cms
 
-process = cms.Process("OWNPARTICLES")
+process = cms.Process("ECALSIMPLETIMEGRAPHS")
 
 process.load("FWCore.MessageService.MessageLogger_cfi")
 
-process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(10) )
+process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(1) )
 
 process.source = cms.Source("EmptySource")
 
@@ -28,7 +28,10 @@ process.load("CalibCalorimetry.EcalLaserCorrection.ecalLaserCorrectionService_cf
 process.load("Geometry.EcalMapping.EcalMapping_cfi")
 process.load("Geometry.EcalMapping.EcalMappingRecord_cfi")
 
-process.myProducerLabel = cms.EDProducer('PerfectEcalPulseShapeProducer'
+process.myProducerLabel = cms.EDProducer('PerfectEcalPulseShapeProducer',
+  amplitudeEB = cms.untracked.double(5),
+  amplitudeEE = cms.untracked.double(5),
+  scanAmplitudes = cms.untracked.bool(True)
 )
 
 process.out = cms.OutputModule("PoolOutputModule",
@@ -37,11 +40,14 @@ process.out = cms.OutputModule("PoolOutputModule",
 
   
 process.load("RecoLocalCalo.EcalRecProducers.ecalRecHit_cfi")
-process.ecalRecHit.EEuncalibRecHitCollection = cms.InputTag("ecalRatioUncalibRecHit","EcalUncalibRecHitsEE")
-process.ecalRecHit.EBuncalibRecHitCollection = cms.InputTag("ecalRatioUncalibRecHit","EcalUncalibRecHitsEB")
+#process.ecalRecHit.EEuncalibRecHitCollection = cms.InputTag("ecalRatioUncalibRecHit","EcalUncalibRecHitsEE")
+#process.ecalRecHit.EBuncalibRecHitCollection = cms.InputTag("ecalRatioUncalibRecHit","EcalUncalibRecHitsEB")
+process.load("RecoLocalCalo.EcalRecProducers.ecalGlobalUncalibRecHit_cfi")
+process.ecalGlobalUncalibRecHit.EBdigiCollection = cms.InputTag("myProducerLabel","ebDigis")
+process.ecalGlobalUncalibRecHit.EEdigiCollection = cms.InputTag("myProducerLabel","eeDigis")
 
 # Create ratios uncalibRecHitProducer, here using data constants
-process.load("RecoLocalCalo.EcalRecProducers.ecalRatioUncalibRecHit_cfi")
+#process.load("RecoLocalCalo.EcalRecProducers.ecalRatioUncalibRecHit_cfi")
 #process.ecalRatioUncalibRecHit = cms.EDProducer("EcalRatioMethodUncalibRecHitProducer",
 #    EBdigiCollection = cms.InputTag("ecalDigis","ebDigis"),
 #    EEdigiCollection = cms.InputTag("ecalDigis","eeDigis"),
@@ -56,16 +62,16 @@ process.load("RecoLocalCalo.EcalRecProducers.ecalRatioUncalibRecHit_cfi")
 #    EEtimeFitLimits_Lower = cms.double(0.2),
 #    EEtimeFitLimits_Upper = cms.double(1.4)
     # MC Constants
-process.ecalRatioUncalibRecHit.EBtimeFitParameters = (-2.015452e+00, 3.130702e+00, -1.234730e+01, 4.188921e+01, -8.283944e+01, 9.101147e+01, -5.035761e+01, 1.105621e+01)
-process.ecalRatioUncalibRecHit.EEtimeFitParameters = (-2.015452e+00, 3.130702e+00, -1.234730e+01, 4.188921e+01, -8.283944e+01, 9.101147e+01, -5.035761e+01, 1.105621e+01)
-process.ecalRatioUncalibRecHit.EBamplitudeFitParameters = cms.vdouble(1.138,1.652)
-process.ecalRatioUncalibRecHit.EEamplitudeFitParameters = cms.vdouble(1.138,1.652)
+#process.ecalRatioUncalibRecHit.EBtimeFitParameters = (-2.015452e+00, 3.130702e+00, -1.234730e+01, 4.188921e+01, -8.283944e+01, 9.101147e+01, -5.035761e+01, 1.105621e+01)
+#process.ecalRatioUncalibRecHit.EEtimeFitParameters = (-2.015452e+00, 3.130702e+00, -1.234730e+01, 4.188921e+01, -8.283944e+01, 9.101147e+01, -5.035761e+01, 1.105621e+01)
+#process.ecalRatioUncalibRecHit.EBamplitudeFitParameters = cms.vdouble(1.138,1.652)
+#process.ecalRatioUncalibRecHit.EEamplitudeFitParameters = cms.vdouble(1.138,1.652)
 #process.ecalRatioUncalibRecHit.EBamplitudeFitParameters = cms.vdouble(1.000269e+00, 4.034871e-03, -1.647478e-01, -1.764497e-03, 1.678786e-01, 1.471199e-01, -3.997733e-01, -2.253389e-01)
 #process.ecalRatioUncalibRecHit.EEamplitudeFitParameters = cms.vdouble(1.000269e+00, 4.034871e-03, -1.647478e-01, -1.764497e-03, 1.678786e-01, 1.471199e-01, -3.997733e-01, -2.253389e-01)
-process.ecalRatioUncalibRecHit.EBtimeFitLimits_Lower = cms.double(0.100)
-process.ecalRatioUncalibRecHit.EBtimeFitLimits_Upper = cms.double(1.45)
-process.ecalRatioUncalibRecHit.EEtimeFitLimits_Lower = cms.double(0.10)
-process.ecalRatioUncalibRecHit.EEtimeFitLimits_Upper = cms.double(1.45)
+#process.ecalRatioUncalibRecHit.EBtimeFitLimits_Lower = cms.double(0.100)
+#process.ecalRatioUncalibRecHit.EBtimeFitLimits_Upper = cms.double(1.45)
+#process.ecalRatioUncalibRecHit.EEtimeFitLimits_Lower = cms.double(0.10)
+#process.ecalRatioUncalibRecHit.EEtimeFitLimits_Upper = cms.double(1.45)
     #TB Data constants            
     #    EBtimeFitParameters = cms.vdouble(-2.015452e+00, 3.130702e+00, -1.234730e+01, 4.188921e+01, -8.283944e+01, 9.101147e+01, -5.035761e+01, 1.105621e+01),
     #    EEtimeFitParameters = cms.vdouble(-2.390548e+00, 3.553628e+00, -1.762341e+01, 6.767538e+01, -1.332130e+02, 1.407432e+02, -7.541106e+01, 1.620277e+01),
@@ -76,18 +82,22 @@ process.ecalRatioUncalibRecHit.EEtimeFitLimits_Upper = cms.double(1.45)
     #    EEtimeFitLimits_Lower = cms.double(0.10),
     #    EEtimeFitLimits_Upper = cms.double(1.40)
     #)
-process.ecalRatioUncalibRecHit.EBdigiCollection = cms.InputTag("myProducerLabel","ebDigis")
+#process.ecalRatioUncalibRecHit.EBdigiCollection = cms.InputTag("myProducerLabel","ebDigis")
 
-process.simpleTimeGraphs = cms.EDAnalyzer("SimpleTimeEnergyGraphs",
-    EBRecHitCollection = cms.InputTag('ecalRecHit','EcalRecHitsEB')
+process.simpleTimeEnergyGraphs = cms.EDAnalyzer("SimpleTimeEnergyGraphs",
+    EBRecHitCollection = cms.InputTag('ecalRecHit','EcalRecHitsEB'),
+    EERecHitCollection = cms.InputTag('ecalRecHit','EcalRecHitsEE'),
+    EBUncalibRecHitCollection = cms.InputTag('ecalGlobalUncalibRecHit','EcalUncalibRecHitsEB'),
+    EEUncalibRecHitCollection = cms.InputTag('ecalGlobalUncalibRecHit','EcalUncalibRecHitsEE')
 )
 
 
 process.p = cms.Path(
 process.myProducerLabel
-*process.ecalRatioUncalibRecHit
+#*process.ecalRatioUncalibRecHit
+*process.ecalGlobalUncalibRecHit
 *process.ecalRecHit
-*process.simpleTimeGraphs
+*process.simpleTimeEnergyGraphs
 )
 
-process.e = cms.EndPath(process.out)
+#process.e = cms.EndPath(process.out)
