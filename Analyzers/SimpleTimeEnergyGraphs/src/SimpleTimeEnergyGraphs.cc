@@ -13,7 +13,7 @@
 //
 // Original Author:  
 //         Created:  Tue Oct 13 14:56:06 CEST 2009
-// $Id: SimpleTimeEnergyGraphs.cc,v 1.2 2010/03/10 12:28:27 scooper Exp $
+// $Id: SimpleTimeEnergyGraphs.cc,v 1.3 2010/03/12 09:36:39 scooper Exp $
 //
 //
 
@@ -59,9 +59,9 @@ class SimpleTimeEnergyGraphs : public edm::EDAnalyzer {
       edm::InputTag EERecHitCollection_;
       edm::InputTag EBUncalibRecHitCollection_;
       edm::InputTag EEUncalibRecHitCollection_;
-
       double minAmpForTimingEB_;
       double minAmpForTimingEE_;
+      std::string fileName_;
 
       TFile* file_;
       TH1F* timeOfHitsEBps_;
@@ -99,10 +99,11 @@ SimpleTimeEnergyGraphs::SimpleTimeEnergyGraphs(const edm::ParameterSet& iConfig)
   EBUncalibRecHitCollection_ (iConfig.getParameter<edm::InputTag>("EBUncalibRecHitCollection")),
   EEUncalibRecHitCollection_ (iConfig.getParameter<edm::InputTag>("EEUncalibRecHitCollection")),
   minAmpForTimingEB_ (iConfig.getUntrackedParameter<double>("minAmpForTimingEB",5)),
-  minAmpForTimingEE_ (iConfig.getUntrackedParameter<double>("minAmpForTimingEE",5))
+  minAmpForTimingEE_ (iConfig.getUntrackedParameter<double>("minAmpForTimingEE",5)),
+  fileName_ (iConfig.getUntrackedParameter<std::string>("rootFile","simpleTimeEnergyGraphs.root"))
 {
    //now do what ever initialization is needed
-   file_ = new TFile("simpleTimeEnergyGraphs.root","RECREATE");
+   file_ = new TFile(fileName_.c_str(),"RECREATE");
    file_->cd();
 
    timeOfHitsEBps_ = new TH1F("timeOfHitsEBps", "Time of hits EB [ps]",2000,-100,100);
