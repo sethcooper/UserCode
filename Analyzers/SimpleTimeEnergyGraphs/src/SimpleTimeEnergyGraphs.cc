@@ -13,7 +13,7 @@
 //
 // Original Author:  
 //         Created:  Tue Oct 13 14:56:06 CEST 2009
-// $Id: SimpleTimeEnergyGraphs.cc,v 1.3 2010/03/12 09:36:39 scooper Exp $
+// $Id: SimpleTimeEnergyGraphs.cc,v 1.4 2010/03/17 09:56:32 scooper Exp $
 //
 //
 
@@ -80,6 +80,9 @@ class SimpleTimeEnergyGraphs : public edm::EDAnalyzer {
 
       TH2F* timeVsAmplitudeEB_;
       TH2F* timeVsAmplitudeEE_;
+      TH2F* timeVsAeffEB_;
+      TH2F* timeVsAeffEE_;
+      
 };
 
 //
@@ -118,6 +121,9 @@ SimpleTimeEnergyGraphs::SimpleTimeEnergyGraphs(const edm::ParameterSet& iConfig)
 
    timeVsAmplitudeEB_ = new TH2F("timeVsAmplitudeEB","Time vs. amplitude of hits EB;ADC;ns",1250,0,2500,1000,-25,25);
    timeVsAmplitudeEE_ = new TH2F("timeVsAmplitudeEE","Time vs. amplitude of hits EE;ADC;ns",1250,0,2500,1000,-25,25);
+   
+   timeVsAeffEB_ = new TH2F("timeVsAeffEB","Time vs. aeff/#sigma of hits EB;A/#sigma;ns",1250,0,2500,1000,-25,25);
+   timeVsAeffEE_ = new TH2F("timeVsAeffEE","Time vs. aeff/#sigma of hits EE;A/#sigma;ns",1250,0,2500,1000,-25,25);
 
    for(int i=0; i<6; ++i)
    {
@@ -205,7 +211,10 @@ SimpleTimeEnergyGraphs::analyze(const edm::Event& iEvent, const edm::EventSetup&
     while(uHitItr != ebURecHits->end() && uHitItr->id() != recHitItr->id())
       ++uHitItr;
     if(uHitItr != ebURecHits->end())
+    {
       timeVsAmplitudeEB_->Fill(uHitItr->amplitude(),recHitItr->time());
+      timeVsAeffEB_->Fill((uHitItr->amplitude()/sqrt(2))/1.06,recHitItr->time());
+    }
     else
       continue;
     if(uHitItr->amplitude() < minAmpForTimingEB_)
@@ -246,7 +255,10 @@ SimpleTimeEnergyGraphs::analyze(const edm::Event& iEvent, const edm::EventSetup&
     while(uHitItr != eeURecHits->end() && uHitItr->id() != recHitItr->id())
       ++uHitItr;
     if(uHitItr != eeURecHits->end())
+    {
       timeVsAmplitudeEE_->Fill(uHitItr->amplitude(),recHitItr->time());
+      timeVsAeffEE_->Fill((uHitItr->amplitude()/sqrt(2))/2.1,recHitItr->time());
+    }
     else
       continue;
     if(uHitItr->amplitude() < minAmpForTimingEE_)
@@ -284,11 +296,13 @@ SimpleTimeEnergyGraphs::endJob() {
   timeOfHitsEB10GeV_->Write();
   energyOfHitsEB_->Write();
   timeVsAmplitudeEB_->Write();
+  timeVsAeffEB_->Write();
   timeOfHitsEE_->Write();
   timeOfHitsEE5GeV_->Write();
   timeOfHitsEE10GeV_->Write();
   energyOfHitsEE_->Write();
   timeVsAmplitudeEE_->Write();
+  timeVsAeffEE_->Write();
 
   // EB
   for(int i=0; i<6; ++i)
