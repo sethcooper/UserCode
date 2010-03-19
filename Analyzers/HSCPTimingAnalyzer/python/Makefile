@@ -17,6 +17,9 @@ bgOnly : multiDlikelihoodBackgroundOnly.C
 sigOnly : multiDlikelihoodSignalOnly.C
 	$(CC) $(CFLAGS) $(LIBS) $(INCLUDES) $(LIBDIR) -o multiDsig multiDlikelihoodSignalOnly.C
 
+trivial : multiDlikelihood_trivial.C
+	$(CC) $(CFLAGS) $(LIBS) $(INCLUDES) $(LIBDIR) -o multiDtrivial multiDlikelihood_trivial.C
+
 full : multiDlikelihood.C
 	$(CC) $(CFLAGS) $(LIBS) $(INCLUDES) $(LIBDIR) -o multiD multiDlikelihood.C
 
