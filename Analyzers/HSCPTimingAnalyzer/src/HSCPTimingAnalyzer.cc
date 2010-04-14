@@ -13,7 +13,7 @@
 //
 // Original Author:  Seth COOPER
 //         Created:  Wed Dec 17 23:20:43 CET 2008
-// $Id: HSCPTimingAnalyzer.cc,v 1.17 2010/02/08 18:29:13 scooper Exp $
+// $Id: HSCPTimingAnalyzer.cc,v 1.18 2010/04/14 09:35:49 scooper Exp $
 //
 //
 
@@ -35,7 +35,7 @@
 
 //
 #include "FWCore/ServiceRegistry/interface/Service.h"
-#include "PhysicsTools/UtilAlgos/interface/TFileService.h"
+#include "CommonTools/UtilAlgos/interface/TFileService.h"
 #include "TH1.h"
 #include "TH2.h"
 #include "TProfile.h"
