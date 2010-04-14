@@ -13,7 +13,7 @@
 //
 // Original Author:  Seth COOPER
 //         Created:  Wed Dec 17 23:20:43 CET 2008
-// $Id: HSCPTimingAnalyzer.cc,v 1.16 2010/02/08 18:22:41 scooper Exp $
+// $Id: HSCPTimingAnalyzer.cc,v 1.17 2010/02/08 18:29:13 scooper Exp $
 //
 //
 
@@ -427,6 +427,7 @@ void
 HSCPTimingAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 {
   using namespace edm;
+  using namespace std;
   eventNum_ = iEvent.id().event();
 
   Handle<PCaloHitContainer> ebSimHits;
@@ -483,12 +484,12 @@ HSCPTimingAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSe
   if(!EEUncalibRecHitsHandle_.isValid())
   {
     std::cout << "Cannot get eeUncalibRecHits from event!" << std::endl;
-    return;
+    //return;
   }
   if(!EEUncalibRecHitsHandle_->size() > 0)
   {
     std::cout << "EEUncalibRecHits size is 0!" << std::endl;
-    return;
+    //return;
   }
 
 
@@ -950,13 +951,16 @@ HSCPTimingAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSe
       cryDeDx_ = contCorr_*1000*0.97*thisHit->energy()/trackLengthInXtal;
       energyAndTimeNTuple_->Fill();
 
+      // XXX: disable this for now; causing seg faults (probably array out of bounds)
+      // SIC March 1 2010
       // Plot slices
-      energyVsDeDxHist_->Fill(cryDeDx_,cryEnergy_);
-      if(cryDeDx_/2.8 < 24)
-        energyInDeDxSlice_[(int)round(cryDeDx_/2.8)]->Fill(cryEnergy_);
-      else
-        energyInDeDxSlice_[24]->Fill(cryEnergy_);
+      //energyVsDeDxHist_->Fill(cryDeDx_,cryEnergy_);
+      //if(cryDeDx_/2.8 < 24)
+      //  energyInDeDxSlice_[(int)round(cryDeDx_/2.8)]->Fill(cryEnergy_);
+      //else
+      //  energyInDeDxSlice_[24]->Fill(cryEnergy_);
     }
+
     numCrysCrossedVsNumHitsFoundHist_->Fill(numRecHitsFound,numCrysCrossed_);
     crossedEnergy_->Fill(crossedEnergy);
     crossedLength_->Fill(crossedLength);

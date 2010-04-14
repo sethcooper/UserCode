@@ -16,11 +16,13 @@
 #include "TTree.h"
 #include "TCut.h"
 #include "TGraphErrors.h"
+#include "TPaveLabel.h"
 
 #include "RooExtendPdf.h"
 #include "RooRealVar.h"
 #include "RooLandau.h"
 #include "RooGaussian.h"
+#include "RooBreitWigner.h"
 #include "RooDataSet.h"
 #include "RooDataHist.h"
 #include "RooAddPdf.h"
@@ -310,27 +312,36 @@ int main(int argc, char* argv[])
   //RooRealVar b("b","b",0.3527); // these are old
   RooRealVar a("a","a",0.8895); // from ecal craft timing note
   RooRealVar b("b","b",0.0008);
-  RooRealVar ap("ap","ap",9685.); // @ 23 cm
+  RooRealVar ap("ap","ap",12110.); //XXX SIC April 5 1020 --  ~ 25% wider sigma for MC studies
+  RooRealVar apReal("apReal","apReal",9685.); // @ 23 cm
   //RooRealVar ap("ap","ap",9601.4); // @ 23.1 cm length
-  RooFormulaVar timingRes("timingRes","TMath::Sqrt(ap/crystalDeDx^2+0.0008)",RooArgList(ap,crystalDeDx)); // altered to use dE/dx*23 cm (ap)
+  RooFormulaVar timingRes("timingRes","TMath::Sqrt(ap/crystalDeDx^2+0.0008)",RooArgList(ap,crystalDeDx)); // altered to use wider sigma
+  RooFormulaVar timingResReal("timingResReal","TMath::Sqrt(apReal/crystalDeDx^2+0.0008)",RooArgList(apReal,crystalDeDx)); // altered to use dE/dx*23 cm (ap)
   //name,title,variable,mean,sigma
   RooLandau landauDeDxMuon("landauDeDxMuon","landauDeDxMuon",crystalDeDx,landauDeDxMuonMean,landauDeDxMuonSigma);
   //RooGaussian gaussianDeDxMuon("gaussianDeDxMuon","gaussianDeDxMuon",crystalDeDx,gaussDeDxMuonMean,gaussDeDxMuonSigma);
   //crystalDeDx.setBins(10000,"cache");
   //RooFFTConvPdf langausDeDxMuon("langausDeDxMuon","landau (X) gauss",crystalDeDx,landauDeDxMuon,gaussianDeDxMuon);
-  RooGaussian gaussianTimeMuon("gaussianTimeMuon","gaussianTimeMuon",crystalTime,gaussianTimeMuonMean,timingRes);
+  
+  //RooGaussian gaussianTimeMuon("gaussianTimeMuon","gaussianTimeMuon",crystalTime,gaussianTimeMuonMean,timingRes);
+  RooBreitWigner gaussianTimeMuon("gaussianTimeMuon","gaussianTimeMuon",crystalTime,gaussianTimeMuonMean,timingResReal);
+  RooGaussian gaussianTimeMuonReal("gaussianTimeMuonReal","gaussianTimeMuonReal",crystalTime,gaussianTimeMuonMean,timingResReal);
 
   // HSCP
   RooGaussian gaussianDeDxHSCP("gaussianDeDxHSCP","gaussianDeDxHSCP",crystalDeDx,gaussianDeDxHSCPMean,gaussianDeDxHSCPSigma);
-  RooGaussian gaussianTimeHSCP("gaussianTimeHSCP","gaussianTimeHSCP",crystalTime,gaussianTimeHSCPMean,timingRes);
+  //RooGaussian gaussianTimeHSCP("gaussianTimeHSCP","gaussianTimeHSCP",crystalTime,gaussianTimeHSCPMean,timingResReal);
+  RooBreitWigner gaussianTimeHSCP("gaussianTimeHSCP","gaussianTimeHSCP",crystalTime,gaussianTimeHSCPMean,timingResReal);
+  RooGaussian gaussianTimeHSCPReal("gaussianTimeHSCPReal","gaussianTimeHSCPReal",crystalTime,gaussianTimeHSCPMean,timingResReal);
 
   // ***************** Models **************************************************
   //XXX Here, sigFrac will be amount of signal generated
   RooRealVar sigFrac("sigFrac","signal fraction",0.01,0,1);
   RooAddPdf dedxModel("dedxModel","dedxModel",RooArgList(gaussianDeDxHSCP,landauDeDxMuon),sigFrac);
   RooAddPdf timeModel("timeModel","timeModel",RooArgList(gaussianTimeHSCP,gaussianTimeMuon),sigFrac);
+  RooAddPdf timeModelReal("timeModelReal","timeModelReal",RooArgList(gaussianTimeHSCPReal,gaussianTimeMuonReal),sigFrac);
   // Signal + Background
   RooProdPdf dedxAndTimeModel("dedxAndTimeModel","dedxAndTimeModel",dedxModel,Conditional(timeModel,crystalTime));
+  RooProdPdf dedxAndTimeModelReal("dedxAndTimeModelReal","dedxAndTimeModelReal",dedxModel,Conditional(timeModelReal,crystalTime));
   //Signal only
   //RooProdPdf dedxAndTimeModel("dedxAndTimeModel","dedxAndTimeModel",gaussianDeDxHSCP,Conditional(gaussianTimeHSCP,crystalTime));
   //Background only
@@ -340,13 +351,13 @@ int main(int argc, char* argv[])
   RooLandau landauDeDxMuonBack("landauDeDxMuonBack","landauDeDxMuonBack",crystalDeDx,landauDeDxMuonMeanBack,landauDeDxMuonSigmaBack);
   //RooGaussian gaussianDeDxMuonBack("gaussianDeDxMuonBack","gaussianDeDxMuonBack",crystalDeDx,gaussDeDxMuonMeanBack,gaussDeDxMuonSigmaBack);
   //RooFFTConvPdf langausDeDxBack("langausDeDxBack","langausDeDxBack",crystalDeDx,landauDeDxMuonBack,gaussianDeDxMuonBack);
-  RooGaussian gaussianTimeMuonBack("gaussianTimeMuonBack","gaussianTimeMuonBack",crystalTime,gaussianTimeMuonMeanBack,timingRes);
+  RooGaussian gaussianTimeMuonBack("gaussianTimeMuonBack","gaussianTimeMuonBack",crystalTime,gaussianTimeMuonMeanBack,timingResReal);
   //RooProdPdf dedxAndTimeBackModel("dedxAndTimeBackModel","dedxAndTimeBackModel",langausDeDxBack,Conditional(gaussianTimeMuonBack,crystalTime));
   RooProdPdf dedxAndTimeBackModel("dedxAndTimeBackModel","dedxAndTimeBackModel",landauDeDxMuonBack,Conditional(gaussianTimeMuonBack,crystalTime));
 
   // Make signal-only model
   RooGaussian gaussianDeDxHSCPSignal("gaussianDeDxHSCPSignal","gaussianDeDxHSCPSignal",crystalDeDx,gaussianDeDxHSCPMeanSignal,gaussianDeDxHSCPSigmaSignal);
-  RooGaussian gaussianTimeHSCPSignal("gaussianTimeHSCPSignal","gaussianTimeHSCPSignal",crystalTime,gaussianTimeHSCPMeanSignal,timingRes);
+  RooGaussian gaussianTimeHSCPSignal("gaussianTimeHSCPSignal","gaussianTimeHSCPSignal",crystalTime,gaussianTimeHSCPMeanSignal,timingResReal);
   RooProdPdf dedxAndTimeSignalModel("dedxAndTimeSignalModel","dedxAndTimeSignalModel",gaussianDeDxHSCPSignal,Conditional(gaussianTimeHSCPSignal,crystalTime));
 
 
@@ -358,14 +369,24 @@ int main(int argc, char* argv[])
   //RooGaussian* backTimeModel1D = new RooGaussian("backTimeModel1D","backTimeModel1D",time,backTimeMean,timingRes);
   
   // 1-D model vars -- background+signal (floating)
-  RooRealVar gaussianDeDxMean1("dEdx_hMean1","dEdx_hMean1",23.035,1,100);
-  RooRealVar gaussianDeDxSigma1("dEdx_hSigma1","dEdx_hSigma1",2.23,0.1,10);
-  RooRealVar landauDeDxMP1("dEdx_landauMP1","dEdx_landauMP1",15.2,5,30);
-  RooRealVar landauDeDxSigma1("dEdx_landauSigma1","dEdx_landauSigma1",1.19,0.1,10);
-  RooRealVar gaussianTimeHSCPMean1("T_hMean1","T_hMean1",6.79,-2,10);
-  RooRealVar gaussianTimeHSCPSigma1("T_hSigma1","T_hSigma1",4.69,0.5,10);
-  RooRealVar gaussianTimeMuonMean1("T_muMean1","T_muMean1",2.84,-5,5);
-  RooRealVar gaussianTimeMuonSigma1("T_muSigma1","T_muSigma1",3.99,0.5,10);
+  RooRealVar gaussianDeDxMean1("dEdx_hMean1","dEdx_hMean1",23.5,20,25);
+  RooRealVar gaussianDeDxSigma1("dEdx_hSigma1","dEdx_hSigma1",2.23,1,3);
+  RooRealVar landauDeDxMP1("dEdx_landauMP1","dEdx_landauMP1",13.0,10,15);
+  RooRealVar landauDeDxSigma1("dEdx_landauSigma1","dEdx_landauSigma1",0.6,0.1,1);
+  RooRealVar gaussianTimeHSCPMean1("T_hMean1","T_hMean1",6.89,6,10);
+  RooRealVar gaussianTimeHSCPSigma1("T_hSigma1","T_hSigma1",4.69,1,6);
+  RooRealVar gaussianTimeMuonMean1("T_muMean1","T_muMean1",2.46,-5,4);
+  RooRealVar gaussianTimeMuonSigma1("T_muSigma1","T_muSigma1",3.99,1,6);
+  //RooLandau landauDeDx1D("landauDeDxMuon1","landauDeDxMuon1",crystalDeDx,landauDeDxMP1,landauDeDxSigma1);
+  // 1-D model vars -- background+signal (fixed)
+  //RooRealVar gaussianDeDxMean1("dEdx_hMean1","dEdx_hMean1",23.5);
+  //RooRealVar gaussianDeDxSigma1("dEdx_hSigma1","dEdx_hSigma1",2.23);
+  //RooRealVar landauDeDxMP1("dEdx_landauMP1","dEdx_landauMP1",13.0);
+  //RooRealVar landauDeDxSigma1("dEdx_landauSigma1","dEdx_landauSigma1",0.59);
+  //RooRealVar gaussianTimeHSCPMean1("T_hMean1","T_hMean1",6.89);
+  //RooRealVar gaussianTimeHSCPSigma1("T_hSigma1","T_hSigma1",4.);
+  //RooRealVar gaussianTimeMuonMean1("T_muMean1","T_muMean1",2.46);
+  //RooRealVar gaussianTimeMuonSigma1("T_muSigma1","T_muSigma1",3.99);
   RooLandau landauDeDx1D("landauDeDxMuon1","landauDeDxMuon1",crystalDeDx,landauDeDxMP1,landauDeDxSigma1);
 
   //crystalDeDx.setBins(10000,"cache");
@@ -384,66 +405,127 @@ int main(int argc, char* argv[])
   // Background only
   //RooLandau dedxModel1D = landauDeDx1D;
   //RooGaussian timeModel1D = gaussianTimeMuon1D;
-
-  // *********** Generate data based on the models
-  RooDataSet* dedxTimeData = dedxAndTimeModel.generate(RooArgSet(crystalTime,crystalDeDx),10000);
-  RooDataSet* dedxData = dedxAndTimeModel.generate(RooArgSet(crystalDeDx),10000);
-  RooDataSet* timeData = dedxAndTimeModel.generate(RooArgSet(crystalTime),10000);
-
-
   int autoPrecNum = 2;
-
-  // 1-D fits
-  std::cout << "Performing 1-D fits" << std::endl;
-  dedxModel1D.fitTo(*dedxData);
-  timeModel1D.fitTo(*timeData);
-
-  // Fit, maximizing signal fraction
-  //RooFitResult* fitResult =  dedxAndTimeModel.fitTo(*dedxTimeData,Save(),SumW2Error(true));
-  // Background fit
-  //dedxAndTimeBackModel.fitTo(*dedxTimeData);
-  
-// Custom fitting stuff
   RooFitResult *fitResult = 0;
-  //RooAbsData::ErrorType fitError = RooAbsData::SumW2;
-  //RooAbsData::ErrorType fitError = RooAbsData::Poisson;
-  //RooNLLVar nll("nll","nll",dedxAndTimeModel,*dedxTimeData,ConditionalObservables(crystalTime),DataError(RooAbsData::SumW2));
-  RooNLLVar nll("nll","nll",dedxAndTimeModel,*dedxTimeData,DataError(RooAbsData::SumW2));
-  RooMinuit m(nll);
-  m.setErrorLevel(0.2);
-  m.setStrategy(2);
-  m.hesse();
-  //m.setVerbose(true);
-  m.optimizeConst(true);
-  m.setProfile(true);
-  m.migrad();
-  //m.improve();
-  //m.hesse();
-  m.hesse();
-  m.minos();
-  fitResult = m.save();
-#if ROOT_VERSION_CODE <= ROOT_VERSION(5,19,0)
-  fitResult->defaultStream(&roofitstream);
-#else
-  fitResult->defaultPrintStream(&roofitstream);
-#endif
-  fitResult->Print("v");
-  cout << roofitstream.str();
-  roofitstream.str(std::string(""));
+  RooDataSet* dedxTimeData = 0;
+  RooDataSet* dedxData = 0;
+  RooDataSet* timeData = 0;
 
-  // Fit the hist PDF
-  //cout << "************** Fitting the hist PDF" << endl;
-  //fullHistPdf.fitTo(*dedxTimeChi2TrackLengthData);
-  
-  //TODO: fix this background model fitting issue...
-  // Well, you can't fit a function with fixed parameters...
-  //energyAndTimeBackModel.fitTo(*energyTimeData);
-  //backEnergyModel1D.fitTo(*energyData);
-  // backTimeModel1D.fitTo(*timeData);
+  // Loop over signal fractions
+  std::vector<double> genSigFracs;
+  std::vector<double> genSigFracErrors;
+  std::vector<double> fitSigFracs;
+  std::vector<double> fitSigFracErrors;
+  for(float frac = 0; frac < 0.1; frac+=0.001)
+  {
+    //float frac = 0.001;// put in for testing.
+    cout << "sic: Setting signal fractions to: " << frac << endl;
+    sigFrac = frac;
+    sigFracT = frac;
+    sigFracE = frac;
+    // *********** Generate data based on the models
+    dedxTimeData = dedxAndTimeModel.generate(RooArgSet(crystalTime,crystalDeDx),10000);
+    dedxData = dedxAndTimeModel.generate(RooArgSet(crystalDeDx),10000);
+    timeData = dedxAndTimeModel.generate(RooArgSet(crystalTime),10000);
+
+    // 1-D fits
+    //std::cout << "Performing 1-D fits..." << std::endl;
+    //RooNLLVar nllTiming("nllTiming","nllTiming",timeModel1D,*timeData,DataError(RooAbsData::SumW2));
+    //RooMinuit mTiming(nllTiming);
+    //mTiming.setErrorLevel(0.2);
+    //mTiming.setStrategy(2);
+    //mTiming.hesse();
+    ////mTiming.setVerbose(true);
+    //mTiming.optimizeConst(true);
+    //mTiming.setProfile(true);
+    //mTiming.migrad();
+    ////mTiming.improve();
+    ////mTiming.hesse();
+    //mTiming.hesse();
+    //mTiming.minos();
+    ////timeModel1D.fitTo(*timeData);
+    //
+    //RooNLLVar nllDeDx("nllDeDx","nllDeDx",dedxModel1D,*dedxData,DataError(RooAbsData::SumW2));
+    //RooMinuit mDeDx(nllDeDx);
+    //mDeDx.setErrorLevel(0.001);
+    //mDeDx.setStrategy(2);
+    //mDeDx.hesse();
+    ////mDeDx.setVerbose(true);
+    ////mDeDx.optimizeConst(true);
+    ////mDeDx.setProfile(true);
+    //mDeDx.migrad();
+    ////mDeDx.improve();
+    //mDeDx.hesse();
+    ////mDeDx.hesse();
+    //mDeDx.minos();
+    ////dedxModel1D.fitTo(*dedxData);
+
+    // Fit, maximizing signal fraction
+    //RooFitResult* fitResult =  dedxAndTimeModel.fitTo(*dedxTimeData,Save(),SumW2Error(true));
+    // Background fit
+    //dedxAndTimeBackModel.fitTo(*dedxTimeData);
+
+    // Custom fitting stuff -- 2D fits
+    //RooAbsData::ErrorType fitError = RooAbsData::SumW2;
+    //RooAbsData::ErrorType fitError = RooAbsData::Poisson;
+    //RooNLLVar nll("nll","nll",dedxAndTimeModel,*dedxTimeData,ConditionalObservables(crystalTime),DataError(RooAbsData::SumW2));
+    RooNLLVar nll("nll","nll",dedxAndTimeModelReal,*dedxTimeData,DataError(RooAbsData::SumW2));
+    RooMinuit m(nll);
+    m.setErrorLevel(0.2);
+    m.setStrategy(2);
+    m.hesse();
+    //m.setVerbose(true);
+    m.optimizeConst(true);
+    m.setProfile(true);
+    m.migrad();
+    //m.improve();
+    //m.hesse();
+    m.hesse();
+    m.minos();
+    fitResult = m.save();
+//#if ROOT_VERSION_CODE <= ROOT_VERSION(5,19,0)
+//    fitResult->defaultStream(&roofitstream);
+//#else
+//    fitResult->defaultPrintStream(&roofitstream);
+//#endif
+//    fitResult->Print("v");
+//    cout << roofitstream.str();
+//    roofitstream.str(std::string(""));
+
+    // Fit the hist PDF
+    //cout << "************** Fitting the hist PDF" << endl;
+    //fullHistPdf.fitTo(*dedxTimeChi2TrackLengthData);
+
+    //TODO: fix this background model fitting issue...
+    // Well, you can't fit a function with fixed parameters...
+    //energyAndTimeBackModel.fitTo(*energyTimeData);
+    //backEnergyModel1D.fitTo(*energyData);
+    // backTimeModel1D.fitTo(*timeData);
+    cout << "sic: Results: " << endl;
+    sigFrac.Print();
+    //sigFracT.Print();
+    //sigFracE.Print();
+    //cout << "sigFrac val: " << sigFrac.getVal() << " error: " << sigFrac.getError() << std::endl;
+    genSigFracs.push_back(frac);
+    genSigFracErrors.push_back(0);
+    fitSigFracs.push_back(sigFrac.getVal());
+    fitSigFracErrors.push_back(sigFrac.getError());
+  }
+
   cout << "************** Fitting done, now time to plot." << endl;
-
   TFile* outputFile = new TFile("likelihoodOutput_trivial.root","recreate");
   outputFile->cd();
+
+  //XXX TGraphErrors for results
+  TGraphErrors* tge = new TGraphErrors(genSigFracs.size(),&(*genSigFracs.begin()),&(*fitSigFracs.begin()),
+        &(*genSigFracErrors.begin()),&(*fitSigFracErrors.begin()));
+  tge->SetName("TrueVsFittedSignalFractions");
+  tge->SetTitle("TrueVsFittedSignalFractions");
+  tge->GetXaxis()->SetTitle("trueSignalFraction");
+  tge->GetYaxis()->SetTitle("fittedSignalFraction");
+  tge->Write();
+
+  
   //// HistPDF plot
   //TCanvas* combinedCanvasPDF = new TCanvas("combinedCanvasPDF","combinedCanvasPDF",1,1,2500,1000);
   //combinedCanvasPDF->Divide(2,1);
@@ -468,7 +550,7 @@ int main(int argc, char* argv[])
   //combinedCanvasPDF->Write();
 
 
-  float sigFracFit = sigFrac.getVal();
+  //float sigFracFit = sigFrac.getVal();
   TCanvas* combinedCanvas = new TCanvas("combinedCanvas","combinedCanvas",1,1,2500,1000);
   combinedCanvas->Divide(3,1);
   combinedCanvas->cd(1);
@@ -481,17 +563,23 @@ int main(int argc, char* argv[])
   //sigFrac = 0.516;
   //dedxAndTimeModel.plotOn(dedxFrame,LineStyle(kDashed),LineColor(2));
   dedxFrame->Draw("e0");
+  double ModelChiSquare2D = dedxFrame->chiSquare();
+  TPaveLabel *t1 = new TPaveLabel(0.7,0.6,0.9,0.68, Form("#chi^{2} = %f", ModelChiSquare2D));
+  dedxFrame->addObject(t1);
   combinedCanvas->cd(2);
   //Plot time curves
   //sigFrac = sigFracFit;
   RooPlot* timeFrame = crystalTime.frame();
-  dedxTimeData->plotOn(timeFrame);
+  dedxTimeData->plotOn(timeFrame,Name("data"));
   dedxAndTimeModel.plotOn(timeFrame);
   dedxAndTimeModel.plotOn(timeFrame,Components("gaussianTimeHSCP"),LineStyle(kDashed),LineColor(2));
   dedxAndTimeModel.paramOn(timeFrame,Layout(0.25,0.75,0.92),Format("NEU",AutoPrecision(autoPrecNum)));
   //sigFrac = 0.516;
   //dedxAndTimeModel.plotOn(timeFrame,LineStyle(kDashed),LineColor(2));
   timeFrame->Draw("e0");
+  double ModelChiSquareT2D = dedxFrame->chiSquare();
+  TPaveLabel *t2 = new TPaveLabel(0.7,0.6,0.9,0.68, Form("#chi^{2} = %f", ModelChiSquareT2D));
+  dedxFrame->addObject(t2);
 
   combinedCanvas->cd(3);
   //testing
@@ -573,6 +661,9 @@ int main(int argc, char* argv[])
   dedxModel1D.plotOn(dedxFrame2,Components("gaussianDeDx1D"),LineStyle(kDashed),LineColor(2));
   dedxModel1D.paramOn(dedxFrame2,Layout(0.55));
   dedxFrame2->Draw("e0");
+  double ModelChiSquare1D = dedxFrame2->chiSquare();
+  TPaveLabel *t3 = new TPaveLabel(0.7,0.6,0.9,0.68, Form("#chi^{2} = %f", ModelChiSquare1D));
+  dedxFrame->addObject(t3);
   combinedCanvas1D->cd(2);
   RooPlot* timeFrame2 = crystalTime.frame();
   timeData->plotOn(timeFrame2);
@@ -580,6 +671,9 @@ int main(int argc, char* argv[])
   timeModel1D.plotOn(timeFrame2,Components("gaussianTimeHSCP1D"),LineStyle(kDashed),LineColor(2));
   timeModel1D.paramOn(timeFrame2,Layout(0.7));
   timeFrame2->Draw("e0");
+  double ModelChiSquareT1D = dedxFrame->chiSquare();
+  TPaveLabel *t4 = new TPaveLabel(0.7,0.6,0.9,0.68, Form("#chi^{2} = %f", ModelChiSquareT1D));
+  dedxFrame->addObject(t4);
   //Print
   //combinedCanvas1D->Print("plotLikelihoods1D.png");
   combinedCanvas1D->Write();
@@ -657,22 +751,22 @@ int main(int argc, char* argv[])
   
 
   //Loop over hists: energyHist, timeHist and calculate the likelihood
-  float logLikelihood = 0;
-  float logLikelihoodBack = 0;
-  float logLikelihoodSignal = 0;
-  for(int entry = 0; entry < dedxTimeData->numEntries(); ++entry)
-  {
-    RooArgSet temp = *dedxTimeData->get(entry);
-    crystalDeDx = temp.getRealValue("crystalDeDx");
-    crystalTime = temp.getRealValue("crystalTime");
-    //std::cout << "crystalDeDx: " << crystalDeDx.getVal() << " crystalTime: " << crystalTime.getVal() << std::endl;
-    //std::cout << "-LogLikelihood = " << -1*log(dedxAndTimeModel.getVal(new RooArgSet(crystalDeDx,crystalTime))) << std::endl;
-    //std::cout << "-LogLikelihoodBack = " << -1*log(dedxAndTimeBackModel.getVal(new RooArgSet(crystalDeDx,crystalTime))) << std::endl;
-    logLikelihood-=log(dedxAndTimeModel.getVal(new RooArgSet(crystalDeDx,crystalTime)));
-    logLikelihoodBack-=log(dedxAndTimeBackModel.getVal(new RooArgSet(crystalDeDx,crystalTime)));
-    logLikelihoodSignal-=log(dedxAndTimeSignalModel.getVal(new RooArgSet(crystalDeDx,crystalTime)));
-    //std::cout << "-LogLikelihood+LogLikelihoodBack = " << logLikelihood-logLikelihoodBack << std::endl;
-  }
+  //float logLikelihood = 0;
+  //float logLikelihoodBack = 0;
+  //float logLikelihoodSignal = 0;
+  //for(int entry = 0; entry < dedxTimeData->numEntries(); ++entry)
+  //{
+  //  RooArgSet temp = *dedxTimeData->get(entry);
+  //  crystalDeDx = temp.getRealValue("crystalDeDx");
+  //  crystalTime = temp.getRealValue("crystalTime");
+  //  //std::cout << "crystalDeDx: " << crystalDeDx.getVal() << " crystalTime: " << crystalTime.getVal() << std::endl;
+  //  //std::cout << "-LogLikelihood = " << -1*log(dedxAndTimeModel.getVal(new RooArgSet(crystalDeDx,crystalTime))) << std::endl;
+  //  //std::cout << "-LogLikelihoodBack = " << -1*log(dedxAndTimeBackModel.getVal(new RooArgSet(crystalDeDx,crystalTime))) << std::endl;
+  //  logLikelihood-=log(dedxAndTimeModel.getVal(new RooArgSet(crystalDeDx,crystalTime)));
+  //  logLikelihoodBack-=log(dedxAndTimeBackModel.getVal(new RooArgSet(crystalDeDx,crystalTime)));
+  //  logLikelihoodSignal-=log(dedxAndTimeSignalModel.getVal(new RooArgSet(crystalDeDx,crystalTime)));
+  //  //std::cout << "-LogLikelihood+LogLikelihoodBack = " << logLikelihood-logLikelihoodBack << std::endl;
+  //}
   
   //cout << "Beginning binned fit" << endl;
   //landauDeDxMuonMean = 14.1;
@@ -694,38 +788,38 @@ int main(int argc, char* argv[])
 
 
   //XXX:Create plot of likelihood vs sigFrac
-  vector<float> sigFracs;
-  vector<float> likelihoods;
-  for(float i=0; i < 1.01; i+=0.01)
-  {
-    double totLikelihood = 0;
-    sigFracs.push_back(i);
-    sigFrac = i;
-    for(int entry = 0; entry < dedxTimeData->numEntries(); ++entry)
-    {
-      RooArgSet temp = *dedxTimeData->get(entry);
-      crystalDeDx = temp.getRealValue("crystalDeDx");
-      crystalTime = temp.getRealValue("crystalTime");
-      totLikelihood-=log(dedxAndTimeModel.getVal(new RooArgSet(crystalDeDx,crystalTime)));
-    }
-    likelihoods.push_back(totLikelihood);
-  }
-  TCanvas* likelihoodPlotCanvas = new TCanvas("llPlotCanvas","llPlotCanvas",1,1,500,500);
-  likelihoodPlotCanvas->cd();
-  TGraph* likelihoodPlot = new TGraph(sigFracs.size(),&(*sigFracs.begin()),&(*likelihoods.begin()));
-  likelihoodPlot->GetXaxis()->SetTitle("signalFraction");
-  likelihoodPlot->GetYaxis()->SetTitle("-LogLikelihood");
-  likelihoodPlot->Draw("alp");
-  //likelihoodPlotCanvas->Print("plotLikelihoodsCurve.png");
-  likelihoodPlotCanvas->Write();
+  //vector<float> sigFracs;
+  //vector<float> likelihoods;
+  //for(float i=0; i < 1.01; i+=0.01)
+  //{
+  //  double totLikelihood = 0;
+  //  sigFracs.push_back(i);
+  //  sigFrac = i;
+  //  for(int entry = 0; entry < dedxTimeData->numEntries(); ++entry)
+  //  {
+  //    RooArgSet temp = *dedxTimeData->get(entry);
+  //    crystalDeDx = temp.getRealValue("crystalDeDx");
+  //    crystalTime = temp.getRealValue("crystalTime");
+  //    totLikelihood-=log(dedxAndTimeModel.getVal(new RooArgSet(crystalDeDx,crystalTime)));
+  //  }
+  //  likelihoods.push_back(totLikelihood);
+  //}
+  //TCanvas* likelihoodPlotCanvas = new TCanvas("llPlotCanvas","llPlotCanvas",1,1,500,500);
+  //likelihoodPlotCanvas->cd();
+  //TGraph* likelihoodPlot = new TGraph(sigFracs.size(),&(*sigFracs.begin()),&(*likelihoods.begin()));
+  //likelihoodPlot->GetXaxis()->SetTitle("signalFraction");
+  //likelihoodPlot->GetYaxis()->SetTitle("-LogLikelihood");
+  //likelihoodPlot->Draw("alp");
+  ////likelihoodPlotCanvas->Print("plotLikelihoodsCurve.png");
+  //likelihoodPlotCanvas->Write();
   
   outputFile->Close();
   //myInputRootFile_->Close();
 
-  cout << "-LogLikelihood for SB model: " << logLikelihood << " -LogLikelihood for B only model: " << logLikelihoodBack
-    << " -LogLikelihood for S only model: " << logLikelihoodSignal << endl;
-  cout << "-LogLikelihood difference (B-SB; + indicates SB more likely): " << logLikelihoodBack-logLikelihood << endl;
-  cout << "-LogLikelihood difference (S-SB; + indicates SB more likely): " << logLikelihoodSignal-logLikelihood << endl;
+  //cout << "-LogLikelihood for SB model: " << logLikelihood << " -LogLikelihood for B only model: " << logLikelihoodBack
+  //  << " -LogLikelihood for S only model: " << logLikelihoodSignal << endl;
+  //cout << "-LogLikelihood difference (B-SB; + indicates SB more likely): " << logLikelihoodBack-logLikelihood << endl;
+  //cout << "-LogLikelihood difference (S-SB; + indicates SB more likely): " << logLikelihoodSignal-logLikelihood << endl;
   
   //ofstream outputStream("likelihoodDifferences_muons.txt",ios::app);
   //if(!outputStream.is_open())
