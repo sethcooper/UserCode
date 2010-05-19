@@ -41,14 +41,15 @@ void setBranches(TTree* tree, HSCPEcalTreeContent& treeVars)
   tree->Branch("lumiNum",&treeVars.lumiNum,"lumiNum/I");
 
   tree->Branch("numCrys",treeVars.numCrys,"numCrys[numTracks]/I");
-  tree->Branch("isEBcry",treeVars.isEBcry,"isEBcry[numTracks][numCrys]/B");
-  tree->Branch("hashedIndex",treeVars.hashedIndex,"hashedIndex[numTracks][numCrys]/I");
-  tree->Branch("cryEnergy",treeVars.cryEnergy,"cryEnergy[numTracks][numCrys]/F");
-  tree->Branch("cryAmplitude",treeVars.cryAmplitude,"cryAmplitude[numTracks][numCrys]/F");
-  tree->Branch("cryTime",treeVars.cryTime,"cryTime[numTracks][numCrys]/F");
-  tree->Branch("cryTimeError",treeVars.cryTimeError,"cryTimeError[numTracks][numCrys]/F");
-  tree->Branch("cryTrackLength",treeVars.cryTrackLength,"cryTrackLength[numTracks][numCrys]/F");
-  tree->Branch("cryDeDx",treeVars.cryDeDx,"cryDeDx[numTracks][numCrys]/F");
+  // numCrys needs to be replaced by explicit integer (25); not sure why
+  tree->Branch("isEBcry",treeVars.isEBcry,"isEBcry[numTracks][25]/B");
+  tree->Branch("hashedIndex",treeVars.hashedIndex,"hashedIndex[numTracks][25]/I");
+  tree->Branch("cryEnergy",treeVars.cryEnergy,"cryEnergy[numTracks][25]/F");
+  tree->Branch("cryAmplitude",treeVars.cryAmplitude,"cryAmplitude[numTracks][25]/F");
+  tree->Branch("cryTime",treeVars.cryTime,"cryTime[numTracks][25]/F");
+  tree->Branch("cryTimeError",treeVars.cryTimeError,"cryTimeError[numTracks][25]/F");
+  tree->Branch("cryTrackLength",treeVars.cryTrackLength,"cryTrackLength[numTracks][25]/F");
+  tree->Branch("cryDeDx",treeVars.cryDeDx,"cryDeDx[numTracks][25]/F");
 
   // Track variables
   tree->Branch("trackPt",treeVars.trackPt,"trackPt[numTracks]/F");
@@ -60,8 +61,8 @@ void setBranches(TTree* tree, HSCPEcalTreeContent& treeVars)
   tree->Branch("trackQuality",treeVars.trackQuality,"trackQuality[numTracks]/I");
   tree->Branch("trackCharge",treeVars.trackCharge,"trackCharge[numTracks]/I");
   tree->Branch("trackChi2",treeVars.trackChi2,"trackChi2[numTracks]/F");
-  tree->Branch("trackNdof",treeVars.trackNdof,"trackNdof[numTracks]/I");
-  tree->Branch("trackNOH",treeVars.trackNOH,"trackNOH[numTracks]/I");
+  tree->Branch("trackNdof",treeVars.trackNdof,"trackNdof[numTracks]/i");
+  tree->Branch("trackNOH",treeVars.trackNOH,"trackNOH[numTracks]/i");
   tree->Branch("numCrysCrossed",treeVars.numCrysCrossed,"numCrysCrossed[numTracks]/I");
 }
 
