@@ -1,6 +1,0 @@
-es_source = EcalTimingCorrectionESProducer
-{
-  untracked bool producedEcalTimingCorrections = true
-  untracked string ecalTimingCorrectionFile = "ESProducers/EcalTimingCorrectionESProducer/data/ecalTimingCorrections.txt"
-}
-
