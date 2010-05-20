@@ -1,0 +1,13 @@
+<library name="AnalyzersHSCPTimingAnalyzerPlugins" file="*.cc">
+  <use name=Analyzers/HSCPTimingAnalyzer>
+  <use name=FWCore/Framework>
+  <use name=FWCore/PluginManager>
+  <use name=FWCore/ParameterSet>
+  <use name=CommonTools/UtilAlgos>
+  <use name=DataFormats/EcalDetId>
+  <use name=DataFormats/EcalRecHit>
+  <use name=TrackingTools/TrackAssociator>
+  <use name=Geometry/CaloTopology>
+  <use name=rootcore>
+  <flags EDM_PLUGIN="1">
+</library>
