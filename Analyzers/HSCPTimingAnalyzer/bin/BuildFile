@@ -1,0 +1,4 @@
+<bin file=plotHSCPEcalTree.cpp>
+  <use name=root>
+  <use name=Analyzers/HSCPTimingAnalyzer>
+</bin>
