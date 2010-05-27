@@ -75,8 +75,8 @@ int main(int argc, char* argv[])
       float dEdx = -1;
       float time = -1;
       float timeError = -1;
-      float energy = -1;
-      float trackLength = -1;
+      float energy = 0;
+      float trackLength = 0;
 
       float maxCryEnergy = -999;
 
@@ -95,7 +95,7 @@ int main(int argc, char* argv[])
           timeError = myTreeContent.cryTimeError[tk][cry];
         }
       }
-      if(trackLength > -1)
+      if(trackLength > 0)
       {
         dEdx = energy/trackLength;
         myNtuple.Fill(dEdx,time,timeError,energy,trackLength);
