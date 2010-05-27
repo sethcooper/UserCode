@@ -57,7 +57,7 @@ int main(int argc, char* argv[])
 
   TFile* myOutputFile = new TFile("rooFitHSCPEcalTree.root","recreate");
   // new ttree with dE/dx, time, timeError, energy, trackLength
-  TNtuple myNtuple("hscpEcalRooFitTree","hscpEcalRooFitTree","sumDeDx:maxCryTime:maxCryTimeError:sumEnergy:sumTrackLength");
+  TNtuple myNtuple("hscpEcalRooFitTree","hscpEcalRooFitTree","sumDeDx:maxCryTime:maxCryTimeError:maxCryEnergy:sumEnergy:sumTrackLength");
 
   // Loop over the input tree
   for(int i=0; i < energyTimeTNtuple_->GetEntries(); ++i)
@@ -72,7 +72,7 @@ int main(int argc, char* argv[])
     // Loop over the tracks in the event
     for(int tk=0; tk < myTreeContent.numTracks; ++tk)
     {
-      float dEdx = -1;
+      float dEdx = -1;  //NB: MeV/cm
       float time = -1;
       float timeError = -1;
       float energy = 0;
@@ -97,8 +97,8 @@ int main(int argc, char* argv[])
       }
       if(trackLength > 0)
       {
-        dEdx = energy/trackLength;
-        myNtuple.Fill(dEdx,time,timeError,energy,trackLength);
+        dEdx = 1000*(energy/trackLength);
+        myNtuple.Fill(dEdx,time,timeError,maxCryEnergy,energy,trackLength);
       }
     }
   }
