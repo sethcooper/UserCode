@@ -2,3 +2,8 @@
   <use name=root>
   <use name=Analyzers/HSCPTimingAnalyzer>
 </bin>
+
+<bin file=makeRooFitTreeSumDeDx.cpp>
+  <use name=root>
+  <use name=Analyzers/HSCPTimingAnalyzer>
+</bin>
