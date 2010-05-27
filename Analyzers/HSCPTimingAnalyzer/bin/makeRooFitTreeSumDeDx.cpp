@@ -57,7 +57,7 @@ int main(int argc, char* argv[])
 
   TFile* myOutputFile = new TFile("rooFitHSCPEcalTree.root","recreate");
   // new ttree with dE/dx, time, timeError, energy, trackLength
-  TNtuple myNtuple("hscpEcalRooFitTree","hscpEcalRooFitTree","dEdx:time:timeError:energy:trackLength");
+  TNtuple myNtuple("hscpEcalRooFitTree","hscpEcalRooFitTree","sumDeDx:maxCryTime:maxCryTimeError:sumEnergy:sumTrackLength");
 
   // Loop over the input tree
   for(int i=0; i < energyTimeTNtuple_->GetEntries(); ++i)
