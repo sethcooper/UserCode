@@ -8,7 +8,7 @@ int main(int argc, char* argv[])
   stringstream roofitstream;
 
   // parse arguments and load data
-  //parseArguments(argc, argv);
+  parseArguments(argc, argv);
 
   SetEStyle();
   gStyle->SetMarkerSize(0.5);
@@ -17,170 +17,132 @@ int main(int argc, char* argv[])
 
 
   // *********** Set bins
-  //crystalEnergy.setBins(125);
-  //crystalTime.setBins(100);
-  //crystalDeDx.setBins(250);
+  //crystalsumEnergy.setBins(125);
+  //maxCryTime.setBins(100);
+  //sumDeDx.setBins(250);
 
 
   // *********************** Load dataset **************************************
-  //RooDataSet* dedxTimeChi2TrackLengthData = new RooDataSet("dedxTimeChi2Data","dedxChi2TimeData",energyTimeTNtuple_,
-  //    RooArgSet(crystalDeDx,crystalTime,crystalChi2,crystalEnergy,crystalTrackLength));
+  RooDataSet* dedxTimeChi2TrackLengthData = new RooDataSet("dedxTimeChi2Data","dedxChi2TimeData",energyTimeTNtuple_,
+      RooArgSet(sumDeDx,maxCryTime,maxCryTimeError,sumEnergy,sumTrackLength));
 
-  //cout << "Number of entries in initial dataset is: " << dedxTimeChi2TrackLengthData->numEntries() << endl;
+  //cout << "Number of entries in initial dataset is: " << dedxmaxCryTimeChi2TrackLengthData->numEntries() << endl;
   ////TCut chi2Cut1 = "chi2 < 0.96";
-  //TCut chi2Cut2 = "crystalChi2 > 0";
-  //RooDataSet* dedxTimeChi2CutData = (RooDataSet*) dedxTimeChi2TrackLengthData->reduce(chi2Cut2);
-  //cout << "Number of entries after chi2 > 0 cut is: " << dedxTimeChi2CutData->numEntries() << endl;
-  ////TCut cut1 = "energy > 0.4 || time < 15";
-  ////TCut energyCut1 = "crystalEnergy > 0.4";
-  //TCut trackLengthCut = "crystalTrackLength > 23.05 && crystalTrackLength < 23.15";
-  ////RooDataSet* dedxTimeChi2CutTLCutData = (RooDataSet*) dedxTimeChi2CutData->reduce(trackLengthCut);
-  ////cout << "Number of entries after trackLength cut is: " << dedxTimeChi2CutTLCutData->numEntries() << endl;
-  ////RooDataSet* dedxTimeEnergyCutData = (RooDataSet*) dedxTimeDataChi2cut->reduce(energyCut1);
-  //// Dataset with only dE/dx, time
-  ////RooDataSet* dedxTimeData = new RooDataSet("dedxTimeData","dedxTimeData",dedxTimeEnergyCutData,RooArgSet(crystalDeDx,crystalTime));
-  //RooDataSet* dedxTimeData = new RooDataSet("dedxTimeData","dedxTimeData",dedxTimeChi2CutData,RooArgSet(crystalDeDx,crystalTime));//chi2 cut only
-  ////RooDataSet* dedxTimeData = new RooDataSet("dedxTimeData","dedxTimeData",dedxTimeChi2CutTLCutData,RooArgSet(crystalDeDx,crystalTime));//chi2+tkLength cuts
+  TCut chi2Cut2 = "maxCryTimeError > 0";
+  RooDataSet* dedxTimeChi2CutData = (RooDataSet*) dedxTimeChi2TrackLengthData->reduce(chi2Cut2);
+  //cout << "Number of entries after chi2 > 0 cut is: " << dedxmaxCryTimeChi2CutData->numEntries() << endl;
+  ////TCut cut1 = "sumEnergy > 0.4 || maxCryTime < 15";
+  ////TCut sumEnergyCut1 = "crystalsumEnergy > 0.4";
+  //TCut sumTrackLengthCut = "sumTrackLength > 23.05 && sumTrackLength < 23.15";
+  ////RooDataSet* dedxTimeChi2CutTLCutData = (RooDataSet*) dedxTimeChi2CutData->reduce(sumTrackLengthCut);
+  ////cout << "Number of entries after sumTrackLength cut is: " << dedxTimeChi2CutTLCutData->numEntries() << endl;
+  ////RooDataSet* dedxTimesumEnergyCutData = (RooDataSet*) dedxTimeDataChi2cut->reduce(sumEnergyCut1);
+  //// Dataset with only dE/dx, maxCryTime
+  ////RooDataSet* dedxTimeData = new RooDataSet("dedxTimeData","dedxTimeData",dedxTimesumEnergyCutData,RooArgSet(sumDeDx,maxCryTime));
+  //RooDataSet* dedxTimeData = new RooDataSet("dedxTimeData","dedxTimeData",dedxTimeChi2CutData,RooArgSet(sumDeDx,maxCryTime));//chi2 cut only
+  ////RooDataSet* dedxTimeData = new RooDataSet("dedxTimeData","dedxTimeData",dedxTimeChi2CutTLCutData,RooArgSet(sumDeDx,maxCryTime));//chi2+tkLength cuts
+
+  RooDataSet* dedxTimeData = dedxTimeChi2CutData;
 
   //// 1-D datasets
-  //RooDataSet* dedxData = new RooDataSet("dedxData","dedxData",dedxTimeData,RooArgSet(crystalDeDx));
-  //RooDataSet* timeData = new RooDataSet("timeData","timeData",dedxTimeData,RooArgSet(crystalTime));
+  RooDataSet* dedxData = new RooDataSet("dedxData","dedxData",dedxTimeData,RooArgSet(sumDeDx));
+  RooDataSet* timeData = new RooDataSet("timeData","timeData",dedxTimeData,RooArgSet(maxCryTime));
 
-  //int numEntries = dedxTimeData->numEntries();
-  //cout << "****************Created RooDataSet with " << numEntries << " entries!" << endl;
-  //if(numEntries < 10)
-  //{
-  //  cout << "Number of entries in the dataset is too few to continue. " << endl;
-  //  return -3;
-  //}
-
-  int autoPrecNum = 2;
-  RooFitResult *fitResult = 0;
-  RooDataSet* dedxTimeData = 0;
-  RooDataSet* dedxData = 0;
-  RooDataSet* timeData = 0;
-
-  // Loop over signal fractions
-  std::vector<double> genSigFracs;
-  std::vector<double> genSigFracErrors;
-  std::vector<double> fitSigFracs;
-  std::vector<double> fitSigFracErrors;
-  for(float frac = 0; frac < 0.1; frac+=0.001)
+  int numEntries = dedxTimeData->numEntries();
+  cout << "****************Created RooDataSet with " << numEntries << " entries!" << endl;
+  if(numEntries < 10)
   {
-    //float frac = 0.001;// put in for testing.
-    cout << "sic: Setting signal fractions to: " << frac << endl;
-    sigFrac = frac;
-    sigFracT = frac;
-    sigFracE = frac;
-    // *********** Generate data based on the models
-    dedxTimeData = dedxAndTimeModel.generate(RooArgSet(crystalTime,crystalDeDx),10000);
-    dedxData = dedxAndTimeModel.generate(RooArgSet(crystalDeDx),10000);
-    timeData = dedxAndTimeModel.generate(RooArgSet(crystalTime),10000);
-
-    // 1-D fits
-    //std::cout << "Performing 1-D fits..." << std::endl;
-    //RooNLLVar nllTiming("nllTiming","nllTiming",timeModel1D,*timeData,DataError(RooAbsData::SumW2));
-    //RooMinuit mTiming(nllTiming);
-    //mTiming.setErrorLevel(0.2);
-    //mTiming.setStrategy(2);
-    //mTiming.hesse();
-    ////mTiming.setVerbose(true);
-    //mTiming.optimizeConst(true);
-    //mTiming.setProfile(true);
-    //mTiming.migrad();
-    ////mTiming.improve();
-    ////mTiming.hesse();
-    //mTiming.hesse();
-    //mTiming.minos();
-    ////timeModel1D.fitTo(*timeData);
-    //
-    //RooNLLVar nllDeDx("nllDeDx","nllDeDx",dedxModel1D,*dedxData,DataError(RooAbsData::SumW2));
-    //RooMinuit mDeDx(nllDeDx);
-    //mDeDx.setErrorLevel(0.001);
-    //mDeDx.setStrategy(2);
-    //mDeDx.hesse();
-    ////mDeDx.setVerbose(true);
-    ////mDeDx.optimizeConst(true);
-    ////mDeDx.setProfile(true);
-    //mDeDx.migrad();
-    ////mDeDx.improve();
-    //mDeDx.hesse();
-    ////mDeDx.hesse();
-    //mDeDx.minos();
-    ////dedxModel1D.fitTo(*dedxData);
-
-    // Fit, maximizing signal fraction
-    //RooFitResult* fitResult =  dedxAndTimeModel.fitTo(*dedxTimeData,Save(),SumW2Error(true));
-    // Background fit
-    //dedxAndTimeBackModel.fitTo(*dedxTimeData);
-
-    // Custom fitting stuff -- 2D fits
-    //RooAbsData::ErrorType fitError = RooAbsData::SumW2;
-    //RooAbsData::ErrorType fitError = RooAbsData::Poisson;
-    //RooNLLVar nll("nll","nll",dedxAndTimeModel,*dedxTimeData,ConditionalObservables(crystalTime),DataError(RooAbsData::SumW2));
-    RooNLLVar nll("nll","nll",dedxAndTimeModelReal,*dedxTimeData,DataError(RooAbsData::SumW2));
-    RooMinuit m(nll);
-    m.setErrorLevel(0.2);
-    m.setStrategy(2);
-    m.hesse();
-    //m.setVerbose(true);
-    m.optimizeConst(true);
-    m.setProfile(true);
-    m.migrad();
-    //m.improve();
-    //m.hesse();
-    m.hesse();
-    m.minos();
-    fitResult = m.save();
-//#if ROOT_VERSION_CODE <= ROOT_VERSION(5,19,0)
-//    fitResult->defaultStream(&roofitstream);
-//#else
-//    fitResult->defaultPrintStream(&roofitstream);
-//#endif
-//    fitResult->Print("v");
-//    cout << roofitstream.str();
-//    roofitstream.str(std::string(""));
-
-    // Fit the hist PDF
-    //cout << "************** Fitting the hist PDF" << endl;
-    //fullHistPdf.fitTo(*dedxTimeChi2TrackLengthData);
-
-    //TODO: fix this background model fitting issue...
-    // Well, you can't fit a function with fixed parameters...
-    //energyAndTimeBackModel.fitTo(*energyTimeData);
-    //backEnergyModel1D.fitTo(*energyData);
-    // backTimeModel1D.fitTo(*timeData);
-    cout << "sic: Results: " << endl;
-    sigFrac.Print();
-    //sigFracT.Print();
-    //sigFracE.Print();
-    //cout << "sigFrac val: " << sigFrac.getVal() << " error: " << sigFrac.getError() << std::endl;
-    genSigFracs.push_back(frac);
-    genSigFracErrors.push_back(0);
-    fitSigFracs.push_back(sigFrac.getVal());
-    fitSigFracErrors.push_back(sigFrac.getError());
+    cout << "Number of entries in the dataset is too few to continue. " << endl;
+    return -3;
   }
 
+  int autoPrecNum = 3;
+  RooFitResult *fitResult = 0;
+
+  // 1-D fits
+  //std::cout << "Performing 1-D fits..." << std::endl;
+  //RooNLLVar nllTiming("nllTiming","nllTiming",timeModel1D,*timeData,DataError(RooAbsData::SumW2));
+  //RooMinuit mTiming(nllTiming);
+  //mTiming.setErrorLevel(0.2);
+  //mTiming.setStrategy(2);
+  //mTiming.hesse();
+  ////mTiming.setVerbose(true);
+  //mTiming.optimizeConst(true);
+  //mTiming.setProfile(true);
+  //mTiming.migrad();
+  ////mTiming.improve();
+  ////mTiming.hesse();
+  //mTiming.hesse();
+  //mTiming.minos();
+  timeModel1D.fitTo(*timeData);
+  //
+  //RooNLLVar nllDeDx("nllDeDx","nllDeDx",dedxModel1D,*dedxData,DataError(RooAbsData::SumW2));
+  //RooMinuit mDeDx(nllDeDx);
+  //mDeDx.setErrorLevel(0.001);
+  //mDeDx.setStrategy(2);
+  //mDeDx.hesse();
+  ////mDeDx.setVerbose(true);
+  ////mDeDx.optimizeConst(true);
+  ////mDeDx.setProfile(true);
+  //mDeDx.migrad();
+  ////mDeDx.improve();
+  //mDeDx.hesse();
+  ////mDeDx.hesse();
+  //mDeDx.minos();
+  dedxModel1D.fitTo(*dedxData);
+
+  // Fit, maximizing signal fraction
+  //RooFitResult* fitResult =  dedxAndTimeModel.fitTo(*dedxTimeData,Save(),SumW2Error(true));
+  // Background fit
+  dedxAndTimeBackModel.fitTo(*dedxTimeData);
+
+  // Custom fitting stuff -- 2D fits
+  //RooAbsData::ErrorType fitError = RooAbsData::SumW2;
+  //RooAbsData::ErrorType fitError = RooAbsData::Poisson;
+  //RooNLLVar nll("nll","nll",dedxAndTimeModel,*dedxTimeData,ConditionalObservables(maxCryTime),DataError(RooAbsData::SumW2));
+  RooNLLVar nll("nll","nll",dedxAndTimeModelReal,*dedxTimeData,DataError(RooAbsData::SumW2));
+  RooMinuit m(nll);
+  m.setErrorLevel(0.2);
+  m.setStrategy(2);
+  m.hesse();
+  //m.setVerbose(true);
+  m.optimizeConst(true);
+  m.setProfile(true);
+  m.migrad();
+  //m.improve();
+  //m.hesse();
+  m.hesse();
+  m.minos();
+  fitResult = m.save();
+  //#if ROOT_VERSION_CODE <= ROOT_VERSION(5,19,0)
+  //    fitResult->defaultStream(&roofitstream);
+  //#else
+  //    fitResult->defaultPrintStream(&roofitstream);
+  //#endif
+  //    fitResult->Print("v");
+  //    cout << roofitstream.str();
+  //    roofitstream.str(std::string(""));
+
+  // Fit the hist PDF
+  //cout << "************** Fitting the hist PDF" << endl;
+  //fullHistPdf.fitTo(*dedxTimeChi2TrackLengthData);
+
+  //TODO: fix this background model fitting issue...
+  // Well, you can't fit a function with fixed parameters...
+  //energyAndTimeBackModel.fitTo(*energyTimeData);
+  //backEnergyModel1D.fitTo(*energyData);
+  // backTimeModel1D.fitTo(*timeData);
+
   cout << "************** Fitting done, now time to plot." << endl;
-  TFile* outputFile = new TFile("likelihoodOutput_trivial.root","recreate");
+  TFile* outputFile = new TFile("likelihoodOutput_fitInput.root","recreate");
   outputFile->cd();
 
-  //XXX TGraphErrors for results
-  TGraphErrors* tge = new TGraphErrors(genSigFracs.size(),&(*genSigFracs.begin()),&(*fitSigFracs.begin()),
-        &(*genSigFracErrors.begin()),&(*fitSigFracErrors.begin()));
-  tge->SetName("TrueVsFittedSignalFractions");
-  tge->SetTitle("TrueVsFittedSignalFractions");
-  tge->GetXaxis()->SetTitle("trueSignalFraction");
-  tge->GetYaxis()->SetTitle("fittedSignalFraction");
-  tge->Write();
-
-  
   //// HistPDF plot
   //TCanvas* combinedCanvasPDF = new TCanvas("combinedCanvasPDF","combinedCanvasPDF",1,1,2500,1000);
   //combinedCanvasPDF->Divide(2,1);
   //combinedCanvasPDF->cd(1);
   ////Plot energy curves
-  //RooPlot* dedxFramePDF = crystalDeDx.frame();
+  //RooPlot* dedxFramePDF = sumDeDx.frame();
   ////dedxTimeChi2TrackLengthData->plotOn(dedxFramePDF);
   //dedxTimeData->plotOn(dedxFram
   ////fullHistPdf.plotOn(dedxFramePDF);
@@ -190,7 +152,7 @@ int main(int argc, char* argv[])
   //dedxFramePDF->Draw("e0");
   //combinedCanvasPDF->cd(2);
   ////Plot time curves
-  //RooPlot* timeFramePDF = crystalTime.frame();
+  //RooPlot* timeFramePDF = maxCryTime.frame();
   ////dedxTimeChi2TrackLengthData->plotOn(timeFramePDF);
   ////fullHistPdf.plotOn(timeFramePDF);
   ////fullHistPdf.plotOn(timeFramePDF,Components("gaussianTimeHSCP"),LineStyle(kDashed),LineColor(2));
@@ -204,7 +166,7 @@ int main(int argc, char* argv[])
   combinedCanvas->Divide(3,1);
   combinedCanvas->cd(1);
   //Plot energy curves
-  RooPlot* dedxFrame = crystalDeDx.frame();
+  RooPlot* dedxFrame = sumDeDx.frame();
   dedxTimeData->plotOn(dedxFrame);
   dedxAndTimeModel.plotOn(dedxFrame);
   dedxAndTimeModel.plotOn(dedxFrame,Components("gaussianDeDxHSCP"),LineStyle(kDashed),LineColor(2));
@@ -218,7 +180,7 @@ int main(int argc, char* argv[])
   combinedCanvas->cd(2);
   //Plot time curves
   //sigFrac = sigFracFit;
-  RooPlot* timeFrame = crystalTime.frame();
+  RooPlot* timeFrame = maxCryTime.frame();
   dedxTimeData->plotOn(timeFrame,Name("data"));
   dedxAndTimeModel.plotOn(timeFrame);
   dedxAndTimeModel.plotOn(timeFrame,Components("gaussianTimeHSCP"),LineStyle(kDashed),LineColor(2));
@@ -236,13 +198,13 @@ int main(int argc, char* argv[])
   //dedxTimeEnergyCutData->plotOn(energyFrame);
   //energyFrame->Draw("e0");
   //Make 2-D plot of PDF
-  TH1* hh_model = dedxAndTimeModel.createHistogram("hh_model",crystalDeDx,Binning(50),YVar(crystalTime,Binning(50))) ;
+  TH1* hh_model = dedxAndTimeModel.createHistogram("hh_model",sumDeDx,Binning(50),YVar(maxCryTime,Binning(50))) ;
   hh_model->SetLineColor(kBlue);
   //TCanvas* modelCanvas = new TCanvas("2DCanvas","2DCanvas",600,600);
   //modelCanvas->cd();
   hh_model->Draw("surf");
   //energyTimeData->Draw("energy");
-  //energyTimeData->Draw("time");
+  //energyTimeData->Draw("maxCryTime");
   //Print
   //combinedCanvas->Print("plotLikelihoods.png");
   combinedCanvas->Write();
@@ -253,7 +215,7 @@ int main(int argc, char* argv[])
   combinedCanvasBack->Divide(3,1);
   combinedCanvasBack->cd(1);
   //Plot energy curves
-  RooPlot* dedxFrameBack = crystalDeDx.frame();
+  RooPlot* dedxFrameBack = sumDeDx.frame();
   dedxTimeData->plotOn(dedxFrameBack);
   dedxAndTimeBackModel.plotOn(dedxFrameBack);
   //dedxAndTimeBackModel.plotOn(dedxFrameBack,Components("landauDeDxMuonBack"),LineStyle(kDashed));
@@ -261,50 +223,50 @@ int main(int argc, char* argv[])
   dedxFrameBack->Draw("e0");
   combinedCanvasBack->cd(2);
   //Plot time curves
-  RooPlot* timeFrameBack = crystalTime.frame();
+  RooPlot* timeFrameBack = maxCryTime.frame();
   dedxTimeData->plotOn(timeFrameBack);
   dedxAndTimeBackModel.plotOn(timeFrameBack);
   //dedxAndTimeBackModel.plotOn(timeFrameBack,Components("gaussianTimeMuonPBack"),LineStyle(kDashed));
   dedxAndTimeBackModel.paramOn(timeFrameBack,Layout(0.175,0.95,0.9),ShowConstants(true),Format("NEU",AutoPrecision(autoPrecNum)));
   timeFrameBack->Draw("e0");
   combinedCanvasBack->cd(3);
-  TH1* hh_modelBack = dedxAndTimeBackModel.createHistogram("hh_modelBack",crystalDeDx,Binning(50),YVar(crystalTime,Binning(50))) ;
+  TH1* hh_modelBack = dedxAndTimeBackModel.createHistogram("hh_modelBack",sumDeDx,Binning(50),YVar(maxCryTime,Binning(50))) ;
   hh_modelBack->SetLineColor(kBlue);
   hh_modelBack->Draw("surf");
   //combinedCanvasBack->Print("plotLikelihoodsBack.png");
   combinedCanvasBack->Write();
 
   // Signal only model
-  TCanvas* combinedCanvasSignal = new TCanvas("combinedCanvasSignal","combinedCanvasSignal",1,1,2500,1000);
-  combinedCanvasSignal->Divide(3,1);
-  combinedCanvasSignal->cd(1);
-  //Plot energy curves
-  RooPlot* dedxFrameSignal = crystalDeDx.frame();
-  dedxTimeData->plotOn(dedxFrameSignal);
-  dedxAndTimeSignalModel.plotOn(dedxFrameSignal);
-  //dedxAndTimeSignalModel.plotOn(dedxFrameSignal,Components("gaussianDeDxMuonSignal"),LineStyle(kDashed));
-  dedxAndTimeSignalModel.paramOn(dedxFrameSignal,Layout(0.25,0.75,0.9),ShowConstants(true),Format("NEU",AutoPrecision(autoPrecNum)));
-  dedxFrameSignal->Draw("e0");
-  combinedCanvasSignal->cd(2);
-  //Plot time curves
-  RooPlot* timeFrameSignal = crystalTime.frame();
-  dedxTimeData->plotOn(timeFrameSignal);
-  dedxAndTimeSignalModel.plotOn(timeFrameSignal);
-  //dedxAndTimeSignalModel.plotOn(timeFrameSignal,Components("gaussianTimeHSCPSignal"),LineStyle(kDashed));
-  dedxAndTimeSignalModel.paramOn(timeFrameSignal,Layout(0.1,0.7,0.9),ShowConstants(true),Format("NEU",AutoPrecision(autoPrecNum)));
-  timeFrameSignal->Draw("e0");
-  combinedCanvasSignal->cd(3);
-  TH1* hh_modelSignal = dedxAndTimeSignalModel.createHistogram("hh_modelSignal",crystalDeDx,Binning(50),YVar(crystalTime,Binning(50))) ;
-  hh_modelSignal->SetLineColor(kBlue);
-  hh_modelSignal->Draw("surf");
-  //combinedCanvasSignal->Print("plotLikelihoodsSignal.png");
-  combinedCanvasSignal->Write();
+  //TCanvas* combinedCanvasSignal = new TCanvas("combinedCanvasSignal","combinedCanvasSignal",1,1,2500,1000);
+  //combinedCanvasSignal->Divide(3,1);
+  //combinedCanvasSignal->cd(1);
+  ////Plot energy curves
+  //RooPlot* dedxFrameSignal = sumDeDx.frame();
+  //dedxTimeData->plotOn(dedxFrameSignal);
+  //dedxAndTimeSignalModel.plotOn(dedxFrameSignal);
+  ////dedxAndTimeSignalModel.plotOn(dedxFrameSignal,Components("gaussianDeDxMuonSignal"),LineStyle(kDashed));
+  //dedxAndTimeSignalModel.paramOn(dedxFrameSignal,Layout(0.25,0.75,0.9),ShowConstants(true),Format("NEU",AutoPrecision(autoPrecNum)));
+  //dedxFrameSignal->Draw("e0");
+  //combinedCanvasSignal->cd(2);
+  ////Plot time curves
+  //RooPlot* timeFrameSignal = maxCryTime.frame();
+  //dedxTimeData->plotOn(timeFrameSignal);
+  //dedxAndTimeSignalModel.plotOn(timeFrameSignal);
+  ////dedxAndTimeSignalModel.plotOn(timeFrameSignal,Components("gaussianTimeHSCPSignal"),LineStyle(kDashed));
+  //dedxAndTimeSignalModel.paramOn(timeFrameSignal,Layout(0.1,0.7,0.9),ShowConstants(true),Format("NEU",AutoPrecision(autoPrecNum)));
+  //timeFrameSignal->Draw("e0");
+  //combinedCanvasSignal->cd(3);
+  //TH1* hh_modelSignal = dedxAndTimeSignalModel.createHistogram("hh_modelSignal",sumDeDx,Binning(50),YVar(maxCryTime,Binning(50))) ;
+  //hh_modelSignal->SetLineColor(kBlue);
+  //hh_modelSignal->Draw("surf");
+  ////combinedCanvasSignal->Print("plotLikelihoodsSignal.png");
+  //combinedCanvasSignal->Write();
 
   // 1-D plots
   TCanvas* combinedCanvas1D = new TCanvas("combinedCanvas1D","combinedCanvas1D",1,1,1800,2000);
   combinedCanvas1D->Divide(1,2);
   combinedCanvas1D->cd(1);
-  RooPlot* dedxFrame2 = crystalDeDx.frame();
+  RooPlot* dedxFrame2 = sumDeDx.frame();
   dedxData->plotOn(dedxFrame2);
   dedxModel1D.plotOn(dedxFrame2);
   dedxModel1D.plotOn(dedxFrame2,Components("gaussianDeDx1D"),LineStyle(kDashed),LineColor(2));
@@ -312,37 +274,94 @@ int main(int argc, char* argv[])
   dedxFrame2->Draw("e0");
   double ModelChiSquare1D = dedxFrame2->chiSquare();
   TPaveLabel *t3 = new TPaveLabel(0.7,0.6,0.9,0.68, Form("#chi^{2} = %f", ModelChiSquare1D));
-  dedxFrame->addObject(t3);
+  dedxFrame2->addObject(t3);
   combinedCanvas1D->cd(2);
-  RooPlot* timeFrame2 = crystalTime.frame();
+  RooPlot* timeFrame2 = maxCryTime.frame();
   timeData->plotOn(timeFrame2);
   timeModel1D.plotOn(timeFrame2);
   timeModel1D.plotOn(timeFrame2,Components("gaussianTimeHSCP1D"),LineStyle(kDashed),LineColor(2));
   timeModel1D.paramOn(timeFrame2,Layout(0.7));
   timeFrame2->Draw("e0");
-  double ModelChiSquareT1D = dedxFrame->chiSquare();
+  double ModelChiSquareT1D = timeFrame2->chiSquare();
   TPaveLabel *t4 = new TPaveLabel(0.7,0.6,0.9,0.68, Form("#chi^{2} = %f", ModelChiSquareT1D));
   dedxFrame->addObject(t4);
   //Print
   //combinedCanvas1D->Print("plotLikelihoods1D.png");
   combinedCanvas1D->Write();
 
+  langausDeDxBack.fitTo(*dedxData);
+  gaussianTimeMuonBack.fitTo(*timeData);
+
+  // 1-D plots -- back only
+  TCanvas* combinedCanvas1Dback = new TCanvas("combinedCanvas1Dback","combinedCanvas1Dback",1,1,1800,2000);
+  combinedCanvas1Dback->Divide(1,2);
+  combinedCanvas1Dback->cd(1);
+  RooPlot* dedxFrame3 = sumDeDx.frame();
+  dedxData->plotOn(dedxFrame3);
+  langausDeDxBack.plotOn(dedxFrame3);
+  langausDeDxBack.paramOn(dedxFrame3,Layout(0.55));
+  dedxFrame3->Draw("e0");
+  double ModelChiSquare1Dback = dedxFrame3->chiSquare();
+  TPaveLabel *t5 = new TPaveLabel(0.7,0.6,0.9,0.68, Form("#chi^{2} = %f", ModelChiSquare1Dback));
+  dedxFrame3->addObject(t5);
+  combinedCanvas1Dback->cd(2);
+  RooPlot* timeFrame3 = maxCryTime.frame();
+  timeData->plotOn(timeFrame3);
+  gaussianTimeMuonBack.plotOn(timeFrame3);
+  gaussianTimeMuonBack.paramOn(timeFrame3);
+  timeFrame3->Draw("e0");
+  double ModelChiSquareT1Dback = timeFrame3->chiSquare();
+  TPaveLabel *t6 = new TPaveLabel(0.7,0.6,0.9,0.68, Form("#chi^{2} = %f", ModelChiSquareT1Dback));
+  timeFrame3->addObject(t6);
+  //Print
+  //combinedCanvas1D->Print("plotLikelihoods1D.png");
+  combinedCanvas1Dback->Write();
+
+
+  gaussianDeDxHSCPSignal.fitTo(*dedxData);
+  gaussianTimeHSCPSignal1D.fitTo(*timeData);
+
+  // 1-D plots -- signal
+  TCanvas* combinedCanvas1Dsignal = new TCanvas("combinedCanvas1Dsignal","combinedCanvas1Dsignal",1,1,1800,2000);
+  combinedCanvas1Dsignal->Divide(1,2);
+  combinedCanvas1Dsignal->cd(1);
+  RooPlot* dedxFrame4 = sumDeDx.frame();
+  dedxData->plotOn(dedxFrame4);
+  gaussianDeDxHSCPSignal.plotOn(dedxFrame4);
+  gaussianDeDxHSCPSignal.paramOn(dedxFrame4,Layout(0.55));
+  dedxFrame4->Draw("e0");
+  double ModelChiSquare1Dsig = dedxFrame4->chiSquare();
+  TPaveLabel *t7 = new TPaveLabel(0.7,0.6,0.9,0.68, Form("#chi^{2} = %f", ModelChiSquare1Dsig));
+  dedxFrame4->addObject(t7);
+  combinedCanvas1Dsignal->cd(2);
+  RooPlot* timeFrame4 = maxCryTime.frame();
+  timeData->plotOn(timeFrame4);
+  gaussianTimeHSCPSignal1D.plotOn(timeFrame4);
+  gaussianTimeHSCPSignal1D.paramOn(timeFrame4);
+  timeFrame4->Draw("e0");
+  double ModelChiSquareT1Dsig = timeFrame4->chiSquare();
+  TPaveLabel *t8 = new TPaveLabel(0.7,0.6,0.9,0.68, Form("#chi^{2} = %f", ModelChiSquareT1Dsig));
+  timeFrame4->addObject(t8);
+  //Print
+  //combinedCanvas1D->Print("plotLikelihoods1D.png");
+  combinedCanvas1Dsignal->Write();
+
   //// Make dE/dx and timing hists -- binned
   //TCanvas* combinedCanvasBinned = new TCanvas("combinedCanvasBinned","combinedCanvasBinned",1,1,2000,1000);
   //combinedCanvasBinned->Divide(2,1);
   //combinedCanvasBinned->cd(1);
-  //crystalDeDx.setBins(15); // bin dedx var
-  //crystalTime.setBins(25); // bin time var
-  //RooDataHist* modelPDFBinned = dedxAndTimeModel.generateBinned(RooArgSet(crystalDeDx,crystalTime),dedxTimeData->numEntries());
+  //sumDeDx.setBins(15); // bin dedx var
+  //time.setBins(25); // bin time var
+  //RooDataHist* modelPDFBinned = dedxAndTimeModel.generateBinned(RooArgSet(sumDeDx,maxCryTime),dedxTimeData->numEntries());
   ////Plot dE/dx curves
-  //RooPlot* dedxFrameBinned = crystalDeDx.frame();
+  //RooPlot* dedxFrameBinned = sumDeDx.frame();
   //dedxTimeData->plotOn(dedxFrameBinned);
   //modelPDFBinned->plotOn(dedxFrameBinned,LineColor(4));
   //dedxFrameBinned->Draw("e0");
   ////Plot time curves
   //combinedCanvasBinned->cd(2);
   ////RooBinning bins(-25,25,12.5,"bins");
-  //RooPlot* timeFrameBinned = crystalTime.frame();
+  //RooPlot* timeFrameBinned = maxCryTime.frame();
   //dedxTimeData->plotOn(timeFrameBinned);
   //modelPDFBinned->plotOn(timeFrameBinned,LineColor(4));
   //timeFrameBinned->Draw("e0");
@@ -355,10 +374,10 @@ int main(int argc, char* argv[])
   //vector<float> ratioErrors;
   //vector<float> binCenters;
   //vector<float> binWidths;
-  //TH1* dedxDataHist = dedxTimeData->createHistogram("dedxData",crystalDeDx);
-  //TH1* timeDataHist = dedxTimeData->createHistogram("timeData",crystalTime);
-  //TH1* dedxPDFHist = modelPDFBinned->createHistogram("dedxPDF",crystalDeDx);
-  //TH1* timePDFHist = modelPDFBinned->createHistogram("timePDF",crystalTime);
+  //TH1* dedxDataHist = dedxTimeData->createHistogram("dedxData",sumDeDx);
+  //TH1* timeDataHist = dedxTimeData->createHistogram("timeData",maxCryTime);
+  //TH1* dedxPDFHist = modelPDFBinned->createHistogram("dedxPDF",sumDeDx);
+  //TH1* timePDFHist = modelPDFBinned->createHistogram("timePDF",maxCryTime);
   //for(int i=1; i < dedxDataHist->GetNbinsX()-1; ++i)
   //{
   //  binCenters.push_back(dedxDataHist->GetBinCenter(i));
@@ -394,7 +413,7 @@ int main(int argc, char* argv[])
 
   //}
   //TGraphErrors timeRatioGraph(binCenters.size(),&(*binCenters.begin()),&(*ratios.begin()),&(*binWidths.begin()),&(*ratioErrors.begin()));
-  //timeRatioGraph.SetTitle("Data/PDF: time");
+  //timeRatioGraph.SetTitle("Data/PDF: maxCryTime");
   //timeRatioGraph.Draw("ap");
   //combinedCanvasRatio->Write();
   
@@ -406,14 +425,14 @@ int main(int argc, char* argv[])
   //for(int entry = 0; entry < dedxTimeData->numEntries(); ++entry)
   //{
   //  RooArgSet temp = *dedxTimeData->get(entry);
-  //  crystalDeDx = temp.getRealValue("crystalDeDx");
-  //  crystalTime = temp.getRealValue("crystalTime");
-  //  //std::cout << "crystalDeDx: " << crystalDeDx.getVal() << " crystalTime: " << crystalTime.getVal() << std::endl;
-  //  //std::cout << "-LogLikelihood = " << -1*log(dedxAndTimeModel.getVal(new RooArgSet(crystalDeDx,crystalTime))) << std::endl;
-  //  //std::cout << "-LogLikelihoodBack = " << -1*log(dedxAndTimeBackModel.getVal(new RooArgSet(crystalDeDx,crystalTime))) << std::endl;
-  //  logLikelihood-=log(dedxAndTimeModel.getVal(new RooArgSet(crystalDeDx,crystalTime)));
-  //  logLikelihoodBack-=log(dedxAndTimeBackModel.getVal(new RooArgSet(crystalDeDx,crystalTime)));
-  //  logLikelihoodSignal-=log(dedxAndTimeSignalModel.getVal(new RooArgSet(crystalDeDx,crystalTime)));
+  //  sumDeDx = temp.getRealValue("sumDeDx");
+  //  time = temp.getRealValue("maxCryTime");
+  //  //std::cout << "sumDeDx: " << sumDeDx.getVal() << " maxCryTime: " << maxCryTime.getVal() << std::endl;
+  //  //std::cout << "-LogLikelihood = " << -1*log(dedxAndTimeModel.getVal(new RooArgSet(sumDeDx,maxCryTime))) << std::endl;
+  //  //std::cout << "-LogLikelihoodBack = " << -1*log(dedxAndTimeBackModel.getVal(new RooArgSet(sumDeDx,maxCryTime))) << std::endl;
+  //  logLikelihood-=log(dedxAndTimeModel.getVal(new RooArgSet(sumDeDx,maxCryTime)));
+  //  logLikelihoodBack-=log(dedxAndTimeBackModel.getVal(new RooArgSet(sumDeDx,maxCryTime)));
+  //  logLikelihoodSignal-=log(dedxAndTimeSignalModel.getVal(new RooArgSet(sumDeDx,maxCryTime)));
   //  //std::cout << "-LogLikelihood+LogLikelihoodBack = " << logLikelihood-logLikelihoodBack << std::endl;
   //}
   
@@ -421,11 +440,11 @@ int main(int argc, char* argv[])
   //landauDeDxMuonMean = 14.1;
   //landauDeDxMuonSigma = 2.183;
   //gaussianTimeMuonMean = 2.33;
-  //crystalDeDx.setBins(33);
-  //crystalTime.setBins(125);
-  //cout << "crystalDeDxBins: " << crystalDeDx.getBins() << endl;
+  //sumDeDx.setBins(33);
+  //maxCryTime.setBins(125);
+  //cout << "sumDeDxBins: " << sumDeDx.getBins() << endl;
   //// Create binned dataset
-  //RooDataHist* dh = new RooDataHist("dh","binned version of dedxTimeData",RooArgSet(crystalDeDx,crystalTime),*dedxTimeData);
+  //RooDataHist* dh = new RooDataHist("dh","binned version of dedxTimeData",RooArgSet(sumDeDx,maxCryTime),*dedxTimeData);
   ////RooChi2Var chi2("chi2","chi2",dedxAndTimeModel,*dh) ;
   ////RooMinuit m2(chi2);
   //RooNLLVar nll2("nll2","nll2",dedxAndTimeModel,*dh,DataError(RooAbsData::SumW2));
@@ -447,9 +466,9 @@ int main(int argc, char* argv[])
   //  for(int entry = 0; entry < dedxTimeData->numEntries(); ++entry)
   //  {
   //    RooArgSet temp = *dedxTimeData->get(entry);
-  //    crystalDeDx = temp.getRealValue("crystalDeDx");
-  //    crystalTime = temp.getRealValue("crystalTime");
-  //    totLikelihood-=log(dedxAndTimeModel.getVal(new RooArgSet(crystalDeDx,crystalTime)));
+  //    sumDeDx = temp.getRealValue("sumDeDx");
+  //    time = temp.getRealValue("maxCryTime");
+  //    totLikelihood-=log(dedxAndTimeModel.getVal(new RooArgSet(sumDeDx,maxCryTime)));
   //  }
   //  likelihoods.push_back(totLikelihood);
   //}
