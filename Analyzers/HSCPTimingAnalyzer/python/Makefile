@@ -20,18 +20,12 @@ sigOnly : multiDlikelihoodSignalOnly.C
 trivial : multiDlikelihood_trivial.C
 	$(CC) $(CFLAGS) $(LIBS) $(INCLUDES) $(LIBDIR) -o multiDtrivial multiDlikelihood_trivial.C
 
-<<<<<<< Makefile
 fitInput : multiDlikelihood_fitInput.C
 	$(CC) $(CFLAGS) $(LIBS) $(INCLUDES) $(LIBDIR) -o multiDfitInput multiDlikelihood_fitInput.C
 
 toyStudies : multiDlikelihood_toyStudies.C
 	$(CC) $(CFLAGS) $(LIBS) $(INCLUDES) $(LIBDIR) -o multiDtoyStudies multiDlikelihood_toyStudies.C
 
-=======
-toyStudies : multiDlikelihood_toyStudies.C
-	$(CC) $(CFLAGS) $(LIBS) $(INCLUDES) $(LIBDIR) -o multiDtoyStudies multiDlikelihood_toyStudies.C
-
->>>>>>> 1.6
 full : multiDlikelihood.C
 	$(CC) $(CFLAGS) $(LIBS) $(INCLUDES) $(LIBDIR) -o multiD multiDlikelihood.C
 
