@@ -13,7 +13,7 @@
 //
 // Original Author:  Seth COOPER
 //         Created:  Wed Dec 17 23:20:43 CET 2008
-// $Id: HSCPTimingAnalyzer.cc,v 1.20 2010/04/15 09:31:04 scooper Exp $
+// $Id: HSCPTimingAnalyzer.cc,v 1.1 2010/05/20 14:38:15 scooper Exp $
 //
 //
 
@@ -109,6 +109,9 @@ HSCPTimingAnalyzer::HSCPTimingAnalyzer(const edm::ParameterSet& iConfig) :
    deDx3x3CorrectedHist_ = fileService->make<TH1F>("dedx3x3CorrectedHist","dE/dx of crystals using 3x3 cluster energy with cont. corr. [MeV/cm]",10000,0,5000);
    deDx5x5Hist_ = fileService->make<TH1F>("dedx5x5Hist","dE/dx of crystals using 5x5 cluster energy [MeV/cm]",10000,0,5000);
    deDx5x5CorrectedHist_ = fileService->make<TH1F>("dedx5x5CorrectedHist","dE/dx of crystals using 5x5 cluster energy with cont. corr. [MeV/cm]",10000,0,5000);
+   numCrysIn11x11Hist_ = fileService->make<TH1F>("numCrysIn11x11","Number of recHits in 11x11 around main cry",25,1,26);
+   numCrysIn9x9Hist_ = fileService->make<TH1F>("numCrysIn9x9","Number of recHits in 9x9 around main cry",25,1,26);
+   numCrysIn7x7Hist_ = fileService->make<TH1F>("numCrysIn7x7","Number of recHits in 7x7 around main cry",25,1,26);
    numCrysIn5x5Hist_ = fileService->make<TH1F>("numCrysIn5x5","Number of recHits in 5x5 around main cry",25,1,26);
    numCrysIn3x3Hist_ = fileService->make<TH1F>("numCrysIn3x3","Number of recHits in 3x3 around main cry",9,1,10);
    deDxMaxEnergyCryHist_ = fileService->make<TH1F>("deDxMaxEneTrkMatCry","dE/dx of max. energy track-matched cry [MeV/cm]",10000,0,5000);
@@ -125,6 +128,11 @@ HSCPTimingAnalyzer::HSCPTimingAnalyzer(const edm::ParameterSet& iConfig) :
    muonEcalMaxEnergyHist_ = fileService->make<TH1D>("muonEcalRecHitMaxEnergy","Energy of max ene. recHit from muon [GeV]",2500,0,10);
    
    energy1OverEnergy9Hist_ = fileService->make<TH1F>("e1OverE9","Energy of matched xtal over 3x3 energy",44,0,1.1);
+   energy1OverEnergy25Hist_ = fileService->make<TH1F>("e1OverE25","Energy of matched xtal over 5x5 energy",44,0,1.1);
+   energy1OverEnergy49Hist_ = fileService->make<TH1F>("e1OverE49","Energy of matched xtal over 7x7 energy",44,0,1.1);
+   energy1OverEnergy81Hist_ = fileService->make<TH1F>("e1OverE81","Energy of matched xtal over 9x9 energy",44,0,1.1);
+   energy1OverEnergy121Hist_ = fileService->make<TH1F>("e1OverE121","Energy of matched xtal over 11x11 energy",44,0,1.1);
+
    energy1VsE1OverE9Hist_ = fileService->make<TH2F>("e1VsE1OverE9","Energy of matched xtal vs e1/e9;;[GeV]",44,0,1.1,2500,0,10);
    energy9VsE1OverE9Hist_ = fileService->make<TH2F>("e9VsE1OverE9","Energy of 3x3 xtal array vs e1/e9;;[GeV]",44,0,1.1,2500,0,10);
    
@@ -657,8 +665,8 @@ HSCPTimingAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSe
       //XXX: SIC TO TEST NEW RATIOS METHOD
       //timeVsEnergyOfTrackMatchedHits_->Fill(contCorr_*0.97*thisHit->energy(),thisHit->time());
 
-      timeVsDeDxOfTrackMatchedHits_->Fill(contCorr_*1000*0.97*thisHit->energy()/trackLengthInXtal,thisHit->time());
-      deDxVsMomHist_->Fill(muonInnerTrack->outerP(),contCorr_*1000*0.97*thisHit->energy()/(8.3*trackLengthInXtal));
+      timeVsDeDxOfTrackMatchedHits_->Fill(1000*thisHit->energy()/trackLengthInXtal,thisHit->time());
+      deDxVsMomHist_->Fill(muonInnerTrack->outerP(),1000*thisHit->energy()/(8.3*trackLengthInXtal));
 
       if(numCrysCrossed==1) // only going through this loop once anyway in that case
       {
@@ -672,46 +680,6 @@ HSCPTimingAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSe
       //XXX: SIC: TURNED OFF FOR NEW RATIOS TESTING
       // Just implement EE later
 
-      // Make 3x3 energy
-      //float energy5x5 = 0;
-      //int num5x5crys = 0;
-      //float energy3x3 = 0;
-      //int num3x3crys = 0;
-      ////TODO: EE
-      //const CaloSubdetectorTopology* ebTopology = theCaloTopology->getSubdetectorTopology(DetId::Ecal,ebDetId.subdetId());
-      //std::vector<DetId> S9aroundMax;
-      //std::vector<DetId> S25aroundMax;
-      //ebTopology->getWindow(ebDetId,3,3).swap(S9aroundMax);
-      //ebTopology->getWindow(ebDetId,5,5).swap(S25aroundMax);
-      //for(int icry=0; icry < 25; ++icry)
-      //{
-      //  if(S25aroundMax[icry].subdetId() == EcalBarrel)
-      //  {
-      //    EBRecHitCollection::const_iterator itrechit = ebRecHits->find(((EBDetId)S25aroundMax[icry]));
-      //    if(itrechit!=ebRecHits->end())
-      //    {
-      //      energy5x5+=itrechit->energy();
-      //      ++num5x5crys;
-      //      if(find(S9aroundMax.begin(),S9aroundMax.end(),S25aroundMax[icry]) != S9aroundMax.end())
-      //      {
-      //        energy3x3+=itrechit->energy();
-      //        ++num3x3crys;
-      //      }
-      //    }
-      //  }
-      //}
-      //deDx3x3Hist_->Fill(1000*energy3x3/trackLengthInXtal);
-      //deDx3x3CorrectedHist_->Fill(contCorr_*1000*energy3x3/trackLengthInXtal);  // Apply containment correction factor
-      //deDx5x5Hist_->Fill(1000*energy5x5/trackLengthInXtal);
-      //deDx5x5CorrectedHist_->Fill(contCorr_*1000*energy3x3/trackLengthInXtal);  // Apply containment correction factor
-      //numCrysIn5x5Hist_->Fill(num5x5crys);
-      //numCrysIn3x3Hist_->Fill(num3x3crys);
-
-      //energy1OverEnergy9Hist_->Fill(thisHit->energy()/energy3x3);
-      //energy1VsE1OverE9Hist_->Fill(thisHit->energy()/energy3x3,thisHit->energy());
-      //energy9VsE1OverE9Hist_->Fill(thisHit->energy()/energy3x3,energy3x3);
-      ////debug
-      ////std::cout << "energy1: " << thisHit->energy() << " energy3x3: " << energy3x3 << " e1/e9: " << thisHit->energy()/energy3x3 << std::endl;
 
       // XXX: disable this for now; causing seg faults (probably array out of bounds)
       // SIC March 1 2010
@@ -742,12 +710,17 @@ HSCPTimingAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSe
     //  ++counter;
     //}
     EcalRecHit maxEnergyHit = *(trackMatchedRecHits.end()-1);
+    if(maxEnergyHit.id().subdetId()!=EcalBarrel)
+      return;
+
+    EBDetId ebDetId = (EBDetId) maxEnergyHit.id();
     double maxEnergy = maxEnergyHit.energy();
     recHitMaxEnergyHist_->Fill(maxEnergy);
     ////XXX: Only fill timing plot if energy above cut
     //if(maxEnergy > energyCut_)
     recHitMaxEnergyTimingHist_->Fill(maxEnergyHit.time());
     double trackLength1 = muonCrossedXtalCurvedMap[maxEnergyHit.id().rawId()];
+    //SIC debug
     //std::cout << "Max hit energy: " << maxEnergy << " trackLength: " << trackLength1 << " dE/dx: " << 1000*maxEnergy/trackLength1 << std::endl;
     deDxMaxEnergyCryHist_->Fill(1000*maxEnergy/trackLength1);
     EcalRecHitCollection::const_iterator minEneHitItr = trackMatchedRecHits.begin();
@@ -762,6 +735,85 @@ HSCPTimingAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSe
       //std::cout << "Min hit energy: " << minEnergy << " trackLength: " << trackLength2 << " dE/dx: " << 1000*minEnergy/trackLength2 << std::endl;
       deDxMinEnergyCryHist_->Fill(1000*minEnergy/trackLength2);
     }
+
+    // Make 3x3 energy
+    float energy3x3 = 0;
+    int num3x3crys = 0;
+    float energy5x5 = 0;
+    int num5x5crys = 0;
+    float energy7x7 = 0;
+    int num7x7crys = 0;
+    float energy9x9 = 0;
+    int num9x9crys = 0;
+    float energy11x11 = 0;
+    int num11x11crys = 0;
+    const CaloSubdetectorTopology* ebTopology = theCaloTopology->getSubdetectorTopology(DetId::Ecal,ebDetId.subdetId());
+    std::vector<DetId> S9aroundMax;
+    std::vector<DetId> S25aroundMax;
+    std::vector<DetId> S49aroundMax;
+    std::vector<DetId> S81aroundMax;
+    std::vector<DetId> S121aroundMax;
+    ebTopology->getWindow(ebDetId,3,3).swap(S9aroundMax);
+    ebTopology->getWindow(ebDetId,5,5).swap(S25aroundMax);
+    ebTopology->getWindow(ebDetId,7,7).swap(S49aroundMax);
+    ebTopology->getWindow(ebDetId,9,9).swap(S81aroundMax);
+    ebTopology->getWindow(ebDetId,11,11).swap(S121aroundMax);
+    for(int icry=0; icry < 121; ++icry)
+    {
+      std::cout << "\tChecking to see if DetId belongs to Ecal" << std::endl;
+      if(S121aroundMax[icry].det() != DetId::Ecal)
+        continue;
+      if(S121aroundMax[icry].subdetId() != EcalBarrel)
+        continue;
+
+      EBDetId hitId = EBDetId(S121aroundMax[icry]);
+      if(hitId.null())
+        continue;
+      EBRecHitCollection::const_iterator itrechit = ebRecHits->find(hitId);
+      if(itrechit==ebRecHits->end())
+        continue;
+
+      energy11x11+=itrechit->energy();
+      ++num11x11crys;
+      if(find(S81aroundMax.begin(),S81aroundMax.end(),S121aroundMax[icry]) != S81aroundMax.end())
+      {
+        energy9x9+=itrechit->energy();
+        ++num9x9crys;
+      }
+      if(find(S49aroundMax.begin(),S49aroundMax.end(),S121aroundMax[icry]) != S49aroundMax.end())
+      {
+        energy7x7+=itrechit->energy();
+        ++num7x7crys;
+      }
+      if(find(S25aroundMax.begin(),S25aroundMax.end(),S121aroundMax[icry]) != S25aroundMax.end())
+      {
+        energy5x5+=itrechit->energy();
+        ++num5x5crys;
+      }
+      if(find(S9aroundMax.begin(),S9aroundMax.end(),S121aroundMax[icry]) != S9aroundMax.end())
+      {
+        energy3x3+=itrechit->energy();
+        ++num3x3crys;
+      }
+    }
+    //deDx3x3Hist_->Fill(1000*energy3x3/trackLengthInXtal);
+    //deDx3x3CorrectedHist_->Fill(1000*energy3x3/trackLengthInXtal);  // don't apply containment correction factor
+    //deDx5x5Hist_->Fill(1000*energy5x5/trackLengthInXtal);
+    //deDx5x5CorrectedHist_->Fill(1000*energy3x3/trackLengthInXtal);  // don't apply containment correction factor
+    numCrysIn11x11Hist_->Fill(num11x11crys);
+    numCrysIn9x9Hist_->Fill(num9x9crys);
+    numCrysIn7x7Hist_->Fill(num7x7crys);
+    numCrysIn5x5Hist_->Fill(num5x5crys);
+    numCrysIn3x3Hist_->Fill(num3x3crys);
+
+    energy1OverEnergy9Hist_->Fill(maxEnergy/energy3x3);
+    energy1OverEnergy25Hist_->Fill(maxEnergy/energy5x5);
+    energy1OverEnergy49Hist_->Fill(maxEnergy/energy7x7);
+    energy1OverEnergy81Hist_->Fill(maxEnergy/energy9x9);
+    energy1OverEnergy121Hist_->Fill(maxEnergy/energy11x11);
+    energy1VsE1OverE9Hist_->Fill(maxEnergy/energy3x3,maxEnergy);
+    energy9VsE1OverE9Hist_->Fill(maxEnergy/energy3x3,energy3x3);
+
 
     //EBDigiCollection::const_iterator digiItr = ebDigis->begin();
     //while(digiItr != ebDigis->end() && digiItr->id() != (trackMatchedRecHits.end()-1)->id())
@@ -789,29 +841,29 @@ HSCPTimingAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSe
     //  //recHitMaxEnergyShapeProfile_->Fill(i,pedestal+(df.sample(i).adc()-pedestal)*gain);
     //}
 
-    // Fill hit1 vs. hit2 hists
-    // 1st hit is always the max. energy one
-    if(numRecHitsFound==2)
-    {
-      std::map<int,float>::const_iterator firstCryItr = muonCrossedXtalCurvedMap.begin();
-      std::map<int,float>::const_iterator secondCryItr = firstCryItr++;
-      
-      EcalRecHitCollection::const_iterator firstHit = ebRecHits->find(EBDetId(firstCryItr->first));
-      if(firstHit!=ebRecHits->end())
-      {
-        EcalRecHitCollection::const_iterator secondHit = ebRecHits->find(EBDetId(secondCryItr->first));
-        if(secondHit!=ebRecHits->end())
-        {
-          if(secondHit->energy() > firstHit->energy())
-            swap(secondHit,firstHit);
-          //energyFractionInTrackMatchedXtalsProfile_->Fill(0.,firstHit->energy()/crossedEnergy);
-          //energyFractionInTrackMatchedXtalsProfile_->Fill(1.,secondHit->energy()/crossedEnergy);
-          hit1EnergyVsHit2EnergyHist_->Fill(0.97*secondHit->energy(),0.97*firstHit->energy());
-          hit1LengthVsHit2LengthHist_->Fill(secondCryItr->second,firstCryItr->second);
-          hit1DeDxVsHit2DeDxHist_->Fill(1000*0.97*secondHit->energy()/secondCryItr->second,1000*0.97*firstHit->energy()/firstCryItr->second);
-        }
-      }
-    }
+  //  // Fill hit1 vs. hit2 hists
+  //  // 1st hit is always the max. energy one
+  //  if(numRecHitsFound==2)
+  //  {
+  //    std::map<int,float>::const_iterator firstCryItr = muonCrossedXtalCurvedMap.begin();
+  //    std::map<int,float>::const_iterator secondCryItr = firstCryItr++;
+  //    
+  //    EcalRecHitCollection::const_iterator firstHit = ebRecHits->find(EBDetId(firstCryItr->first));
+  //    if(firstHit!=ebRecHits->end())
+  //    {
+  //      EcalRecHitCollection::const_iterator secondHit = ebRecHits->find(EBDetId(secondCryItr->first));
+  //      if(secondHit!=ebRecHits->end())
+  //      {
+  //        if(secondHit->energy() > firstHit->energy())
+  //          swap(secondHit,firstHit);
+  //        //energyFractionInTrackMatchedXtalsProfile_->Fill(0.,firstHit->energy()/crossedEnergy);
+  //        //energyFractionInTrackMatchedXtalsProfile_->Fill(1.,secondHit->energy()/crossedEnergy);
+  //        hit1EnergyVsHit2EnergyHist_->Fill(0.97*secondHit->energy(),0.97*firstHit->energy());
+  //        hit1LengthVsHit2LengthHist_->Fill(secondCryItr->second,firstCryItr->second);
+  //        hit1DeDxVsHit2DeDxHist_->Fill(1000*0.97*secondHit->energy()/secondCryItr->second,1000*0.97*firstHit->energy()/firstCryItr->second);
+  //      }
+  //    }
+  //  }
   }
 
   myTree_->Fill();

@@ -13,7 +13,7 @@
 //
 // Original Author:  Seth COOPER
 //         Created:  Wed May 19 14:54:43 CET 2010
-// $Id: HSCPTimingAnalyzer.h,v 1.1 2010/05/19 14:54:43 scooper Exp $
+// $Id: HSCPTimingAnalyzer.h,v 1.1 2010/05/20 14:38:15 scooper Exp $
 //
 //
 
@@ -189,8 +189,11 @@ class HSCPTimingAnalyzer : public edm::EDAnalyzer {
       TH1F* deDx3x3CorrectedHist_;
       TH1F* deDx5x5Hist_;
       TH1F* deDx5x5CorrectedHist_;
-      TH1F* numCrysIn5x5Hist_;
       TH1F* numCrysIn3x3Hist_;
+      TH1F* numCrysIn5x5Hist_;
+      TH1F* numCrysIn7x7Hist_;
+      TH1F* numCrysIn9x9Hist_;
+      TH1F* numCrysIn11x11Hist_;
 
       TH1F* timeError999EnergyHist_;
 
@@ -200,7 +203,7 @@ class HSCPTimingAnalyzer : public edm::EDAnalyzer {
       TH1F* deDxMaxEnergyCryHist_;
       TH1F* deDxMinEnergyCryHist_;
       TH1F* deDxTotalHist_;
-      //XXX: separate into EE/EB; make more general
+      //TODO: separate into EE/EB; make more general
       TH1F* singleCryCrossedEnergy_;
       TH1F* singleCryCrossedTime_;
       TH1F* singleCryCrossedDeDx_;
@@ -222,6 +225,11 @@ class HSCPTimingAnalyzer : public edm::EDAnalyzer {
       TH1D* muonEcalMaxEnergyHist_;
       
       TH1F* energy1OverEnergy9Hist_;
+      TH1F* energy1OverEnergy25Hist_;
+      TH1F* energy1OverEnergy49Hist_;
+      TH1F* energy1OverEnergy81Hist_;
+      TH1F* energy1OverEnergy121Hist_;
+
       TH2F* energy1VsE1OverE9Hist_;
       TH2F* energy9VsE1OverE9Hist_;
       
