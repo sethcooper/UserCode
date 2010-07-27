@@ -1,7 +1,7 @@
 #include "TChain.h" 
 
 const int MAXCRYS = 25; // max crys per track (5x5 around track)
-const int MAXTRACKS  = 20; // max interesting tracks per event
+const int MAXTRACKS  = 100; // max interesting tracks per event
 
 struct HSCPEcalTreeContent // 1 entry per event
 {

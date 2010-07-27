@@ -13,7 +13,7 @@
 //
 // Original Author:  Seth COOPER
 //         Created:  Wed May 19 14:54:43 CET 2010
-// $Id: HSCPTimingAnalyzer.h,v 1.1 2010/05/20 14:38:15 scooper Exp $
+// $Id: HSCPTimingAnalyzer.h,v 1.2 2010/06/30 15:09:15 scooper Exp $
 //
 //
 
@@ -55,6 +55,7 @@
 #include "DataFormats/EcalDigi/interface/EcalDigiCollections.h"
 #include "DataFormats/MuonReco/interface/Muon.h"
 #include "DataFormats/MuonReco/interface/MuonFwd.h"
+#include "DataFormats/JetReco/interface/CaloJetCollection.h"
 // Geometry
 #include "DataFormats/GeometryVector/interface/GlobalPoint.h" 
 #include "Geometry/CaloGeometry/interface/CaloGeometry.h"
@@ -87,7 +88,24 @@
 #include "TrackPropagation/SteppingHelixPropagator/interface/SteppingHelixPropagator.h"
 
 #include "Analyzers/HSCPTimingAnalyzer/interface/HSCPEcalTreeContent.h"
-// class decleration
+
+// Auxiliary class
+class towerEner {   
+ public:
+  float eRec_, etRec_ ;
+  int tpgEmul_[5] ;
+  int tpgADC_; 
+  int iphi_, ieta_, nbXtal_, spike_ ;
+  towerEner()
+    : eRec_(0), etRec_(0), tpgADC_(0),  
+    iphi_(-999), ieta_(-999), nbXtal_(0), spike_(0)
+  { 
+    for (int i=0 ; i<5 ; i ++) tpgEmul_[i] = 0 ; 
+  }
+};
+
+
+// main class declaration
 //
 
 class HSCPTimingAnalyzer : public edm::EDAnalyzer {
@@ -100,15 +118,9 @@ class HSCPTimingAnalyzer : public edm::EDAnalyzer {
       virtual void beginJob();
       virtual void analyze(const edm::Event&, const edm::EventSetup&);
       virtual void endJob() ;
-      std::vector<SteppingHelixStateInfo> calcEcalDeposit(const FreeTrajectoryState* glbInnerState,
-          const FreeTrajectoryState* glbOuterState,
-          const FreeTrajectoryState* innInnerState,
-          const FreeTrajectoryState* innOuterState,
+      std::vector<SteppingHelixStateInfo> calcEcalDeposit(const FreeTrajectoryState* tkInnerState,
           const TrackAssociatorParameters& parameters);
-      std::vector<SteppingHelixStateInfo> calcDeposit(const FreeTrajectoryState* glbInnerState,
-          const FreeTrajectoryState* glbOuterState,
-          const FreeTrajectoryState* innInnerState,
-          const FreeTrajectoryState* innOuterState,
+      std::vector<SteppingHelixStateInfo> calcDeposit(const FreeTrajectoryState* tkInnerState,
           const TrackAssociatorParameters& parameters,
           const DetIdAssociator& associator);
       int getDetailedTrackLengthInXtals(std::map<int,float>& XtalInfo, 
@@ -140,11 +152,28 @@ class HSCPTimingAnalyzer : public edm::EDAnalyzer {
       edm::InputTag trackCollection_;
       edm::InputTag EBUncalibRecHits_;
       edm::InputTag EEUncalibRecHits_;
+      edm::InputTag jetCollection_;
+
+      // SIC July 9 2010 for L1 trigger studies
+      edm::InputTag isoEmSource_;
+      edm::InputTag nonIsoEmSource_;
+      edm::InputTag cenJetSource_;
+      edm::InputTag forJetSource_;
+      edm::InputTag tauJetSource_;
+      edm::InputTag muonSource_;
+      edm::InputTag etMissSource_;
+      edm::InputTag htMissSource_;
+      edm::InputTag hfRingsSource_;
+      edm::InputTag particleMapSource_;
+      // July 20 2010
+      edm::InputTag tpCollection_;
+
       edm::ESHandle<DetIdAssociator> ecalDetIdAssociator_;
       edm::ESHandle<CaloGeometry> theCaloGeometry_;
       edm::ESHandle<GlobalTrackingGeometry> theTrackingGeometry_;
       edm::ESHandle<MagneticField> bField_;
 
+      // Histograms
       TH1D* simHitsTimeHist_;
       TH1D* simHitsEnergyHist_;
       TH1D* recHitTimeSimHitTimeHist_;
@@ -156,6 +185,7 @@ class HSCPTimingAnalyzer : public edm::EDAnalyzer {
       //TH1D* energyOfTrackMatchedHits_;
       //TH1D* timeOfTrackMatchedHits_;
       //TH2D* timeVsEnergyOfTrackMatchedHits_;
+      TH1F* ptOfTracksWithCrossedCrysHist_;
 
       TH1F* timeOfTrackMatchedHitsEB1GeVcut_;
       TH1F* timeOfTrackMatchedHitsEB3GeVcut_;
@@ -194,6 +224,11 @@ class HSCPTimingAnalyzer : public edm::EDAnalyzer {
       TH1F* numCrysIn7x7Hist_;
       TH1F* numCrysIn9x9Hist_;
       TH1F* numCrysIn11x11Hist_;
+      TH1F* numCrysIn15x15Hist_;
+      TH1F* numCrysIn19x19Hist_;
+      TH1F* numCrysIn23x23Hist_;
+      TH1F* numCrysIn27x27Hist_;
+      TH1F* numCrysIn31x31Hist_;
 
       TH1F* timeError999EnergyHist_;
 
@@ -229,6 +264,22 @@ class HSCPTimingAnalyzer : public edm::EDAnalyzer {
       TH1F* energy1OverEnergy49Hist_;
       TH1F* energy1OverEnergy81Hist_;
       TH1F* energy1OverEnergy121Hist_;
+      TH1F* energy1OverEnergy225Hist_;
+      TH1F* energy1OverEnergy361Hist_;
+      TH1F* energy1OverEnergy529Hist_;
+      TH1F* energy1OverEnergy729Hist_;
+      TH1F* energy1OverEnergy961Hist_;
+
+      TH1F* energyCrossedOverEnergy9Hist_;
+      TH1F* energyCrossedOverEnergy25Hist_;
+      TH1F* energyCrossedOverEnergy49Hist_;
+      TH1F* energyCrossedOverEnergy81Hist_;
+      TH1F* energyCrossedOverEnergy121Hist_;
+      TH1F* energyCrossedOverEnergy225Hist_;
+      TH1F* energyCrossedOverEnergy361Hist_;
+      TH1F* energyCrossedOverEnergy529Hist_;
+      TH1F* energyCrossedOverEnergy729Hist_;
+      TH1F* energyCrossedOverEnergy961Hist_;
 
       TH2F* energy1VsE1OverE9Hist_;
       TH2F* energy9VsE1OverE9Hist_;
@@ -241,6 +292,29 @@ class HSCPTimingAnalyzer : public edm::EDAnalyzer {
       
       //TProfile* recHitMaxEnergyShapeProfile_;
       TGraph* recHitMaxEnergyShapeGraph_;
+
+      TH1F* dRJetHSCPHist_;
+      TH1F* ptJetHSCPHist_;
+
+      // L1 hists
+      TH1F* L1IsoEmDrHist_;
+      TH1F* L1IsoEmEnergyHist_;
+      TH1F* L1NonIsoEmDrHist_;
+      TH1F* L1JetCenDrHist_;
+      TH1F* L1JetForDrHist_;
+      TH1F* L1JetTauDrHist_;
+      TH1F* L1MuDrHist_;
+      TH1F* L1METDrHist_;
+      TH1F* L1MHTDrHist_;
+      TH1F* L1HFRingDrHist_;
+
+      TH1F* L1ClosestL1ObjTypeHist_;
+      TH1F* L1ClosestL1ObjDrHist_;
+
+      TH2F* L1DrVsObjTypeHist_;
+
+      // End of hists
+
 
       TFile* file_;
 
