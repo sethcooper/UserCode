@@ -7,3 +7,7 @@
   <use name=root>
   <use name=Analyzers/HSCPTimingAnalyzer>
 </bin>
+
+<bin file=generateToyMCevents.cpp>
+  <use name=root>
+</bin>
