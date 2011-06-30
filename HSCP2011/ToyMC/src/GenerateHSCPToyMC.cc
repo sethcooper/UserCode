@@ -13,7 +13,7 @@
 //
 // Original Author:  Seth Cooper,27 1-024,+41227672342,
 //         Created:  Wed Apr 14 14:27:52 CEST 2010
-// $Id: GenerateHSCPToyMC.cc,v 1.4 2010/06/23 17:12:36 querten Exp $
+// $Id: GenerateHSCPToyMC.cc,v 1.1 2011/06/30 13:36:41 scooper Exp $
 //
 //
 
@@ -63,7 +63,7 @@
 #include "RooMsgService.h"
 #include "RooBinning.h"
 
-#include "SUSYBSMAnalysis/HSCP/interface/GenerateHSCPToyMC.h"
+#include "HSCP2011/ToyMC/interface/GenerateHSCPToyMC.h"
 
 
 //
