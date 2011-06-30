@@ -1,0 +1,59 @@
+makeDeDxPlots()
+{
+  trackDeDxNoMAndPtSlices->cd();
+
+  TCanvas t;
+  t.cd();
+  t.SetLogy();
+
+  histForPDFNoMPtBinsIndex1->Draw();
+  t.Print("histForPDFNoMPtBinsIndex1.png");
+  histForPDFNoMPtBinsIndex2->Draw();
+  t.Print("histForPDFNoMPtBinsIndex2.png");
+  histForPDFNoMPtBinsIndex3->Draw();
+  t.Print("histForPDFNoMPtBinsIndex3.png");
+  histForPDFNoMPtBinsIndex4->Draw();
+  t.Print("histForPDFNoMPtBinsIndex4.png");
+  histForPDFNoMPtBinsIndex5->Draw();
+  t.Print("histForPDFNoMPtBinsIndex5.png");
+  histForPDFNoMPtBinsIndex6->Draw();
+  t.Print("histForPDFNoMPtBinsIndex6.png");
+  histForPDFNoMPtBinsIndex7->Draw();
+  t.Print("histForPDFNoMPtBinsIndex7.png");
+  histForPDFNoMPtBinsIndex8->Draw();
+  t.Print("histForPDFNoMPtBinsIndex8.png");
+  histForPDFNoMPtBinsIndex9->Draw();
+  t.Print("histForPDFNoMPtBinsIndex9.png");
+  histForPDFNoMPtBinsIndex10->Draw();
+  t.Print("histForPDFNoMPtBinsIndex10.png");
+  histForPDFNoMPtBinsIndex11->Draw();
+  t.Print("histForPDFNoMPtBinsIndex11.png");
+  histForPDFNoMPtBinsIndex12->Draw();
+  t.Print("histForPDFNoMPtBinsIndex12.png");
+  histForPDFNoMPtBinsIndex13->Draw();
+  t.Print("histForPDFNoMPtBinsIndex13.png");
+  histForPDFNoMPtBinsIndex14->Draw();
+  t.Print("histForPDFNoMPtBinsIndex14.png");
+  histForPDFNoMPtBinsIndex15->Draw();
+  t.Print("histForPDFNoMPtBinsIndex15.png");
+  histForPDFNoMPtBinsIndex16->Draw();
+  t.Print("histForPDFNoMPtBinsIndex16.png");
+  histForPDFNoMPtBinsIndex17->Draw();
+  t.Print("histForPDFNoMPtBinsIndex17.png");
+  histForPDFNoMPtBinsIndex18->Draw();
+  t.Print("histForPDFNoMPtBinsIndex18.png");
+  histForPDFNoMPtBinsIndex19->Draw();
+  t.Print("histForPDFNoMPtBinsIndex19.png");
+  histForPDFNoMPtBinsIndex20->Draw();
+  t.Print("histForPDFNoMPtBinsIndex20.png");
+  histForPDFNoMPtBinsIndex21->Draw();
+  t.Print("histForPDFNoMPtBinsIndex21.png");
+  histForPDFNoMPtBinsIndex22->Draw();
+  t.Print("histForPDFNoMPtBinsIndex22.png");
+  histForPDFNoMPtBinsIndex23->Draw();
+  t.Print("histForPDFNoMPtBinsIndex23.png");
+  histForPDFNoMPtBinsIndex24->Draw();
+  t.Print("histForPDFNoMPtBinsIndex24.png");
+  histForPDFNoMPtBinsIndex25->Draw();
+  t.Print("histForPDFNoMPtBinsIndex25.png");
+}
