@@ -13,7 +13,7 @@
 //
 // Original Author:  
 //         Created:  Tue Oct 13 14:56:06 CEST 2009
-// $Id: SimpleTimeEnergyGraphs.cc,v 1.4 2010/03/17 09:56:32 scooper Exp $
+// $Id: SimpleTimeEnergyGraphs.cc,v 1.5 2010/03/18 10:48:04 scooper Exp $
 //
 //
 
@@ -32,6 +32,18 @@
 #include "DataFormats/EcalRecHit/interface/EcalRecHitCollections.h"
 #include "DataFormats/EcalDetId/interface/EBDetId.h"
 #include "DataFormats/EcalDetId/interface/EEDetId.h"
+
+#include "DataFormats/EgammaCandidates/interface/GsfElectron.h"
+#include "DataFormats/EgammaCandidates/interface/GsfElectronFwd.h"
+#include "DataFormats/EgammaCandidates/interface/GsfElectronCoreFwd.h"
+#include "DataFormats/EgammaCandidates/interface/GsfElectronCore.h"
+
+#include "DataFormats/EgammaReco/interface/BasicCluster.h"
+#include "DataFormats/EgammaReco/interface/BasicClusterFwd.h"
+#include "DataFormats/EgammaReco/interface/SuperCluster.h"
+#include "DataFormats/EgammaReco/interface/SuperClusterFwd.h"
+#include "RecoEcal/EgammaCoreTools/interface/EcalClusterLazyTools.h"
+#include "DataFormats/EgammaReco/interface/BasicClusterShapeAssociation.h"
 
 #include "TH1.h"
 #include "TH2.h"
@@ -162,6 +174,8 @@ void
 SimpleTimeEnergyGraphs::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 {
    using namespace edm;
+   std::cout << "Processing run: " << iEvent.id().run() << " lumi: " << iEvent.luminosityBlock()
+     << " event: " << iEvent.id().event() << std::endl;
 
   // RecHits
   Handle<EBRecHitCollection> ebRecHits;
@@ -182,44 +196,144 @@ SimpleTimeEnergyGraphs::analyze(const edm::Event& iEvent, const edm::EventSetup&
   }
   if(!eeRecHits->size() > 0)
     std::cout << "EERecHits size is 0!" << std::endl;
-  // UncalibRecHits
-  Handle<EBUncalibratedRecHitCollection> ebURecHits;
-  iEvent.getByLabel(EBUncalibRecHitCollection_,ebURecHits);
-  if(!ebURecHits.isValid())
-  {
-    std::cout << "Cannot get ebURecHits from event!" << std::endl;
-    return;
+
+
+  edm::Handle<reco::GsfElectronCollection> gsfElectrons;
+  iEvent.getByLabel("gsfElectrons", gsfElectrons);
+  if (!gsfElectrons.isValid()) {
+    std::cerr << "Error! can't get the product ElectronCollection: " << std::endl;
+  } else{
+    // std::cerr << "BRAVO! GoT the product ElectronCollection. " << std::endl;
   }
-  if(!ebURecHits->size() > 0)
-    std::cout << "EBUncalibratedRecHits size is 0!" << std::endl;
-  Handle<EEUncalibratedRecHitCollection> eeURecHits;
-  iEvent.getByLabel(EEUncalibRecHitCollection_,eeURecHits);
-  if(!eeURecHits.isValid())
+  const reco::GsfElectronCollection* theElectrons =  gsfElectrons.product();
+
+
+  //  loop on electrons in event and extract SC from it
+  for(reco::GsfElectronCollection::const_iterator eleIt = theElectrons->begin();
+      eleIt != theElectrons->end();
+      eleIt++     )
   {
-    std::cout << "Cannot get eeURecHits from event!" << std::endl;
-    return;
-  }
-  if(!eeURecHits->size() > 0)
-    std::cout << "EEUncalibratedRecHits size is 0!" << std::endl;
+    //std::cout << "ele : " << (eleIt-theElectrons->begin()) << " pt: " << eleIt->pt()  << std::endl;
+    if (eleIt->pt() < 10) continue;   // make this threshold configurable
+
+    const reco::SuperCluster & sclus = *(eleIt->superCluster()) ;
+
+    if(!eleIt->isEB()) {
+      //    std::cout << "this ele is NOT in EB " << std::endl;
+      continue;
+    } else {
+      //      std::cout << "this ele IS in EB " << std::endl;
+    }
+
+
+    ///////////////////////////////////////////////////////////////////////////////////////
+    // loop on barrel basic clusters which are inside SC from an electron
+    for ( reco::CaloCluster_iterator  bClus =  sclus.clustersBegin()  ; 
+        bClus != sclus.clustersEnd();
+        ++bClus) // loop on barrel Bclusters
+    {        
+      // std::cout << "bc number: " << (bClus-sclus.clustersBegin()) << std::endl;
+
+      double energy = (*bClus)->energy () ;
+      double phi    = (*bClus)->phi () ;
+      double eta    = (*bClus)->eta () ;
+      double sinTheta         = fabs( sin( 2 *atan( exp(-1*(*bClus)->eta()) ) ) );
+      double transverseEnergy = (*bClus)->energy () * sinTheta;
+      double time = -1000.0 ; // gfdoc: work on this to provide a combination of crystals?
+      double ampli = 0. ;
+      double secondMin = 0. ;
+      double secondTime = -1000. ;
+      int numberOfXtalsInCluster=0 ;//counter for all xtals in cluster
+      int numXtalsinCluster = 0 ;   //xtals in cluster above 3sigma noise  
+      EBDetId maxDet ;
+      EBDetId secDet ;
+
+      std::vector<std::pair<DetId, float> > clusterDetIds = (*bClus)->hitsAndFractions() ; //get these from the cluster
+
+
+      //////////////////////////////////////////////////////////////////////////////////////
+      //loop on xtals in cluster
+      for (std::vector<std::pair<DetId, float> >::const_iterator detitr = clusterDetIds.begin () ; 
+          detitr != clusterDetIds.end (); 
+          ++detitr)// loop on rechics of barrel basic clusters
+      {
+        //Here I use the "find" on a digi collection... I have been warned...   (GFdoc: ??)
+        // GFdoc: check if DetId belongs to ECAL; if so, find it among those if this basic cluster
+        if ( (detitr -> first).det () != DetId::Ecal) 
+        { 
+          std::cout << " det is " << (detitr -> first).det () << " (and not DetId::Ecal)" << std::endl ;
+          continue ;
+        }
+        if ( (detitr -> first).subdetId () != EcalBarrel) 
+        {
+          std::cout << " subdet is " << (detitr -> first).subdetId () << " (and not EcalBarrel)" << std::endl ; 
+          continue ; 
+        }
+
+        // GFdoc now find it!
+        EcalRecHitCollection::const_iterator thishit = ebRecHits->find ( (detitr -> first) ) ;
+        if (thishit == ebRecHits->end ()) 
+        {
+          continue ;
+        }
+        //The checking above should no longer be needed...... 
+        //as only those in the cluster would already have rechits..
+
+        // GFdoc this is one crystal in the basic cluster
+        EcalRecHit myhit = (*thishit) ;
+
+        // SIC Feb 14 2011 -- Add check on RecHit flags (takes care of spike cleaning in 42X)
+        uint32_t rhFlag = myhit.recoFlag();
+        if( !(rhFlag == EcalRecHit::kGood || rhFlag == EcalRecHit::kOutOfTime ||
+              rhFlag == EcalRecHit::kPoorCalib) )
+          continue;
+
+        // thisamp is the EB amplitude of the current rechit
+        double thisamp  = myhit.energy () ;
+        double thistime = myhit.time ();
+        double thisChi2 = myhit.chi2 ();
+        double thisOutOfTimeChi2 = myhit.outOfTimeChi2 ();
+        if (thisamp > 0.027) //cut on energy->number of crystals in cluster above 3sigma noise; gf: desirable?
+        { 
+          numXtalsinCluster++ ; 
+        }
+        if (thisamp > secondMin) 
+        {
+          secondMin = thisamp ; 
+          secondTime = myhit.time () ; 
+          secDet = (EBDetId) (detitr -> first) ;
+        }
+        if (secondMin > ampli) 
+        {
+          std::swap (ampli, secondMin) ; 
+          std::swap (time, secondTime) ; 
+          std::swap (maxDet, secDet) ;
+        }
+
+
+        if(EBDetId((detitr -> first)).iphi()==100 && EBDetId((detitr -> first)).ieta()==-78)
+        {
+          std::cout << "CRY FOUND IN BC OF SC OF ELECTRON! Time of EBRecHit: " << thishit->time() << " ns, "
+            << " timeError: " << thishit->timeError() << " energy: "
+            << thishit->energy() << " GeV" //, amplitude: " << uHitItr->amplitude()
+            << std::endl;
+        }
+
+
+
+
+      } //end loop on rechits within barrel basic clusters
+      //////////////////////////////////////////////////////
+
+
+    } // loop on BC inside SC
+  }// loop over electrons-SC
+
 
   // Loop over EBRecHits
   for(EBRecHitCollection::const_iterator recHitItr = ebRecHits->begin();
       recHitItr != ebRecHits->end(); ++recHitItr)
   {
-    // Find UncalibHit
-    EcalUncalibratedRecHitCollection::const_iterator uHitItr = ebURecHits->begin();
-    while(uHitItr != ebURecHits->end() && uHitItr->id() != recHitItr->id())
-      ++uHitItr;
-    if(uHitItr != ebURecHits->end())
-    {
-      timeVsAmplitudeEB_->Fill(uHitItr->amplitude(),recHitItr->time());
-      timeVsAeffEB_->Fill((uHitItr->amplitude()/sqrt(2))/1.06,recHitItr->time());
-    }
-    else
-      continue;
-    if(uHitItr->amplitude() < minAmpForTimingEB_)
-      continue;
-
     timeOfHitsEBps_->Fill(recHitItr->time()*1000);
     timeOfHitsEB_->Fill(recHitItr->time());
     energyOfHitsEB_->Fill(recHitItr->energy());
@@ -242,28 +356,18 @@ SimpleTimeEnergyGraphs::analyze(const edm::Event& iEvent, const edm::EventSetup&
     if(id.ieta() > -86 && id.ieta() < -57)
       timeInEtaBinsEB_[0]->Fill(recHitItr->time());
 
-    //std::cout << "Time of EBRecHit: " << recHitItr->time() << " ns, energy: "
-    //  << recHitItr->energy() << " GeV, amplitude: " << uHitItr->amplitude()
-    //  << std::endl;
+    if(id.ieta() == -78 && id.iphi()==100)
+    {
+      std::cout << "Time of EBRecHit: " << recHitItr->time() << " ns, "
+        << " timeError: " << recHitItr->timeError() << " energy: "
+        << recHitItr->energy() << " GeV" //, amplitude: " << uHitItr->amplitude()
+        << std::endl;
+    }
   }
   // Loop over EERecHits
   for(EERecHitCollection::const_iterator recHitItr = eeRecHits->begin();
       recHitItr != eeRecHits->end(); ++recHitItr)
   {
-    // Find UncalibHit
-    EcalUncalibratedRecHitCollection::const_iterator uHitItr = eeURecHits->begin();
-    while(uHitItr != eeURecHits->end() && uHitItr->id() != recHitItr->id())
-      ++uHitItr;
-    if(uHitItr != eeURecHits->end())
-    {
-      timeVsAmplitudeEE_->Fill(uHitItr->amplitude(),recHitItr->time());
-      timeVsAeffEE_->Fill((uHitItr->amplitude()/sqrt(2))/2.1,recHitItr->time());
-    }
-    else
-      continue;
-    if(uHitItr->amplitude() < minAmpForTimingEE_)
-      continue;
-
     timeOfHitsEE_->Fill(recHitItr->time());
     energyOfHitsEE_->Fill(recHitItr->energy());
     if(recHitItr->energy() > 5)
