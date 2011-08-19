@@ -12,6 +12,7 @@
 #include "TChain.h"
 #include "TH1.h"
 #include "TH2.h"
+#include "TH3.h"
 #include "TFile.h"
 #include "TTree.h"
 #include "TGraphErrors.h"
@@ -32,36 +33,31 @@ std::vector<std::string> listOfFiles_;
 float maxTrackEta_ = 1000;
 bool enableDebug_ = false;
 
-int numPtBins_ = 5;
-int numPBins_ = 5;
-int numNomBins_ = 5;
-TH1F* histsForPDFNoMPtBins_[5][5]; // number of Pt bins first
-TH1F* histsForPDFNoMPtBinsMatched_[5][5]; // number of Pt bins first
-TH1F* histsForPDFNoMPBins_[5][5]; // number of P bins first
-TH1F* histsForPDFNoMPBinsMatched_[5][5]; // number of P bins first
-TH1F* histsForPDFNoMPBinsMuSB_[5][5]; // number of P bins first
-TH1F* histsForPDFNoMPBinsMuSBMatched_[5][5]; // number of P bins first
+int numNomBins_ = 30;
+TH3F* dedxHistsInNomBins_[30];
+TH3F* dedxHistsNoPBiasInNomBins_[30];
+//TH3F* dedxHistsPullPSigmaInNomBins_[30];
+//TH3F* dedxHistsPullPEtaSigmaInNomBins_[30];
+//TH3F* dedxHistsPullPEtaNomSigmaInNomBins_[30];
+// matched
+TH3F* dedxHistsInNomBinsMatched_[30];
+TH3F* dedxHistsNoPBiasInNomBinsMatched_[30];
+//TH3F* dedxHistsPullPSigmaInNomBinsMatched_[30];
+//TH3F* dedxHistsPullPEtaSigmaInNomBinsMatched_[30];
+//TH3F* dedxHistsPullPEtaNomSigmaInNomBinsMatched_[30];
+// Mu SB
+TH3F* dedxHistsMuSBInNomBins_[30];
+TH3F* dedxHistsMuSBNoPBiasInNomBins_[30];
+//TH3F* dedxHistsMuSBPullPSigmaInNomBins_[30];
+//TH3F* dedxHistsMuSBPullPEtaSigmaInNomBins_[30];
+//TH3F* dedxHistsMuSBPullPEtaNomSigmaInNomBins_[30];
+// matched
+TH3F* dedxHistsMuSBInNomBinsMatched_[30];
+TH3F* dedxHistsMuSBNoPBiasInNomBinsMatched_[30];
+//TH3F* dedxHistsMuSBPullPSigmaInNomBinsMatched_[30];
+//TH3F* dedxHistsMuSBPullPEtaSigmaInNomBinsMatched_[30];
+//TH3F* dedxHistsMuSBPullPEtaNomSigmaInNomBinsMatched_[30];
 
-TH1F* histsInNoMFinePBins_[200][5]; // P bins first
-TH1F* histsInNoMFinePBinsMatched_[200][5]; // P bins first
-TH1F* histsInFineNoMPBins_[10][30];
-TH1F* histsInFineNoMPBinsMatched_[10][30];
-TH1F* histsInFineNoMPBinsEtaDist_[10][30];
-TH1F* histsInFineNoMPBinsMatchedEtaDist_[10][30];
-TH1F* histsInFineEtaPBins_[10][25];
-TH1F* histsInFineEtaPBinsMatched_[10][25];
-// pulls
-TH1F* pullsInFineNoMPBins_[10][30];
-TH1F* pullsInFineNoMPBinsMatched_[10][30];
-TH1F* pullsInFineEtaPBins_[10][25];
-TH1F* pullsInFineEtaPBinsMatched_[10][25];
-
-TH1F* dedxClosureInFinePBins_[200];
-TH1F* dedxClosureInFinePBinsMatched_[200];
-TH1F* dedxClosureInFineEtaBins_[25];
-TH1F* dedxClosureInFineEtaBinsMatched_[25];
-TH1F* dedxClosureInFineNoMBins_[30];
-TH1F* dedxClosureInFineNoMBinsMatched_[30];
 
 // ------------------ Function to parse the command-line arguments------------------------
 void parseArguments(int argc, char** argv)
@@ -244,38 +240,42 @@ std::string floatToString(float num)
     return (myStream.str ());
 }
 
-int findFinePBin(float p)
-{
-  if(p >= 1000) return 199;
-
-  //int pRound = (int) round(p);
-  int bin = p/5;
-  return bin;
-}
-
-int findLessFinePBin(float p)
-{
-  if(p >= 1000) return 9;
-
-  //int pRound = (int) round(p);
-  int bin = p/100;
-  return bin;
-}
-
+//int findFinePBin(float p)
+//{
+//  if(p >= 1000) return 199;
+//
+//  //int pRound = (int) round(p);
+//  int bin = p/5;
+//  return bin;
+//}
+//
+//int findLessFinePBin(float p)
+//{
+//  if(p >= 1000) return 9;
+//
+//  //int pRound = (int) round(p);
+//  int bin = p/100;
+//  return bin;
+//}
+//
 int findFineNoMBin(int nom)
 {
   if(nom >= 30) return 29;
 
   return nom-1;
 }
-
-int findFineEtaBin(float eta)
-{
-  if(fabs(eta) >= 2.5)
-    return 24;
-
-  return (fabs(eta)/0.1);
-}
+//
+//int findFineEtaBin(float eta)
+//{
+//  if(eta >= 2.5)
+//    return 24;
+//  else if(eta <= -2.5)
+//    return 0;
+//
+//  int bin = eta/0.1;
+//  if(eta < 0)
+//    return bin
+//}
 
 std::string generateTitleEnd(int lpbound, int rpbound, int lnombound, int rnombound)
 {
@@ -311,7 +311,344 @@ std::string generateEtaTitleEnd(float lpbound, float rpbound)
   return title;
 }
 
-//XXX
+std::string generateNoMTitleEnd(int lpbound, int rpbound)
+{
+  std::string title = "";
+  title+=" for ";
+  title+=floatToString(lpbound);
+  title+=" <= NoM <= ";
+  title+=floatToString(rpbound);
+  return title;
+}
+
+// residuals from P vs. beta fit; function of eta
+// see hscp/aug19 web directory (allDeDx); pcminn19:/data3/scooper/cmssw/426/HSCPStudiesAndToyMC/src/HSCP2011/ToyMC/bin/1.aug9.dedxPlots.aug19
+TF1 getDeDxResFuncFromEtaSlice(int etaSlice)
+{
+  using namespace std;
+  float dedxMeanBetaDepResParamsEtaRegion1[5]; // eta1  -- only 5 params here (no x-shift)
+  float dedxMeanBetaDepResParamsEtaRegion2[5]; // eta10 -- only 5 params here (no x-shift)
+  float dedxMeanBetaDepResParamsEtaRegion3[5]; // eta17 -- only 5 params here (no x-shift)
+  float dedxMeanBetaDepResShiftParamsEtaRegion1[8]; // eta 2-9
+  float dedxMeanBetaDepResShiftParamsEtaRegion2[6]; // eta 11-16
+  float dedxMeanBetaDepResShiftParamsEtaRegion3[8]; // eta 18-25
+  dedxMeanBetaDepResParamsEtaRegion1[0] = 1.175;     // eta1, p0
+  dedxMeanBetaDepResParamsEtaRegion1[1] = -0.6654;
+  dedxMeanBetaDepResParamsEtaRegion1[2] = 0.1128;
+  dedxMeanBetaDepResParamsEtaRegion1[3] = -0.005684;
+  dedxMeanBetaDepResParamsEtaRegion1[4] = 0.0001248;
+  dedxMeanBetaDepResParamsEtaRegion2[0] = 2.157;     // eta10, p0
+  dedxMeanBetaDepResParamsEtaRegion2[1] = -1.132;
+  dedxMeanBetaDepResParamsEtaRegion2[2] = 0.1678;
+  dedxMeanBetaDepResParamsEtaRegion2[3] = -0.006097;
+  dedxMeanBetaDepResParamsEtaRegion2[4] = 7.801e-5;
+  dedxMeanBetaDepResParamsEtaRegion3[0] = -0.8409;   // eta17, p0
+  dedxMeanBetaDepResParamsEtaRegion3[1] = 0.983;
+  dedxMeanBetaDepResParamsEtaRegion3[2] = -0.3519;
+  dedxMeanBetaDepResParamsEtaRegion3[3] = 0.04381;
+  dedxMeanBetaDepResParamsEtaRegion3[4] = -0.001524;
+  // region 1 params
+  dedxMeanBetaDepResShiftParamsEtaRegion1[0] = 1.024;  // eta2
+  dedxMeanBetaDepResShiftParamsEtaRegion1[1] = 0.9997; // eta3
+  dedxMeanBetaDepResShiftParamsEtaRegion1[2] = 0.9944; // eta4
+  dedxMeanBetaDepResShiftParamsEtaRegion1[3] = 1.058;  // eta5
+  dedxMeanBetaDepResShiftParamsEtaRegion1[4] = 1.149;  // eta6
+  dedxMeanBetaDepResShiftParamsEtaRegion1[5] = 1.214;  // eta7
+  dedxMeanBetaDepResShiftParamsEtaRegion1[6] = 0;      // eta8 --> XXX ignore for now
+  dedxMeanBetaDepResShiftParamsEtaRegion1[7] = 1.278;  // eta9
+  // region 2 params
+  dedxMeanBetaDepResShiftParamsEtaRegion2[0] = 1.011;  // eta11
+  dedxMeanBetaDepResShiftParamsEtaRegion2[1] = 1.139;  // eta12
+  dedxMeanBetaDepResShiftParamsEtaRegion2[2] = 1.076;  // eta13
+  dedxMeanBetaDepResShiftParamsEtaRegion2[3] = 1.089;  // eta14
+  dedxMeanBetaDepResShiftParamsEtaRegion2[4] = 1.033;  // eta15
+  dedxMeanBetaDepResShiftParamsEtaRegion2[5] = 1.035;  // eta16
+  // region 3 params
+  dedxMeanBetaDepResShiftParamsEtaRegion3[0] = 0.95;   // eta18
+  dedxMeanBetaDepResShiftParamsEtaRegion3[1] = 0.9292; // eta19
+  dedxMeanBetaDepResShiftParamsEtaRegion3[2] = 0.909;  // eta20
+  dedxMeanBetaDepResShiftParamsEtaRegion3[3] = 0.8932; // eta21
+  dedxMeanBetaDepResShiftParamsEtaRegion3[4] = 0.8786; // eta22
+  dedxMeanBetaDepResShiftParamsEtaRegion3[5] = 0.8575; // eta23
+  dedxMeanBetaDepResShiftParamsEtaRegion3[6] = 0;      // eta24 --> XXX ignore for now
+  dedxMeanBetaDepResShiftParamsEtaRegion3[7] = 0;      // eta25 --> XXX ignore for now
+
+  TF1* returnFunc = new TF1();
+  switch(etaSlice)
+  {
+    case 1:
+      returnFunc = new TF1(("dedxMeanBetaDepResFuncEta"+intToString(etaSlice)).c_str(),
+          "[0]+[1]*x+[2]*x^2+[3]*x^3+[4]*x^4",3,25);
+      returnFunc->SetParameters(dedxMeanBetaDepResParamsEtaRegion1[0],
+          dedxMeanBetaDepResParamsEtaRegion1[1],dedxMeanBetaDepResParamsEtaRegion1[2],
+          dedxMeanBetaDepResParamsEtaRegion1[3],dedxMeanBetaDepResParamsEtaRegion1[4]);
+      break;
+    case 2:
+      returnFunc = new TF1(("dedxMeanBetaDepResFuncEta"+intToString(etaSlice)).c_str(),
+          "[0]+[1]*[5]*x+[2]*([5]*x)^2+[3]*([5]*x)^3+[4]*([5]*x)^4",3,25);
+      returnFunc->SetParameters(dedxMeanBetaDepResParamsEtaRegion1[0],
+          dedxMeanBetaDepResParamsEtaRegion1[1],dedxMeanBetaDepResParamsEtaRegion1[2],
+          dedxMeanBetaDepResParamsEtaRegion1[3],dedxMeanBetaDepResParamsEtaRegion1[4],
+          dedxMeanBetaDepResShiftParamsEtaRegion1[0]);
+      break;
+    case 3:
+      returnFunc = new TF1(("dedxMeanBetaDepResFuncEta"+intToString(etaSlice)).c_str(),
+          "[0]+[1]*[5]*x+[2]*([5]*x)^2+[3]*([5]*x)^3+[4]*([5]*x)^4",3,25);
+      returnFunc->SetParameters(dedxMeanBetaDepResParamsEtaRegion1[0],
+          dedxMeanBetaDepResParamsEtaRegion1[1],dedxMeanBetaDepResParamsEtaRegion1[2],
+          dedxMeanBetaDepResParamsEtaRegion1[3],dedxMeanBetaDepResParamsEtaRegion1[4],
+          dedxMeanBetaDepResShiftParamsEtaRegion1[1]);
+      break;
+    case 4:
+      returnFunc = new TF1(("dedxMeanBetaDepResFuncEta"+intToString(etaSlice)).c_str(),
+          "[0]+[1]*[5]*x+[2]*([5]*x)^2+[3]*([5]*x)^3+[4]*([5]*x)^4",3,25);
+      returnFunc->SetParameters(dedxMeanBetaDepResParamsEtaRegion1[0],
+          dedxMeanBetaDepResParamsEtaRegion1[1],dedxMeanBetaDepResParamsEtaRegion1[2],
+          dedxMeanBetaDepResParamsEtaRegion1[3],dedxMeanBetaDepResParamsEtaRegion1[4],
+          dedxMeanBetaDepResShiftParamsEtaRegion1[2]);
+      break;
+    case 5:
+      returnFunc = new TF1(("dedxMeanBetaDepResFuncEta"+intToString(etaSlice)).c_str(),
+          "[0]+[1]*[5]*x+[2]*([5]*x)^2+[3]*([5]*x)^3+[4]*([5]*x)^4",3,25);
+      returnFunc->SetParameters(dedxMeanBetaDepResParamsEtaRegion1[0],
+          dedxMeanBetaDepResParamsEtaRegion1[1],dedxMeanBetaDepResParamsEtaRegion1[2],
+          dedxMeanBetaDepResParamsEtaRegion1[3],dedxMeanBetaDepResParamsEtaRegion1[4],
+          dedxMeanBetaDepResShiftParamsEtaRegion1[3]);
+      break;
+    case 6:
+      returnFunc = new TF1(("dedxMeanBetaDepResFuncEta"+intToString(etaSlice)).c_str(),
+          "[0]+[1]*[5]*x+[2]*([5]*x)^2+[3]*([5]*x)^3+[4]*([5]*x)^4",3,25);
+      returnFunc->SetParameters(dedxMeanBetaDepResParamsEtaRegion1[0],
+          dedxMeanBetaDepResParamsEtaRegion1[1],dedxMeanBetaDepResParamsEtaRegion1[2],
+          dedxMeanBetaDepResParamsEtaRegion1[3],dedxMeanBetaDepResParamsEtaRegion1[4],
+          dedxMeanBetaDepResShiftParamsEtaRegion1[4]);
+      break;
+    case 7:
+      returnFunc = new TF1(("dedxMeanBetaDepResFuncEta"+intToString(etaSlice)).c_str(),
+          "[0]+[1]*[5]*x+[2]*([5]*x)^2+[3]*([5]*x)^3+[4]*([5]*x)^4",3,25);
+      returnFunc->SetParameters(dedxMeanBetaDepResParamsEtaRegion1[0],
+          dedxMeanBetaDepResParamsEtaRegion1[1],dedxMeanBetaDepResParamsEtaRegion1[2],
+          dedxMeanBetaDepResParamsEtaRegion1[3],dedxMeanBetaDepResParamsEtaRegion1[4],
+          dedxMeanBetaDepResShiftParamsEtaRegion1[5]);
+      break;
+    case 8:
+      returnFunc = new TF1(("dedxMeanBetaDepResFuncEta"+intToString(etaSlice)).c_str(),
+          "[0]+[1]*[5]*x+[2]*([5]*x)^2+[3]*([5]*x)^3+[4]*([5]*x)^4",3,25);
+      returnFunc->SetParameters(dedxMeanBetaDepResParamsEtaRegion1[0],
+          dedxMeanBetaDepResParamsEtaRegion1[1],dedxMeanBetaDepResParamsEtaRegion1[2],
+          dedxMeanBetaDepResParamsEtaRegion1[3],dedxMeanBetaDepResParamsEtaRegion1[4],
+          dedxMeanBetaDepResShiftParamsEtaRegion1[6]);
+      break;
+    case 9:
+      returnFunc = new TF1(("dedxMeanBetaDepResFuncEta"+intToString(etaSlice)).c_str(),
+          "[0]+[1]*[5]*x+[2]*([5]*x)^2+[3]*([5]*x)^3+[4]*([5]*x)^4",3,25);
+      returnFunc->SetParameters(dedxMeanBetaDepResParamsEtaRegion1[0],
+          dedxMeanBetaDepResParamsEtaRegion1[1],dedxMeanBetaDepResParamsEtaRegion1[2],
+          dedxMeanBetaDepResParamsEtaRegion1[3],dedxMeanBetaDepResParamsEtaRegion1[4],
+          dedxMeanBetaDepResShiftParamsEtaRegion1[7]);
+      break;
+    // region 2
+    case 10:
+      returnFunc = new TF1(("dedxMeanBetaDepResFuncEta"+intToString(etaSlice)).c_str(),
+          "[0]+[1]*x+[2]*x^2+[3]*x^3+[4]*x^4",3,25);
+      returnFunc->SetParameters(dedxMeanBetaDepResParamsEtaRegion2[0],
+          dedxMeanBetaDepResParamsEtaRegion2[1],dedxMeanBetaDepResParamsEtaRegion2[2],
+          dedxMeanBetaDepResParamsEtaRegion2[3],dedxMeanBetaDepResParamsEtaRegion2[4]);
+      break;
+    case 11:
+      returnFunc = new TF1(("dedxMeanBetaDepResFuncEta"+intToString(etaSlice)).c_str(),
+          "[0]+[1]*[5]*x+[2]*([5]*x)^2+[3]*([5]*x)^3+[4]*([5]*x)^4",3,25);
+      returnFunc->SetParameters(dedxMeanBetaDepResParamsEtaRegion2[0],
+          dedxMeanBetaDepResParamsEtaRegion2[1],dedxMeanBetaDepResParamsEtaRegion2[2],
+          dedxMeanBetaDepResParamsEtaRegion2[3],dedxMeanBetaDepResParamsEtaRegion2[4],
+          dedxMeanBetaDepResShiftParamsEtaRegion2[0]);
+      break;
+    case 12:
+      returnFunc = new TF1(("dedxMeanBetaDepResFuncEta"+intToString(etaSlice)).c_str(),
+          "[0]+[1]*[5]*x+[2]*([5]*x)^2+[3]*([5]*x)^3+[4]*([5]*x)^4",3,25);
+      returnFunc->SetParameters(dedxMeanBetaDepResParamsEtaRegion2[0],
+          dedxMeanBetaDepResParamsEtaRegion2[1],dedxMeanBetaDepResParamsEtaRegion2[2],
+          dedxMeanBetaDepResParamsEtaRegion2[3],dedxMeanBetaDepResParamsEtaRegion2[4],
+          dedxMeanBetaDepResShiftParamsEtaRegion2[1]);
+      break;
+    case 13:
+      returnFunc = new TF1(("dedxMeanBetaDepResFuncEta"+intToString(etaSlice)).c_str(),
+          "[0]+[1]*[5]*x+[2]*([5]*x)^2+[3]*([5]*x)^3+[4]*([5]*x)^4",3,25);
+      returnFunc->SetParameters(dedxMeanBetaDepResParamsEtaRegion2[0],
+          dedxMeanBetaDepResParamsEtaRegion2[1],dedxMeanBetaDepResParamsEtaRegion2[2],
+          dedxMeanBetaDepResParamsEtaRegion2[3],dedxMeanBetaDepResParamsEtaRegion2[4],
+          dedxMeanBetaDepResShiftParamsEtaRegion2[2]);
+      break;
+    case 14:
+      returnFunc = new TF1(("dedxMeanBetaDepResFuncEta"+intToString(etaSlice)).c_str(),
+          "[0]+[1]*[5]*x+[2]*([5]*x)^2+[3]*([5]*x)^3+[4]*([5]*x)^4",3,25);
+      returnFunc->SetParameters(dedxMeanBetaDepResParamsEtaRegion2[0],
+          dedxMeanBetaDepResParamsEtaRegion2[1],dedxMeanBetaDepResParamsEtaRegion2[2],
+          dedxMeanBetaDepResParamsEtaRegion2[3],dedxMeanBetaDepResParamsEtaRegion2[4],
+          dedxMeanBetaDepResShiftParamsEtaRegion2[3]);
+      break;
+    case 15:
+      returnFunc = new TF1(("dedxMeanBetaDepResFuncEta"+intToString(etaSlice)).c_str(),
+          "[0]+[1]*[5]*x+[2]*([5]*x)^2+[3]*([5]*x)^3+[4]*([5]*x)^4",3,25);
+      returnFunc->SetParameters(dedxMeanBetaDepResParamsEtaRegion2[0],
+          dedxMeanBetaDepResParamsEtaRegion2[1],dedxMeanBetaDepResParamsEtaRegion2[2],
+          dedxMeanBetaDepResParamsEtaRegion2[3],dedxMeanBetaDepResParamsEtaRegion2[4],
+          dedxMeanBetaDepResShiftParamsEtaRegion2[4]);
+      break;
+    case 16:
+      returnFunc = new TF1(("dedxMeanBetaDepResFuncEta"+intToString(etaSlice)).c_str(),
+          "[0]+[1]*[5]*x+[2]*([5]*x)^2+[3]*([5]*x)^3+[4]*([5]*x)^4",3,25);
+      returnFunc->SetParameters(dedxMeanBetaDepResParamsEtaRegion2[0],
+          dedxMeanBetaDepResParamsEtaRegion2[1],dedxMeanBetaDepResParamsEtaRegion2[2],
+          dedxMeanBetaDepResParamsEtaRegion2[3],dedxMeanBetaDepResParamsEtaRegion2[4],
+          dedxMeanBetaDepResShiftParamsEtaRegion2[5]);
+      break;
+    // region 3
+    case 17:
+      returnFunc = new TF1(("dedxMeanBetaDepResFuncEta"+intToString(etaSlice)).c_str(),
+          "[0]+[1]*x+[2]*x^2+[3]*x^3+[4]*x^4",3,25);
+      returnFunc->SetParameters(dedxMeanBetaDepResParamsEtaRegion3[0],
+          dedxMeanBetaDepResParamsEtaRegion3[1],dedxMeanBetaDepResParamsEtaRegion3[2],
+          dedxMeanBetaDepResParamsEtaRegion3[3],dedxMeanBetaDepResParamsEtaRegion3[4]);
+      break;
+    case 18:
+      returnFunc = new TF1(("dedxMeanBetaDepResFuncEta"+intToString(etaSlice)).c_str(),
+          "[0]+[1]*[5]*x+[2]*([5]*x)^2+[3]*([5]*x)^3+[4]*([5]*x)^4",3,25);
+      returnFunc->SetParameters(dedxMeanBetaDepResParamsEtaRegion3[0],
+          dedxMeanBetaDepResParamsEtaRegion3[1],dedxMeanBetaDepResParamsEtaRegion3[2],
+          dedxMeanBetaDepResParamsEtaRegion3[3],dedxMeanBetaDepResParamsEtaRegion3[4],
+          dedxMeanBetaDepResShiftParamsEtaRegion3[0]);
+      break;
+    case 19:
+      returnFunc = new TF1(("dedxMeanBetaDepResFuncEta"+intToString(etaSlice)).c_str(),
+          "[0]+[1]*[5]*x+[2]*([5]*x)^2+[3]*([5]*x)^3+[4]*([5]*x)^4",3,25);
+      returnFunc->SetParameters(dedxMeanBetaDepResParamsEtaRegion3[0],
+          dedxMeanBetaDepResParamsEtaRegion3[1],dedxMeanBetaDepResParamsEtaRegion3[2],
+          dedxMeanBetaDepResParamsEtaRegion3[3],dedxMeanBetaDepResParamsEtaRegion3[4],
+          dedxMeanBetaDepResShiftParamsEtaRegion3[1]);
+      break;
+    case 20:
+      returnFunc = new TF1(("dedxMeanBetaDepResFuncEta"+intToString(etaSlice)).c_str(),
+          "[0]+[1]*[5]*x+[2]*([5]*x)^2+[3]*([5]*x)^3+[4]*([5]*x)^4",3,25);
+      returnFunc->SetParameters(dedxMeanBetaDepResParamsEtaRegion3[0],
+          dedxMeanBetaDepResParamsEtaRegion3[1],dedxMeanBetaDepResParamsEtaRegion3[2],
+          dedxMeanBetaDepResParamsEtaRegion3[3],dedxMeanBetaDepResParamsEtaRegion3[4],
+          dedxMeanBetaDepResShiftParamsEtaRegion3[2]);
+      break;
+    case 21:
+      returnFunc = new TF1(("dedxMeanBetaDepResFuncEta"+intToString(etaSlice)).c_str(),
+          "[0]+[1]*[5]*x+[2]*([5]*x)^2+[3]*([5]*x)^3+[4]*([5]*x)^4",3,25);
+      returnFunc->SetParameters(dedxMeanBetaDepResParamsEtaRegion3[0],
+          dedxMeanBetaDepResParamsEtaRegion3[1],dedxMeanBetaDepResParamsEtaRegion3[2],
+          dedxMeanBetaDepResParamsEtaRegion3[3],dedxMeanBetaDepResParamsEtaRegion3[4],
+          dedxMeanBetaDepResShiftParamsEtaRegion3[3]);
+      break;
+    case 22:
+      returnFunc = new TF1(("dedxMeanBetaDepResFuncEta"+intToString(etaSlice)).c_str(),
+          "[0]+[1]*[5]*x+[2]*([5]*x)^2+[3]*([5]*x)^3+[4]*([5]*x)^4",3,25);
+      returnFunc->SetParameters(dedxMeanBetaDepResParamsEtaRegion3[0],
+          dedxMeanBetaDepResParamsEtaRegion3[1],dedxMeanBetaDepResParamsEtaRegion3[2],
+          dedxMeanBetaDepResParamsEtaRegion3[3],dedxMeanBetaDepResParamsEtaRegion3[4],
+          dedxMeanBetaDepResShiftParamsEtaRegion3[4]);
+      break;
+    case 23:
+      returnFunc = new TF1(("dedxMeanBetaDepResFuncEta"+intToString(etaSlice)).c_str(),
+          "[0]+[1]*[5]*x+[2]*([5]*x)^2+[3]*([5]*x)^3+[4]*([5]*x)^4",3,25);
+      returnFunc->SetParameters(dedxMeanBetaDepResParamsEtaRegion3[0],
+          dedxMeanBetaDepResParamsEtaRegion3[1],dedxMeanBetaDepResParamsEtaRegion3[2],
+          dedxMeanBetaDepResParamsEtaRegion3[3],dedxMeanBetaDepResParamsEtaRegion3[4],
+          dedxMeanBetaDepResShiftParamsEtaRegion3[5]);
+      break;
+    case 24:
+      returnFunc = new TF1(("dedxMeanBetaDepResFuncEta"+intToString(etaSlice)).c_str(),
+          "[0]+[1]*[5]*x+[2]*([5]*x)^2+[3]*([5]*x)^3+[4]*([5]*x)^4",3,25);
+      returnFunc->SetParameters(dedxMeanBetaDepResParamsEtaRegion3[0],
+          dedxMeanBetaDepResParamsEtaRegion3[1],dedxMeanBetaDepResParamsEtaRegion3[2],
+          dedxMeanBetaDepResParamsEtaRegion3[3],dedxMeanBetaDepResParamsEtaRegion3[4],
+          dedxMeanBetaDepResShiftParamsEtaRegion3[6]);
+      break;
+    case 25:
+      returnFunc = new TF1(("dedxMeanBetaDepResFuncEta"+intToString(etaSlice)).c_str(),
+          "[0]+[1]*[5]*x+[2]*([5]*x)^2+[3]*([5]*x)^3+[4]*([5]*x)^4",3,25);
+      returnFunc->SetParameters(dedxMeanBetaDepResParamsEtaRegion3[0],
+          dedxMeanBetaDepResParamsEtaRegion3[1],dedxMeanBetaDepResParamsEtaRegion3[2],
+          dedxMeanBetaDepResParamsEtaRegion3[3],dedxMeanBetaDepResParamsEtaRegion3[4],
+          dedxMeanBetaDepResShiftParamsEtaRegion3[7]);
+      break;
+  }
+
+  return *returnFunc;
+}
+
+// beta*gamma dependence fit; function of eta
+// see plots in hscp/aug11 web directory; pcminn19:/data3/scooper/cmssw/426/HSCPStudiesAndToyMC/src/HSCP2011/ToyMC/bin/1.aug10.dedxPlots.aug11
+TF1 getDeDxBetaGammaFuncFromEtaSlice(int etaSlice)
+{
+  // fitted beta*gamma dependence function in eta slices, with parameters
+  TF1* dedxMeanBetaDepFunc = new TF1("dedxMeanBetaDepFunc","[0]+[1]*((1-x^2)/x^2)",0.4,1);
+  double dedxMeanBetaDepEtaParam0[25];
+  double dedxMeanBetaDepEtaParam1[25];
+  dedxMeanBetaDepEtaParam0[0] = 2.412;
+  dedxMeanBetaDepEtaParam1[0] = 2.348;
+  dedxMeanBetaDepEtaParam0[1] = 2.366; 
+  dedxMeanBetaDepEtaParam1[1] = 2.393;
+  dedxMeanBetaDepEtaParam0[2] = 2.406;
+  dedxMeanBetaDepEtaParam1[2] = 2.32;
+  dedxMeanBetaDepEtaParam0[3] = 2.46;
+  dedxMeanBetaDepEtaParam1[3] = 2.23;
+  dedxMeanBetaDepEtaParam0[4] = 2.351;
+  dedxMeanBetaDepEtaParam1[4] = 2.354;
+  dedxMeanBetaDepEtaParam0[5] = 2.291;
+  dedxMeanBetaDepEtaParam1[5] = 2.498;
+  dedxMeanBetaDepEtaParam0[6] = 2.215;
+  dedxMeanBetaDepEtaParam1[6] = 2.645;
+  dedxMeanBetaDepEtaParam0[7] = 2.776;
+  dedxMeanBetaDepEtaParam1[7] = 1.46;
+  dedxMeanBetaDepEtaParam0[8] = 2.292;
+  dedxMeanBetaDepEtaParam1[8] = 2.518;
+  dedxMeanBetaDepEtaParam0[9] = 2.574;
+  dedxMeanBetaDepEtaParam1[9] = 1.913;
+  dedxMeanBetaDepEtaParam0[10] = 2.672;
+  dedxMeanBetaDepEtaParam1[10] = 1.701;
+  dedxMeanBetaDepEtaParam0[11] = 2.483;
+  dedxMeanBetaDepEtaParam1[11] = 2.043;
+  dedxMeanBetaDepEtaParam0[12] = 2.54;
+  dedxMeanBetaDepEtaParam1[12] = 1.816;
+  dedxMeanBetaDepEtaParam0[13] = 2.472;
+  dedxMeanBetaDepEtaParam1[13] = 1.974;
+  dedxMeanBetaDepEtaParam0[14] = 2.469;
+  dedxMeanBetaDepEtaParam1[14] = 1.921;
+  dedxMeanBetaDepEtaParam0[15] = 2.382;
+  dedxMeanBetaDepEtaParam1[15] = 2.118;
+  dedxMeanBetaDepEtaParam0[16] = 2.402;
+  dedxMeanBetaDepEtaParam1[16] = 2.028;
+  dedxMeanBetaDepEtaParam0[17] = 2.481;
+  dedxMeanBetaDepEtaParam1[17] = 1.828;
+  dedxMeanBetaDepEtaParam0[18] = 2.427;
+  dedxMeanBetaDepEtaParam1[18] = 1.936;
+  dedxMeanBetaDepEtaParam0[19] = 2.541;
+  dedxMeanBetaDepEtaParam1[19] = 1.76;
+  dedxMeanBetaDepEtaParam0[20] = 2.593;
+  dedxMeanBetaDepEtaParam1[20] = 1.742;
+  dedxMeanBetaDepEtaParam0[21] = 2.604;
+  dedxMeanBetaDepEtaParam1[21] = 1.815;
+  dedxMeanBetaDepEtaParam0[22] = 2.683;
+  dedxMeanBetaDepEtaParam1[22] = 1.695;
+  dedxMeanBetaDepEtaParam0[23] = 2.789;
+  dedxMeanBetaDepEtaParam1[23] = 1.455;
+  dedxMeanBetaDepEtaParam0[24] = 2.664;
+  dedxMeanBetaDepEtaParam1[24] = 1.902;
+  if(etaSlice >=1 && etaSlice <= 25)
+  {
+    dedxMeanBetaDepFunc->SetParameters(dedxMeanBetaDepEtaParam0[etaSlice-1],dedxMeanBetaDepEtaParam1[etaSlice-1]);
+    return *dedxMeanBetaDepFunc;
+  }
+  else
+    return TF1();
+}
+
+
+// ******************** Main 
 int main(int argc, char** argv)
 {
   //sic debug
@@ -867,6 +1204,9 @@ int main(int argc, char** argv)
   TH2F* trackNumberOfMeasurementsVsEtaMatchedHist = new TH2F("trackNumberOfMeasurementsVsEtaMatched","Track number of dE/dx measurements vs. #eta (matched to HSCP);#eta",600,-3,3,35,0,35);
   TH2F* trackNumberOfMeasurementsVsPHist = new TH2F("trackNumberOfMeasurementsVsP","Track number of measurements vs. momentum",250,0,1000,35,0,35);
   TH2F* trackNumberOfMeasurementsVsPMatchedHist = new TH2F("trackNumberOfMeasurementsVsPMatched","Track number of measurements vs. momentum (matched to HSCP)",250,0,1000,35,0,35);
+  // TK -- number of hits
+  TH2F* trackNumberOfHitsVsPHist = new TH2F("trackNumberOfHitsVsP","Track number of hits vs. momentum",250,0,1000,35,0,35);
+  TH2F* trackNumberOfHitsVsPMatchedHist = new TH2F("trackNumberOfHitsVsPMatched","Track number of hits vs. momentum (matched to HSCP)",250,0,1000,35,0,35);
   // TK -- number of saturated dE/dx measurements
   TH1F* trackNumberOfSatMeasurementsHist = new TH1F("trackNumberOfSatMeasurements","Track number of saturated dE/dx measurements",35,0,35);
   TH1F* trackNumberOfSatMeasurementsMatchedHist = new TH1F("trackNumberOfSatMeasurementsMatched","Track number of saturated dE/dx measurements (matched to HSCP)",35,0,35);
@@ -874,6 +1214,10 @@ int main(int argc, char** argv)
   TH2F* trackNumberOfSatMeasurementsVsEtaMatchedHist = new TH2F("trackNumberOfSatMeasurementsVsEtaMatched","Track number of saturated dE/dx measurements vs. #eta (matched to HSCP);#eta",600,-3,3,35,0,35);
   TH2F* trackNumberOfSatMeasurementsVsPHist = new TH2F("trackNumberOfSatMeasurementsVsP","Track number of saturated measurements vs. momentum",250,0,1000,35,0,35);
   TH2F* trackNumberOfSatMeasurementsVsPMatchedHist = new TH2F("trackNumberOfSatMeasurementsVsPMatched","Track number of saturated measurements vs. momentum (matched to HSCP)",250,0,1000,35,0,35);
+  // TK -- NoM vs NoS
+  TH2F* trackNumberOfMeasurementsVsSaturatedMeasurementsHist = new TH2F("trackNumberOfMeasurementsVsSaturatedMeasurements","Track NoM vs. NoS;NoS;NoM",30,0,30,30,0,30);
+  TH2F* trackNumberOfMeasurementsVsSaturatedMeasurementsMatchedHist = new TH2F("trackNumberOfMeasurementsVsSaturatedMeasurementsMatched","Track NoM vs. NoS (matched to HSCP);NoS;NoM",30,0,30,30,0,30);
+  TH2F* trackNumberOfMeasurementsVsSaturatedMeasurementsMatchedEta1P70Hist = new TH2F("trackNumberOfMeasurementsVsSaturatedMeasurementsMatchedEta1P70","Track NoM vs. NoS (matched to HSCP) in eta bin 1 p bin 70;NoS;NoM",30,0,30,30,0,30);
   // TK -- dE/dx E1 in NoM slices
   TH1F* trackDeDxE1NoMSliceHists[5];
   trackDeDxE1NoMSliceHists[0] = new TH1F("trackDeDxE1NoMSlice1","Tracker dE/dx for 1-5 dE/dx measurements",125,0,25);
@@ -894,260 +1238,181 @@ int main(int argc, char** argv)
   trackDeDxE1MatchedNoMSliceHists[3] = new TH1F("trackDeDxE1MatchedNoMSlice4","Tracker dE/dx for 16-20 dE/dx measurements (matched to HSCP)",125,0,25);
   trackDeDxE1MatchedNoMSliceHists[4] = new TH1F("trackDeDxE1MatchedNoMSlice5","Tracker dE/dx for 21+ dE/dx measurements (matched to HSCP)",125,0,25);
 
-  // TK -- Look at PDFs, number of measurements and Pt bins (integrated over eta)
-  for(int i=0; i<numPtBins_; ++i)
+  //// fitted residual functions for beta*gamma dep in eta slices
+  //TF1* dedxMeanBetaDepResFunc = new TF1("dedxMeanBetaDepResFunc","[0]+[1]*x+[2]*x^2+[3]*x^3+[4]*x^4",3,25);
+  //TF1* dedxMeanBetaDepResShiftFunc = new TF1("dedxMeanBetaDepResShiftFunc","[0]+[1]*[5]*x+[2]*([5]*x)^2+[3]*([5]*x)^3+[4]*([5]*x)^4",3,25);
+  //// test of the eta-->func function
+  //TF1 myTestFuncs[16];
+  //myTestFuncs[0] = getDeDxResFuncFromEtaSlice(1);
+  //myTestFuncs[1] = getDeDxResFuncFromEtaSlice(2);
+  //myTestFuncs[2] = getDeDxResFuncFromEtaSlice(3);
+  //myTestFuncs[3] = getDeDxResFuncFromEtaSlice(5);
+  //myTestFuncs[4] = getDeDxResFuncFromEtaSlice(7);
+  //myTestFuncs[5] = getDeDxResFuncFromEtaSlice(9);
+  //myTestFuncs[6] = getDeDxResFuncFromEtaSlice(10);
+  //myTestFuncs[7] = getDeDxResFuncFromEtaSlice(11);
+  //myTestFuncs[8] = getDeDxResFuncFromEtaSlice(13);
+  //myTestFuncs[9] = getDeDxResFuncFromEtaSlice(15);
+  //myTestFuncs[10] = getDeDxResFuncFromEtaSlice(16);
+  //myTestFuncs[11] = getDeDxResFuncFromEtaSlice(17);
+  //myTestFuncs[12] = getDeDxResFuncFromEtaSlice(19);
+  //myTestFuncs[13] = getDeDxResFuncFromEtaSlice(21);
+  //myTestFuncs[14] = getDeDxResFuncFromEtaSlice(23);
+  //myTestFuncs[15] = getDeDxResFuncFromEtaSlice(230);
+  //for(int i=0; i<16; ++i)
+  //{
+  //  cout << "myTestFuncs(" << i << ") parameters are: ";
+  //  for(int par=0; par<myTestFuncs[i].GetNpar(); ++par)
+  //  {
+  //    cout << myTestFuncs[i].GetParameter(par) << ",";
+  //  }
+  //  cout << endl;
+  //}
+
+
+
+  float dedxBinLow = 0;
+  float dedxBinHigh = 20;
+  int dedxBinNum = 100;
+  float pBinLow = 0;
+  float pBinHigh = 1000;
+  int pBinNum = 200;
+  float etaBinLow = 0;
+  float etaBinHigh = 2.5;
+  int etaBinNum = 25;
+  // Slice everything up (dE/dx, p, eta)
+  for(int i=0; i < numNomBins_; ++i)
   {
-    for(int j=0; j<numNomBins_; ++j)
-    {
-      int index = numNomBins_*i+j+1;
-      std::string name = "histForPDFNoMPtBinsIndex";
-      name+=intToString(index);
-      std::string nameMatched = "histForPDFNoMPtBinsMatchedIndex";
-      nameMatched+=intToString(index);
-      std::string title = "Track dE/dx E1 in Pt/Nom bin ";
-      title+=intToString(index);
-      std::string titleMatched = "Track dE/dx E1 (matched to HSCP) in Pt/Nom bin ";
-      titleMatched+=intToString(index);
-      histsForPDFNoMPtBins_[i][j] = new TH1F(name.c_str(),title.c_str(),125,0,25);
-      histsForPDFNoMPtBinsMatched_[i][j] = new TH1F(nameMatched.c_str(),titleMatched.c_str(),125,0,25);
-    }
-  }
-  // TK -- Look at PDFs, number of measurements and P bins (integrated over eta)
-  for(int i=0; i<numPBins_; ++i)
-  {
-    for(int j=0; j<numNomBins_; ++j)
-    {
-      int index = numNomBins_*i+j+1;
-      std::string name = "histForPDFNoMPBinsIndex";
-      name+=intToString(index);
-      std::string nameMatched = "histForPDFNoMPBinsMatchedIndex";
-      nameMatched+=intToString(index);
-      std::string title = "Track dE/dx E1 in P/Nom bin ";
-      title+=intToString(index);
-      std::string titleMatched = "Track dE/dx E1 (matched to HSCP) in P/Nom bin ";
-      titleMatched+=intToString(index);
-      histsForPDFNoMPBins_[i][j] = new TH1F(name.c_str(),title.c_str(),125,0,25);
-      histsForPDFNoMPBinsMatched_[i][j] = new TH1F(nameMatched.c_str(),titleMatched.c_str(),125,0,25);
-    }
-  }
-  // TK -- Look at PDFs, number of measurements and P bins (integrated over eta) -- Mu timing SB
-  for(int i=0; i<numPBins_; ++i)
-  {
-    for(int j=0; j<numNomBins_; ++j)
-    {
-      int index = numNomBins_*i+j+1;
-      std::string name = "histForPDFNoMPBinsMuSBIndex";
-      name+=intToString(index);
-      std::string nameMatched = "histForPDFNoMPBinsMuSBMatchedIndex";
-      nameMatched+=intToString(index);
-      std::string title = "Track dE/dx E1 in P/Nom (muon timing SB) bin ";
-      title+=intToString(index);
-      std::string titleMatched = "Track dE/dx E1 (matched to HSCP) in P/Nom (muon timing SB) bin ";
-      titleMatched+=intToString(index);
-      histsForPDFNoMPBinsMuSB_[i][j] = new TH1F(name.c_str(),title.c_str(),125,0,25);
-      histsForPDFNoMPBinsMuSBMatched_[i][j] = new TH1F(nameMatched.c_str(),titleMatched.c_str(),125,0,25);
-    }
-  }
-  // TK -- dE/dx, Fine momentum bins
-  for(int i=0; i<200; ++i)
-  {
-    for(int j=0; j<5; ++j)
-    {
-      int index = 5*i+j+1;
-      std::string name = "histsInNoMFinePBinsIndex";
-      //std::string name = "pullsInNoMFinePBinsIndex";
-      name+=intToString(index);
-      std::string nameMatched = "histsInNoMFinePBinsMatchedIndex";
-      //std::string nameMatched = "pullsInNoMFinePBinsMatchedIndex";
-      nameMatched+=intToString(index);
-      std::string title = "Track dE/dx all hits in P/Nom bin ";
-      title+=intToString(index);
-      int leftPBound = i*5;
-      int rightPBound = (i+1)*5;
-      int leftNoMBound = 5*j+1;
-      int rightNoMBound = 5*(j+1);
-      title+=generateTitleEnd(leftPBound,rightPBound,leftNoMBound,rightNoMBound);
-      std::string titleMatched = "Track dE/dx all hits (matched to HSCP) in P/Nom bin ";
-      titleMatched+=intToString(index);
-      titleMatched+=generateTitleEnd(leftPBound,rightPBound,leftNoMBound,rightNoMBound);
-      histsInNoMFinePBins_[i][j] = new TH1F(name.c_str(),title.c_str(),125,0,25);
-      histsInNoMFinePBinsMatched_[i][j] = new TH1F(nameMatched.c_str(),titleMatched.c_str(),125,0,25);
-      //histsInNoMFinePBins_[i][j] = new TH1F(name.c_str(),title.c_str(),100,-10,10);
-      //histsInNoMFinePBinsMatched_[i][j] = new TH1F(nameMatched.c_str(),titleMatched.c_str(),100,-10,10);
-    }
-  }
-  // TK -- dE/dx, fine momentum bins, all tracks for closure
-  for(int i=0; i<200; ++i)
-  {
-    int index = i+1;
-    std::string name = "dedxClosureInFinePBinsIndex";
-    name+=intToString(index);
-    std::string nameMatched = "dedxClosureInFinePBinsMatchedIndex";
-    nameMatched+=intToString(index);
-    std::string title = "Track dE/dx all hits in P bin ";
-    title+=intToString(index);
-    int leftPBound = i*5;
-    int rightPBound = (i+1)*5;
-    title+=generateTitleEnd(leftPBound,rightPBound);
-    std::string titleMatched = "Track dE/dx all hits (matched to HSCP) in P bin ";
-    titleMatched+=intToString(index);
-    titleMatched+=generateTitleEnd(leftPBound,rightPBound);
-    dedxClosureInFinePBins_[i] = new TH1F(name.c_str(),title.c_str(),100,-10,10);
-    dedxClosureInFinePBinsMatched_[i] = new TH1F(nameMatched.c_str(),titleMatched.c_str(),100,-10,10);
-    //dedxClosureInFinePBins_[i] = new TH1F(name.c_str(),title.c_str(),125,0,25);
-    //dedxClosureInFinePBinsMatched_[i] = new TH1F(nameMatched.c_str(),titleMatched.c_str(),125,0,25);
-  }
-  // TK -- dE/dx, Fine NoM bins
-  for(int i=0; i<10; ++i)
-  {
-    for(int j=0; j<30; ++j)
-    {
-      int index = 30*i+j+1;
-      std::string name = "histsInFineNoMPBinsIndex";
-      name+=intToString(index);
-      std::string nameMatched = "histsInFineNoMPBinsMatchedIndex";
-      nameMatched+=intToString(index);
-      std::string title = "Track dE/dx E1 (p, #eta bias out) in P/Nom bin ";
-      title+=intToString(index);
-      title+=" for P in P bin ";
-      title+=intToString(i);
-      title+=" for Nom=";
-      title+=intToString(j+1);
-      std::string titleMatched = "Track dE/dx E1 (p, #eta bias out, matched to HSCP) in P/Nom bin ";
-      titleMatched+=intToString(index);
-      titleMatched+=" for P in P bin ";
-      titleMatched+=intToString(i);
-      titleMatched+=" for Nom=";
-      titleMatched+=intToString(j+1);
-      histsInFineNoMPBins_[i][j] = new TH1F(name.c_str(),title.c_str(),115,0,15);
-      histsInFineNoMPBinsMatched_[i][j] = new TH1F(nameMatched.c_str(),titleMatched.c_str(),115,0,15);
-      // eta dists in these bins
-      name+="etaDist";
-      nameMatched+= "etaDist";
-      histsInFineNoMPBinsEtaDist_[i][j] = new TH1F(name.c_str(),title.c_str(),250,-2.5,2.5);
-      histsInFineNoMPBinsMatchedEtaDist_[i][j] = new TH1F(nameMatched.c_str(),titleMatched.c_str(),250,-2.5,2.5);
-    }
-  }
-  // TK -- dE/dx, Fine NoM bins pulls
-  for(int i=0; i<10; ++i)
-  {
-    for(int j=0; j<30; ++j)
-    {
-      int index = 30*i+j+1;
-      std::string name = "pullInFineNoMPBinsIndex";
-      name+=intToString(index);
-      std::string nameMatched = "pullInFineNoMPBinsMatchedIndex";
-      nameMatched+=intToString(index);
-      std::string title = "Track dE/dx E1 in P/Nom bin ";
-      title+=intToString(index);
-      title+=" for P in P bin ";
-      title+=intToString(i);
-      title+=" for Nom=";
-      title+=intToString(j+1);
-      std::string titleMatched = "Track dE/dx E1 (matched to HSCP) in P/Nom bin ";
-      titleMatched+=intToString(index);
-      titleMatched+=" for P in P bin ";
-      titleMatched+=intToString(i);
-      titleMatched+=" for Nom=";
-      titleMatched+=intToString(j+1);
-      pullsInFineNoMPBins_[i][j] = new TH1F(name.c_str(),title.c_str(),100,-10,10);
-      pullsInFineNoMPBinsMatched_[i][j] = new TH1F(nameMatched.c_str(),titleMatched.c_str(),100,-10,10);
-    }
-  }
-  // TK -- dE/dx, fine NoM bins for closure
-  for(int i=0; i<30; ++i)
-  {
-    int index = i+1;
-    std::string name = "dedxClosureInFineNoMBinsIndex";
-    name+=intToString(index);
-    std::string nameMatched = "dedxClosureInFineNoMBinsMatchedIndex";
-    nameMatched+=intToString(index);
-    std::string title = "Track dE/dx E1 in NoM bin ";
-    title+=intToString(index);
-    title+=" for Nom=";
+    std::string title = "dE/dx E1 in NoM bin ";
     title+=intToString(i+1);
-    std::string titleMatched = "Track dE/dx E1 (matched to HSCP) in NoM bin ";
-    titleMatched+=intToString(index);
-    titleMatched+=" for Nom=";
-    titleMatched+=intToString(i+1);
-    dedxClosureInFineNoMBins_[i] = new TH1F(name.c_str(),title.c_str(),100,-10,10);
-    dedxClosureInFineNoMBinsMatched_[i] = new TH1F(nameMatched.c_str(),titleMatched.c_str(),100,-10,10);
+    std::string name = "dedxE1NomBin";
+    name+=intToString(i+1);
+    dedxHistsInNomBins_[i] = new TH3F(name.c_str(),title.c_str(),dedxBinNum,dedxBinLow,dedxBinHigh,pBinNum,pBinLow,pBinHigh,etaBinNum,etaBinLow,etaBinHigh);
+    // no p bias
+    title = "dE/dx E1 (p dep + res. out) in NoM bin ";
+    title+=intToString(i+1);
+    name = "dedxE1NoPBiasNomBin";
+    name+=intToString(i+1);
+    dedxHistsNoPBiasInNomBins_[i] = new TH3F(name.c_str(),title.c_str(),dedxBinNum,dedxBinLow,dedxBinHigh,pBinNum,pBinLow,pBinHigh,etaBinNum,etaBinLow,etaBinHigh);
+    //// dE/dx pull p sigma only
+    //title = "dE/dx E1 p sigma pull in NoM bin ";
+    //title+=intToString(i+1);
+    //name = "dedxE1PullPSigmaNomBin";
+    //name+=intToString(i+1);
+    //dedxHistsPullPSigmaInNomBins_[i] = new TH3F(name.c_str(),title.c_str(),dedxBinNum,dedxBinLow,dedxBinHigh,pBinNum,pBinLow,pBinHigh,etaBinNum,etaBinLow,etaBinHigh);
+    //// dE/dx pull p,eta sigma
+    //title = "dE/dx E1 p,#eta sigma pull in NoM bin ";
+    //title+=intToString(i+1);
+    //name = "dedxE1PullPEtaSigmaNomBin";
+    //name+=intToString(i+1);
+    //dedxHistsPullPEtaSigmaInNomBins_[i] = new TH3F(name.c_str(),title.c_str(),dedxBinNum,dedxBinLow,dedxBinHigh,pBinNum,pBinLow,pBinHigh,etaBinNum,etaBinLow,etaBinHigh);
+    //// dE/dx pull p,eta,NoM sigma
+    //title = "dE/dx E1 p,#eta,NoM sigma pull in NoM bin ";
+    //title+=intToString(i+1);
+    //name = "dedxE1PullPEtaNomSigmaNomBin";
+    //name+=intToString(i+1);
+    //dedxHistsPullPEtaNomSigmaInNomBins_[i] = new TH3F(name.c_str(),title.c_str(),dedxBinNum,dedxBinLow,dedxBinHigh,pBinNum,pBinLow,pBinHigh,etaBinNum,etaBinLow,etaBinHigh);
   }
-  // TK -- dE/dx, Fine eta bins
-  for(int i=0; i<10; ++i)
+  // Slice everything up (dE/dx, p, eta) -- matched to HSCP w/deltaR
+  for(int i=0; i < numNomBins_; ++i)
   {
-    for(int j=0; j<25; ++j)
-    {
-      int index = 25*i+j+1;
-      //std::string name = "pullsInFineEtaPBinsIndex";
-      std::string name = "histsInFineEtaPBinsIndex";
-      name+=intToString(index);
-      //std::string nameMatched = "pullsInFineEtaPBinsMatchedIndex";
-      std::string nameMatched = "histsInFineEtaPBinsMatchedIndex";
-      nameMatched+=intToString(index);
-      std::string title = "Track dE/dx E1 (p bias out) in P/Nom bin ";
-      title+=intToString(index);
-      title+=" for P in P bin ";
-      title+=intToString(i);
-      title+=" for eta bin ";
-      title+=intToString(j+1);
-      std::string titleMatched = "Track dE/dx E1 (p bias out, matched to HSCP) in P/Nom bin ";
-      titleMatched+=intToString(index);
-      titleMatched+=" for P in P bin ";
-      titleMatched+=intToString(i);
-      titleMatched+=" for eta bin ";
-      titleMatched+=intToString(j+1);
-      //histsInFineEtaPBins_[i][j] = new TH1F(name.c_str(),title.c_str(),100,-10,10);
-      //histsInFineEtaPBinsMatched_[i][j] = new TH1F(nameMatched.c_str(),titleMatched.c_str(),100,-10,10);
-      histsInFineEtaPBins_[i][j] = new TH1F(name.c_str(),title.c_str(),115,0,15);
-      histsInFineEtaPBinsMatched_[i][j] = new TH1F(nameMatched.c_str(),titleMatched.c_str(),115,0,15);
-    }
+    std::string title = "dE/dx E1 (matched) in NoM bin ";
+    title+=intToString(i+1);
+    std::string name = "dedxE1MatchedNomBin";
+    name+=intToString(i+1);
+    dedxHistsInNomBinsMatched_[i] = new TH3F(name.c_str(),title.c_str(),dedxBinNum,dedxBinLow,dedxBinHigh,pBinNum,pBinLow,pBinHigh,etaBinNum,etaBinLow,etaBinHigh);
+    // no p bias
+    title = "dE/dx E1 (matched, p dep + res. out) in NoM bin ";
+    title+=intToString(i+1);
+    name = "dedxE1NoPBiasMatchedNomBin";
+    name+=intToString(i+1);
+    dedxHistsNoPBiasInNomBinsMatched_[i] = new TH3F(name.c_str(),title.c_str(),dedxBinNum,dedxBinLow,dedxBinHigh,pBinNum,pBinLow,pBinHigh,etaBinNum,etaBinLow,etaBinHigh);
+    //// dE/dx pull p sigma only
+    //title = "dE/dx E1 p sigma pull (matched) in NoM bin ";
+    //title+=intToString(i+1);
+    //name = "dedxE1PullPSigmaMatchedNomBin";
+    //name+=intToString(i+1);
+    //dedxHistsPullPSigmaInNomBinsMatched_[i] = new TH3F(name.c_str(),title.c_str(),dedxBinNum,dedxBinLow,dedxBinHigh,pBinNum,pBinLow,pBinHigh,etaBinNum,etaBinLow,etaBinHigh);
+    //// dE/dx pull p,eta sigma
+    //title = "dE/dx E1 p,#eta sigma pull (matched) in NoM bin ";
+    //title+=intToString(i+1);
+    //name = "dedxE1PullPEtaSigmaMatchedNomBin";
+    //name+=intToString(i+1);
+    //dedxHistsPullPEtaSigmaInNomBinsMatched_[i] = new TH3F(name.c_str(),title.c_str(),dedxBinNum,dedxBinLow,dedxBinHigh,pBinNum,pBinLow,pBinHigh,etaBinNum,etaBinLow,etaBinHigh);
+    //// dE/dx pull p,eta,NoM sigma
+    //title = "dE/dx E1 p,#eta,NoM sigma pull (matched) in NoM bin ";
+    //title+=intToString(i+1);
+    //name = "dedxE1PullPEtaNomSigmaMatchedNomBin";
+    //name+=intToString(i+1);
+    //dedxHistsPullPEtaNomSigmaInNomBinsMatched_[i] = new TH3F(name.c_str(),title.c_str(),dedxBinNum,dedxBinLow,dedxBinHigh,pBinNum,pBinLow,pBinHigh,etaBinNum,etaBinLow,etaBinHigh);
   }
-  // TK -- dE/dx, Fine eta bins pulls
-  for(int i=0; i<10; ++i)
+  // Muon ToF Sideband
+  for(int i=0; i < numNomBins_; ++i)
   {
-    for(int j=0; j<25; ++j)
-    {
-      int index = 25*i+j+1;
-      std::string name = "pullsInFineEtaPBinsIndex";
-      name+=intToString(index);
-      std::string nameMatched = "pullsInFineEtaPBinsMatchedIndex";
-      nameMatched+=intToString(index);
-      std::string title = "Track dE/dx E1 (p bias out) in P/Nom bin ";
-      title+=intToString(index);
-      title+=" for P in P bin ";
-      title+=intToString(i);
-      title+=" for eta bin ";
-      title+=intToString(j+1);
-      std::string titleMatched = "Track dE/dx E1 (p bias out, matched to HSCP) in P/Nom bin ";
-      titleMatched+=intToString(index);
-      titleMatched+=" for P in P bin ";
-      titleMatched+=intToString(i);
-      titleMatched+=" for eta bin ";
-      titleMatched+=intToString(j+1);
-      pullsInFineEtaPBins_[i][j] = new TH1F(name.c_str(),title.c_str(),100,-10,10);
-      pullsInFineEtaPBinsMatched_[i][j] = new TH1F(nameMatched.c_str(),titleMatched.c_str(),100,-10,10);
-    }
+    std::string title = "dE/dx E1 (Mu ToF SB) in NoM bin ";
+    title+=intToString(i+1);
+    std::string name = "dedxE1MuSBNomBin";
+    name+=intToString(i+1);
+    dedxHistsMuSBInNomBins_[i] = new TH3F(name.c_str(),title.c_str(),dedxBinNum,dedxBinLow,dedxBinHigh,pBinNum,pBinLow,pBinHigh,etaBinNum,etaBinLow,etaBinHigh);
+    // no p bias
+    title = "dE/dx E1 (Mu ToF SB, p dep + res. out) in NoM bin ";
+    title+=intToString(i+1);
+    name = "dedxE1MuSBNoPBiasNomBin";
+    name+=intToString(i+1);
+    dedxHistsMuSBNoPBiasInNomBins_[i] = new TH3F(name.c_str(),title.c_str(),dedxBinNum,dedxBinLow,dedxBinHigh,pBinNum,pBinLow,pBinHigh,etaBinNum,etaBinLow,etaBinHigh);
+    //// dE/dx pull p sigma only
+    //title = "dE/dx E1 p sigma pull (Mu ToF SB) in NoM bin ";
+    //title+=intToString(i+1);
+    //name = "dedxE1MuSBPullPSigmaNomBin";
+    //name+=intToString(i+1);
+    //dedxHistsMuSBPullPSigmaInNomBins_[i] = new TH3F(name.c_str(),title.c_str(),dedxBinNum,dedxBinLow,dedxBinHigh,pBinNum,pBinLow,pBinHigh,etaBinNum,etaBinLow,etaBinHigh);
+    //// dE/dx pull p,eta sigma
+    //title = "dE/dx E1 p,#eta sigma pull (Mu ToF SB) in NoM bin ";
+    //title+=intToString(i+1);
+    //name = "dedxE1MuSBPullPEtaSigmaNomBin";
+    //name+=intToString(i+1);
+    //dedxHistsMuSBPullPEtaSigmaInNomBins_[i] = new TH3F(name.c_str(),title.c_str(),dedxBinNum,dedxBinLow,dedxBinHigh,pBinNum,pBinLow,pBinHigh,etaBinNum,etaBinLow,etaBinHigh);
+    //// dE/dx pull p,eta,NoM sigma
+    //title = "dE/dx E1 p,#eta,NoM sigma pull (Mu ToF SB) in NoM bin ";
+    //title+=intToString(i+1);
+    //name = "dedxE1MuSBPullPEtaNomSigmaNomBin";
+    //name+=intToString(i+1);
+    //dedxHistsMuSBPullPEtaNomSigmaInNomBins_[i] = new TH3F(name.c_str(),title.c_str(),dedxBinNum,dedxBinLow,dedxBinHigh,pBinNum,pBinLow,pBinHigh,etaBinNum,etaBinLow,etaBinHigh);
   }
-  // TK -- dE/dx, fine eta bins, all tracks for closure
-  for(int i=0; i<25; ++i)
+  // Muon ToF SB (dE/dx, p, eta) -- matched to HSCP w/deltaR
+  for(int i=0; i < numNomBins_; ++i)
   {
-    int index = i+1;
-    std::string name = "dedxClosureInFineEtaBinsIndex";
-    name+=intToString(index);
-    std::string nameMatched = "dedxClosureInFineEtaBinsMatchedIndex";
-    nameMatched+=intToString(index);
-    std::string title = "Track dE/dx all hits in eta bin ";
-    title+=intToString(index);
-    float leftPBound = i*0.1;
-    float rightPBound = (i+1)*0.1;
-    title+=generateEtaTitleEnd(leftPBound,rightPBound);
-    std::string titleMatched = "Track dE/dx all hits (matched to HSCP) in eta bin ";
-    titleMatched+=intToString(index);
-    titleMatched+=generateEtaTitleEnd(leftPBound,rightPBound);
-    dedxClosureInFineEtaBins_[i] = new TH1F(name.c_str(),title.c_str(),100,-10,10);
-    dedxClosureInFineEtaBinsMatched_[i] = new TH1F(nameMatched.c_str(),titleMatched.c_str(),100,-10,10);
+    std::string title = "dE/dx E1 (Mu ToF SB, matched) in NoM bin ";
+    title+=intToString(i+1);
+    std::string name = "dedxE1MuSBMatchedNomBin";
+    name+=intToString(i+1);
+    dedxHistsMuSBInNomBinsMatched_[i] = new TH3F(name.c_str(),title.c_str(),dedxBinNum,dedxBinLow,dedxBinHigh,pBinNum,pBinLow,pBinHigh,etaBinNum,etaBinLow,etaBinHigh);
+    // no p bias
+    title = "dE/dx E1 (Mu ToF SB, matched, p dep + res. out) in NoM bin ";
+    title+=intToString(i+1);
+    name = "dedxE1MuSBNoPBiasMatchedNomBin";
+    name+=intToString(i+1);
+    dedxHistsMuSBNoPBiasInNomBinsMatched_[i] = new TH3F(name.c_str(),title.c_str(),dedxBinNum,dedxBinLow,dedxBinHigh,pBinNum,pBinLow,pBinHigh,etaBinNum,etaBinLow,etaBinHigh);
+    //// dE/dx pull p sigma only
+    //title = "dE/dx E1 p sigma pull (Mu ToF SB, matched) in NoM bin ";
+    //title+=intToString(i+1);
+    //name = "dedxE1MuSBPullPSigmaMatchedNomBin";
+    //name+=intToString(i+1);
+    //dedxHistsMuSBPullPSigmaInNomBinsMatched_[i] = new TH3F(name.c_str(),title.c_str(),dedxBinNum,dedxBinLow,dedxBinHigh,pBinNum,pBinLow,pBinHigh,etaBinNum,etaBinLow,etaBinHigh);
+    //// dE/dx pull p,eta sigma
+    //title = "dE/dx E1 p,#eta sigma pull (Mu ToF SB, matched) in NoM bin ";
+    //title+=intToString(i+1);
+    //name = "dedxE1MuSBPullPEtaSigmaMatchedNomBin";
+    //name+=intToString(i+1);
+    //dedxHistsMuSBPullPEtaSigmaInNomBinsMatched_[i] = new TH3F(name.c_str(),title.c_str(),dedxBinNum,dedxBinLow,dedxBinHigh,pBinNum,pBinLow,pBinHigh,etaBinNum,etaBinLow,etaBinHigh);
+    //// dE/dx pull p,eta,NoM sigma
+    //title = "dE/dx E1 p,#eta,NoM sigma pull (Mu ToF SB, matched) in NoM bin ";
+    //title+=intToString(i+1);
+    //name = "dedxE1MuSBPullPEtaNomSigmaMatchedNomBin";
+    //name+=intToString(i+1);
+    //dedxHistsMuSBPullPEtaNomSigmaInNomBinsMatched_[i] = new TH3F(name.c_str(),title.c_str(),dedxBinNum,dedxBinLow,dedxBinHigh,pBinNum,pBinLow,pBinHigh,etaBinNum,etaBinLow,etaBinHigh);
   }
+
   // TK dE/dx hit dists
   std::vector<TGraph> dedxHitGraphs;
   TH1F* trackDeDxAllHitsHist = new TH1F("trackDeDxAllHitsHist","Tracker dE/dx of all hits",800,0,200);
@@ -1327,6 +1592,9 @@ int main(int argc, char** argv)
         continue;
 
 
+      ////XXX Cut on dE/dx number of saturated measurements
+      //if(Track_dEdxE1_NOS[i] != 5)
+      //  continue;
       ////XXX FIXME REMOVE TEST TEST
       //if(Track_pt[i] <= 70)
       //  continue;
@@ -1375,6 +1643,8 @@ int main(int argc, char** argv)
       trackNumberOfSatMeasurementsVsEtaHist->Fill(Track_eta[i],Track_dEdxE1_NOS[i]);
       trackNumberOfMeasurementsVsPHist->Fill(Track_p[i],Track_dEdxE1_NOM[i]);
       trackNumberOfSatMeasurementsVsPHist->Fill(Track_p[i],Track_dEdxE1_NOS[i]);
+      trackNumberOfMeasurementsVsSaturatedMeasurementsHist->Fill(Track_dEdxE1_NOS[i],Track_dEdxE1_NOM[i]);
+      trackNumberOfHitsVsPHist->Fill(Track_p[i],Track_NOH[i]);
       trackPvsDeDxE1Hist->Fill(Track_dEdxE1[i],Track_p[i]);
       trackPvsDeDxD3Hist->Fill(Track_dEdxD3[i],Track_p[i]);
       trackPtvsDeDxE1Hist->Fill(Track_dEdxE1[i],Track_pt[i]);
@@ -1386,6 +1656,25 @@ int main(int argc, char** argv)
       float trackPhi = Track_phi[i];
       float trackDeDxE1 = Track_dEdxE1[i];
       int trackNomE1 = Track_dEdxE1_NOM[i];
+
+      //int myFinePBin = findFinePBin(trackP);
+      //int myLessFinePBin = findLessFinePBin(trackP);
+      //int myFineEtaBin = findFineEtaBin(trackEta);
+      int myFineNoMBin = findFineNoMBin(trackNomE1);
+      float dEdx = trackDeDxE1;
+      float noPBiasDeDx = dEdx-meanIhPDep->Eval(trackP);
+      //float noPEtaBiasDeDx = noPBiasDeDx-meanIhEtaDep->Eval(fabs(trackEta));
+      //float noPEtaNoMBiasDeDx = noPEtaBiasDeDx-meanIhNoMDep->Eval(trackNomE1);
+      //float pullDeDxPSigma = noPEtaNoMBiasDeDx/sigmaIhPDep->Eval(trackP);
+      //float pullDeDxPEtaSigma = noPEtaNoMBiasDeDx/(sigmaIhPDep->Eval(trackP)-sigmaIhEtaDep->Eval(trackEta));
+      //float pullDeDxPEtaNoMSigma = noPEtaNoMBiasDeDx/(sigmaIhPDep->Eval(trackP)-sigmaIhEtaDep->Eval(trackEta)-sigmaIhNoMDep->Eval(trackNoME1));
+      // fill dedx 3-D plots
+      dedxHistsInNomBins_[myFineNoMBin]->Fill(dEdx,trackP,fabs(trackEta));
+      dedxHistsNoPBiasInNomBins_[myFineNoMBin]->Fill(noPBiasDeDx,trackP,fabs(trackEta));
+      //dedxHistsPullPSigmaInNomBins_[myFineNoMBin]->Fill(pullDeDxPSigma,trackP,fabs(trackEta));
+      //dedxHistsPullPEtaSigmaInNomBins_[myFineNoMBin]->Fill(pullDeDxPEtaSigma,trackP,fabs(trackEta));
+      //dedxHistsPullPEtaNomSigmaInNomBins_[myFineNoMBin]->Fill(pullDeDxPEtaNoMSigma,trackP,fabs(trackEta));
+
       // Muon timing plots
       if(Hscp_hasMuon[i])
       {
@@ -1403,72 +1692,12 @@ int main(int argc, char** argv)
         {
           trackEtaVsPtMuTimingSBHist->Fill(Track_pt[i],Track_eta[i]);
           trackEtaVsPMuTimingSBHist->Fill(Track_p[i],Track_eta[i]);
-          // Slices in P and NoM bins -- for PDF determination (5,5 currently)
-          if(trackP < 50)
-          {
-            if(trackNomE1 >=1 && trackNomE1 <= 5)
-              histsForPDFNoMPBinsMuSB_[0][0]->Fill(trackDeDxE1); 
-            else if(trackNomE1 >= 6 && trackNomE1 <= 10)
-              histsForPDFNoMPBinsMuSB_[0][1]->Fill(trackDeDxE1);
-            else if(trackNomE1 >= 11 && trackNomE1 <= 15)
-              histsForPDFNoMPBinsMuSB_[0][2]->Fill(trackDeDxE1);
-            else if(trackNomE1 >= 16 && trackNomE1 <= 20)
-              histsForPDFNoMPBinsMuSB_[0][3]->Fill(trackDeDxE1);
-            else if(trackNomE1 >= 21)
-              histsForPDFNoMPBinsMuSB_[0][4]->Fill(trackDeDxE1);
-          }
-          else if(trackP < 150)
-          {
-            if(trackNomE1 >=1 && trackNomE1 <= 5)
-              histsForPDFNoMPBinsMuSB_[1][0]->Fill(trackDeDxE1); 
-            else if(trackNomE1 >= 6 && trackNomE1 <= 10)
-              histsForPDFNoMPBinsMuSB_[1][1]->Fill(trackDeDxE1);
-            else if(trackNomE1 >= 11 && trackNomE1 <= 15)
-              histsForPDFNoMPBinsMuSB_[1][2]->Fill(trackDeDxE1);
-            else if(trackNomE1 >= 16 && trackNomE1 <= 20)
-              histsForPDFNoMPBinsMuSB_[1][3]->Fill(trackDeDxE1);
-            else if(trackNomE1 >= 21)
-              histsForPDFNoMPBinsMuSB_[1][4]->Fill(trackDeDxE1);
-          }
-          else if(trackP < 300)
-          {
-            if(trackNomE1 >=1 && trackNomE1 <= 5)
-              histsForPDFNoMPBinsMuSB_[2][0]->Fill(trackDeDxE1); 
-            else if(trackNomE1 >= 6 && trackNomE1 <= 10)
-              histsForPDFNoMPBinsMuSB_[2][1]->Fill(trackDeDxE1);
-            else if(trackNomE1 >= 11 && trackNomE1 <= 15)
-              histsForPDFNoMPBinsMuSB_[2][2]->Fill(trackDeDxE1);
-            else if(trackNomE1 >= 16 && trackNomE1 <= 20)
-              histsForPDFNoMPBinsMuSB_[2][3]->Fill(trackDeDxE1);
-            else if(trackNomE1 >= 21)
-              histsForPDFNoMPBinsMuSB_[2][4]->Fill(trackDeDxE1);
-          }
-          else if(trackP < 450)
-          {
-            if(trackNomE1 >=1 && trackNomE1 <= 5)
-              histsForPDFNoMPBinsMuSB_[3][0]->Fill(trackDeDxE1); 
-            else if(trackNomE1 >= 6 && trackNomE1 <= 10)
-              histsForPDFNoMPBinsMuSB_[3][1]->Fill(trackDeDxE1);
-            else if(trackNomE1 >= 11 && trackNomE1 <= 15)
-              histsForPDFNoMPBinsMuSB_[3][2]->Fill(trackDeDxE1);
-            else if(trackNomE1 >= 16 && trackNomE1 <= 20)
-              histsForPDFNoMPBinsMuSB_[3][3]->Fill(trackDeDxE1);
-            else if(trackNomE1 >= 21)
-              histsForPDFNoMPBinsMuSB_[3][4]->Fill(trackDeDxE1);
-          }
-          else if(trackP > 450)
-          {
-            if(trackNomE1 >=1 && trackNomE1 <= 5)
-              histsForPDFNoMPBinsMuSB_[4][0]->Fill(trackDeDxE1); 
-            else if(trackNomE1 >= 6 && trackNomE1 <= 10)
-              histsForPDFNoMPBinsMuSB_[4][1]->Fill(trackDeDxE1);
-            else if(trackNomE1 >= 11 && trackNomE1 <= 15)
-              histsForPDFNoMPBinsMuSB_[4][2]->Fill(trackDeDxE1);
-            else if(trackNomE1 >= 16 && trackNomE1 <= 20)
-              histsForPDFNoMPBinsMuSB_[4][3]->Fill(trackDeDxE1);
-            else if(trackNomE1 >= 21)
-              histsForPDFNoMPBinsMuSB_[4][4]->Fill(trackDeDxE1);
-          }
+          //Muon SB plots in 3D
+          dedxHistsMuSBInNomBins_[myFineNoMBin]->Fill(dEdx,trackP,fabs(trackEta));
+          dedxHistsMuSBNoPBiasInNomBins_[myFineNoMBin]->Fill(noPBiasDeDx,trackP,fabs(trackEta));
+          //dedxHistsMuSBPullPSigmaInNomBins_[myFineNoMBin]->Fill(pullDeDxPSigma,trackP,fabs(trackEta));
+          //dedxHistsMuSBPullPEtaSigmaInNomBins_[myFineNoMBin]->Fill(pullDeDxPEtaSigma,trackP,fabs(trackEta));
+          //dedxHistsMuSBPullPEtaNomSigmaInNomBins_[myFineNoMBin]->Fill(pullDeDxPEtaNoMSigma,trackP,fabs(trackEta));
         }
       }
 
@@ -1826,139 +2055,6 @@ int main(int argc, char** argv)
         trackDeDxE3PSlice12Hist->Fill(Track_dEdxE3[i]);
       }
 
-      // Slices in Pt and NoM bins -- for PDF determination (5,5 currently)
-      if(trackPt < 50)
-      {
-        if(trackNomE1 >=1 && trackNomE1 <= 5)
-          histsForPDFNoMPtBins_[0][0]->Fill(trackDeDxE1); 
-        else if(trackNomE1 >= 6 && trackNomE1 <= 10)
-          histsForPDFNoMPtBins_[0][1]->Fill(trackDeDxE1);
-        else if(trackNomE1 >= 11 && trackNomE1 <= 15)
-          histsForPDFNoMPtBins_[0][2]->Fill(trackDeDxE1);
-        else if(trackNomE1 >= 16 && trackNomE1 <= 20)
-          histsForPDFNoMPtBins_[0][3]->Fill(trackDeDxE1);
-        else if(trackNomE1 >= 21)
-          histsForPDFNoMPtBins_[0][4]->Fill(trackDeDxE1);
-      }
-      else if(trackPt < 150)
-      {
-        if(trackNomE1 >=1 && trackNomE1 <= 5)
-          histsForPDFNoMPtBins_[1][0]->Fill(trackDeDxE1); 
-        else if(trackNomE1 >= 6 && trackNomE1 <= 10)
-          histsForPDFNoMPtBins_[1][1]->Fill(trackDeDxE1);
-        else if(trackNomE1 >= 11 && trackNomE1 <= 15)
-          histsForPDFNoMPtBins_[1][2]->Fill(trackDeDxE1);
-        else if(trackNomE1 >= 16 && trackNomE1 <= 20)
-          histsForPDFNoMPtBins_[1][3]->Fill(trackDeDxE1);
-        else if(trackNomE1 >= 21)
-          histsForPDFNoMPtBins_[1][4]->Fill(trackDeDxE1);
-      }
-      else if(trackPt < 300)
-      {
-        if(trackNomE1 >=1 && trackNomE1 <= 5)
-          histsForPDFNoMPtBins_[2][0]->Fill(trackDeDxE1); 
-        else if(trackNomE1 >= 6 && trackNomE1 <= 10)
-          histsForPDFNoMPtBins_[2][1]->Fill(trackDeDxE1);
-        else if(trackNomE1 >= 11 && trackNomE1 <= 15)
-          histsForPDFNoMPtBins_[2][2]->Fill(trackDeDxE1);
-        else if(trackNomE1 >= 16 && trackNomE1 <= 20)
-          histsForPDFNoMPtBins_[2][3]->Fill(trackDeDxE1);
-        else if(trackNomE1 >= 21)
-          histsForPDFNoMPtBins_[2][4]->Fill(trackDeDxE1);
-      }
-      else if(trackPt < 450)
-      {
-        if(trackNomE1 >=1 && trackNomE1 <= 5)
-          histsForPDFNoMPtBins_[3][0]->Fill(trackDeDxE1); 
-        else if(trackNomE1 >= 6 && trackNomE1 <= 10)
-          histsForPDFNoMPtBins_[3][1]->Fill(trackDeDxE1);
-        else if(trackNomE1 >= 11 && trackNomE1 <= 15)
-          histsForPDFNoMPtBins_[3][2]->Fill(trackDeDxE1);
-        else if(trackNomE1 >= 16 && trackNomE1 <= 20)
-          histsForPDFNoMPtBins_[3][3]->Fill(trackDeDxE1);
-        else if(trackNomE1 >= 21)
-          histsForPDFNoMPtBins_[3][4]->Fill(trackDeDxE1);
-      }
-      else if(trackPt > 450)
-      {
-        if(trackNomE1 >=1 && trackNomE1 <= 5)
-          histsForPDFNoMPtBins_[4][0]->Fill(trackDeDxE1); 
-        else if(trackNomE1 >= 6 && trackNomE1 <= 10)
-          histsForPDFNoMPtBins_[4][1]->Fill(trackDeDxE1);
-        else if(trackNomE1 >= 11 && trackNomE1 <= 15)
-          histsForPDFNoMPtBins_[4][2]->Fill(trackDeDxE1);
-        else if(trackNomE1 >= 16 && trackNomE1 <= 20)
-          histsForPDFNoMPtBins_[4][3]->Fill(trackDeDxE1);
-        else if(trackNomE1 >= 21)
-          histsForPDFNoMPtBins_[4][4]->Fill(trackDeDxE1);
-      }
-      // Slices in P and NoM bins -- for PDF determination (5,5 currently)
-      if(trackP < 50)
-      {
-        if(trackNomE1 >=1 && trackNomE1 <= 5)
-          histsForPDFNoMPBins_[0][0]->Fill(trackDeDxE1); 
-        else if(trackNomE1 >= 6 && trackNomE1 <= 10)
-          histsForPDFNoMPBins_[0][1]->Fill(trackDeDxE1);
-        else if(trackNomE1 >= 11 && trackNomE1 <= 15)
-          histsForPDFNoMPBins_[0][2]->Fill(trackDeDxE1);
-        else if(trackNomE1 >= 16 && trackNomE1 <= 20)
-          histsForPDFNoMPBins_[0][3]->Fill(trackDeDxE1);
-        else if(trackNomE1 >= 21)
-          histsForPDFNoMPBins_[0][4]->Fill(trackDeDxE1);
-      }
-      else if(trackP < 150)
-      {
-        if(trackNomE1 >=1 && trackNomE1 <= 5)
-          histsForPDFNoMPBins_[1][0]->Fill(trackDeDxE1); 
-        else if(trackNomE1 >= 6 && trackNomE1 <= 10)
-          histsForPDFNoMPBins_[1][1]->Fill(trackDeDxE1);
-        else if(trackNomE1 >= 11 && trackNomE1 <= 15)
-          histsForPDFNoMPBins_[1][2]->Fill(trackDeDxE1);
-        else if(trackNomE1 >= 16 && trackNomE1 <= 20)
-          histsForPDFNoMPBins_[1][3]->Fill(trackDeDxE1);
-        else if(trackNomE1 >= 21)
-          histsForPDFNoMPBins_[1][4]->Fill(trackDeDxE1);
-      }
-      else if(trackP < 300)
-      {
-        if(trackNomE1 >=1 && trackNomE1 <= 5)
-          histsForPDFNoMPBins_[2][0]->Fill(trackDeDxE1); 
-        else if(trackNomE1 >= 6 && trackNomE1 <= 10)
-          histsForPDFNoMPBins_[2][1]->Fill(trackDeDxE1);
-        else if(trackNomE1 >= 11 && trackNomE1 <= 15)
-          histsForPDFNoMPBins_[2][2]->Fill(trackDeDxE1);
-        else if(trackNomE1 >= 16 && trackNomE1 <= 20)
-          histsForPDFNoMPBins_[2][3]->Fill(trackDeDxE1);
-        else if(trackNomE1 >= 21)
-          histsForPDFNoMPBins_[2][4]->Fill(trackDeDxE1);
-      }
-      else if(trackP < 450)
-      {
-        if(trackNomE1 >=1 && trackNomE1 <= 5)
-          histsForPDFNoMPBins_[3][0]->Fill(trackDeDxE1); 
-        else if(trackNomE1 >= 6 && trackNomE1 <= 10)
-          histsForPDFNoMPBins_[3][1]->Fill(trackDeDxE1);
-        else if(trackNomE1 >= 11 && trackNomE1 <= 15)
-          histsForPDFNoMPBins_[3][2]->Fill(trackDeDxE1);
-        else if(trackNomE1 >= 16 && trackNomE1 <= 20)
-          histsForPDFNoMPBins_[3][3]->Fill(trackDeDxE1);
-        else if(trackNomE1 >= 21)
-          histsForPDFNoMPBins_[3][4]->Fill(trackDeDxE1);
-      }
-      else if(trackP > 450)
-      {
-        if(trackNomE1 >=1 && trackNomE1 <= 5)
-          histsForPDFNoMPBins_[4][0]->Fill(trackDeDxE1); 
-        else if(trackNomE1 >= 6 && trackNomE1 <= 10)
-          histsForPDFNoMPBins_[4][1]->Fill(trackDeDxE1);
-        else if(trackNomE1 >= 11 && trackNomE1 <= 15)
-          histsForPDFNoMPBins_[4][2]->Fill(trackDeDxE1);
-        else if(trackNomE1 >= 16 && trackNomE1 <= 20)
-          histsForPDFNoMPBins_[4][3]->Fill(trackDeDxE1);
-        else if(trackNomE1 >= 21)
-          histsForPDFNoMPBins_[4][4]->Fill(trackDeDxE1);
-      }
-
       // Look at path length -- inner strips only
       float pathLength = 0;
       for(int j=0; j<numHits; ++j)
@@ -1973,38 +2069,6 @@ int main(int argc, char** argv)
       //trackDeDxE1VsPathLengthHist->Fill(pathLength,trackDeDxE1);
       //trackDeDxPathLengthVsEtaHist->Fill(pathLength,trackEta);
 
-      int myFinePBin = findFinePBin(trackP);
-      int myLessFinePBin = findLessFinePBin(trackP);
-      int myFineNoMBin = findFineNoMBin(trackNomE1);
-      int myFineEtaBin = findFineEtaBin(trackEta);
-      //float pullDeDx = (trackDeDxE1-meanIhPDep->Eval(trackP))/sigmaIhPDep->Eval(trackP);
-      float dEdx = trackDeDxE1;
-      float noPBiasDeDx = dEdx-meanIhPDep->Eval(trackP);
-      float noPEtaBiasDeDx = noPBiasDeDx-meanIhEtaDep->Eval(fabs(trackEta));
-      float noPEtaNoMBiasDeDx = noPEtaBiasDeDx-meanIhNoMDep->Eval(trackNomE1);
-      // fill finePbins plot
-      if(trackNomE1 >=1 && trackNomE1 <= 5)
-        histsInNoMFinePBins_[myFinePBin][0]->Fill(noPEtaNoMBiasDeDx);
-      else if(trackNomE1 >= 6 && trackNomE1 <= 10)
-        histsInNoMFinePBins_[myFinePBin][1]->Fill(noPEtaNoMBiasDeDx);
-      else if(trackNomE1 >= 11 && trackNomE1 <= 15)
-        histsInNoMFinePBins_[myFinePBin][2]->Fill(noPEtaNoMBiasDeDx);
-      else if(trackNomE1 >= 16 && trackNomE1 <= 20)
-        histsInNoMFinePBins_[myFinePBin][3]->Fill(noPEtaNoMBiasDeDx);
-      else if(trackNomE1 >= 21)
-        histsInNoMFinePBins_[myFinePBin][4]->Fill(noPEtaNoMBiasDeDx);
-      // fill fine p bins for closure
-      dedxClosureInFinePBins_[myFinePBin]->Fill(noPEtaNoMBiasDeDx);
-      //dedxClosureInFinePBins_[myFinePBin]->Fill(dEdx);
-      //dedxClosureInFinePBins_[myFinePBin]->Fill(dEdx-meanIhEtaDep->Eval(fabs(trackEta))-meanIhNoMDep->Eval(trackNomE1));
-      // fill fineNoMbins plot
-      histsInFineNoMPBins_[myLessFinePBin][myFineNoMBin]->Fill(noPBiasDeDx-meanIhEtaDep->Eval(fabs(trackEta)));
-      histsInFineNoMPBinsEtaDist_[myLessFinePBin][myFineNoMBin]->Fill(trackEta);
-      // fill fineNoMbins pulls plot
-      //TODO
-
-      // fill fine NoM bins for closure
-      dedxClosureInFineNoMBins_[myFineNoMBin]->Fill(noPEtaNoMBiasDeDx);
       //for(int j=0; j<numHits; ++j)
       //{
       //  float dEdx = Track_dEdxE1_hitCharges[i][j];
@@ -2014,12 +2078,6 @@ int main(int argc, char** argv)
       //    continue;
       //}
 
-      histsInFineEtaPBins_[myLessFinePBin][myFineEtaBin]->Fill(noPBiasDeDx);
-      //fill fine eta bins pulls
-      pullsInFineEtaPBins_[myLessFinePBin][myFineEtaBin]->Fill(noPEtaNoMBiasDeDx/sigmaIhPDep->Eval(trackP));
-      // fill fine eta bins for closure
-      //dedxClosureInFineEtaBins_[myFineEtaBin]->Fill(dEdx-meanIhPDep->Eval(trackP)-meanIhEtaDep->Eval(fabs(trackEta))-meanIhNoMDep->Eval(trackNomE1));
-      dedxClosureInFineEtaBins_[myFineEtaBin]->Fill(noPEtaNoMBiasDeDx/(sigmaIhPDep->Eval(trackP)*sqrt(sigmaIhEtaDep->Eval(fabs(trackEta)))));
 
       trackEtaVsDeDxE1Hist->Fill(trackDeDxE1,trackEta);
       if(Track_dEdxE1_numHits[i] >= 10 && Track_dEdxE1_numHits[i] <= 12)
@@ -2240,6 +2298,8 @@ int main(int argc, char** argv)
       trackNumberOfSatMeasurementsVsEtaMatchedHist->Fill(trackEta,Track_dEdxE1_NOS[i]);
       trackNumberOfMeasurementsVsPMatchedHist->Fill(Track_p[i],Track_dEdxE1_NOM[i]);
       trackNumberOfSatMeasurementsVsPMatchedHist->Fill(Track_p[i],Track_dEdxE1_NOS[i]);
+      trackNumberOfMeasurementsVsSaturatedMeasurementsMatchedHist->Fill(Track_dEdxE1_NOS[i],Track_dEdxE1_NOM[i]);
+      trackNumberOfHitsVsPMatchedHist->Fill(Track_p[i],Track_NOH[i]);
       trackEtaMatchedHist->Fill(trackEta);
       trackEtaVsPtMatchedHist->Fill(trackPt,trackEta);
       trackEtaVsPMatchedHist->Fill(Track_p[i],trackEta);
@@ -2254,72 +2314,12 @@ int main(int argc, char** argv)
       {
         trackEtaVsPtMuTimingSBMatchedHist->Fill(Track_pt[i],Track_eta[i]);
         trackEtaVsPMuTimingSBMatchedHist->Fill(Track_p[i],Track_eta[i]);
-        // Slices in P and NoM bins (matched) -- for PDF determination (5,5 currently)
-        if(trackP < 50)
-        {
-          if(trackNomE1 >=1 && trackNomE1 <= 5)
-            histsForPDFNoMPBinsMuSBMatched_[0][0]->Fill(trackDeDxE1); 
-          else if(trackNomE1 >= 6 && trackNomE1 <= 10)
-            histsForPDFNoMPBinsMuSBMatched_[0][1]->Fill(trackDeDxE1);
-          else if(trackNomE1 >= 11 && trackNomE1 <= 15)
-            histsForPDFNoMPBinsMuSBMatched_[0][2]->Fill(trackDeDxE1);
-          else if(trackNomE1 >= 16 && trackNomE1 <= 20)
-            histsForPDFNoMPBinsMuSBMatched_[0][3]->Fill(trackDeDxE1);
-          else if(trackNomE1 >= 21)
-            histsForPDFNoMPBinsMuSBMatched_[0][4]->Fill(trackDeDxE1);
-        }
-        else if(trackP < 150)
-        {
-          if(trackNomE1 >=1 && trackNomE1 <= 5)
-            histsForPDFNoMPBinsMuSBMatched_[1][0]->Fill(trackDeDxE1); 
-          else if(trackNomE1 >= 6 && trackNomE1 <= 10)
-            histsForPDFNoMPBinsMuSBMatched_[1][1]->Fill(trackDeDxE1);
-          else if(trackNomE1 >= 11 && trackNomE1 <= 15)
-            histsForPDFNoMPBinsMuSBMatched_[1][2]->Fill(trackDeDxE1);
-          else if(trackNomE1 >= 16 && trackNomE1 <= 20)
-            histsForPDFNoMPBinsMuSBMatched_[1][3]->Fill(trackDeDxE1);
-          else if(trackNomE1 >= 21)
-            histsForPDFNoMPBinsMuSBMatched_[1][4]->Fill(trackDeDxE1);
-        }
-        else if(trackP < 300)
-        {
-          if(trackNomE1 >=1 && trackNomE1 <= 5)
-            histsForPDFNoMPBinsMuSBMatched_[2][0]->Fill(trackDeDxE1); 
-          else if(trackNomE1 >= 6 && trackNomE1 <= 10)
-            histsForPDFNoMPBinsMuSBMatched_[2][1]->Fill(trackDeDxE1);
-          else if(trackNomE1 >= 11 && trackNomE1 <= 15)
-            histsForPDFNoMPBinsMuSBMatched_[2][2]->Fill(trackDeDxE1);
-          else if(trackNomE1 >= 16 && trackNomE1 <= 20)
-            histsForPDFNoMPBinsMuSBMatched_[2][3]->Fill(trackDeDxE1);
-          else if(trackNomE1 >= 21)
-            histsForPDFNoMPBinsMuSBMatched_[2][4]->Fill(trackDeDxE1);
-        }
-        else if(trackP < 450)
-        {
-          if(trackNomE1 >=1 && trackNomE1 <= 5)
-            histsForPDFNoMPBinsMuSBMatched_[3][0]->Fill(trackDeDxE1); 
-          else if(trackNomE1 >= 6 && trackNomE1 <= 10)
-            histsForPDFNoMPBinsMuSBMatched_[3][1]->Fill(trackDeDxE1);
-          else if(trackNomE1 >= 11 && trackNomE1 <= 15)
-            histsForPDFNoMPBinsMuSBMatched_[3][2]->Fill(trackDeDxE1);
-          else if(trackNomE1 >= 16 && trackNomE1 <= 20)
-            histsForPDFNoMPBinsMuSBMatched_[3][3]->Fill(trackDeDxE1);
-          else if(trackNomE1 >= 21)
-            histsForPDFNoMPBinsMuSBMatched_[3][4]->Fill(trackDeDxE1);
-        }
-        else if(trackP > 450)
-        {
-          if(trackNomE1 >=1 && trackNomE1 <= 5)
-            histsForPDFNoMPBinsMuSBMatched_[4][0]->Fill(trackDeDxE1); 
-          else if(trackNomE1 >= 6 && trackNomE1 <= 10)
-            histsForPDFNoMPBinsMuSBMatched_[4][1]->Fill(trackDeDxE1);
-          else if(trackNomE1 >= 11 && trackNomE1 <= 15)
-            histsForPDFNoMPBinsMuSBMatched_[4][2]->Fill(trackDeDxE1);
-          else if(trackNomE1 >= 16 && trackNomE1 <= 20)
-            histsForPDFNoMPBinsMuSBMatched_[4][3]->Fill(trackDeDxE1);
-          else if(trackNomE1 >= 21)
-            histsForPDFNoMPBinsMuSBMatched_[4][4]->Fill(trackDeDxE1);
-        }
+        //Muon SB plots in 3D
+        dedxHistsMuSBInNomBinsMatched_[myFineNoMBin]->Fill(dEdx,trackP,fabs(trackEta));
+        dedxHistsMuSBNoPBiasInNomBinsMatched_[myFineNoMBin]->Fill(noPBiasDeDx,trackP,fabs(trackEta));
+        //dedxHistsMuSBPullPSigmaInNomBinsMatched_[myFineNoMBin]->Fill(pullDeDxPSigma,trackP,fabs(trackEta));
+        //dedxHistsMuSBPullPEtaSigmaInNomBinsMatched_[myFineNoMBin]->Fill(pullDeDxPEtaSigma,trackP,fabs(trackEta));
+        //dedxHistsMuSBPullPEtaNomSigmaInNomBinsMatched_[myFineNoMBin]->Fill(pullDeDxPEtaNoMSigma,trackP,fabs(trackEta));
       }
       // slice in beta bins -- E1 only
       if(bestBeta < 0.05)
@@ -2517,188 +2517,38 @@ int main(int argc, char** argv)
       else if(trackNomE1 >= 21)
         trackDeDxE1MatchedNoMSliceHists[4]->Fill(trackDeDxE1);
 
-      //XXX
-      // Slices in Pt and NoM bins (matched) -- for PDF determination (5,5 currently)
-      if(trackPt < 50)
-      {
-        if(trackNomE1 >=1 && trackNomE1 <= 5)
-          histsForPDFNoMPtBinsMatched_[0][0]->Fill(trackDeDxE1); 
-        else if(trackNomE1 >= 6 && trackNomE1 <= 10)
-          histsForPDFNoMPtBinsMatched_[0][1]->Fill(trackDeDxE1);
-        else if(trackNomE1 >= 11 && trackNomE1 <= 15)
-          histsForPDFNoMPtBinsMatched_[0][2]->Fill(trackDeDxE1);
-        else if(trackNomE1 >= 16 && trackNomE1 <= 20)
-          histsForPDFNoMPtBinsMatched_[0][3]->Fill(trackDeDxE1);
-        else if(trackNomE1 >= 21)
-          histsForPDFNoMPtBinsMatched_[0][4]->Fill(trackDeDxE1);
-      }
-      else if(trackPt < 150)
-      {
-        if(trackNomE1 >=1 && trackNomE1 <= 5)
-          histsForPDFNoMPtBinsMatched_[1][0]->Fill(trackDeDxE1); 
-        else if(trackNomE1 >= 6 && trackNomE1 <= 10)
-          histsForPDFNoMPtBinsMatched_[1][1]->Fill(trackDeDxE1);
-        else if(trackNomE1 >= 11 && trackNomE1 <= 15)
-          histsForPDFNoMPtBinsMatched_[1][2]->Fill(trackDeDxE1);
-        else if(trackNomE1 >= 16 && trackNomE1 <= 20)
-          histsForPDFNoMPtBinsMatched_[1][3]->Fill(trackDeDxE1);
-        else if(trackNomE1 >= 21)
-          histsForPDFNoMPtBinsMatched_[1][4]->Fill(trackDeDxE1);
-      }
-      else if(trackPt < 300)
-      {
-        if(trackNomE1 >=1 && trackNomE1 <= 5)
-          histsForPDFNoMPtBinsMatched_[2][0]->Fill(trackDeDxE1); 
-        else if(trackNomE1 >= 6 && trackNomE1 <= 10)
-          histsForPDFNoMPtBinsMatched_[2][1]->Fill(trackDeDxE1);
-        else if(trackNomE1 >= 11 && trackNomE1 <= 15)
-          histsForPDFNoMPtBinsMatched_[2][2]->Fill(trackDeDxE1);
-        else if(trackNomE1 >= 16 && trackNomE1 <= 20)
-          histsForPDFNoMPtBinsMatched_[2][3]->Fill(trackDeDxE1);
-        else if(trackNomE1 >= 21)
-          histsForPDFNoMPtBinsMatched_[2][4]->Fill(trackDeDxE1);
-      }
-      else if(trackPt < 450)
-      {
-        if(trackNomE1 >=1 && trackNomE1 <= 5)
-          histsForPDFNoMPtBinsMatched_[3][0]->Fill(trackDeDxE1); 
-        else if(trackNomE1 >= 6 && trackNomE1 <= 10)
-          histsForPDFNoMPtBinsMatched_[3][1]->Fill(trackDeDxE1);
-        else if(trackNomE1 >= 11 && trackNomE1 <= 15)
-          histsForPDFNoMPtBinsMatched_[3][2]->Fill(trackDeDxE1);
-        else if(trackNomE1 >= 16 && trackNomE1 <= 20)
-          histsForPDFNoMPtBinsMatched_[3][3]->Fill(trackDeDxE1);
-        else if(trackNomE1 >= 21)
-          histsForPDFNoMPtBinsMatched_[3][4]->Fill(trackDeDxE1);
-      }
-      else if(trackPt > 450)
-      {
-        if(trackNomE1 >=1 && trackNomE1 <= 5)
-          histsForPDFNoMPtBinsMatched_[4][0]->Fill(trackDeDxE1); 
-        else if(trackNomE1 >= 6 && trackNomE1 <= 10)
-          histsForPDFNoMPtBinsMatched_[4][1]->Fill(trackDeDxE1);
-        else if(trackNomE1 >= 11 && trackNomE1 <= 15)
-          histsForPDFNoMPtBinsMatched_[4][2]->Fill(trackDeDxE1);
-        else if(trackNomE1 >= 16 && trackNomE1 <= 20)
-          histsForPDFNoMPtBinsMatched_[4][3]->Fill(trackDeDxE1);
-        else if(trackNomE1 >= 21)
-          histsForPDFNoMPtBinsMatched_[4][4]->Fill(trackDeDxE1);
-      }
-      // Slices in P and NoM bins (matched) -- for PDF determination (5,5 currently)
-      if(trackP < 50)
-      {
-        if(trackNomE1 >=1 && trackNomE1 <= 5)
-          histsForPDFNoMPBinsMatched_[0][0]->Fill(trackDeDxE1); 
-        else if(trackNomE1 >= 6 && trackNomE1 <= 10)
-          histsForPDFNoMPBinsMatched_[0][1]->Fill(trackDeDxE1);
-        else if(trackNomE1 >= 11 && trackNomE1 <= 15)
-          histsForPDFNoMPBinsMatched_[0][2]->Fill(trackDeDxE1);
-        else if(trackNomE1 >= 16 && trackNomE1 <= 20)
-          histsForPDFNoMPBinsMatched_[0][3]->Fill(trackDeDxE1);
-        else if(trackNomE1 >= 21)
-          histsForPDFNoMPBinsMatched_[0][4]->Fill(trackDeDxE1);
-      }
-      else if(trackP < 150)
-      {
-        if(trackNomE1 >=1 && trackNomE1 <= 5)
-          histsForPDFNoMPBinsMatched_[1][0]->Fill(trackDeDxE1); 
-        else if(trackNomE1 >= 6 && trackNomE1 <= 10)
-          histsForPDFNoMPBinsMatched_[1][1]->Fill(trackDeDxE1);
-        else if(trackNomE1 >= 11 && trackNomE1 <= 15)
-          histsForPDFNoMPBinsMatched_[1][2]->Fill(trackDeDxE1);
-        else if(trackNomE1 >= 16 && trackNomE1 <= 20)
-          histsForPDFNoMPBinsMatched_[1][3]->Fill(trackDeDxE1);
-        else if(trackNomE1 >= 21)
-          histsForPDFNoMPBinsMatched_[1][4]->Fill(trackDeDxE1);
-      }
-      else if(trackP < 300)
-      {
-        if(trackNomE1 >=1 && trackNomE1 <= 5)
-          histsForPDFNoMPBinsMatched_[2][0]->Fill(trackDeDxE1); 
-        else if(trackNomE1 >= 6 && trackNomE1 <= 10)
-          histsForPDFNoMPBinsMatched_[2][1]->Fill(trackDeDxE1);
-        else if(trackNomE1 >= 11 && trackNomE1 <= 15)
-          histsForPDFNoMPBinsMatched_[2][2]->Fill(trackDeDxE1);
-        else if(trackNomE1 >= 16 && trackNomE1 <= 20)
-          histsForPDFNoMPBinsMatched_[2][3]->Fill(trackDeDxE1);
-        else if(trackNomE1 >= 21)
-          histsForPDFNoMPBinsMatched_[2][4]->Fill(trackDeDxE1);
-      }
-      else if(trackP < 450)
-      {
-        if(trackNomE1 >=1 && trackNomE1 <= 5)
-          histsForPDFNoMPBinsMatched_[3][0]->Fill(trackDeDxE1); 
-        else if(trackNomE1 >= 6 && trackNomE1 <= 10)
-          histsForPDFNoMPBinsMatched_[3][1]->Fill(trackDeDxE1);
-        else if(trackNomE1 >= 11 && trackNomE1 <= 15)
-          histsForPDFNoMPBinsMatched_[3][2]->Fill(trackDeDxE1);
-        else if(trackNomE1 >= 16 && trackNomE1 <= 20)
-          histsForPDFNoMPBinsMatched_[3][3]->Fill(trackDeDxE1);
-        else if(trackNomE1 >= 21)
-          histsForPDFNoMPBinsMatched_[3][4]->Fill(trackDeDxE1);
-      }
-      else if(trackP > 450)
-      {
-        if(trackNomE1 >=1 && trackNomE1 <= 5)
-          histsForPDFNoMPBinsMatched_[4][0]->Fill(trackDeDxE1); 
-        else if(trackNomE1 >= 6 && trackNomE1 <= 10)
-          histsForPDFNoMPBinsMatched_[4][1]->Fill(trackDeDxE1);
-        else if(trackNomE1 >= 11 && trackNomE1 <= 15)
-          histsForPDFNoMPBinsMatched_[4][2]->Fill(trackDeDxE1);
-        else if(trackNomE1 >= 16 && trackNomE1 <= 20)
-          histsForPDFNoMPBinsMatched_[4][3]->Fill(trackDeDxE1);
-        else if(trackNomE1 >= 21)
-          histsForPDFNoMPBinsMatched_[4][4]->Fill(trackDeDxE1);
-      }
-
       //trackDeDxE1VsPathLengthMatchedHist->Fill(pathLength,trackDeDxE1);
       //trackDeDxPathLengthVsEtaMatchedHist->Fill(pathLength,trackEta);
 
-        // fill finePbins plot -- bin taken from before
-        if(trackNomE1 >=1 && trackNomE1 <= 5)
-          histsInNoMFinePBinsMatched_[myFinePBin][0]->Fill(noPEtaNoMBiasDeDx);
-        else if(trackNomE1 >= 6 && trackNomE1 <= 10)
-          histsInNoMFinePBinsMatched_[myFinePBin][1]->Fill(noPEtaNoMBiasDeDx);
-        else if(trackNomE1 >= 11 && trackNomE1 <= 15)
-          histsInNoMFinePBinsMatched_[myFinePBin][2]->Fill(noPEtaNoMBiasDeDx);
-        else if(trackNomE1 >= 16 && trackNomE1 <= 20)
-          histsInNoMFinePBinsMatched_[myFinePBin][3]->Fill(noPEtaNoMBiasDeDx);
-        else if(trackNomE1 >= 21)
-          histsInNoMFinePBinsMatched_[myFinePBin][4]->Fill(noPEtaNoMBiasDeDx);
-        // fill dedx closure in fine p bins
-        dedxClosureInFinePBinsMatched_[myFinePBin]->Fill(noPEtaNoMBiasDeDx);
-        //dedxClosureInFinePBinsMatched_[myFinePBin]->Fill(dEdx);
-        //dedxClosureInFinePBinsMatched_[myFinePBin]->Fill(dEdx-meanIhEtaDep->Eval(fabs(trackEta))-meanIhNoMDep->Eval(trackNomE1));
+      if(fabs(trackEta) < 0.1 && Track_p[i] >= 350 && Track_p[i] < 355)
+      //if(myFineNoMBin==9 && Track_p[i] >= 350 && Track_p[i] < 355)
+        trackNumberOfMeasurementsVsSaturatedMeasurementsMatchedEta1P70Hist->Fill(Track_dEdxE1_NOS[i],Track_dEdxE1_NOM[i]);
 
-        // fill fineNoMbins plot -- bin taken from before
-        histsInFineNoMPBinsMatched_[myLessFinePBin][myFineNoMBin]->Fill(noPBiasDeDx-meanIhEtaDep->Eval(fabs(trackEta)));
-        histsInFineNoMPBinsMatchedEtaDist_[myLessFinePBin][myFineNoMBin]->Fill(trackEta);
-        // fill fine NoM bins pulls
-        //TODO
-        // fill fine NoM bins for closure
-        dedxClosureInFineNoMBinsMatched_[myFineNoMBin]->Fill(noPEtaNoMBiasDeDx);
-        //for(int j=0; j<numHits; ++j)
-        //{
-        //  float dEdx = Track_dEdxE1_hitCharges[i][j];
-        //  // Look only at inner strips
-        //  float hitDistance = Track_dEdxE1_hitDistances[i][j];
-        //  if(hitDistance < 20 || hitDistance > 55)
-        //    continue;
+      //for(int j=0; j<numHits; ++j)
+      //{
+      //  float dEdx = Track_dEdxE1_hitCharges[i][j];
+      //  //// Look only at inner strips
+      //  //float hitDistance = Track_dEdxE1_hitDistances[i][j];
+      //  //if(hitDistance < 20 || hitDistance > 55)
+      //  //  continue;
+      //  dedxHistsInNomBinsMatched_[myFineNoMBin]->Fill(dEdx,trackP,fabs(trackEta));
 
-        //}
+      //}
 
-        histsInFineEtaPBinsMatched_[myLessFinePBin][myFineEtaBin]->Fill(noPBiasDeDx);
-        // fill fine eta bins pulls
-        pullsInFineEtaPBinsMatched_[myLessFinePBin][myFineEtaBin]->Fill(noPEtaNoMBiasDeDx/sigmaIhPDep->Eval(trackP));
-        // fill fine eta bins for closure
-        //dedxClosureInFineEtaBinsMatched_[myFineEtaBin]->Fill(dEdx-meanIhPDep->Eval(trackP)-meanIhEtaDep->Eval(fabs(trackEta))-meanIhNoMDep->Eval(trackNomE1));
-        dedxClosureInFineEtaBinsMatched_[myFineEtaBin]->Fill(noPEtaNoMBiasDeDx/(sigmaIhPDep->Eval(trackP)*sqrt(sigmaIhEtaDep->Eval(fabs(trackEta)))));
+      // fill dedx 3-D plots
+      dedxHistsInNomBinsMatched_[myFineNoMBin]->Fill(dEdx,trackP,fabs(trackEta));
+      dedxHistsNoPBiasInNomBinsMatched_[myFineNoMBin]->Fill(noPBiasDeDx,trackP,fabs(trackEta));
+      //dedxHistsPullPSigmaInNomBinsMatched_[myFineNoMBin]->Fill(pullDeDxPSigma,trackP,fabs(trackEta));
+      //dedxHistsPullPEtaSigmaInNomBinsMatched_[myFineNoMBin]->Fill(pullDeDxPEtaSigma,trackP,fabs(trackEta));
+      //dedxHistsPullPEtaNomSigmaInNomBinsMatched_[myFineNoMBin]->Fill(pullDeDxPEtaNoMSigma,trackP,fabs(trackEta));
 
-        trackEtaVsDeDxE1MatchedHist->Fill(trackDeDxE1,trackEta);
-        if(Track_dEdxE1_numHits[i] >= 10 && Track_dEdxE1_numHits[i] <= 12)
-          trackEtaVsDeDxE1NoMRestrMatchedHist->Fill(trackDeDxE1,trackEta);
 
-        trackDeDxE1ClosureMatchedHist->Fill(noPBiasDeDx-meanIhEtaDep->Eval(fabs(trackEta))-meanIhNoMDep->Eval(trackNomE1));
+
+      trackEtaVsDeDxE1MatchedHist->Fill(trackDeDxE1,trackEta);
+      if(Track_dEdxE1_numHits[i] >= 10 && Track_dEdxE1_numHits[i] <= 12)
+        trackEtaVsDeDxE1NoMRestrMatchedHist->Fill(trackDeDxE1,trackEta);
+
+      trackDeDxE1ClosureMatchedHist->Fill(noPBiasDeDx-meanIhEtaDep->Eval(fabs(trackEta))-meanIhNoMDep->Eval(trackNomE1));
 
       int numHits2 = Track_dEdxE1_numHits[i];
       if(numHits2 > 14)
@@ -2777,121 +2627,8 @@ int main(int argc, char** argv)
   trackDeDxMatchedNoMSlicesDir->cd();
   for(int i=0; i<5; ++i)
     trackDeDxE1MatchedNoMSliceHists[i]->Write();
-  // TK dE/dx -- bins of NoM and Pt
-  TDirectory* trackDeDxNoMAndPtSlicesDir = outFile->mkdir("trackDeDxNoMAndPtSlices");
-  trackDeDxNoMAndPtSlicesDir->cd();
-  for(int i=0; i<numPtBins_; ++i)
-  {
-    for(int j=0; j<numNomBins_; ++j)
-    {
-      histsForPDFNoMPtBins_[i][j]->Write();
-      histsForPDFNoMPtBinsMatched_[i][j]->Write();
-    }
-  }
-  // TK dE/dx -- bins of NoM and P
-  TDirectory* trackDeDxNoMAndPSlicesDir = outFile->mkdir("trackDeDxNoMAndPSlices");
-  trackDeDxNoMAndPSlicesDir->cd();
-  for(int i=0; i<numPBins_; ++i)
-  {
-    for(int j=0; j<numNomBins_; ++j)
-    {
-      histsForPDFNoMPBins_[i][j]->Write();
-      histsForPDFNoMPBinsMatched_[i][j]->Write();
-    }
-  }
-  // TK dE/dx -- bins of NoM and P -- mu timing SB
-  TDirectory* trackDeDxNoMAndPSlicesMuTimingSBDir = outFile->mkdir("trackDeDxNoMAndPSlicesMuTimingSB");
-  trackDeDxNoMAndPSlicesMuTimingSBDir->cd();
-  for(int i=0; i<numPBins_; ++i)
-  {
-    for(int j=0; j<numNomBins_; ++j)
-    {
-      histsForPDFNoMPBinsMuSB_[i][j]->Write();
-      histsForPDFNoMPBinsMuSBMatched_[i][j]->Write();
-    }
-  }
-  // TK dE/dx -- hists in fine P bins
-  TDirectory* trackDeDxNoMAndFinePSlicesDir = outFile->mkdir("trackDeDxNoMAndFinePSlices");
-  trackDeDxNoMAndFinePSlicesDir->cd();
-  for(int i=0; i<200; ++i)
-  {
-    for(int j=0; j<5; ++j)
-    {
-      histsInNoMFinePBins_[i][j]->Write();
-      histsInNoMFinePBinsMatched_[i][j]->Write();
-    }
-  }
-  // TK dE/dx -- hists for closure in fine P bins
-  TDirectory* trackDeDxClosureFinePSlicesDir = outFile->mkdir("trackDeDxClosureFinePSlices");
-  trackDeDxClosureFinePSlicesDir->cd();
-  for(int i=0; i<200; ++i)
-  {
-    dedxClosureInFinePBins_[i]->Write();
-    dedxClosureInFinePBinsMatched_[i]->Write();
-  }
-  // TK dE/dx -- hists in fine NoM bins
-  TDirectory* trackDeDxFineNoMAndPSlicesDir = outFile->mkdir("trackDeDxFineNoMAndPSlices");
-  trackDeDxFineNoMAndPSlicesDir->cd();
-  for(int i=0; i<10; ++i)
-  {
-    for(int j=0; j<30; ++j)
-    {
-      histsInFineNoMPBins_[i][j]->Write();
-      histsInFineNoMPBinsMatched_[i][j]->Write();
-      histsInFineNoMPBinsEtaDist_[i][j]->Write();
-      histsInFineNoMPBinsMatchedEtaDist_[i][j]->Write();
-    }
-  }
-  // TK dE/dx -- hists in fine NoM bins pulls
-  TDirectory* trackDeDxFineNoMAndPSlicesPullsDir = outFile->mkdir("trackDeDxFineNoMAndPSlicesPulls");
-  trackDeDxFineNoMAndPSlicesPullsDir->cd();
-  for(int i=0; i<10; ++i)
-  {
-    for(int j=0; j<30; ++j)
-    {
-      pullsInFineNoMPBins_[i][j]->Write();
-      pullsInFineNoMPBinsMatched_[i][j]->Write();
-    }
-  }
-  // TK dE/dx -- hists for closure in fine NoM bins
-  TDirectory* trackDeDxClosureFineNoMSlicesDir = outFile->mkdir("trackDeDxClosureFineNoMSlices");
-  trackDeDxClosureFineNoMSlicesDir->cd();
-  for(int i=0; i<30; ++i)
-  {
-    dedxClosureInFineNoMBins_[i]->Write();
-    dedxClosureInFineNoMBinsMatched_[i]->Write();
-  }
-  // TK dE/dx -- hists in fine eta bins
-  TDirectory* trackDeDxFineEtaAndPSlicesDir = outFile->mkdir("trackDeDxFineEtaAndPSlices");
-  trackDeDxFineEtaAndPSlicesDir->cd();
-  for(int i=0; i<10; ++i)
-  {
-    for(int j=0; j<25; ++j)
-    {
-      histsInFineEtaPBins_[i][j]->Write();
-      histsInFineEtaPBinsMatched_[i][j]->Write();
-    }
-  }
-  // TK dE/dx -- hists in fine eta bins pulls
-  TDirectory* trackDeDxFineEtaAndPSlicesPullsDir = outFile->mkdir("trackDeDxFineEtaAndPSlicesPulls");
-  trackDeDxFineEtaAndPSlicesPullsDir->cd();
-  for(int i=0; i<10; ++i)
-  {
-    for(int j=0; j<25; ++j)
-    {
-      pullsInFineEtaPBins_[i][j]->Write();
-      pullsInFineEtaPBinsMatched_[i][j]->Write();
-    }
-  }
-  // TK dE/dx -- hists for closure in fine eta bins
-  TDirectory* trackDeDxClosureFineEtaSlicesDir = outFile->mkdir("trackDeDxClosureFineEtaSlices");
-  trackDeDxClosureFineEtaSlicesDir->cd();
-  for(int i=0; i<25; ++i)
-  {
-    dedxClosureInFineEtaBins_[i]->Write();
-    dedxClosureInFineEtaBinsMatched_[i]->Write();
-  }
 
+  // TK dE/dx -- hists for slicing
 
   outFile->cd();
   // write rest of hists here
@@ -2985,6 +2722,47 @@ int main(int argc, char** argv)
   trackEtaPtSlice11Hist->Write();
   trackEtaPtSlice12Hist->Write();
 
+  TDirectory* dedxHistsInNomBinsDir = outFile->mkdir("dedxHistsInNomBins");
+  dedxHistsInNomBinsDir->cd();
+  for(int i=0; i < numNomBins_; ++i)
+  {
+    dedxHistsInNomBins_[i]->Write();
+    dedxHistsNoPBiasInNomBins_[i]->Write();
+    //dedxHistsPullPSigmaInNomBins_[i]->Write();
+    //dedxHistsPullPEtaSigmaInNomBins_[i]->Write();
+    //dedxHistsPullPEtaNomSigmaInNomBins_[i]->Write();
+  }
+  TDirectory* dedxHistsInNomBinsMatchedDir = outFile->mkdir("dedxHistsInNomBinsMatched");
+  dedxHistsInNomBinsMatchedDir->cd();
+  for(int i=0; i < numNomBins_; ++i)
+  {
+    dedxHistsInNomBinsMatched_[i]->Write();
+    dedxHistsNoPBiasInNomBinsMatched_[i]->Write();
+    //dedxHistsPullPSigmaInNomBinsMatched_[i]->Write();
+    //dedxHistsPullPEtaSigmaInNomBinsMatched_[i]->Write();
+    //dedxHistsPullPEtaNomSigmaInNomBinsMatched_[i]->Write();
+  }
+  TDirectory* dedxHistsMuSBInNomBinsDir = outFile->mkdir("dedxHistsMuSBInNomBins");
+  dedxHistsMuSBInNomBinsDir->cd();
+  for(int i=0; i < numNomBins_; ++i)
+  {
+    dedxHistsMuSBInNomBinsMatched_[i]->Write();
+    //dedxHistsMuSBNoPBiasInNomBinsMatched_[i]->Write();
+    //dedxHistsMuSBPullPSigmaInNomBinsMatched_[i]->Write();
+    //dedxHistsMuSBPullPEtaSigmaInNomBinsMatched_[i]->Write();
+    //dedxHistsMuSBPullPEtaNomSigmaInNomBinsMatched_[i]->Write();
+  }
+  TDirectory* dedxHistsMuSBInNomBinsMatchedDir = outFile->mkdir("dedxHistsMuSBInNomBinsMatched");
+  dedxHistsMuSBInNomBinsMatchedDir->cd();
+  for(int i=0; i < numNomBins_; ++i)
+  {
+    dedxHistsMuSBInNomBinsMatched_[i]->Write();
+    //dedxHistsMuSBNoPBiasInNomBinsMatched_[i]->Write();
+    //dedxHistsMuSBPullPSigmaInNomBinsMatched_[i]->Write();
+    //dedxHistsMuSBPullPEtaSigmaInNomBinsMatched_[i]->Write();
+    //dedxHistsMuSBPullPEtaNomSigmaInNomBinsMatched_[i]->Write();
+  }
+
   // misc
   outFile->cd();
   trackNumberOfMeasurementsHist->Write();
@@ -2999,6 +2777,11 @@ int main(int argc, char** argv)
   trackNumberOfMeasurementsVsPMatchedHist->Write();
   trackNumberOfSatMeasurementsVsPHist->Write();
   trackNumberOfSatMeasurementsVsPMatchedHist->Write();
+  trackNumberOfMeasurementsVsSaturatedMeasurementsHist->Write();
+  trackNumberOfMeasurementsVsSaturatedMeasurementsMatchedHist->Write();
+  trackNumberOfMeasurementsVsSaturatedMeasurementsMatchedEta1P70Hist->Write();
+  trackNumberOfHitsVsPHist->Write();
+  trackNumberOfHitsVsPMatchedHist->Write();
 
   // Ecal timing E slices
   TDirectory* ecalHitTimingESlicesDir = outFile->mkdir("EcalHitTimingESlices");
