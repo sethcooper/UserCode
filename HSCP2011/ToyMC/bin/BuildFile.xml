@@ -29,6 +29,7 @@
 <bin   name="getNumTracksInPtSlices" file="getNumTracksInPtSlices.cpp">
   <use   name="root"/>
 </bin>
-<bin   name="getNumTracksInPSlices" file="getNumTracksInPSlices.cpp">
+<bin   name="plotDeDxPdep" file="plotDeDxPdep.cpp">
   <use   name="root"/>
+  <use   name="rootgraphics"/>
 </bin>
