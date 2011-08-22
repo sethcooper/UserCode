@@ -58,6 +58,18 @@ TH3F* dedxHistsMuSBNoPBiasInNomBinsMatched_[30];
 //TH3F* dedxHistsMuSBPullPEtaSigmaInNomBinsMatched_[30];
 //TH3F* dedxHistsMuSBPullPEtaNomSigmaInNomBinsMatched_[30];
 
+// parameters for residuals
+// see hscp/aug19 web directory (allDeDx); pcminn19:/data3/scooper/cmssw/426/HSCPStudiesAndToyMC/src/HSCP2011/ToyMC/bin/1.aug9.dedxPlots.aug19
+float dedxMeanBetaDepResParamsEtaRegion1[5]; // eta1  -- only 5 params here (no x-shift)
+float dedxMeanBetaDepResParamsEtaRegion2[5]; // eta10 -- only 5 params here (no x-shift)
+float dedxMeanBetaDepResParamsEtaRegion3[5]; // eta17 -- only 5 params here (no x-shift)
+float dedxMeanBetaDepResShiftParamsEtaRegion1[8]; // eta 2-9
+float dedxMeanBetaDepResShiftParamsEtaRegion2[6]; // eta 11-16
+float dedxMeanBetaDepResShiftParamsEtaRegion3[8]; // eta 18-25
+// parameters for beta*gamma dependence of Ih
+// see plots in hscp/aug11 web directory; pcminn19:/data3/scooper/cmssw/426/HSCPStudiesAndToyMC/src/HSCP2011/ToyMC/bin/1.aug10.dedxPlots.aug11
+double dedxMeanBetaDepEtaParam0[25];
+double dedxMeanBetaDepEtaParam1[25];
 
 // ------------------ Function to parse the command-line arguments------------------------
 void parseArguments(int argc, char** argv)
@@ -264,18 +276,18 @@ int findFineNoMBin(int nom)
 
   return nom-1;
 }
-//
-//int findFineEtaBin(float eta)
-//{
-//  if(eta >= 2.5)
-//    return 24;
-//  else if(eta <= -2.5)
-//    return 0;
-//
-//  int bin = eta/0.1;
-//  if(eta < 0)
-//    return bin
-//}
+
+int findFineEtaBin(float eta)
+{
+  if(eta >= 2.5)
+    return 24;
+  else if(eta <= -2.5)
+    return 0;
+
+  int bin = fabs(eta)/0.1;
+
+  return bin;
+}
 
 std::string generateTitleEnd(int lpbound, int rpbound, int lnombound, int rnombound)
 {
@@ -321,273 +333,9 @@ std::string generateNoMTitleEnd(int lpbound, int rpbound)
   return title;
 }
 
-// residuals from P vs. beta fit; function of eta
-// see hscp/aug19 web directory (allDeDx); pcminn19:/data3/scooper/cmssw/426/HSCPStudiesAndToyMC/src/HSCP2011/ToyMC/bin/1.aug9.dedxPlots.aug19
-TF1 getDeDxResFuncFromEtaSlice(int etaSlice)
+void initBetaGammaResDepParams()
 {
-  using namespace std;
-  float dedxMeanBetaDepResParamsEtaRegion1[5]; // eta1  -- only 5 params here (no x-shift)
-  float dedxMeanBetaDepResParamsEtaRegion2[5]; // eta10 -- only 5 params here (no x-shift)
-  float dedxMeanBetaDepResParamsEtaRegion3[5]; // eta17 -- only 5 params here (no x-shift)
-  float dedxMeanBetaDepResShiftParamsEtaRegion1[8]; // eta 2-9
-  float dedxMeanBetaDepResShiftParamsEtaRegion2[6]; // eta 11-16
-  float dedxMeanBetaDepResShiftParamsEtaRegion3[8]; // eta 18-25
-  dedxMeanBetaDepResParamsEtaRegion1[0] = 1.175;     // eta1, p0
-  dedxMeanBetaDepResParamsEtaRegion1[1] = -0.6654;
-  dedxMeanBetaDepResParamsEtaRegion1[2] = 0.1128;
-  dedxMeanBetaDepResParamsEtaRegion1[3] = -0.005684;
-  dedxMeanBetaDepResParamsEtaRegion1[4] = 0.0001248;
-  dedxMeanBetaDepResParamsEtaRegion2[0] = 2.157;     // eta10, p0
-  dedxMeanBetaDepResParamsEtaRegion2[1] = -1.132;
-  dedxMeanBetaDepResParamsEtaRegion2[2] = 0.1678;
-  dedxMeanBetaDepResParamsEtaRegion2[3] = -0.006097;
-  dedxMeanBetaDepResParamsEtaRegion2[4] = 7.801e-5;
-  dedxMeanBetaDepResParamsEtaRegion3[0] = -0.8409;   // eta17, p0
-  dedxMeanBetaDepResParamsEtaRegion3[1] = 0.983;
-  dedxMeanBetaDepResParamsEtaRegion3[2] = -0.3519;
-  dedxMeanBetaDepResParamsEtaRegion3[3] = 0.04381;
-  dedxMeanBetaDepResParamsEtaRegion3[4] = -0.001524;
-  // region 1 params
-  dedxMeanBetaDepResShiftParamsEtaRegion1[0] = 1.024;  // eta2
-  dedxMeanBetaDepResShiftParamsEtaRegion1[1] = 0.9997; // eta3
-  dedxMeanBetaDepResShiftParamsEtaRegion1[2] = 0.9944; // eta4
-  dedxMeanBetaDepResShiftParamsEtaRegion1[3] = 1.058;  // eta5
-  dedxMeanBetaDepResShiftParamsEtaRegion1[4] = 1.149;  // eta6
-  dedxMeanBetaDepResShiftParamsEtaRegion1[5] = 1.214;  // eta7
-  dedxMeanBetaDepResShiftParamsEtaRegion1[6] = 0;      // eta8 --> XXX ignore for now
-  dedxMeanBetaDepResShiftParamsEtaRegion1[7] = 1.278;  // eta9
-  // region 2 params
-  dedxMeanBetaDepResShiftParamsEtaRegion2[0] = 1.011;  // eta11
-  dedxMeanBetaDepResShiftParamsEtaRegion2[1] = 1.139;  // eta12
-  dedxMeanBetaDepResShiftParamsEtaRegion2[2] = 1.076;  // eta13
-  dedxMeanBetaDepResShiftParamsEtaRegion2[3] = 1.089;  // eta14
-  dedxMeanBetaDepResShiftParamsEtaRegion2[4] = 1.033;  // eta15
-  dedxMeanBetaDepResShiftParamsEtaRegion2[5] = 1.035;  // eta16
-  // region 3 params
-  dedxMeanBetaDepResShiftParamsEtaRegion3[0] = 0.95;   // eta18
-  dedxMeanBetaDepResShiftParamsEtaRegion3[1] = 0.9292; // eta19
-  dedxMeanBetaDepResShiftParamsEtaRegion3[2] = 0.909;  // eta20
-  dedxMeanBetaDepResShiftParamsEtaRegion3[3] = 0.8932; // eta21
-  dedxMeanBetaDepResShiftParamsEtaRegion3[4] = 0.8786; // eta22
-  dedxMeanBetaDepResShiftParamsEtaRegion3[5] = 0.8575; // eta23
-  dedxMeanBetaDepResShiftParamsEtaRegion3[6] = 0;      // eta24 --> XXX ignore for now
-  dedxMeanBetaDepResShiftParamsEtaRegion3[7] = 0;      // eta25 --> XXX ignore for now
-
-  TF1* returnFunc = new TF1();
-  switch(etaSlice)
-  {
-    case 1:
-      returnFunc = new TF1(("dedxMeanBetaDepResFuncEta"+intToString(etaSlice)).c_str(),
-          "[0]+[1]*x+[2]*x^2+[3]*x^3+[4]*x^4",3,25);
-      returnFunc->SetParameters(dedxMeanBetaDepResParamsEtaRegion1[0],
-          dedxMeanBetaDepResParamsEtaRegion1[1],dedxMeanBetaDepResParamsEtaRegion1[2],
-          dedxMeanBetaDepResParamsEtaRegion1[3],dedxMeanBetaDepResParamsEtaRegion1[4]);
-      break;
-    case 2:
-      returnFunc = new TF1(("dedxMeanBetaDepResFuncEta"+intToString(etaSlice)).c_str(),
-          "[0]+[1]*[5]*x+[2]*([5]*x)^2+[3]*([5]*x)^3+[4]*([5]*x)^4",3,25);
-      returnFunc->SetParameters(dedxMeanBetaDepResParamsEtaRegion1[0],
-          dedxMeanBetaDepResParamsEtaRegion1[1],dedxMeanBetaDepResParamsEtaRegion1[2],
-          dedxMeanBetaDepResParamsEtaRegion1[3],dedxMeanBetaDepResParamsEtaRegion1[4],
-          dedxMeanBetaDepResShiftParamsEtaRegion1[0]);
-      break;
-    case 3:
-      returnFunc = new TF1(("dedxMeanBetaDepResFuncEta"+intToString(etaSlice)).c_str(),
-          "[0]+[1]*[5]*x+[2]*([5]*x)^2+[3]*([5]*x)^3+[4]*([5]*x)^4",3,25);
-      returnFunc->SetParameters(dedxMeanBetaDepResParamsEtaRegion1[0],
-          dedxMeanBetaDepResParamsEtaRegion1[1],dedxMeanBetaDepResParamsEtaRegion1[2],
-          dedxMeanBetaDepResParamsEtaRegion1[3],dedxMeanBetaDepResParamsEtaRegion1[4],
-          dedxMeanBetaDepResShiftParamsEtaRegion1[1]);
-      break;
-    case 4:
-      returnFunc = new TF1(("dedxMeanBetaDepResFuncEta"+intToString(etaSlice)).c_str(),
-          "[0]+[1]*[5]*x+[2]*([5]*x)^2+[3]*([5]*x)^3+[4]*([5]*x)^4",3,25);
-      returnFunc->SetParameters(dedxMeanBetaDepResParamsEtaRegion1[0],
-          dedxMeanBetaDepResParamsEtaRegion1[1],dedxMeanBetaDepResParamsEtaRegion1[2],
-          dedxMeanBetaDepResParamsEtaRegion1[3],dedxMeanBetaDepResParamsEtaRegion1[4],
-          dedxMeanBetaDepResShiftParamsEtaRegion1[2]);
-      break;
-    case 5:
-      returnFunc = new TF1(("dedxMeanBetaDepResFuncEta"+intToString(etaSlice)).c_str(),
-          "[0]+[1]*[5]*x+[2]*([5]*x)^2+[3]*([5]*x)^3+[4]*([5]*x)^4",3,25);
-      returnFunc->SetParameters(dedxMeanBetaDepResParamsEtaRegion1[0],
-          dedxMeanBetaDepResParamsEtaRegion1[1],dedxMeanBetaDepResParamsEtaRegion1[2],
-          dedxMeanBetaDepResParamsEtaRegion1[3],dedxMeanBetaDepResParamsEtaRegion1[4],
-          dedxMeanBetaDepResShiftParamsEtaRegion1[3]);
-      break;
-    case 6:
-      returnFunc = new TF1(("dedxMeanBetaDepResFuncEta"+intToString(etaSlice)).c_str(),
-          "[0]+[1]*[5]*x+[2]*([5]*x)^2+[3]*([5]*x)^3+[4]*([5]*x)^4",3,25);
-      returnFunc->SetParameters(dedxMeanBetaDepResParamsEtaRegion1[0],
-          dedxMeanBetaDepResParamsEtaRegion1[1],dedxMeanBetaDepResParamsEtaRegion1[2],
-          dedxMeanBetaDepResParamsEtaRegion1[3],dedxMeanBetaDepResParamsEtaRegion1[4],
-          dedxMeanBetaDepResShiftParamsEtaRegion1[4]);
-      break;
-    case 7:
-      returnFunc = new TF1(("dedxMeanBetaDepResFuncEta"+intToString(etaSlice)).c_str(),
-          "[0]+[1]*[5]*x+[2]*([5]*x)^2+[3]*([5]*x)^3+[4]*([5]*x)^4",3,25);
-      returnFunc->SetParameters(dedxMeanBetaDepResParamsEtaRegion1[0],
-          dedxMeanBetaDepResParamsEtaRegion1[1],dedxMeanBetaDepResParamsEtaRegion1[2],
-          dedxMeanBetaDepResParamsEtaRegion1[3],dedxMeanBetaDepResParamsEtaRegion1[4],
-          dedxMeanBetaDepResShiftParamsEtaRegion1[5]);
-      break;
-    case 8:
-      returnFunc = new TF1(("dedxMeanBetaDepResFuncEta"+intToString(etaSlice)).c_str(),
-          "[0]+[1]*[5]*x+[2]*([5]*x)^2+[3]*([5]*x)^3+[4]*([5]*x)^4",3,25);
-      returnFunc->SetParameters(dedxMeanBetaDepResParamsEtaRegion1[0],
-          dedxMeanBetaDepResParamsEtaRegion1[1],dedxMeanBetaDepResParamsEtaRegion1[2],
-          dedxMeanBetaDepResParamsEtaRegion1[3],dedxMeanBetaDepResParamsEtaRegion1[4],
-          dedxMeanBetaDepResShiftParamsEtaRegion1[6]);
-      break;
-    case 9:
-      returnFunc = new TF1(("dedxMeanBetaDepResFuncEta"+intToString(etaSlice)).c_str(),
-          "[0]+[1]*[5]*x+[2]*([5]*x)^2+[3]*([5]*x)^3+[4]*([5]*x)^4",3,25);
-      returnFunc->SetParameters(dedxMeanBetaDepResParamsEtaRegion1[0],
-          dedxMeanBetaDepResParamsEtaRegion1[1],dedxMeanBetaDepResParamsEtaRegion1[2],
-          dedxMeanBetaDepResParamsEtaRegion1[3],dedxMeanBetaDepResParamsEtaRegion1[4],
-          dedxMeanBetaDepResShiftParamsEtaRegion1[7]);
-      break;
-    // region 2
-    case 10:
-      returnFunc = new TF1(("dedxMeanBetaDepResFuncEta"+intToString(etaSlice)).c_str(),
-          "[0]+[1]*x+[2]*x^2+[3]*x^3+[4]*x^4",3,25);
-      returnFunc->SetParameters(dedxMeanBetaDepResParamsEtaRegion2[0],
-          dedxMeanBetaDepResParamsEtaRegion2[1],dedxMeanBetaDepResParamsEtaRegion2[2],
-          dedxMeanBetaDepResParamsEtaRegion2[3],dedxMeanBetaDepResParamsEtaRegion2[4]);
-      break;
-    case 11:
-      returnFunc = new TF1(("dedxMeanBetaDepResFuncEta"+intToString(etaSlice)).c_str(),
-          "[0]+[1]*[5]*x+[2]*([5]*x)^2+[3]*([5]*x)^3+[4]*([5]*x)^4",3,25);
-      returnFunc->SetParameters(dedxMeanBetaDepResParamsEtaRegion2[0],
-          dedxMeanBetaDepResParamsEtaRegion2[1],dedxMeanBetaDepResParamsEtaRegion2[2],
-          dedxMeanBetaDepResParamsEtaRegion2[3],dedxMeanBetaDepResParamsEtaRegion2[4],
-          dedxMeanBetaDepResShiftParamsEtaRegion2[0]);
-      break;
-    case 12:
-      returnFunc = new TF1(("dedxMeanBetaDepResFuncEta"+intToString(etaSlice)).c_str(),
-          "[0]+[1]*[5]*x+[2]*([5]*x)^2+[3]*([5]*x)^3+[4]*([5]*x)^4",3,25);
-      returnFunc->SetParameters(dedxMeanBetaDepResParamsEtaRegion2[0],
-          dedxMeanBetaDepResParamsEtaRegion2[1],dedxMeanBetaDepResParamsEtaRegion2[2],
-          dedxMeanBetaDepResParamsEtaRegion2[3],dedxMeanBetaDepResParamsEtaRegion2[4],
-          dedxMeanBetaDepResShiftParamsEtaRegion2[1]);
-      break;
-    case 13:
-      returnFunc = new TF1(("dedxMeanBetaDepResFuncEta"+intToString(etaSlice)).c_str(),
-          "[0]+[1]*[5]*x+[2]*([5]*x)^2+[3]*([5]*x)^3+[4]*([5]*x)^4",3,25);
-      returnFunc->SetParameters(dedxMeanBetaDepResParamsEtaRegion2[0],
-          dedxMeanBetaDepResParamsEtaRegion2[1],dedxMeanBetaDepResParamsEtaRegion2[2],
-          dedxMeanBetaDepResParamsEtaRegion2[3],dedxMeanBetaDepResParamsEtaRegion2[4],
-          dedxMeanBetaDepResShiftParamsEtaRegion2[2]);
-      break;
-    case 14:
-      returnFunc = new TF1(("dedxMeanBetaDepResFuncEta"+intToString(etaSlice)).c_str(),
-          "[0]+[1]*[5]*x+[2]*([5]*x)^2+[3]*([5]*x)^3+[4]*([5]*x)^4",3,25);
-      returnFunc->SetParameters(dedxMeanBetaDepResParamsEtaRegion2[0],
-          dedxMeanBetaDepResParamsEtaRegion2[1],dedxMeanBetaDepResParamsEtaRegion2[2],
-          dedxMeanBetaDepResParamsEtaRegion2[3],dedxMeanBetaDepResParamsEtaRegion2[4],
-          dedxMeanBetaDepResShiftParamsEtaRegion2[3]);
-      break;
-    case 15:
-      returnFunc = new TF1(("dedxMeanBetaDepResFuncEta"+intToString(etaSlice)).c_str(),
-          "[0]+[1]*[5]*x+[2]*([5]*x)^2+[3]*([5]*x)^3+[4]*([5]*x)^4",3,25);
-      returnFunc->SetParameters(dedxMeanBetaDepResParamsEtaRegion2[0],
-          dedxMeanBetaDepResParamsEtaRegion2[1],dedxMeanBetaDepResParamsEtaRegion2[2],
-          dedxMeanBetaDepResParamsEtaRegion2[3],dedxMeanBetaDepResParamsEtaRegion2[4],
-          dedxMeanBetaDepResShiftParamsEtaRegion2[4]);
-      break;
-    case 16:
-      returnFunc = new TF1(("dedxMeanBetaDepResFuncEta"+intToString(etaSlice)).c_str(),
-          "[0]+[1]*[5]*x+[2]*([5]*x)^2+[3]*([5]*x)^3+[4]*([5]*x)^4",3,25);
-      returnFunc->SetParameters(dedxMeanBetaDepResParamsEtaRegion2[0],
-          dedxMeanBetaDepResParamsEtaRegion2[1],dedxMeanBetaDepResParamsEtaRegion2[2],
-          dedxMeanBetaDepResParamsEtaRegion2[3],dedxMeanBetaDepResParamsEtaRegion2[4],
-          dedxMeanBetaDepResShiftParamsEtaRegion2[5]);
-      break;
-    // region 3
-    case 17:
-      returnFunc = new TF1(("dedxMeanBetaDepResFuncEta"+intToString(etaSlice)).c_str(),
-          "[0]+[1]*x+[2]*x^2+[3]*x^3+[4]*x^4",3,25);
-      returnFunc->SetParameters(dedxMeanBetaDepResParamsEtaRegion3[0],
-          dedxMeanBetaDepResParamsEtaRegion3[1],dedxMeanBetaDepResParamsEtaRegion3[2],
-          dedxMeanBetaDepResParamsEtaRegion3[3],dedxMeanBetaDepResParamsEtaRegion3[4]);
-      break;
-    case 18:
-      returnFunc = new TF1(("dedxMeanBetaDepResFuncEta"+intToString(etaSlice)).c_str(),
-          "[0]+[1]*[5]*x+[2]*([5]*x)^2+[3]*([5]*x)^3+[4]*([5]*x)^4",3,25);
-      returnFunc->SetParameters(dedxMeanBetaDepResParamsEtaRegion3[0],
-          dedxMeanBetaDepResParamsEtaRegion3[1],dedxMeanBetaDepResParamsEtaRegion3[2],
-          dedxMeanBetaDepResParamsEtaRegion3[3],dedxMeanBetaDepResParamsEtaRegion3[4],
-          dedxMeanBetaDepResShiftParamsEtaRegion3[0]);
-      break;
-    case 19:
-      returnFunc = new TF1(("dedxMeanBetaDepResFuncEta"+intToString(etaSlice)).c_str(),
-          "[0]+[1]*[5]*x+[2]*([5]*x)^2+[3]*([5]*x)^3+[4]*([5]*x)^4",3,25);
-      returnFunc->SetParameters(dedxMeanBetaDepResParamsEtaRegion3[0],
-          dedxMeanBetaDepResParamsEtaRegion3[1],dedxMeanBetaDepResParamsEtaRegion3[2],
-          dedxMeanBetaDepResParamsEtaRegion3[3],dedxMeanBetaDepResParamsEtaRegion3[4],
-          dedxMeanBetaDepResShiftParamsEtaRegion3[1]);
-      break;
-    case 20:
-      returnFunc = new TF1(("dedxMeanBetaDepResFuncEta"+intToString(etaSlice)).c_str(),
-          "[0]+[1]*[5]*x+[2]*([5]*x)^2+[3]*([5]*x)^3+[4]*([5]*x)^4",3,25);
-      returnFunc->SetParameters(dedxMeanBetaDepResParamsEtaRegion3[0],
-          dedxMeanBetaDepResParamsEtaRegion3[1],dedxMeanBetaDepResParamsEtaRegion3[2],
-          dedxMeanBetaDepResParamsEtaRegion3[3],dedxMeanBetaDepResParamsEtaRegion3[4],
-          dedxMeanBetaDepResShiftParamsEtaRegion3[2]);
-      break;
-    case 21:
-      returnFunc = new TF1(("dedxMeanBetaDepResFuncEta"+intToString(etaSlice)).c_str(),
-          "[0]+[1]*[5]*x+[2]*([5]*x)^2+[3]*([5]*x)^3+[4]*([5]*x)^4",3,25);
-      returnFunc->SetParameters(dedxMeanBetaDepResParamsEtaRegion3[0],
-          dedxMeanBetaDepResParamsEtaRegion3[1],dedxMeanBetaDepResParamsEtaRegion3[2],
-          dedxMeanBetaDepResParamsEtaRegion3[3],dedxMeanBetaDepResParamsEtaRegion3[4],
-          dedxMeanBetaDepResShiftParamsEtaRegion3[3]);
-      break;
-    case 22:
-      returnFunc = new TF1(("dedxMeanBetaDepResFuncEta"+intToString(etaSlice)).c_str(),
-          "[0]+[1]*[5]*x+[2]*([5]*x)^2+[3]*([5]*x)^3+[4]*([5]*x)^4",3,25);
-      returnFunc->SetParameters(dedxMeanBetaDepResParamsEtaRegion3[0],
-          dedxMeanBetaDepResParamsEtaRegion3[1],dedxMeanBetaDepResParamsEtaRegion3[2],
-          dedxMeanBetaDepResParamsEtaRegion3[3],dedxMeanBetaDepResParamsEtaRegion3[4],
-          dedxMeanBetaDepResShiftParamsEtaRegion3[4]);
-      break;
-    case 23:
-      returnFunc = new TF1(("dedxMeanBetaDepResFuncEta"+intToString(etaSlice)).c_str(),
-          "[0]+[1]*[5]*x+[2]*([5]*x)^2+[3]*([5]*x)^3+[4]*([5]*x)^4",3,25);
-      returnFunc->SetParameters(dedxMeanBetaDepResParamsEtaRegion3[0],
-          dedxMeanBetaDepResParamsEtaRegion3[1],dedxMeanBetaDepResParamsEtaRegion3[2],
-          dedxMeanBetaDepResParamsEtaRegion3[3],dedxMeanBetaDepResParamsEtaRegion3[4],
-          dedxMeanBetaDepResShiftParamsEtaRegion3[5]);
-      break;
-    case 24:
-      returnFunc = new TF1(("dedxMeanBetaDepResFuncEta"+intToString(etaSlice)).c_str(),
-          "[0]+[1]*[5]*x+[2]*([5]*x)^2+[3]*([5]*x)^3+[4]*([5]*x)^4",3,25);
-      returnFunc->SetParameters(dedxMeanBetaDepResParamsEtaRegion3[0],
-          dedxMeanBetaDepResParamsEtaRegion3[1],dedxMeanBetaDepResParamsEtaRegion3[2],
-          dedxMeanBetaDepResParamsEtaRegion3[3],dedxMeanBetaDepResParamsEtaRegion3[4],
-          dedxMeanBetaDepResShiftParamsEtaRegion3[6]);
-      break;
-    case 25:
-      returnFunc = new TF1(("dedxMeanBetaDepResFuncEta"+intToString(etaSlice)).c_str(),
-          "[0]+[1]*[5]*x+[2]*([5]*x)^2+[3]*([5]*x)^3+[4]*([5]*x)^4",3,25);
-      returnFunc->SetParameters(dedxMeanBetaDepResParamsEtaRegion3[0],
-          dedxMeanBetaDepResParamsEtaRegion3[1],dedxMeanBetaDepResParamsEtaRegion3[2],
-          dedxMeanBetaDepResParamsEtaRegion3[3],dedxMeanBetaDepResParamsEtaRegion3[4],
-          dedxMeanBetaDepResShiftParamsEtaRegion3[7]);
-      break;
-  }
-
-  return *returnFunc;
-}
-
-// beta*gamma dependence fit; function of eta
-// see plots in hscp/aug11 web directory; pcminn19:/data3/scooper/cmssw/426/HSCPStudiesAndToyMC/src/HSCP2011/ToyMC/bin/1.aug10.dedxPlots.aug11
-TF1 getDeDxBetaGammaFuncFromEtaSlice(int etaSlice)
-{
-  // fitted beta*gamma dependence function in eta slices, with parameters
-  TF1* dedxMeanBetaDepFunc = new TF1("dedxMeanBetaDepFunc","[0]+[1]*((1-x^2)/x^2)",0.4,1);
-  double dedxMeanBetaDepEtaParam0[25];
-  double dedxMeanBetaDepEtaParam1[25];
+  // see plots in hscp/aug11 web directory; pcminn19:/data3/scooper/cmssw/426/HSCPStudiesAndToyMC/src/HSCP2011/ToyMC/bin/1.aug10.dedxPlots.aug11
   dedxMeanBetaDepEtaParam0[0] = 2.412;
   dedxMeanBetaDepEtaParam1[0] = 2.348;
   dedxMeanBetaDepEtaParam0[1] = 2.366; 
@@ -638,10 +386,270 @@ TF1 getDeDxBetaGammaFuncFromEtaSlice(int etaSlice)
   dedxMeanBetaDepEtaParam1[23] = 1.455;
   dedxMeanBetaDepEtaParam0[24] = 2.664;
   dedxMeanBetaDepEtaParam1[24] = 1.902;
+  // see hscp/aug19 web directory (allDeDx); pcminn19:/data3/scooper/cmssw/426/HSCPStudiesAndToyMC/src/HSCP2011/ToyMC/bin/1.aug9.dedxPlots.aug19
+  dedxMeanBetaDepResParamsEtaRegion1[0] = 1.175;     // eta1, p0
+  dedxMeanBetaDepResParamsEtaRegion1[1] = -0.6654;
+  dedxMeanBetaDepResParamsEtaRegion1[2] = 0.1128;
+  dedxMeanBetaDepResParamsEtaRegion1[3] = -0.005684;
+  dedxMeanBetaDepResParamsEtaRegion1[4] = 0.0001248;
+  dedxMeanBetaDepResParamsEtaRegion2[0] = 2.157;     // eta10, p0
+  dedxMeanBetaDepResParamsEtaRegion2[1] = -1.132;
+  dedxMeanBetaDepResParamsEtaRegion2[2] = 0.1678;
+  dedxMeanBetaDepResParamsEtaRegion2[3] = -0.006097;
+  dedxMeanBetaDepResParamsEtaRegion2[4] = 7.801e-5;
+  dedxMeanBetaDepResParamsEtaRegion3[0] = -0.8409;   // eta17, p0
+  dedxMeanBetaDepResParamsEtaRegion3[1] = 0.983;
+  dedxMeanBetaDepResParamsEtaRegion3[2] = -0.3519;
+  dedxMeanBetaDepResParamsEtaRegion3[3] = 0.04381;
+  dedxMeanBetaDepResParamsEtaRegion3[4] = -0.001524;
+  // region 1 params
+  dedxMeanBetaDepResShiftParamsEtaRegion1[0] = 1.024;  // eta2
+  dedxMeanBetaDepResShiftParamsEtaRegion1[1] = 0.9997; // eta3
+  dedxMeanBetaDepResShiftParamsEtaRegion1[2] = 0.9944; // eta4
+  dedxMeanBetaDepResShiftParamsEtaRegion1[3] = 1.058;  // eta5
+  dedxMeanBetaDepResShiftParamsEtaRegion1[4] = 1.149;  // eta6
+  dedxMeanBetaDepResShiftParamsEtaRegion1[5] = 1.214;  // eta7
+  dedxMeanBetaDepResShiftParamsEtaRegion1[6] = 0;      // eta8 --> XXX ignore for now
+  dedxMeanBetaDepResShiftParamsEtaRegion1[7] = 1.278;  // eta9
+  // region 2 params
+  dedxMeanBetaDepResShiftParamsEtaRegion2[0] = 1.011;  // eta11
+  dedxMeanBetaDepResShiftParamsEtaRegion2[1] = 1.139;  // eta12
+  dedxMeanBetaDepResShiftParamsEtaRegion2[2] = 1.076;  // eta13
+  dedxMeanBetaDepResShiftParamsEtaRegion2[3] = 1.089;  // eta14
+  dedxMeanBetaDepResShiftParamsEtaRegion2[4] = 1.033;  // eta15
+  dedxMeanBetaDepResShiftParamsEtaRegion2[5] = 1.035;  // eta16
+  // region 3 params
+  dedxMeanBetaDepResShiftParamsEtaRegion3[0] = 0.95;   // eta18
+  dedxMeanBetaDepResShiftParamsEtaRegion3[1] = 0.9292; // eta19
+  dedxMeanBetaDepResShiftParamsEtaRegion3[2] = 0.909;  // eta20
+  dedxMeanBetaDepResShiftParamsEtaRegion3[3] = 0.8932; // eta21
+  dedxMeanBetaDepResShiftParamsEtaRegion3[4] = 0.8786; // eta22
+  dedxMeanBetaDepResShiftParamsEtaRegion3[5] = 0.8575; // eta23
+  dedxMeanBetaDepResShiftParamsEtaRegion3[6] = 0;      // eta24 --> XXX ignore for now
+  dedxMeanBetaDepResShiftParamsEtaRegion3[7] = 0;      // eta25 --> XXX ignore for now
+}
+
+// residuals from P vs. beta fit; function of eta
+// see hscp/aug19 web directory (allDeDx); pcminn19:/data3/scooper/cmssw/426/HSCPStudiesAndToyMC/src/HSCP2011/ToyMC/bin/1.aug9.dedxPlots.aug19
+TF1 getDeDxResFuncFromEtaSlice(int etaSlice)
+{
+  TF1 returnFunc;
+  switch(etaSlice)
+  {
+    case 1:
+      returnFunc = TF1(("dedxMeanBetaDepResFuncEta"+intToString(etaSlice)).c_str(),
+          "[0]+[1]*x+[2]*x^2+[3]*x^3+[4]*x^4",3,25);
+      returnFunc.SetParameters(dedxMeanBetaDepResParamsEtaRegion1[0],
+          dedxMeanBetaDepResParamsEtaRegion1[1],dedxMeanBetaDepResParamsEtaRegion1[2],
+          dedxMeanBetaDepResParamsEtaRegion1[3],dedxMeanBetaDepResParamsEtaRegion1[4]);
+      return returnFunc;
+    case 2:
+      returnFunc = TF1(("dedxMeanBetaDepResFuncEta"+intToString(etaSlice)).c_str(),
+          "[0]+[1]*[5]*x+[2]*([5]*x)^2+[3]*([5]*x)^3+[4]*([5]*x)^4",3,25);
+      returnFunc.SetParameters(dedxMeanBetaDepResParamsEtaRegion1[0],
+          dedxMeanBetaDepResParamsEtaRegion1[1],dedxMeanBetaDepResParamsEtaRegion1[2],
+          dedxMeanBetaDepResParamsEtaRegion1[3],dedxMeanBetaDepResParamsEtaRegion1[4],
+          dedxMeanBetaDepResShiftParamsEtaRegion1[0]);
+      return returnFunc;
+    case 3:
+      returnFunc = TF1(("dedxMeanBetaDepResFuncEta"+intToString(etaSlice)).c_str(),
+          "[0]+[1]*[5]*x+[2]*([5]*x)^2+[3]*([5]*x)^3+[4]*([5]*x)^4",3,25);
+      returnFunc.SetParameters(dedxMeanBetaDepResParamsEtaRegion1[0],
+          dedxMeanBetaDepResParamsEtaRegion1[1],dedxMeanBetaDepResParamsEtaRegion1[2],
+          dedxMeanBetaDepResParamsEtaRegion1[3],dedxMeanBetaDepResParamsEtaRegion1[4],
+          dedxMeanBetaDepResShiftParamsEtaRegion1[1]);
+      return returnFunc;
+    case 4:
+      returnFunc = TF1(("dedxMeanBetaDepResFuncEta"+intToString(etaSlice)).c_str(),
+          "[0]+[1]*[5]*x+[2]*([5]*x)^2+[3]*([5]*x)^3+[4]*([5]*x)^4",3,25);
+      returnFunc.SetParameters(dedxMeanBetaDepResParamsEtaRegion1[0],
+          dedxMeanBetaDepResParamsEtaRegion1[1],dedxMeanBetaDepResParamsEtaRegion1[2],
+          dedxMeanBetaDepResParamsEtaRegion1[3],dedxMeanBetaDepResParamsEtaRegion1[4],
+          dedxMeanBetaDepResShiftParamsEtaRegion1[2]);
+      return returnFunc;
+    case 5:
+      returnFunc = TF1(("dedxMeanBetaDepResFuncEta"+intToString(etaSlice)).c_str(),
+          "[0]+[1]*[5]*x+[2]*([5]*x)^2+[3]*([5]*x)^3+[4]*([5]*x)^4",3,25);
+      returnFunc.SetParameters(dedxMeanBetaDepResParamsEtaRegion1[0],
+          dedxMeanBetaDepResParamsEtaRegion1[1],dedxMeanBetaDepResParamsEtaRegion1[2],
+          dedxMeanBetaDepResParamsEtaRegion1[3],dedxMeanBetaDepResParamsEtaRegion1[4],
+          dedxMeanBetaDepResShiftParamsEtaRegion1[3]);
+      return returnFunc;
+    case 6:
+      returnFunc = TF1(("dedxMeanBetaDepResFuncEta"+intToString(etaSlice)).c_str(),
+          "[0]+[1]*[5]*x+[2]*([5]*x)^2+[3]*([5]*x)^3+[4]*([5]*x)^4",3,25);
+      returnFunc.SetParameters(dedxMeanBetaDepResParamsEtaRegion1[0],
+          dedxMeanBetaDepResParamsEtaRegion1[1],dedxMeanBetaDepResParamsEtaRegion1[2],
+          dedxMeanBetaDepResParamsEtaRegion1[3],dedxMeanBetaDepResParamsEtaRegion1[4],
+          dedxMeanBetaDepResShiftParamsEtaRegion1[4]);
+      return returnFunc;
+    case 7:
+      returnFunc = TF1(("dedxMeanBetaDepResFuncEta"+intToString(etaSlice)).c_str(),
+          "[0]+[1]*[5]*x+[2]*([5]*x)^2+[3]*([5]*x)^3+[4]*([5]*x)^4",3,25);
+      returnFunc.SetParameters(dedxMeanBetaDepResParamsEtaRegion1[0],
+          dedxMeanBetaDepResParamsEtaRegion1[1],dedxMeanBetaDepResParamsEtaRegion1[2],
+          dedxMeanBetaDepResParamsEtaRegion1[3],dedxMeanBetaDepResParamsEtaRegion1[4],
+          dedxMeanBetaDepResShiftParamsEtaRegion1[5]);
+      return returnFunc;
+    case 8:
+      returnFunc = TF1(("dedxMeanBetaDepResFuncEta"+intToString(etaSlice)).c_str(),
+          "[0]+[1]*[5]*x+[2]*([5]*x)^2+[3]*([5]*x)^3+[4]*([5]*x)^4",3,25);
+      returnFunc.SetParameters(dedxMeanBetaDepResParamsEtaRegion1[0],
+          dedxMeanBetaDepResParamsEtaRegion1[1],dedxMeanBetaDepResParamsEtaRegion1[2],
+          dedxMeanBetaDepResParamsEtaRegion1[3],dedxMeanBetaDepResParamsEtaRegion1[4],
+          dedxMeanBetaDepResShiftParamsEtaRegion1[6]);
+      return returnFunc;
+    case 9:
+      returnFunc = TF1(("dedxMeanBetaDepResFuncEta"+intToString(etaSlice)).c_str(),
+          "[0]+[1]*[5]*x+[2]*([5]*x)^2+[3]*([5]*x)^3+[4]*([5]*x)^4",3,25);
+      returnFunc.SetParameters(dedxMeanBetaDepResParamsEtaRegion1[0],
+          dedxMeanBetaDepResParamsEtaRegion1[1],dedxMeanBetaDepResParamsEtaRegion1[2],
+          dedxMeanBetaDepResParamsEtaRegion1[3],dedxMeanBetaDepResParamsEtaRegion1[4],
+          dedxMeanBetaDepResShiftParamsEtaRegion1[7]);
+      return returnFunc;
+    // region 2
+    case 10:
+      returnFunc = TF1(("dedxMeanBetaDepResFuncEta"+intToString(etaSlice)).c_str(),
+          "[0]+[1]*x+[2]*x^2+[3]*x^3+[4]*x^4",3,25);
+      returnFunc.SetParameters(dedxMeanBetaDepResParamsEtaRegion2[0],
+          dedxMeanBetaDepResParamsEtaRegion2[1],dedxMeanBetaDepResParamsEtaRegion2[2],
+          dedxMeanBetaDepResParamsEtaRegion2[3],dedxMeanBetaDepResParamsEtaRegion2[4]);
+      return returnFunc;
+    case 11:
+      returnFunc = TF1(("dedxMeanBetaDepResFuncEta"+intToString(etaSlice)).c_str(),
+          "[0]+[1]*[5]*x+[2]*([5]*x)^2+[3]*([5]*x)^3+[4]*([5]*x)^4",3,25);
+      returnFunc.SetParameters(dedxMeanBetaDepResParamsEtaRegion2[0],
+          dedxMeanBetaDepResParamsEtaRegion2[1],dedxMeanBetaDepResParamsEtaRegion2[2],
+          dedxMeanBetaDepResParamsEtaRegion2[3],dedxMeanBetaDepResParamsEtaRegion2[4],
+          dedxMeanBetaDepResShiftParamsEtaRegion2[0]);
+      return returnFunc;
+    case 12:
+      returnFunc = TF1(("dedxMeanBetaDepResFuncEta"+intToString(etaSlice)).c_str(),
+          "[0]+[1]*[5]*x+[2]*([5]*x)^2+[3]*([5]*x)^3+[4]*([5]*x)^4",3,25);
+      returnFunc.SetParameters(dedxMeanBetaDepResParamsEtaRegion2[0],
+          dedxMeanBetaDepResParamsEtaRegion2[1],dedxMeanBetaDepResParamsEtaRegion2[2],
+          dedxMeanBetaDepResParamsEtaRegion2[3],dedxMeanBetaDepResParamsEtaRegion2[4],
+          dedxMeanBetaDepResShiftParamsEtaRegion2[1]);
+      return returnFunc;
+    case 13:
+      returnFunc = TF1(("dedxMeanBetaDepResFuncEta"+intToString(etaSlice)).c_str(),
+          "[0]+[1]*[5]*x+[2]*([5]*x)^2+[3]*([5]*x)^3+[4]*([5]*x)^4",3,25);
+      returnFunc.SetParameters(dedxMeanBetaDepResParamsEtaRegion2[0],
+          dedxMeanBetaDepResParamsEtaRegion2[1],dedxMeanBetaDepResParamsEtaRegion2[2],
+          dedxMeanBetaDepResParamsEtaRegion2[3],dedxMeanBetaDepResParamsEtaRegion2[4],
+          dedxMeanBetaDepResShiftParamsEtaRegion2[2]);
+      return returnFunc;
+    case 14:
+      returnFunc = TF1(("dedxMeanBetaDepResFuncEta"+intToString(etaSlice)).c_str(),
+          "[0]+[1]*[5]*x+[2]*([5]*x)^2+[3]*([5]*x)^3+[4]*([5]*x)^4",3,25);
+      returnFunc.SetParameters(dedxMeanBetaDepResParamsEtaRegion2[0],
+          dedxMeanBetaDepResParamsEtaRegion2[1],dedxMeanBetaDepResParamsEtaRegion2[2],
+          dedxMeanBetaDepResParamsEtaRegion2[3],dedxMeanBetaDepResParamsEtaRegion2[4],
+          dedxMeanBetaDepResShiftParamsEtaRegion2[3]);
+      return returnFunc;
+    case 15:
+      returnFunc = TF1(("dedxMeanBetaDepResFuncEta"+intToString(etaSlice)).c_str(),
+          "[0]+[1]*[5]*x+[2]*([5]*x)^2+[3]*([5]*x)^3+[4]*([5]*x)^4",3,25);
+      returnFunc.SetParameters(dedxMeanBetaDepResParamsEtaRegion2[0],
+          dedxMeanBetaDepResParamsEtaRegion2[1],dedxMeanBetaDepResParamsEtaRegion2[2],
+          dedxMeanBetaDepResParamsEtaRegion2[3],dedxMeanBetaDepResParamsEtaRegion2[4],
+          dedxMeanBetaDepResShiftParamsEtaRegion2[4]);
+      return returnFunc;
+    case 16:
+      returnFunc = TF1(("dedxMeanBetaDepResFuncEta"+intToString(etaSlice)).c_str(),
+          "[0]+[1]*[5]*x+[2]*([5]*x)^2+[3]*([5]*x)^3+[4]*([5]*x)^4",3,25);
+      returnFunc.SetParameters(dedxMeanBetaDepResParamsEtaRegion2[0],
+          dedxMeanBetaDepResParamsEtaRegion2[1],dedxMeanBetaDepResParamsEtaRegion2[2],
+          dedxMeanBetaDepResParamsEtaRegion2[3],dedxMeanBetaDepResParamsEtaRegion2[4],
+          dedxMeanBetaDepResShiftParamsEtaRegion2[5]);
+      return returnFunc;
+    // region 3
+    case 17:
+      returnFunc = TF1(("dedxMeanBetaDepResFuncEta"+intToString(etaSlice)).c_str(),
+          "[0]+[1]*x+[2]*x^2+[3]*x^3+[4]*x^4",3,25);
+      returnFunc.SetParameters(dedxMeanBetaDepResParamsEtaRegion3[0],
+          dedxMeanBetaDepResParamsEtaRegion3[1],dedxMeanBetaDepResParamsEtaRegion3[2],
+          dedxMeanBetaDepResParamsEtaRegion3[3],dedxMeanBetaDepResParamsEtaRegion3[4]);
+      return returnFunc;
+    case 18:
+      returnFunc = TF1(("dedxMeanBetaDepResFuncEta"+intToString(etaSlice)).c_str(),
+          "[0]+[1]*[5]*x+[2]*([5]*x)^2+[3]*([5]*x)^3+[4]*([5]*x)^4",3,25);
+      returnFunc.SetParameters(dedxMeanBetaDepResParamsEtaRegion3[0],
+          dedxMeanBetaDepResParamsEtaRegion3[1],dedxMeanBetaDepResParamsEtaRegion3[2],
+          dedxMeanBetaDepResParamsEtaRegion3[3],dedxMeanBetaDepResParamsEtaRegion3[4],
+          dedxMeanBetaDepResShiftParamsEtaRegion3[0]);
+      return returnFunc;
+    case 19:
+      returnFunc = TF1(("dedxMeanBetaDepResFuncEta"+intToString(etaSlice)).c_str(),
+          "[0]+[1]*[5]*x+[2]*([5]*x)^2+[3]*([5]*x)^3+[4]*([5]*x)^4",3,25);
+      returnFunc.SetParameters(dedxMeanBetaDepResParamsEtaRegion3[0],
+          dedxMeanBetaDepResParamsEtaRegion3[1],dedxMeanBetaDepResParamsEtaRegion3[2],
+          dedxMeanBetaDepResParamsEtaRegion3[3],dedxMeanBetaDepResParamsEtaRegion3[4],
+          dedxMeanBetaDepResShiftParamsEtaRegion3[1]);
+      return returnFunc;
+    case 20:
+      returnFunc = TF1(("dedxMeanBetaDepResFuncEta"+intToString(etaSlice)).c_str(),
+          "[0]+[1]*[5]*x+[2]*([5]*x)^2+[3]*([5]*x)^3+[4]*([5]*x)^4",3,25);
+      returnFunc.SetParameters(dedxMeanBetaDepResParamsEtaRegion3[0],
+          dedxMeanBetaDepResParamsEtaRegion3[1],dedxMeanBetaDepResParamsEtaRegion3[2],
+          dedxMeanBetaDepResParamsEtaRegion3[3],dedxMeanBetaDepResParamsEtaRegion3[4],
+          dedxMeanBetaDepResShiftParamsEtaRegion3[2]);
+      return returnFunc;
+    case 21:
+      returnFunc = TF1(("dedxMeanBetaDepResFuncEta"+intToString(etaSlice)).c_str(),
+          "[0]+[1]*[5]*x+[2]*([5]*x)^2+[3]*([5]*x)^3+[4]*([5]*x)^4",3,25);
+      returnFunc.SetParameters(dedxMeanBetaDepResParamsEtaRegion3[0],
+          dedxMeanBetaDepResParamsEtaRegion3[1],dedxMeanBetaDepResParamsEtaRegion3[2],
+          dedxMeanBetaDepResParamsEtaRegion3[3],dedxMeanBetaDepResParamsEtaRegion3[4],
+          dedxMeanBetaDepResShiftParamsEtaRegion3[3]);
+      return returnFunc;
+    case 22:
+      returnFunc = TF1(("dedxMeanBetaDepResFuncEta"+intToString(etaSlice)).c_str(),
+          "[0]+[1]*[5]*x+[2]*([5]*x)^2+[3]*([5]*x)^3+[4]*([5]*x)^4",3,25);
+      returnFunc.SetParameters(dedxMeanBetaDepResParamsEtaRegion3[0],
+          dedxMeanBetaDepResParamsEtaRegion3[1],dedxMeanBetaDepResParamsEtaRegion3[2],
+          dedxMeanBetaDepResParamsEtaRegion3[3],dedxMeanBetaDepResParamsEtaRegion3[4],
+          dedxMeanBetaDepResShiftParamsEtaRegion3[4]);
+      return returnFunc;
+    case 23:
+      returnFunc = TF1(("dedxMeanBetaDepResFuncEta"+intToString(etaSlice)).c_str(),
+          "[0]+[1]*[5]*x+[2]*([5]*x)^2+[3]*([5]*x)^3+[4]*([5]*x)^4",3,25);
+      returnFunc.SetParameters(dedxMeanBetaDepResParamsEtaRegion3[0],
+          dedxMeanBetaDepResParamsEtaRegion3[1],dedxMeanBetaDepResParamsEtaRegion3[2],
+          dedxMeanBetaDepResParamsEtaRegion3[3],dedxMeanBetaDepResParamsEtaRegion3[4],
+          dedxMeanBetaDepResShiftParamsEtaRegion3[5]);
+      return returnFunc;
+    case 24:
+      returnFunc = TF1(("dedxMeanBetaDepResFuncEta"+intToString(etaSlice)).c_str(),
+          "[0]+[1]*[5]*x+[2]*([5]*x)^2+[3]*([5]*x)^3+[4]*([5]*x)^4",3,25);
+      returnFunc.SetParameters(dedxMeanBetaDepResParamsEtaRegion3[0],
+          dedxMeanBetaDepResParamsEtaRegion3[1],dedxMeanBetaDepResParamsEtaRegion3[2],
+          dedxMeanBetaDepResParamsEtaRegion3[3],dedxMeanBetaDepResParamsEtaRegion3[4],
+          dedxMeanBetaDepResShiftParamsEtaRegion3[6]);
+      return returnFunc;
+    case 25:
+      returnFunc = TF1(("dedxMeanBetaDepResFuncEta"+intToString(etaSlice)).c_str(),
+          "[0]+[1]*[5]*x+[2]*([5]*x)^2+[3]*([5]*x)^3+[4]*([5]*x)^4",3,25);
+      returnFunc.SetParameters(dedxMeanBetaDepResParamsEtaRegion3[0],
+          dedxMeanBetaDepResParamsEtaRegion3[1],dedxMeanBetaDepResParamsEtaRegion3[2],
+          dedxMeanBetaDepResParamsEtaRegion3[3],dedxMeanBetaDepResParamsEtaRegion3[4],
+          dedxMeanBetaDepResShiftParamsEtaRegion3[7]);
+      return returnFunc;
+  }
+
+  return TF1();
+}
+
+// beta*gamma dependence fit; function of eta
+// see plots in hscp/aug11 web directory; pcminn19:/data3/scooper/cmssw/426/HSCPStudiesAndToyMC/src/HSCP2011/ToyMC/bin/1.aug10.dedxPlots.aug11
+TF1 getDeDxBetaGammaFuncFromEtaSlice(int etaSlice)
+{
+  // fitted beta*gamma dependence function in eta slices, with parameters
   if(etaSlice >=1 && etaSlice <= 25)
   {
-    dedxMeanBetaDepFunc->SetParameters(dedxMeanBetaDepEtaParam0[etaSlice-1],dedxMeanBetaDepEtaParam1[etaSlice-1]);
-    return *dedxMeanBetaDepFunc;
+    TF1 dedxMeanBetaDepFunc("dedxMeanBetaDepFunc","[0]+[1]*((1-x^2)/x^2)",0.4,1);
+    dedxMeanBetaDepFunc.SetParameters(dedxMeanBetaDepEtaParam0[etaSlice-1],dedxMeanBetaDepEtaParam1[etaSlice-1]);
+    return dedxMeanBetaDepFunc;
   }
   else
     return TF1();
@@ -655,6 +663,9 @@ int main(int argc, char** argv)
   std::cout << "[INFO] parsing arguments" << std::endl;
   // First parse arguments
   parseArguments(argc, argv);
+
+  // initialize parameters for fits
+  initBetaGammaResDepParams();
 
   // HSCPTree variables
   bool           Event_triggerL1Bits[192];
@@ -1238,10 +1249,10 @@ int main(int argc, char** argv)
   trackDeDxE1MatchedNoMSliceHists[3] = new TH1F("trackDeDxE1MatchedNoMSlice4","Tracker dE/dx for 16-20 dE/dx measurements (matched to HSCP)",125,0,25);
   trackDeDxE1MatchedNoMSliceHists[4] = new TH1F("trackDeDxE1MatchedNoMSlice5","Tracker dE/dx for 21+ dE/dx measurements (matched to HSCP)",125,0,25);
 
-  //// fitted residual functions for beta*gamma dep in eta slices
+  // fitted residual functions for beta*gamma dep in eta slices
   //TF1* dedxMeanBetaDepResFunc = new TF1("dedxMeanBetaDepResFunc","[0]+[1]*x+[2]*x^2+[3]*x^3+[4]*x^4",3,25);
   //TF1* dedxMeanBetaDepResShiftFunc = new TF1("dedxMeanBetaDepResShiftFunc","[0]+[1]*[5]*x+[2]*([5]*x)^2+[3]*([5]*x)^3+[4]*([5]*x)^4",3,25);
-  //// test of the eta-->func function
+  // test of the eta-->func function
   //TF1 myTestFuncs[16];
   //myTestFuncs[0] = getDeDxResFuncFromEtaSlice(1);
   //myTestFuncs[1] = getDeDxResFuncFromEtaSlice(2);
@@ -1261,12 +1272,12 @@ int main(int argc, char** argv)
   //myTestFuncs[15] = getDeDxResFuncFromEtaSlice(230);
   //for(int i=0; i<16; ++i)
   //{
-  //  cout << "myTestFuncs(" << i << ") parameters are: ";
+  //  std::cout << "myTestFuncs(" << i << ") parameters are: ";
   //  for(int par=0; par<myTestFuncs[i].GetNpar(); ++par)
   //  {
-  //    cout << myTestFuncs[i].GetParameter(par) << ",";
+  //    std::cout << myTestFuncs[i].GetParameter(par) << ",";
   //  }
-  //  cout << endl;
+  //  std::cout << std::endl;
   //}
 
 
@@ -1293,7 +1304,7 @@ int main(int argc, char** argv)
     title+=intToString(i+1);
     name = "dedxE1NoPBiasNomBin";
     name+=intToString(i+1);
-    dedxHistsNoPBiasInNomBins_[i] = new TH3F(name.c_str(),title.c_str(),dedxBinNum,dedxBinLow,dedxBinHigh,pBinNum,pBinLow,pBinHigh,etaBinNum,etaBinLow,etaBinHigh);
+    dedxHistsNoPBiasInNomBins_[i] = new TH3F(name.c_str(),title.c_str(),200,-10,10,pBinNum,pBinLow,pBinHigh,etaBinNum,etaBinLow,etaBinHigh);
     //// dE/dx pull p sigma only
     //title = "dE/dx E1 p sigma pull in NoM bin ";
     //title+=intToString(i+1);
@@ -1313,6 +1324,7 @@ int main(int argc, char** argv)
     //name+=intToString(i+1);
     //dedxHistsPullPEtaNomSigmaInNomBins_[i] = new TH3F(name.c_str(),title.c_str(),dedxBinNum,dedxBinLow,dedxBinHigh,pBinNum,pBinLow,pBinHigh,etaBinNum,etaBinLow,etaBinHigh);
   }
+  TH3F* secondaryPeakIhBetaDepResNoM8Hist = new TH3F("secondaryPeakIhBetaDepResNoM8","Tracks in secondary Ih-betaDep-res NoM==8 hist",dedxBinNum,dedxBinLow,dedxBinHigh,pBinNum,pBinLow,pBinHigh,etaBinNum,etaBinLow,etaBinHigh);
   // Slice everything up (dE/dx, p, eta) -- matched to HSCP w/deltaR
   for(int i=0; i < numNomBins_; ++i)
   {
@@ -1326,7 +1338,7 @@ int main(int argc, char** argv)
     title+=intToString(i+1);
     name = "dedxE1NoPBiasMatchedNomBin";
     name+=intToString(i+1);
-    dedxHistsNoPBiasInNomBinsMatched_[i] = new TH3F(name.c_str(),title.c_str(),dedxBinNum,dedxBinLow,dedxBinHigh,pBinNum,pBinLow,pBinHigh,etaBinNum,etaBinLow,etaBinHigh);
+    dedxHistsNoPBiasInNomBinsMatched_[i] = new TH3F(name.c_str(),title.c_str(),200,-10,10,pBinNum,pBinLow,pBinHigh,etaBinNum,etaBinLow,etaBinHigh);
     //// dE/dx pull p sigma only
     //title = "dE/dx E1 p sigma pull (matched) in NoM bin ";
     //title+=intToString(i+1);
@@ -1359,7 +1371,7 @@ int main(int argc, char** argv)
     title+=intToString(i+1);
     name = "dedxE1MuSBNoPBiasNomBin";
     name+=intToString(i+1);
-    dedxHistsMuSBNoPBiasInNomBins_[i] = new TH3F(name.c_str(),title.c_str(),dedxBinNum,dedxBinLow,dedxBinHigh,pBinNum,pBinLow,pBinHigh,etaBinNum,etaBinLow,etaBinHigh);
+    dedxHistsMuSBNoPBiasInNomBins_[i] = new TH3F(name.c_str(),title.c_str(),200,-10,10,pBinNum,pBinLow,pBinHigh,etaBinNum,etaBinLow,etaBinHigh);
     //// dE/dx pull p sigma only
     //title = "dE/dx E1 p sigma pull (Mu ToF SB) in NoM bin ";
     //title+=intToString(i+1);
@@ -1392,7 +1404,7 @@ int main(int argc, char** argv)
     title+=intToString(i+1);
     name = "dedxE1MuSBNoPBiasMatchedNomBin";
     name+=intToString(i+1);
-    dedxHistsMuSBNoPBiasInNomBinsMatched_[i] = new TH3F(name.c_str(),title.c_str(),dedxBinNum,dedxBinLow,dedxBinHigh,pBinNum,pBinLow,pBinHigh,etaBinNum,etaBinLow,etaBinHigh);
+    dedxHistsMuSBNoPBiasInNomBinsMatched_[i] = new TH3F(name.c_str(),title.c_str(),200,-10,10,pBinNum,pBinLow,pBinHigh,etaBinNum,etaBinLow,etaBinHigh);
     //// dE/dx pull p sigma only
     //title = "dE/dx E1 p sigma pull (Mu ToF SB, matched) in NoM bin ";
     //title+=intToString(i+1);
@@ -1503,34 +1515,6 @@ int main(int argc, char** argv)
   int numEventsTwoMatchedTracks = 0;
   int numTotalTracks = 0;
 
-  // Dependence of mean(Ih) on P
-  TF1* meanIhPDep = new TF1("meanIhPDep","[0]+[1]/x+[2]/(x*x)");
-  meanIhPDep->SetParameters(1.669,1040,1.949e5);
-  // Dependence of sigma(Ih) on P
-  TF1* sigmaIhPDep = new TF1("sigmaIhPDep","[0]+[1]*x+[2]*x^2");
-  sigmaIhPDep->SetParameters(1.061,-0.001565,7.994e-7);
-  // see web: http://scooper.web.cern.ch/scooper/hscp/jul15/
-  // fits from pcminn03:/data/scooper/cmssw/425/HSCPToyMC/src/HSCP2011/ToyMC/bin/dedxPlotsFinePSlices/
-
-  // Dependence of mean(Ih) on eta (after removing P dependence)
-  // see web: http://scooper.web.cern.ch/scooper/hscp/jul26/
-  // fits from pcminn19:/data3/scooper/cmssw/426/HSCPStudiesAndToyMC/src/HSCP2011/ToyMC/bin/7.jul25.dedxPlotFineEtaBins.gluino500all.nom8to12only.biasOut
-  // fits from pcminn19:/data3/scooper/cmssw/426/HSCPStudiesAndToyMC/src/HSCP2011/ToyMC/bin/11.jul26.dedxPlotFineEtaBins.gluino500all.etaBinsPbiasOut.nomOver9
-  // for mean eta dependence
-  TF1* meanIhEtaDep = new TF1("meanIhEtaDep",fitMeanEtaDependence,0,2.5,8);
-  //meanIhEtaDep->SetParameters(-0.6376,1.079,1.334,0.1013,79.05,-67.23,25.82,-3.71);
-  meanIhEtaDep->SetParameters(-0.6404,1.007,1.391,0.4401,43.74,-36.1,13.68,-1.962);
-
-  // Dependence of mean(Ih) on NoM (after removing P and eta dependence)
-  // fit from pcminn19:/data3/scooper/cmssw/426/HSCPStudiesAndToyMC/src/HSCP2011/ToyMC/bin/13.jul26.dedxPlots.g500.noPbiasNoEtaBias.nomOver6
-  TF1* meanIhNoMDep = new TF1("meanIhNoMDep","[0]+[1]*x+[2]*x^2+[3]*x^3");
-  meanIhNoMDep->SetParameters(0.7104,-0.1291,0.008316,-0.0002084);
-
-  // Dependence of sigma(Ih) on eta (after removing P dependence)
-  // fits from pcminn19:/data3/scooper/cmssw/426/HSCPStudiesAndToyMC/src/HSCP2011/ToyMC/bin/2.jul29.dedxEtaClosure
-  TF1* sigmaIhEtaDep = new TF1("sigmaIhEtaDep","[0]+[1]*x+[2]*x^2+[3]*x^3+[4]*x^4+[5]*x^5+[6]*x^6+[7]*x^7");
-  sigmaIhEtaDep->SetParameters(1.058,0.727,-5.421,12.84,-14.83,8.771,-2.547,0.2912);
-
   // Main loop over entries
   //numEvents_ = 26; // gluino500, assuming 60% trigger efficiency (23.3/pb)
   for(int entry = 0; entry < numEvents_; ++entry)
@@ -1589,6 +1573,12 @@ int main(int argc, char** argv)
         continue;
       ////XXX Cut on dE/dx number of measurements
       if(Track_dEdxE1_NOM[i] < 6)
+        continue;
+
+      //XXX IGNORE ETA BINS 8, 24, 25
+      if(fabs(Track_eta[i]) > 0.7 && fabs(Track_eta[i]) < 0.8)
+        continue;
+      if(fabs(Track_eta[i]) > 2.3)
         continue;
 
 
@@ -1659,10 +1649,10 @@ int main(int argc, char** argv)
 
       //int myFinePBin = findFinePBin(trackP);
       //int myLessFinePBin = findLessFinePBin(trackP);
-      //int myFineEtaBin = findFineEtaBin(trackEta);
+      int myFineEtaBin = findFineEtaBin(trackEta);
       int myFineNoMBin = findFineNoMBin(trackNomE1);
       float dEdx = trackDeDxE1;
-      float noPBiasDeDx = dEdx-meanIhPDep->Eval(trackP);
+      //float noPBiasDeDx = dEdx-getDeDxBetaGammaFuncFromEtaSlice(myFineEtaBin+1).Eval()
       //float noPEtaBiasDeDx = noPBiasDeDx-meanIhEtaDep->Eval(fabs(trackEta));
       //float noPEtaNoMBiasDeDx = noPEtaBiasDeDx-meanIhNoMDep->Eval(trackNomE1);
       //float pullDeDxPSigma = noPEtaNoMBiasDeDx/sigmaIhPDep->Eval(trackP);
@@ -1670,7 +1660,7 @@ int main(int argc, char** argv)
       //float pullDeDxPEtaNoMSigma = noPEtaNoMBiasDeDx/(sigmaIhPDep->Eval(trackP)-sigmaIhEtaDep->Eval(trackEta)-sigmaIhNoMDep->Eval(trackNoME1));
       // fill dedx 3-D plots
       dedxHistsInNomBins_[myFineNoMBin]->Fill(dEdx,trackP,fabs(trackEta));
-      dedxHistsNoPBiasInNomBins_[myFineNoMBin]->Fill(noPBiasDeDx,trackP,fabs(trackEta));
+      //dedxHistsNoPBiasInNomBins_[myFineNoMBin]->Fill(noPBiasDeDx,trackP,fabs(trackEta));
       //dedxHistsPullPSigmaInNomBins_[myFineNoMBin]->Fill(pullDeDxPSigma,trackP,fabs(trackEta));
       //dedxHistsPullPEtaSigmaInNomBins_[myFineNoMBin]->Fill(pullDeDxPEtaSigma,trackP,fabs(trackEta));
       //dedxHistsPullPEtaNomSigmaInNomBins_[myFineNoMBin]->Fill(pullDeDxPEtaNoMSigma,trackP,fabs(trackEta));
@@ -1694,7 +1684,7 @@ int main(int argc, char** argv)
           trackEtaVsPMuTimingSBHist->Fill(Track_p[i],Track_eta[i]);
           //Muon SB plots in 3D
           dedxHistsMuSBInNomBins_[myFineNoMBin]->Fill(dEdx,trackP,fabs(trackEta));
-          dedxHistsMuSBNoPBiasInNomBins_[myFineNoMBin]->Fill(noPBiasDeDx,trackP,fabs(trackEta));
+          //dedxHistsMuSBNoPBiasInNomBins_[myFineNoMBin]->Fill(noPBiasDeDx,trackP,fabs(trackEta));
           //dedxHistsMuSBPullPSigmaInNomBins_[myFineNoMBin]->Fill(pullDeDxPSigma,trackP,fabs(trackEta));
           //dedxHistsMuSBPullPEtaSigmaInNomBins_[myFineNoMBin]->Fill(pullDeDxPEtaSigma,trackP,fabs(trackEta));
           //dedxHistsMuSBPullPEtaNomSigmaInNomBins_[myFineNoMBin]->Fill(pullDeDxPEtaNoMSigma,trackP,fabs(trackEta));
@@ -2083,7 +2073,7 @@ int main(int argc, char** argv)
       if(Track_dEdxE1_numHits[i] >= 10 && Track_dEdxE1_numHits[i] <= 12)
         trackEtaVsDeDxE1NoMRestrHist->Fill(trackDeDxE1,trackEta);
 
-      trackDeDxE1ClosureHist->Fill(noPBiasDeDx-meanIhEtaDep->Eval(fabs(trackEta))-meanIhNoMDep->Eval(trackNomE1));
+      //trackDeDxE1ClosureHist->Fill(noPBiasDeDx-meanIhEtaDep->Eval(fabs(trackEta))-meanIhNoMDep->Eval(trackNomE1));
 
       if(Hscp_hasCalo[i])
       {
@@ -2285,6 +2275,19 @@ int main(int argc, char** argv)
         continue;
 
       numMatchedTracksInEvent++;
+      float betaGamma = bestBeta/sqrt(1-bestBeta*bestBeta);
+      float dEdxFitMean = getDeDxBetaGammaFuncFromEtaSlice(myFineEtaBin+1).Eval(bestBeta);
+      float dEdxMinusBGFitResDeDx = dEdx-dEdxFitMean+getDeDxResFuncFromEtaSlice(myFineEtaBin+1).Eval(dEdxFitMean);
+      //debug
+      //if(myFineEtaBin==6)
+      //{
+      //  std::cout << "eta: " << trackEta << " beta: " << bestBeta << " p0: " << getDeDxBetaGammaFuncFromEtaSlice(myFineEtaBin+1).GetParameter(0)
+      //    << " p1: " << getDeDxBetaGammaFuncFromEtaSlice(myFineEtaBin+1).GetParameter(1)
+      //    << std::endl << "\tIh: " << dEdx << " fittedMean: " << dEdxFitMean
+      //    << " residual: " << getDeDxResFuncFromEtaSlice(myFineEtaBin+1).Eval(dEdxFitMean)
+      //    << std::endl;
+      //}
+
 
       trackDiscriminator1VsGenBetaHist->Fill(bestBeta,Track_dEdxD1[i]);
       trackDiscriminator2VsGenBetaHist->Fill(bestBeta,Track_dEdxD2[i]);
@@ -2316,7 +2319,7 @@ int main(int argc, char** argv)
         trackEtaVsPMuTimingSBMatchedHist->Fill(Track_p[i],Track_eta[i]);
         //Muon SB plots in 3D
         dedxHistsMuSBInNomBinsMatched_[myFineNoMBin]->Fill(dEdx,trackP,fabs(trackEta));
-        dedxHistsMuSBNoPBiasInNomBinsMatched_[myFineNoMBin]->Fill(noPBiasDeDx,trackP,fabs(trackEta));
+        dedxHistsMuSBNoPBiasInNomBinsMatched_[myFineNoMBin]->Fill(dEdxMinusBGFitResDeDx,trackP,fabs(trackEta));
         //dedxHistsMuSBPullPSigmaInNomBinsMatched_[myFineNoMBin]->Fill(pullDeDxPSigma,trackP,fabs(trackEta));
         //dedxHistsMuSBPullPEtaSigmaInNomBinsMatched_[myFineNoMBin]->Fill(pullDeDxPEtaSigma,trackP,fabs(trackEta));
         //dedxHistsMuSBPullPEtaNomSigmaInNomBinsMatched_[myFineNoMBin]->Fill(pullDeDxPEtaNoMSigma,trackP,fabs(trackEta));
@@ -2537,10 +2540,12 @@ int main(int argc, char** argv)
 
       // fill dedx 3-D plots
       dedxHistsInNomBinsMatched_[myFineNoMBin]->Fill(dEdx,trackP,fabs(trackEta));
-      dedxHistsNoPBiasInNomBinsMatched_[myFineNoMBin]->Fill(noPBiasDeDx,trackP,fabs(trackEta));
+      dedxHistsNoPBiasInNomBinsMatched_[myFineNoMBin]->Fill(dEdxMinusBGFitResDeDx,trackP,fabs(trackEta));
       //dedxHistsPullPSigmaInNomBinsMatched_[myFineNoMBin]->Fill(pullDeDxPSigma,trackP,fabs(trackEta));
       //dedxHistsPullPEtaSigmaInNomBinsMatched_[myFineNoMBin]->Fill(pullDeDxPEtaSigma,trackP,fabs(trackEta));
       //dedxHistsPullPEtaNomSigmaInNomBinsMatched_[myFineNoMBin]->Fill(pullDeDxPEtaNoMSigma,trackP,fabs(trackEta));
+      if(dEdxMinusBGFitResDeDx > 5 && dEdxMinusBGFitResDeDx < 8 && myFineNoMBin==7)
+        secondaryPeakIhBetaDepResNoM8Hist->Fill(dEdx,trackP,fabs(trackEta));
 
 
 
@@ -2548,7 +2553,7 @@ int main(int argc, char** argv)
       if(Track_dEdxE1_numHits[i] >= 10 && Track_dEdxE1_numHits[i] <= 12)
         trackEtaVsDeDxE1NoMRestrMatchedHist->Fill(trackDeDxE1,trackEta);
 
-      trackDeDxE1ClosureMatchedHist->Fill(noPBiasDeDx-meanIhEtaDep->Eval(fabs(trackEta))-meanIhNoMDep->Eval(trackNomE1));
+      //trackDeDxE1ClosureMatchedHist->Fill(noPBiasDeDx-meanIhEtaDep->Eval(fabs(trackEta))-meanIhNoMDep->Eval(trackNomE1));
 
       int numHits2 = Track_dEdxE1_numHits[i];
       if(numHits2 > 14)
@@ -2727,7 +2732,7 @@ int main(int argc, char** argv)
   for(int i=0; i < numNomBins_; ++i)
   {
     dedxHistsInNomBins_[i]->Write();
-    dedxHistsNoPBiasInNomBins_[i]->Write();
+    //dedxHistsNoPBiasInNomBins_[i]->Write();
     //dedxHistsPullPSigmaInNomBins_[i]->Write();
     //dedxHistsPullPEtaSigmaInNomBins_[i]->Write();
     //dedxHistsPullPEtaNomSigmaInNomBins_[i]->Write();
@@ -2742,22 +2747,23 @@ int main(int argc, char** argv)
     //dedxHistsPullPEtaSigmaInNomBinsMatched_[i]->Write();
     //dedxHistsPullPEtaNomSigmaInNomBinsMatched_[i]->Write();
   }
+  secondaryPeakIhBetaDepResNoM8Hist->Write();
   TDirectory* dedxHistsMuSBInNomBinsDir = outFile->mkdir("dedxHistsMuSBInNomBins");
   dedxHistsMuSBInNomBinsDir->cd();
   for(int i=0; i < numNomBins_; ++i)
   {
-    dedxHistsMuSBInNomBinsMatched_[i]->Write();
-    //dedxHistsMuSBNoPBiasInNomBinsMatched_[i]->Write();
-    //dedxHistsMuSBPullPSigmaInNomBinsMatched_[i]->Write();
-    //dedxHistsMuSBPullPEtaSigmaInNomBinsMatched_[i]->Write();
-    //dedxHistsMuSBPullPEtaNomSigmaInNomBinsMatched_[i]->Write();
+    dedxHistsMuSBInNomBins_[i]->Write();
+    //dedxHistsMuSBNoPBiasInNomBins_[i]->Write();
+    //dedxHistsMuSBPullPSigmaInNomBins_[i]->Write();
+    //dedxHistsMuSBPullPEtaSigmaInNomBins_[i]->Write();
+    //dedxHistsMuSBPullPEtaNomSigmaInNomBins_[i]->Write();
   }
   TDirectory* dedxHistsMuSBInNomBinsMatchedDir = outFile->mkdir("dedxHistsMuSBInNomBinsMatched");
   dedxHistsMuSBInNomBinsMatchedDir->cd();
   for(int i=0; i < numNomBins_; ++i)
   {
     dedxHistsMuSBInNomBinsMatched_[i]->Write();
-    //dedxHistsMuSBNoPBiasInNomBinsMatched_[i]->Write();
+    dedxHistsMuSBNoPBiasInNomBinsMatched_[i]->Write();
     //dedxHistsMuSBPullPSigmaInNomBinsMatched_[i]->Write();
     //dedxHistsMuSBPullPEtaSigmaInNomBinsMatched_[i]->Write();
     //dedxHistsMuSBPullPEtaNomSigmaInNomBinsMatched_[i]->Write();
