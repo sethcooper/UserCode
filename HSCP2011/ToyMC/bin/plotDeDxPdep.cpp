@@ -467,35 +467,6 @@ int main(int argc, char** argv)
     t3->Write();
     residualDeDxVsMeanTGraphsEta[etaBin-1] = t3;
 
-    // make sigmaDeDx vs. beta graph for this eta, fit
-    //TGraphErrors* t2 = new TGraphErrors(betas.size(),&(*betas.begin()),&(*sigmas.begin()),&(*betaEs.begin()),&(*sigmaEs.begin()));
-    //TFitResultPtr r2 = t2->Fit(myFitFunc,"SQ");
-    //int ret2 = r2;
-    //if(ret2!=0)
-    //  cout << "Error in fitting 1-D hist from 2-d (no NoM slicing) sigma; eta bin= " << etaBin << endl;
-    //else
-    //{
-    //  etasForSigma.push_back(etaBin*0.1-0.05);
-    //  etaEsForSigma.push_back(0.05);
-    //  p0sForSigma.push_back(r->Parameter(0));
-    //  p1sForSigma.push_back(r->Parameter(1));
-    //  p0EsForSigma.push_back(r->ParError(0));
-    //  p1EsForSigma.push_back(r->ParError(1));
-    //}
-    //// write hist
-    //string graphName2 = "sigmaDeDxVsBetaEtaBin";
-    //graphName2+=intToString(etaBin);
-    //t2->SetName(graphName2.c_str());
-    //t2->SetTitle(graphName2.c_str());
-    //t2->GetXaxis()->SetTitle("#beta");
-    //t2->GetYaxis()->SetTitle("sigma_Ih [MeV/cm]");
-    //t2->Write();
-    //sigmaDeDxVsBetaTGraphsEta[etaBin-1] = t2;
-  }
-
-  // make dE/dx-beta-resid sigma graph vs. NOM
-  for(int nomBin=1; nomBin<nNomBins; ++nomBin)
-  {
   }
 
   outputTFile->cd();
@@ -814,69 +785,6 @@ int main(int argc, char** argv)
     residualDeDxVsMeanLeg[canv]->Draw("same");
     t.Write();
   }
-
-  //// Make MultiGraphs of sigmaDeDx vs. beta (all eta slices together)
-  //TMultiGraph* sigmaDeDxVsBetaMG[6];
-  //TLegend* sigmaDeDxVsBetaLeg[6];
-  //for(int canv=0; canv<6; ++canv)
-  //{
-  //  sigmaDeDxVsBetaMG[canv] = new TMultiGraph();
-  //  sigmaDeDxVsBetaLeg[canv] = new TLegend(0.2,0.7,0.3,0.9);
-  //  sigmaDeDxVsBetaLeg[canv]->SetHeader("#eta bin");
-  //  int colorCounter = 1;
-  //  for(int i=4*canv+1; i<4*canv+5; ++i)
-  //  {
-  //    if(sigmaDeDxVsBetaTGraphsEta[i-1]->GetN() > 0)
-  //    {
-  //      if(colorCounter==5)
-  //        ++colorCounter;
-  //      sigmaDeDxVsBetaTGraphsEta[i-1]->SetLineColor(colorCounter);
-  //      sigmaDeDxVsBetaTGraphsEta[i-1]->SetMarkerColor(colorCounter);
-  //      sigmaDeDxVsBetaMG[canv]->Add(sigmaDeDxVsBetaTGraphsEta[i-1],"p");
-  //      sigmaDeDxVsBetaLeg[canv]->AddEntry(sigmaDeDxVsBetaTGraphsEta[i-1],intToString(i).c_str(),"l");
-  //      ++colorCounter;
-  //    }
-  //  }
-  //  if(canv==5)
-  //  {
-  //    sigmaDeDxVsBetaTGraphsEta[24]->SetLineColor(6);
-  //    sigmaDeDxVsBetaTGraphsEta[24]->SetMarkerColor(6);
-  //    sigmaDeDxVsBetaMG[canv]->Add(sigmaDeDxVsBetaTGraphsEta[24],"p");
-  //    sigmaDeDxVsBetaLeg[canv]->AddEntry(sigmaDeDxVsBetaTGraphsEta[24],intToString(25).c_str(),"l");
-  //  }
-  //  TCanvas t;
-  //  if(canv==0)
-  //    t.SetName("sigmaDeDxVsBetaEtaSlices1_4");
-  //  else if(canv==1)
-  //    t.SetName("sigmaDeDxVsBetaEtaSlices5_8");
-  //  else if(canv==2)
-  //    t.SetName("sigmaDeDxVsBetaEtaSlices9_12");
-  //  else if(canv==3)
-  //    t.SetName("sigmaDeDxVsBetaEtaSlices13_16");
-  //  else if(canv==4)
-  //    t.SetName("sigmaDeDxVsBetaEtaSlices17_20");
-  //  else if(canv==5)
-  //    t.SetName("sigmaDeDxVsBetaEtaSlices21_25");
-  //  sigmaDeDxVsBetaMG[canv]->Draw("a");
-  //  sigmaDeDxVsBetaMG[canv]->GetXaxis()->SetTitle("#beta");
-  //  sigmaDeDxVsBetaMG[canv]->GetYaxis()->SetTitle("sigma_Ih [MeV/cm]");
-  //  sigmaDeDxVsBetaLeg[canv]->Draw("same");
-  //  t.Write();
-  //}
-
-  //TGraphErrors* p0VsEtaSigmaTGraph = new TGraphErrors(etasForSigma.size(),&(*etasForSigma.begin()),&(*p0sForSigma.begin()),&(*etaEsForSigma.begin()),&(*p0EsForSigma.begin()));
-  //p0VsEtaSigmaTGraph->SetName("p0VsEtaSigma");
-  //p0VsEtaSigmaTGraph->SetTitle("p0VsEta (sigma)");
-  //p0VsEtaSigmaTGraph->GetXaxis()->SetTitle("#eta");
-  //p0VsEtaSigmaTGraph->GetYaxis()->SetTitle("p0");
-  //p0VsEtaSigmaTGraph->Write();
-  //TGraphErrors* p1VsEtaSigmaTGraph = new TGraphErrors(etasForSigma.size(),&(*etasForSigma.begin()),&(*p1sForSigma.begin()),&(*etaEsForSigma.begin()),&(*p1EsForSigma.begin()));
-  //p1VsEtaSigmaTGraph->SetName("p1VsEtaSigma");
-  //p1VsEtaSigmaTGraph->SetTitle("p1VsEta (sigma)");
-  //p1VsEtaSigmaTGraph->GetXaxis()->SetTitle("#eta");
-  //p1VsEtaSigmaTGraph->GetYaxis()->SetTitle("p1");
-  //p1VsEtaSigmaTGraph->Write();
-
 
 }
 
