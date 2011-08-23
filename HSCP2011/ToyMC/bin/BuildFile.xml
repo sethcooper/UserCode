@@ -33,3 +33,7 @@
   <use   name="root"/>
   <use   name="rootgraphics"/>
 </bin>
+<bin   name="plotDeDxNoBetaDepSigmaDep" file="plotDeDxNoBetaDepSigmaDep.cpp">
+  <use   name="root"/>
+  <use   name="rootgraphics"/>
+</bin>
