@@ -52,7 +52,7 @@ int main(int argc, char** argv)
 
   TFile* outputTFile = new TFile("plotDeDxNoBetaDepSigmaDep.root","recreate");
 
-  //int nPBins = 200;
+  int nPBins = 200;
   const int nNomBins = 30;
   const int nEtaBins = 25;
 
@@ -61,8 +61,7 @@ int main(int argc, char** argv)
   TGraphErrors* sigmaVsNoMGraphsEtaSlices[nEtaBins];
 
   // fit func for NoM dependence
-  TF1* myNomDepFunc = new TF1("myNomDepFunc","[0]/TMath::Sqrt(x/10)",5,25);
-  //myNomDepFunc->SetParameter(0,0.3123);
+  TF1* myNomDepFunc = new TF1("myNomDepFunc","[0]/TMath::Sqrt(x/[1])",5,25);
   // fit func for gaussians
   TF1* myGaus = new TF1("myGaus","gaus(0)",-5,5);
   TH3F* rawHist;
@@ -83,6 +82,12 @@ int main(int argc, char** argv)
     for(int etaBin=1; etaBin<nEtaBins+1; ++etaBin)
     {
       rawHist->GetZaxis()->SetRange(etaBin,etaBin);
+      // set beta/p range (limit saturation effects)
+      int minPbin = 135; // higher p (beta) only
+      if(etaBin < 6)
+        minPbin = 100;
+      rawHist->GetYaxis()->SetRange(minPbin,nPBins);
+
       string projName = "x";
       projName+="_EtaBin";
       projName+=intToString(etaBin);
@@ -121,7 +126,7 @@ int main(int argc, char** argv)
     {
       if(dedxNoBetaDepHists[etaBin-1][nomBin-1]->GetEntries() > 25)
       {
-        myGaus->SetParameter(0,500);
+        //myGaus->SetParameter(0,500);
         myGaus->SetParameter(1,0);
         myGaus->SetParameter(2,0.5);
         //XXX limit sigma to be positive?
@@ -166,16 +171,20 @@ int main(int argc, char** argv)
     sigmaVsNoMGraphsEtaSlices[etaBin-1]->GetXaxis()->SetTitle("NoM");
     sigmaVsNoMGraphsEtaSlices[etaBin-1]->GetYaxis()->SetTitle("#sigma(Ih_meas-Ih_fit+res) [MeV/cm]");
 
-    unsigned int nom10index = 0;
-    while(nom10index<noms.size() && noms[nom10index] != 10)
-      ++nom10index;
-    if(nom10index>=noms.size())
+    unsigned int nomNormIndex = 0;
+    int nomToNormalizeTo = 10;
+    if(etaBin>=15)
+      nomToNormalizeTo = 12;
+    while(nomNormIndex<noms.size() && noms[nomNormIndex] != nomToNormalizeTo)
+      ++nomNormIndex;
+    if(nomNormIndex>=noms.size())
     {
       cout << "ERROR: couldn't find nom==10 in this eta slice: " << etaBin << endl;
       continue;
     }
+    myNomDepFunc->SetParameter(0,sigmas[nomNormIndex]);
+    myNomDepFunc->SetParameter(1,nomToNormalizeTo);
 
-    myNomDepFunc->SetParameter(0,sigmas[nom10index]);
     myNomDepFunc->SetChisquare(sigmaVsNoMGraphsEtaSlices[etaBin-1]->Chisquare(myNomDepFunc));
     myNomDepFunc->SetNDF(sigmaVsNoMGraphsEtaSlices[etaBin-1]->GetN()-1);
     sigmaVsNoMGraphsEtaSlices[etaBin-1]->GetListOfFunctions()->Add(myNomDepFunc);
@@ -195,10 +204,6 @@ int main(int argc, char** argv)
   }
 
 
-  // make dE/dx-beta-resid sigma graph vs. NOM
-  //for(int nomBin=1; nomBin<nNomBins; ++nomBin)
-  //{
-  //}
 
   outputTFile->cd();
 
