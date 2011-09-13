@@ -12,7 +12,7 @@ process.MessageLogger = cms.Service("MessageLogger",
 process.generateHSCPToyMC = cms.EDAnalyzer("GenerateHSCPToyMC",
     GenerateSignalAndBackground = cms.bool(False),
     SignalFraction = cms.double(0.0),
-    NumberOfTrials = cms.int32(1),
+    NumberOfTrials = cms.int32(50),
     #EventsPerTrial = cms.int32(27907) # 27893+14
     EventsPerTrial = cms.int32(27944) # 27893+51
 )

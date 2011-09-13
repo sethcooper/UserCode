@@ -37,3 +37,11 @@
   <use   name="root"/>
   <use   name="rootgraphics"/>
 </bin>
+<bin   name="plotDeDxEtaSlices" file="plotDeDxEtaSlices.cpp">
+  <use   name="root"/>
+  <use   name="rootgraphics"/>
+</bin>
+<bin   name="plotDeDxSingleHitEtaSlices" file="plotDeDxSingleHitEtaSlices.cpp">
+  <use   name="root"/>
+  <use   name="rootgraphics"/>
+</bin>

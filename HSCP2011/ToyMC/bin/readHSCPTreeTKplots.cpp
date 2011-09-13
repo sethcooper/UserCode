@@ -36,24 +36,34 @@ bool enableDebug_ = false;
 int numNomBins_ = 30;
 TH3F* dedxHistsInNomBins_[30];
 TH3F* dedxHistsNoPBiasInNomBins_[30];
+TH3F* dedxHistsNoPBiasNoNomBiasInNomBins_[30];
 //TH3F* dedxHistsPullPSigmaInNomBins_[30];
 //TH3F* dedxHistsPullPEtaSigmaInNomBins_[30];
 //TH3F* dedxHistsPullPEtaNomSigmaInNomBins_[30];
+TH3F* dedxSingleHit320Hist_;
+TH3F* dedxSingleHit500Hist_;
+TH3F* dedxSingleHitAllHist_;
 // matched
 TH3F* dedxHistsInNomBinsMatched_[30];
 TH3F* dedxHistsNoPBiasInNomBinsMatched_[30];
+TH3F* dedxHistsNoPBiasNoNomBiasInNomBinsMatched_[30];
 //TH3F* dedxHistsPullPSigmaInNomBinsMatched_[30];
 //TH3F* dedxHistsPullPEtaSigmaInNomBinsMatched_[30];
 //TH3F* dedxHistsPullPEtaNomSigmaInNomBinsMatched_[30];
+TH3F* dedxSingleHit320HistMatched_;
+TH3F* dedxSingleHit500HistMatched_;
+TH3F* dedxSingleHitAllHistMatched_;
 // Mu SB
 TH3F* dedxHistsMuSBInNomBins_[30];
 TH3F* dedxHistsMuSBNoPBiasInNomBins_[30];
+TH3F* dedxHistsMuSBNoPBiasNoNomBiasInNomBins_[30];
 //TH3F* dedxHistsMuSBPullPSigmaInNomBins_[30];
 //TH3F* dedxHistsMuSBPullPEtaSigmaInNomBins_[30];
 //TH3F* dedxHistsMuSBPullPEtaNomSigmaInNomBins_[30];
 // matched
 TH3F* dedxHistsMuSBInNomBinsMatched_[30];
 TH3F* dedxHistsMuSBNoPBiasInNomBinsMatched_[30];
+TH3F* dedxHistsMuSBNoPBiasNoNomBiasInNomBinsMatched_[30];
 //TH3F* dedxHistsMuSBPullPSigmaInNomBinsMatched_[30];
 //TH3F* dedxHistsMuSBPullPEtaSigmaInNomBinsMatched_[30];
 //TH3F* dedxHistsMuSBPullPEtaNomSigmaInNomBinsMatched_[30];
@@ -1284,13 +1294,51 @@ int main(int argc, char** argv)
 
   float dedxBinLow = 0;
   float dedxBinHigh = 20;
-  int dedxBinNum = 100;
+  const int dedxBinNum = 100;
   float pBinLow = 0;
   float pBinHigh = 1000;
-  int pBinNum = 200;
+  const int pBinNum = 200;
   float etaBinLow = 0;
   float etaBinHigh = 2.5;
-  int etaBinNum = 25;
+  const int etaBinNum = 25;
+  // Make variable bins for dE/dx, p, eta
+  float dedxBinArray[37]; // for n-1 bins
+  float pBinArray[pBinNum+1];
+  float etaBinArray[etaBinNum+1];
+  for(int i=0;i<=pBinNum;++i)
+    pBinArray[i] = i*(pBinHigh-pBinLow)/pBinNum;
+  for(int i=0;i<=etaBinNum;++i)
+    etaBinArray[i] = i*(etaBinHigh-etaBinLow)/etaBinNum;
+  for(int i=0;i<=35;++i)
+  {
+    dedxBinArray[i] = i*(dedxBinHigh-dedxBinLow)/dedxBinNum;
+  }
+  dedxBinArray[36] = 20;
+
+  //for(int i=0; i<pBinNum+1; ++i)
+  //{
+  //  std::cout << "i=" << i << "  pBinArray[i] = " << pBinArray[i] << std::endl;
+  //  if(pBinArray[i+1] <= pBinArray[i])
+  //    std::cout << "\tpBinArray[i] = " << pBinArray[i] << " is LESS THAN pBinArray[i+1] = " << pBinArray[i+1] << std::endl;
+  //}
+  //for(int i=0; i<etaBinNum+1; ++i)
+  //{
+  //  std::cout << "i=" << i << "  etaBinArray[i] = " << etaBinArray[i] << std::endl;
+  //  if(etaBinArray[i+1] <= etaBinArray[i])
+  //    std::cout << "\tetaBinArray[i] = " << etaBinArray[i] << " is LESS THAN etaBinArray[i+1] = " << etaBinArray[i+1] << std::endl;
+  //}
+  //for(int i=0; i<37; ++i)
+  //{
+  //  std::cout << "i=" << i << "  dedxBinArray[i] = " << dedxBinArray[i] << std::endl;
+  //}
+
+  dedxSingleHit320Hist_ = new TH3F("dedxSingleHit320","dE/dx single hits, 320 um layers",500,0,50,pBinNum,pBinLow,pBinHigh,etaBinNum,etaBinLow,etaBinHigh);
+  dedxSingleHit500Hist_ = new TH3F("dedxSingleHit500","dE/dx single hits, 500 um layers",500,0,50,pBinNum,pBinLow,pBinHigh,etaBinNum,etaBinLow,etaBinHigh);
+  dedxSingleHitAllHist_ = new TH3F("dedxSingleHitAll","dE/dx single hits, all hits",500,0,50,pBinNum,pBinLow,pBinHigh,etaBinNum,etaBinLow,etaBinHigh);
+  dedxSingleHit320HistMatched_ = new TH3F("dedxSingleHit320Matched","dE/dx single hits, 320 um layers (matched to HSCP)",500,0,50,pBinNum,pBinLow,pBinHigh,etaBinNum,etaBinLow,etaBinHigh);
+  dedxSingleHit500HistMatched_ = new TH3F("dedxSingleHit500Matched","dE/dx single hits, 500 um layers (matched to HSCP)",500,0,50,pBinNum,pBinLow,pBinHigh,etaBinNum,etaBinLow,etaBinHigh);
+  dedxSingleHitAllHistMatched_ = new TH3F("dedxSingleHitAllMatched","dE/dx single hits, all hits (matched to HSCP)",500,0,50,pBinNum,pBinLow,pBinHigh,etaBinNum,etaBinLow,etaBinHigh);
+
   // Slice everything up (dE/dx, p, eta)
   for(int i=0; i < numNomBins_; ++i)
   {
@@ -1299,6 +1347,8 @@ int main(int argc, char** argv)
     std::string name = "dedxE1NomBin";
     name+=intToString(i+1);
     dedxHistsInNomBins_[i] = new TH3F(name.c_str(),title.c_str(),dedxBinNum,dedxBinLow,dedxBinHigh,pBinNum,pBinLow,pBinHigh,etaBinNum,etaBinLow,etaBinHigh);
+    //XXX change to variable bins for x-axis (dE/dx)
+    //dedxHistsInNomBins_[i] = new TH3F(name.c_str(),title.c_str(),36,dedxBinArray,pBinNum,pBinArray,etaBinNum,etaBinArray);
     // no p bias
     title = "dE/dx E1 (p dep + res. out) in NoM bin ";
     title+=intToString(i+1);
@@ -1339,6 +1389,12 @@ int main(int argc, char** argv)
     name = "dedxE1NoPBiasMatchedNomBin";
     name+=intToString(i+1);
     dedxHistsNoPBiasInNomBinsMatched_[i] = new TH3F(name.c_str(),title.c_str(),200,-10,10,pBinNum,pBinLow,pBinHigh,etaBinNum,etaBinLow,etaBinHigh);
+    // no p bias, no nom bias
+    title = "dE/dx E1 (matched, p dep + res. out, nom dep out) in NoM bin ";
+    title+=intToString(i+1);
+    name = "dedxE1NoPBiasNoNomBiasMatchedNomBin";
+    name+=intToString(i+1);
+    dedxHistsNoPBiasNoNomBiasInNomBinsMatched_[i] = new TH3F(name.c_str(),title.c_str(),200,-10,10,pBinNum,pBinLow,pBinHigh,etaBinNum,etaBinLow,etaBinHigh);
     //// dE/dx pull p sigma only
     //title = "dE/dx E1 p sigma pull (matched) in NoM bin ";
     //title+=intToString(i+1);
@@ -1565,7 +1621,10 @@ int main(int argc, char** argv)
       //if(Track_dEdxE1_NOM[i] != 12)
       //  continue;
       //XXX FOR GLUINO 500, CUT ON TRACK P TO REMOVE HSCP THAT ARE TOO SLOW
-      if(Track_p[i] < 200)
+      //if(Track_p[i] < 200)
+      //  continue;
+      //XXX FOR BACKGROUND, IMPOSE SOME KIND OF LOW P CUT
+      if(Track_p[i] < 30)
         continue;
 
       ////XXX Cut on track d0
@@ -1646,6 +1705,7 @@ int main(int argc, char** argv)
       float trackPhi = Track_phi[i];
       float trackDeDxE1 = Track_dEdxE1[i];
       int trackNomE1 = Track_dEdxE1_NOM[i];
+      int numHits = Track_dEdxE1_numHits[i];
 
       //int myFinePBin = findFinePBin(trackP);
       //int myLessFinePBin = findLessFinePBin(trackP);
@@ -1658,8 +1718,28 @@ int main(int argc, char** argv)
       //float pullDeDxPSigma = noPEtaNoMBiasDeDx/sigmaIhPDep->Eval(trackP);
       //float pullDeDxPEtaSigma = noPEtaNoMBiasDeDx/(sigmaIhPDep->Eval(trackP)-sigmaIhEtaDep->Eval(trackEta));
       //float pullDeDxPEtaNoMSigma = noPEtaNoMBiasDeDx/(sigmaIhPDep->Eval(trackP)-sigmaIhEtaDep->Eval(trackEta)-sigmaIhNoMDep->Eval(trackNoME1));
+
       // fill dedx 3-D plots
       dedxHistsInNomBins_[myFineNoMBin]->Fill(dEdx,trackP,fabs(trackEta));
+      // fill with all the hits
+      for(int j=0; j<numHits; ++j)
+      {
+        float dEdxHit = Track_dEdxE1_hitCharges[i][j];
+        float hitDistance = Track_dEdxE1_hitDistances[i][j];
+        float theta = 2*TMath::ATan(TMath::Exp(-1*fabs(trackEta)));
+        float distR = hitDistance*TMath::Sin(theta);
+        float distZ = hitDistance*TMath::Cos(theta);
+        dedxSingleHitAllHist_->Fill(dEdxHit,trackP,fabs(trackEta));
+        if(distR > 20 && distR < 50 && distZ < 120) // TID or TIB
+          dedxSingleHit320Hist_->Fill(dEdxHit,trackP,fabs(trackEta));
+        else if(distR > 50 && distZ < 120) // TOB
+          dedxSingleHit500Hist_->Fill(dEdxHit,trackP,fabs(trackEta));
+        else if(distR > 20 && distZ > 120 && distZ < 210) // TEC(1)
+          dedxSingleHit320Hist_->Fill(dEdxHit,trackP,fabs(trackEta));
+        else if(distR > 20 && distZ > 210) // TEC(2)
+          dedxSingleHit500Hist_->Fill(dEdxHit,trackP,fabs(trackEta));
+      }
+
       //dedxHistsNoPBiasInNomBins_[myFineNoMBin]->Fill(noPBiasDeDx,trackP,fabs(trackEta));
       //dedxHistsPullPSigmaInNomBins_[myFineNoMBin]->Fill(pullDeDxPSigma,trackP,fabs(trackEta));
       //dedxHistsPullPEtaSigmaInNomBins_[myFineNoMBin]->Fill(pullDeDxPEtaSigma,trackP,fabs(trackEta));
@@ -1759,11 +1839,11 @@ int main(int argc, char** argv)
         }
       }
 
-      int numHits = Track_dEdxE1_numHits[i];
-      if(numHits > 14)
+      //if(numHits > 14)
+      if(trackDeDxE1 > 8)
       {
-        if(speak)
-        {
+        //if(speak)
+        //{
           std::cout << "[INFO] dE/dx E1: " << trackDeDxE1 <<  " Number of measurements: "
             << Track_dEdxE1_NOM[i]
             << " Number of saturating hits: "
@@ -1777,58 +1857,59 @@ int main(int argc, char** argv)
             << " Track P: "
             << trackP
             << std::endl;
-        }
+        //}
         std::vector<float> dEdxs;
         std::vector<float> yVals;
         for(int j=0; j<numHits; ++j)
         {
           float dEdx = Track_dEdxE1_hitCharges[i][j];
+          float hitDistance = Track_dEdxE1_hitDistances[i][j];
           dEdxs.push_back(dEdx);
           yVals.push_back(1);
           if(trackDeDxE1 > 9)
             trackDeDxAllHitsBigDeDxHist->Fill(dEdx);
-          if(speak)
-            std::cout << "\tHit: " << dEdx << " MeV/cm" << std::endl;
+          //if(speak)
+            std::cout << "\tHit: " << dEdx << " MeV/cm, at " << hitDistance << " cm" << std::endl;
         }
-        std::string name = "dEdxE1HitPatternGraph_dEdx";
-        float nearest = floorf(trackDeDxE1*100+0.5)/100.;
-        name+=floatToString(nearest);
-        name+="_numHits";
-        name+=intToString(numHits);
-        TGraph graph(numHits,&(*dEdxs.begin()),&(*yVals.begin()));
-        graph.SetName(name.c_str());
-        graph.SetTitle(name.c_str());
-        // only write the hit graphs for high dE/dx tracks
-        if(trackDeDxE1 > 5)
-          dedxHitGraphs.push_back(graph);
+      //  std::string name = "dEdxE1HitPatternGraph_dEdx";
+      //  float nearest = floorf(trackDeDxE1*100+0.5)/100.;
+      //  name+=floatToString(nearest);
+      //  name+="_numHits";
+      //  name+=intToString(numHits);
+      //  TGraph graph(numHits,&(*dEdxs.begin()),&(*yVals.begin()));
+      //  graph.SetName(name.c_str());
+      //  graph.SetTitle(name.c_str());
+      //  // only write the hit graphs for high dE/dx tracks
+      //  if(trackDeDxE1 > 5)
+      //    dedxHitGraphs.push_back(graph);
 
-        float trunc = 0.2;
-        std::vector<float> dedxVals;
-        for(int j=0; j<numHits; ++j)
-          dedxVals.push_back(Track_dEdxE1_hitCharges[i][j]);
-        std::sort(dedxVals.begin(),dedxVals.end());
-        int numHitsTrunc = numHits*(1-trunc);
-        float avg = 0;
-        for(int j=0; j<numHitsTrunc; ++j)
-        {
-          float dEdx = Track_dEdxE1_hitCharges[i][j];
-          avg+=dEdx;
-        }
-        avg/=numHits;
-        float rmsSqr = 0;
-        for(int j=0; j<numHitsTrunc; ++j)
-        {
-          float dEdx = Track_dEdxE1_hitCharges[i][j];
-          rmsSqr+=pow(dEdx-avg,2);
-        }
-        rmsSqr/=numHits;
-        // dE/dx hit graph
-        if(trackDeDxE1 > 3)
-          trackDeDxRms3Hist->Fill(sqrt(rmsSqr));
-        if(trackDeDxE1 > 4)
-          trackDeDxRms4Hist->Fill(sqrt(rmsSqr));
-        if(trackDeDxE1 > 5)
-          trackDeDxRms5Hist->Fill(sqrt(rmsSqr));
+      //  float trunc = 0.2;
+      //  std::vector<float> dedxVals;
+      //  for(int j=0; j<numHits; ++j)
+      //    dedxVals.push_back(Track_dEdxE1_hitCharges[i][j]);
+      //  std::sort(dedxVals.begin(),dedxVals.end());
+      //  int numHitsTrunc = numHits*(1-trunc);
+      //  float avg = 0;
+      //  for(int j=0; j<numHitsTrunc; ++j)
+      //  {
+      //    float dEdx = Track_dEdxE1_hitCharges[i][j];
+      //    avg+=dEdx;
+      //  }
+      //  avg/=numHits;
+      //  float rmsSqr = 0;
+      //  for(int j=0; j<numHitsTrunc; ++j)
+      //  {
+      //    float dEdx = Track_dEdxE1_hitCharges[i][j];
+      //    rmsSqr+=pow(dEdx-avg,2);
+      //  }
+      //  rmsSqr/=numHits;
+      //  // dE/dx hit graph
+      //  if(trackDeDxE1 > 3)
+      //    trackDeDxRms3Hist->Fill(sqrt(rmsSqr));
+      //  if(trackDeDxE1 > 4)
+      //    trackDeDxRms4Hist->Fill(sqrt(rmsSqr));
+      //  if(trackDeDxE1 > 5)
+      //    trackDeDxRms5Hist->Fill(sqrt(rmsSqr));
       }
       if(numHits > 1)
       {
@@ -2540,7 +2621,38 @@ int main(int argc, char** argv)
 
       // fill dedx 3-D plots
       dedxHistsInNomBinsMatched_[myFineNoMBin]->Fill(dEdx,trackP,fabs(trackEta));
+      // fill with all the hits
+      for(int j=0; j<numHits; ++j)
+      {
+        float dEdxHit = Track_dEdxE1_hitCharges[i][j];
+        float hitDistance = Track_dEdxE1_hitDistances[i][j];
+        float theta = 2*TMath::ATan(TMath::Exp(-1*fabs(trackEta)));
+        float distR = hitDistance*TMath::Sin(theta);
+        float distZ = hitDistance*TMath::Cos(theta);
+        dedxSingleHitAllHistMatched_->Fill(dEdxHit,trackP,fabs(trackEta));
+        if(distR > 20 && distR < 50 && distZ < 120) // TID or TIB
+          dedxSingleHit320HistMatched_->Fill(dEdxHit,trackP,fabs(trackEta));
+        else if(distR > 50 && distZ < 120) // TOB
+          dedxSingleHit500HistMatched_->Fill(dEdxHit,trackP,fabs(trackEta));
+        else if(distR > 20 && distZ > 120 && distZ < 210) // TEC(1)
+          dedxSingleHit320HistMatched_->Fill(dEdxHit,trackP,fabs(trackEta));
+        else if(distR > 20 && distZ > 210) // TEC(2)
+          dedxSingleHit500HistMatched_->Fill(dEdxHit,trackP,fabs(trackEta));
+      }
+
       dedxHistsNoPBiasInNomBinsMatched_[myFineNoMBin]->Fill(dEdxMinusBGFitResDeDx,trackP,fabs(trackEta));
+      if((myFineEtaBin+1) < 15)
+      {
+        dedxHistsNoPBiasNoNomBiasInNomBinsMatched_[myFineNoMBin]->Fill(dEdxMinusBGFitResDeDx*sqrt((myFineNoMBin+1)/10.),trackP,fabs(trackEta));
+        //std::cout << "DEBUG: etaSlice=" << myFineEtaBin+1 << " nom: " << myFineNoMBin+1
+        //  << " p: " << trackP
+        //  << " org dEdx: " << dEdxMinusBGFitResDeDx << " adjfac=sqrt(etaSlice/10)= "
+        //  << sqrt((myFineNoMBin+1)/10.) << " new dEdx: " << dEdxMinusBGFitResDeDx*sqrt((myFineNoMBin+1)/10.)
+        //  << std::endl;
+      }
+      else
+        dedxHistsNoPBiasNoNomBiasInNomBinsMatched_[myFineNoMBin]->Fill(dEdxMinusBGFitResDeDx*sqrt((myFineNoMBin+1)/12.),trackP,fabs(trackEta));
+
       //dedxHistsPullPSigmaInNomBinsMatched_[myFineNoMBin]->Fill(pullDeDxPSigma,trackP,fabs(trackEta));
       //dedxHistsPullPEtaSigmaInNomBinsMatched_[myFineNoMBin]->Fill(pullDeDxPEtaSigma,trackP,fabs(trackEta));
       //dedxHistsPullPEtaNomSigmaInNomBinsMatched_[myFineNoMBin]->Fill(pullDeDxPEtaNoMSigma,trackP,fabs(trackEta));
@@ -2737,17 +2849,26 @@ int main(int argc, char** argv)
     //dedxHistsPullPEtaSigmaInNomBins_[i]->Write();
     //dedxHistsPullPEtaNomSigmaInNomBins_[i]->Write();
   }
+  dedxSingleHit320Hist_->Write();
+  dedxSingleHit500Hist_->Write();
+  dedxSingleHitAllHist_->Write();
+
   TDirectory* dedxHistsInNomBinsMatchedDir = outFile->mkdir("dedxHistsInNomBinsMatched");
   dedxHistsInNomBinsMatchedDir->cd();
   for(int i=0; i < numNomBins_; ++i)
   {
     dedxHistsInNomBinsMatched_[i]->Write();
     dedxHistsNoPBiasInNomBinsMatched_[i]->Write();
+    dedxHistsNoPBiasNoNomBiasInNomBinsMatched_[i]->Write();
     //dedxHistsPullPSigmaInNomBinsMatched_[i]->Write();
     //dedxHistsPullPEtaSigmaInNomBinsMatched_[i]->Write();
     //dedxHistsPullPEtaNomSigmaInNomBinsMatched_[i]->Write();
   }
+  dedxSingleHit320HistMatched_->Write();
+  dedxSingleHit500HistMatched_->Write();
+  dedxSingleHitAllHistMatched_->Write();
   secondaryPeakIhBetaDepResNoM8Hist->Write();
+
   TDirectory* dedxHistsMuSBInNomBinsDir = outFile->mkdir("dedxHistsMuSBInNomBins");
   dedxHistsMuSBInNomBinsDir->cd();
   for(int i=0; i < numNomBins_; ++i)

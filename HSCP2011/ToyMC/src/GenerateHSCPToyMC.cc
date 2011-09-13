@@ -13,7 +13,7 @@
 //
 // Original Author:  Seth Cooper,27 1-024,+41227672342,
 //         Created:  Wed Apr 14 14:27:52 CEST 2010
-// $Id: GenerateHSCPToyMC.cc,v 1.1 2011/06/30 13:36:41 scooper Exp $
+// $Id: GenerateHSCPToyMC.cc,v 1.2 2011/06/30 13:51:13 scooper Exp $
 //
 //
 
@@ -92,8 +92,7 @@ GenerateHSCPToyMC::GenerateHSCPToyMC(const edm::ParameterSet& iConfig) :
     numSignalEvents_ = round(numberOfEventsPerTrial_*signalFraction_);
     numBackgroundEvents_ = numberOfEventsPerTrial_-numSignalEvents_;
   }
-  //debug
-  std::cout << "numberOfEventsPerTrial*signalFraction = " << numberOfEventsPerTrial_ << 
+  edm::LogInfo("GenerateHSCPToyMC") << "numberOfEventsPerTrial*signalFraction = " << numberOfEventsPerTrial_ << 
     " * " << signalFraction_ << " = " << numberOfEventsPerTrial_*signalFraction_ << std::endl;
 
 }
@@ -182,16 +181,16 @@ GenerateHSCPToyMC::analyze(const edm::Event& iEvent, const edm::EventSetup& iSet
   // below now only does nom vs. eta hist
   initGenHists();
   //XXX debug
-  std::cout << "Entries in muonEtaVsPtHist: " << muonEtaVsPtHist_->GetEntries() << std::endl;
-  std::cout << "Entries in hscpEtaVsPtHist: " << hscpEtaVsPtHist_->GetEntries() << std::endl;
-  std::cout << "Entries in avgTrackNoMvsEtaProf:" << avgTrackNoMvsEtaProf_->GetEntries() << std::endl;
-  std::cout << "Entries in muonGenDeDxPNomSliceHists_[0]: " << muonGenDeDxPNomSliceHists_[0]->GetEntries() << std::endl;
-  std::cout << "Entries in muonGenDeDxPNomSliceHists_[1]: " << muonGenDeDxPNomSliceHists_[1]->GetEntries() << std::endl;
-  std::cout << "Entries in muonGenDeDxPNomSliceHists_[2]: " << muonGenDeDxPNomSliceHists_[2]->GetEntries() << std::endl;
-  std::cout << "Entries in muonGenDeDxPNomSliceHists_[3]: " << muonGenDeDxPNomSliceHists_[3]->GetEntries() << std::endl;
-  std::cout << "Entries in hscpGenDeDxPNomSliceHists_[0]: " << hscpGenDeDxPNomSliceHists_[0]->GetEntries() << std::endl;
-  std::cout << "Entries in hscpGenDeDxPNomSliceHists_[1]: " << hscpGenDeDxPNomSliceHists_[1]->GetEntries() << std::endl;
-  std::cout << "Entries in hscpGenDeDxPNomSliceHists_[2]: " << hscpGenDeDxPNomSliceHists_[2]->GetEntries() << std::endl;
+  //std::cout << "Entries in muonEtaVsPtHist: " << muonEtaVsPtHist_->GetEntries() << std::endl;
+  //std::cout << "Entries in hscpEtaVsPtHist: " << hscpEtaVsPtHist_->GetEntries() << std::endl;
+  //std::cout << "Entries in avgTrackNoMvsEtaProf:" << avgTrackNoMvsEtaProf_->GetEntries() << std::endl;
+  //std::cout << "Entries in muonGenDeDxPNomSliceHists_[0]: " << muonGenDeDxPNomSliceHists_[0]->GetEntries() << std::endl;
+  //std::cout << "Entries in muonGenDeDxPNomSliceHists_[1]: " << muonGenDeDxPNomSliceHists_[1]->GetEntries() << std::endl;
+  //std::cout << "Entries in muonGenDeDxPNomSliceHists_[2]: " << muonGenDeDxPNomSliceHists_[2]->GetEntries() << std::endl;
+  //std::cout << "Entries in muonGenDeDxPNomSliceHists_[3]: " << muonGenDeDxPNomSliceHists_[3]->GetEntries() << std::endl;
+  //std::cout << "Entries in hscpGenDeDxPNomSliceHists_[0]: " << hscpGenDeDxPNomSliceHists_[0]->GetEntries() << std::endl;
+  //std::cout << "Entries in hscpGenDeDxPNomSliceHists_[1]: " << hscpGenDeDxPNomSliceHists_[1]->GetEntries() << std::endl;
+  //std::cout << "Entries in hscpGenDeDxPNomSliceHists_[2]: " << hscpGenDeDxPNomSliceHists_[2]->GetEntries() << std::endl;
   //std::cout << "Entries in hscpGenDeDxPNomSliceHists_[3]: " << hscpGenDeDxPNomSliceHists_[3]->GetEntries() << std::endl;
   // \debug
   RooDataHist muonEtaPtGenDataHist("muonEtaPtGenDataHist","muonEtaPtGenDataHist",RooArgList(Trackpt,Tracketa),muonEtaVsPtHist_);
@@ -393,6 +392,7 @@ GenerateHSCPToyMC::analyze(const edm::Event& iEvent, const edm::EventSetup& iSet
   TH1F* slicesUsedMuonHist = new TH1F("slicesUsedMuonHist","PDF slices used muon",4,0,4);
   TH1F* chi2Hist = new TH1F("chi2Hist","Chi2",5000,0,5000);
   TH1F* nllSamplesLowDeDxHist = new TH1F("nllSamplesLowDeDx","NLL for samples with no track with dE/dx > 20 MeV/cm",20000,0,20000);
+  TH2F* chi2VsNLLBinnedHist = new TH2F("chi2VsNLLBinnedHist","chi2 vs. nll binned",20000,0,20000,5000,0,5000);
 
   //// Generation params -- TODO make these configurable (or when we move to EDAnalyzer)
   //int numberOfTrials = 1000;
@@ -438,10 +438,9 @@ GenerateHSCPToyMC::analyze(const edm::Event& iEvent, const edm::EventSetup& iSet
     RooDataSet muonDeDxData("muonDeDxData","muonDeDxData",RooArgSet(TrackdEdxE1,Tracknom,Trackp));
     RooDataSet hscpDeDxData("hscpDeDxData","hscpDeDxData",RooArgSet(TrackdEdxE1,Tracknom,Trackp));
     double chi2 = 0;
-    double nllBinned = 0;
-    double nllBinnedSignalOnly = 0;
     RooArgSet* tempMuon = new RooArgSet();
     RooArgSet* tempHscp = new RooArgSet();
+    RooArgSet* temp = new RooArgSet();
     for(int entry = 0; entry < muonData->sumEntries(); ++entry)
     {
       tempMuon = const_cast<RooArgSet*>(muonData->get(entry));
@@ -505,195 +504,107 @@ GenerateHSCPToyMC::analyze(const edm::Event& iEvent, const edm::EventSetup& iSet
           hasHighDeDxTrack = true;
       }
     }
-    //RooDataSet muonDeDxData = generateDeDxInPSlices(muonData,false);
-    RooDataHist* deDxDataHistMuon = muonDeDxData.binnedClone();
-    RooDataHist* deDxDataHistMuonNomOnly = (RooDataHist*)deDxDataHistMuon->reduce(Tracknom);
-    RooDataHist* deDxDataHistMuonDeDxNom = (RooDataHist*)deDxDataHistMuon->reduce(RooArgSet(TrackdEdxE1,Tracknom));
-    double normFactorsMuon[4];
-    for(int idx=1; idx<5; ++idx)
-    {
-      deDxDataHistMuonNomOnly->get(idx);
-      normFactorsMuon[idx-1] = deDxDataHistMuonNomOnly->weight()*(TrackdEdxE1.getMax()-TrackdEdxE1.getMin())/TrackdEdxE1.getBins();
-    }
-    for(int bin=0; bin < TrackdEdxE1.numBins()*Tracknom.numBins(); ++bin)
-    {
-      tempMuon = const_cast<RooArgSet*>(deDxDataHistMuonDeDxNom->get(bin));
-      if(!deDxDataHistMuon->valid())
-        continue;
-      Tracknom = tempMuon->getRealValue("Tracknom");
-      if(Tracknom.getVal() < 6)
-        continue;
-      TrackdEdxE1 = tempMuon->getRealValue("TrackdEdxE1");
-      int slice = getSliceFromNom(Tracknom.getVal());
-      //XXX debug
-      //std::cout << "DEBUG: signalFraction=" << signalFraction << " index=" << index << " slice=" << slice << " p=" << Trackp.getVal() << std::endl;
-      //std::cout << "Track eta: " << Tracketa.getVal() << " track pt: " << Trackpt.getVal() << " trackNoM: " << Tracknom.getVal() << std::endl;
-      //std::cout << "Track p: " << Trackp.getVal() << " trackNoM: " << Tracknom.getVal() << " dE/dx: " << TrackdEdxE1.getVal() << std::endl;
-      //std::cout << "Tracknom: " << Tracknom.getVal() << " slice: " << slice << std::endl;
-      double pdfVal = dEdxE1PAndNoMSlicePdfs[slice-2]->getVal(new RooArgSet(TrackdEdxE1));
-      pdfVal*=normFactorsMuon[slice-2];
-      double pdfValSignalOnly = -1;
-      double thisNllSignalOnly = 0;
-      //FOR SIGNAL, HAVE TO LOOP OVER 3-D dataset!!
-      //for(int pBin=0; pBin < 5; ++pBin)
-      //{
-      //  tempMuon = const_cast<RooArgSet*>(deDxDataHistMuon->get(bin+pBin*TrackdEdxE1.numBins()*Tracknom.numBins()));
-      //  if(!deDxDataHistMuon->valid())
-      //    continue;
-      //  Trackp = tempMuon->getRealValue("Trackp");
-      //  Tracknom = tempMuon->getRealValue("Tracknom");
-      //  if(Tracknom.getVal() < 6)
-      //    continue;
-      //  TrackdEdxE1 = tempMuon->getRealValue("TrackdEdxE1");
-      //  int index = getSliceFromNomAndPHscp(Tracknom.getVal(),Trackp.getVal());
-      //  if(index < 1 || index==4 || index==5)
-      //    continue;
 
-      //  //debug
-      //  //std::cout << "Track eta: " << Tracketa.getVal() << " track pt: " << Trackpt.getVal() << " trackNoM: " << Tracknom.getVal() << std::endl;
-      //  //std::cout << "Track p: " << Trackp.getVal() << " trackNoM: " << Tracknom.getVal() << " dE/dx: " << TrackdEdxE1.getVal() << std::endl;
-      //  //std::cout << "Tracknom: " << Tracknom.getVal() << " index: " << index << std::endl;
+    // Make combined datasets and datahists
+    RooDataSet combinedDataSet = muonDeDxData;
+    combinedDataSet.append(hscpDeDxData);
+    RooDataHist* deDxDataHistCombined = combinedDataSet.binnedClone();
+    RooDataHist* deDxDataHistCombinedNomOnly = (RooDataHist*)deDxDataHistCombined->reduce(Tracknom);
+    RooDataHist* deDxDataHistCombinedDeDxNom = (RooDataHist*)deDxDataHistCombined->reduce(RooArgSet(TrackdEdxE1,Tracknom));
 
-      //  // Signal PDF value
-      //  pdfValSignalOnly = hscpDeDxGenPNomSliceHistPdfs[index-1]->getVal(new RooArgSet(TrackdEdxE1));
-      //  //debug
-      //  //std::cout << "PDFVal signal only (no norm) this point: " << pdfValSignalOnly << std::endl;
-      //  //pdfValSignalOnly*=deDxDataHistMuon->weight();
-      //  //debug
-      //  //std::cout << "Bin weight: " << deDxDataHistMuon->weight() << std::endl;
-      //  //std::cout << "PDFVal signal only (with norm) this point: " << pdfValSignalOnly << std::endl;
-      //  pdfValSignalOnly*=((TrackdEdxE1.getMax()-TrackdEdxE1.getMin())/TrackdEdxE1.getBins());
-      //  //debug
-      //  //std::cout << "PDFVal signal only this point: " << pdfValSignalOnly << std::endl;
-      //  double binc = deDxDataHistMuon->weight();
-      //  if(binc==0)
-      //  {
-      //    thisNllSignalOnly = pdfValSignalOnly;
-      //  }
-      //  else
-      //  {
-      //    thisNllSignalOnly = pdfValSignalOnly-binc+binc*log(binc/pdfValSignalOnly);
-      //  }
-      //  //debug
-      //  //std::cout << "NLL signal only this point: " << thisNllSignalOnly << std::endl;
-      //  if(thisNllSignalOnly <= DBL_MAX && thisNllSignalOnly >= -DBL_MAX)
-      //    nllBinnedSignalOnly+=thisNllSignalOnly;
-      //  //std::cout << "NLL signal so far: " << nllBinnedSignalOnly << std::endl;
-      //}
-      double binc = deDxDataHistMuonDeDxNom->weight();
-      double thisNll = 0;
-      if(binc==0)
-      {
-        thisNll = pdfVal;
-      }
-      else
-      {
-        thisNll = pdfVal-binc+binc*log(binc/pdfVal);
-      }
 
-      nllBinned+=thisNll;
-      if(pdfVal > 0)
-        chi2+=pow(pdfVal-binc,2)/pdfVal;
-      
-      NLLthisSample+=thisNll;
-      //nllsAndDeDxs.insert(make_pair(-1*log(muonHistPdf.getVal(myArg)),temp.getRealValue("TrackdEdxE1")));
-      //std::cout << "[NEW POINT] eta: " << Tracketa.getVal() << " p: " << Trackp.getVal() << " nom: " << Tracknom.getVal() << " slice: " << slice << " binIndex: " << slice-2 << std::endl;
-      //std::cout << "binVolume: " << deDxDataHistMuon->binVolume() << " * sumEntries: " << deDxDataHistMuon->sumEntries() << "= norm factor: " << normFactorsMuon[slice-2] << std::endl;
-      //std::cout << "bin=" << bin << std::endl;
-      //std::cout << "dE/dx: " << TrackdEdxE1.getVal() << " nomBin: " << slice-2 << std::endl;
-      //std::cout << "norm factor: " << normFactorsMuon[slice-2] << std::endl;
-      //std::cout << "using bound PDF: " << dEdxE1PAndNoMSlicePdfs[slice-2]->getVal(new RooArgSet(TrackdEdxE1)) << std::endl;
-      //std::cout << "pdfval: " << pdfVal << std::endl;
-      //std::cout << "binc: " << binc << std::endl;
-      //std::cout << "NLLback for this point: " << thisNll << std::endl << std::endl;
-      //std::cout << std::endl;
-      //std::cout << "chi2 for this point: " << pow(pdfVal-binc,2)/pdfVal << std::endl << std::endl;
-      //std::cout << "NLL for this point: " << -1*log(sigAndBackModelGen.getVal(myArg)) << std::endl;
-      //std::cout << "NLLsignal for this point: " << -1*log(langausDeDxHSCP.getVal(myArg)) << std::endl;
-      std::cout << "REGULAR BYHAND DEBUG: trackdedx: " << TrackdEdxE1.getVal() << " nom: " << slice-2 << " binc= " << binc << " pdfVal=" << pdfVal << " norm=" << normFactorsMuon[slice-2] << std::endl << std::endl;
-
-      nllPerEventVsDeDxHist->Fill(TrackdEdxE1.getVal(),thisNll);
-      nllPerMuonEventHist->Fill(thisNll);
-      slicesUsedMuonHist->Fill(slice-2);
-      if(slice-2==0)
-        nllPerEventVsDeDxSlice0Hist->Fill(TrackdEdxE1.getVal(),thisNll);
-      else if(slice-2==1)
-        nllPerEventVsDeDxSlice1Hist->Fill(TrackdEdxE1.getVal(),thisNll);
-      else if(slice-2==2)
-        nllPerEventVsDeDxSlice2Hist->Fill(TrackdEdxE1.getVal(),thisNll);
-      else if(slice-2==3)
-        nllPerEventVsDeDxSlice3Hist->Fill(TrackdEdxE1.getVal(),thisNll);
-
-    }
-
-    double nllFromRooFit = 0;
-    double nllByHand = 0;
-    // RooFit computation
-    RooDataHist* deDxDataHistMuonTrackNomCut = (RooDataHist*) deDxDataHistMuonDeDxNom->reduce("Tracknom>5");
+    //double nllFromRooFit = 0;
+    //double llrFromRooFit = 0;
+    double llrByHand = 0;
+    RooDataHist* deDxDataHistCombinedTrackNomCut = (RooDataHist*) deDxDataHistCombinedDeDxNom->reduce("Tracknom>5");
     for(int nomBin=1; nomBin < Tracknom.numBins(); ++nomBin)
     {
-      RooDataHist* deDxDataHistMuonThisBin;
+      RooDataHist* deDxDataHistCombinedThisBin = new RooDataHist();
       if(nomBin==1)
       {
-        deDxDataHistMuonThisBin = (RooDataHist*) deDxDataHistMuonTrackNomCut->reduce(RooArgSet(TrackdEdxE1),"Tracknom<11");
-        TCanvas* dedxDataHistCanvas = new TCanvas("dedxDataHistCanvas","dedxDataHistCanvas",1,1,2500,1000);
-        dedxDataHistCanvas->cd();
-        RooPlot* dedxFrame = TrackdEdxE1.frame();
-        deDxDataHistMuonThisBin->plotOn(dedxFrame);
-        dEdxE1PAndNoMSlicePdfs[0]->plotOn(dedxFrame);
-        dedxFrame->Draw("e0");
-        dedxDataHistCanvas->Write();
-        dedxFrame->Write();
+        deDxDataHistCombinedThisBin = (RooDataHist*) deDxDataHistCombinedTrackNomCut->reduce(RooArgSet(TrackdEdxE1),"Tracknom<11");
+        //TCanvas* dedxDataHistCanvas = new TCanvas("dedxDataHistCanvas","dedxDataHistCanvas",1,1,2500,1000);
+        //dedxDataHistCanvas->cd();
+        //RooPlot* dedxFrame = TrackdEdxE1.frame();
+        //deDxDataHistCombinedThisBin->plotOn(dedxFrame);
+        //dEdxE1PAndNoMSlicePdfs[0]->plotOn(dedxFrame);
+        //dedxFrame->Draw("e0");
+        //dedxDataHistCanvas->Write();
+        //dedxFrame->Write();
       }
       else if(nomBin==2)          
-        deDxDataHistMuonThisBin = (RooDataHist*) deDxDataHistMuonTrackNomCut->reduce(RooArgSet(TrackdEdxE1),"Tracknom<16&&Tracknom>=11");
+        deDxDataHistCombinedThisBin = (RooDataHist*) deDxDataHistCombinedTrackNomCut->reduce(RooArgSet(TrackdEdxE1),"Tracknom<16&&Tracknom>=11");
       else if(nomBin==3)          
-        deDxDataHistMuonThisBin = (RooDataHist*) deDxDataHistMuonTrackNomCut->reduce(RooArgSet(TrackdEdxE1),"Tracknom<21&&Tracknom>=16");
+        deDxDataHistCombinedThisBin = (RooDataHist*) deDxDataHistCombinedTrackNomCut->reduce(RooArgSet(TrackdEdxE1),"Tracknom<21&&Tracknom>=16");
       else if(nomBin==4)
-        deDxDataHistMuonThisBin = (RooDataHist*) deDxDataHistMuonTrackNomCut->reduce(RooArgSet(TrackdEdxE1),"Tracknom<50&&Tracknom>=21");
+        deDxDataHistCombinedThisBin = (RooDataHist*) deDxDataHistCombinedTrackNomCut->reduce(RooArgSet(TrackdEdxE1),"Tracknom<50&&Tracknom>=21");
 
-      std::cout << "nomBin=" << nomBin << " #entries in dataset=" << deDxDataHistMuonThisBin->sumEntries() << std::endl;
-      double nllValModel = dEdxE1PAndNoMSlicePdfs[nomBin-1]->createNLL(*deDxDataHistMuonThisBin)->getVal();
-      std::cout << "NLLValModel: " << nllValModel << std::endl;
-      RooHistPdf thisBinDataHistPdf("thisBinDataHistPdf","thisBinDataHistPdf",TrackdEdxE1,*deDxDataHistMuonThisBin);
-      double nllValMax = thisBinDataHistPdf.createNLL(*deDxDataHistMuonThisBin)->getVal();
-      std::cout << "NLLValMax: " << nllValMax << std::endl;
-      double llr = -2*nllValModel+2*nllValMax;
-      std::cout << "This LLR roofit (=-2*NLLValModel+2*NLLValMax): " << llr << std::endl;
-      nllFromRooFit+=llr;
+      if(deDxDataHistCombinedThisBin->sumEntries() < 1)
+        continue;
 
-      //recalc by hand
-      double nllByHandThisBin = 0;
+      //RooRealVar norm("norm","norm",deDxDataHistCombinedThisBin->sumEntries());
+      ////std::cout << "nomBin=" << nomBin << " #entries in dataset=" << deDxDataHistCombinedThisBin->sumEntries() << std::endl;
+      ////double nllValModel = dEdxE1PAndNoMSlicePdfs[nomBin-1]->createNLL(*deDxDataHistCombinedThisBin,Extended(true))->getVal();
+      //RooExtendPdf extendPdf("extendPdf","extendPdf",*dEdxE1PAndNoMSlicePdfs[nomBin-1],norm);
+      //double nllValModel = extendPdf.createNLL(*deDxDataHistCombinedThisBin,Extended(true))->getVal();
+      ////std::cout << "NLLValModel: " << nllValModel << std::endl;
+      ////std::cout << "ExtendedTermModel: (expt-obsv*log(expt)= " << extendPdf.extendedTerm((int)norm.getVal(),&RooArgSet(TrackdEdxE1)) << std::endl;
+      //RooHistPdf thisBinDataHistPdf("thisBinDataHistPdf","thisBinDataHistPdf",TrackdEdxE1,*deDxDataHistCombinedThisBin);
+      ////double nllValMax = thisBinDataHistPdf.createNLL(*deDxDataHistCombinedThisBin,Extended(true))->getVal();
+      //RooExtendPdf extend2Pdf("extend2Pdf","extend2Pdf",thisBinDataHistPdf,norm);
+      //double nllValMax = extend2Pdf.createNLL(*deDxDataHistCombinedThisBin,Extended(true))->getVal();
+      ////std::cout << "NLLValMax: " << nllValMax << std::endl;
+      ////std::cout << "ExtendedTermModel: (expt-obsv*log(expt)= " << extend2Pdf.extendedTerm((int)norm.getVal(),&RooArgSet(TrackdEdxE1)) << std::endl;
+      //double llr = 2*(nllValModel-nllValMax);
+      ////std::cout << "This LLR roofit ( =2*(NLLValModel-NLLValMax) ): " << llr << std::endl;
+      //llrFromRooFit+=llr;
+      //nllFromRooFit+=nllValModel;
+
+      //calc by hand
+      double llrByHandThisBin = 0;
+      double chi2ThisBin  = 0;
       for(int dedxBin=0; dedxBin < TrackdEdxE1.numBins(); ++dedxBin)
       {
-        tempMuon = const_cast<RooArgSet*>(deDxDataHistMuonThisBin->get(dedxBin));
-        if(!deDxDataHistMuonThisBin->valid())
+        temp = const_cast<RooArgSet*>(deDxDataHistCombinedThisBin->get(dedxBin));
+        if(!deDxDataHistCombinedThisBin->valid())
           continue;
-        //double norm = deDxDataHistMuonThisBin->weight()*(TrackdEdxE1.getMax()-TrackdEdxE1.getMin())/TrackdEdxE1.getBins();
-        double norm = deDxDataHistMuonThisBin->sumEntries()*(TrackdEdxE1.getMax()-TrackdEdxE1.getMin())/TrackdEdxE1.getBins();
-        TrackdEdxE1 = tempMuon->getRealValue("TrackdEdxE1");
+        double norm = deDxDataHistCombinedThisBin->sumEntries()*(TrackdEdxE1.getMax()-TrackdEdxE1.getMin())/TrackdEdxE1.getBins();
+        TrackdEdxE1 = temp->getRealValue("TrackdEdxE1");
         double pdfVal = dEdxE1PAndNoMSlicePdfs[nomBin-1]->getVal(new RooArgSet(TrackdEdxE1));
         pdfVal*=norm;
-        double binc = deDxDataHistMuonThisBin->weight();
-        std::cout << "BY HAND2 DEBUG: trackdedx: " << TrackdEdxE1.getVal() << " nom: " << nomBin-1 << " binc= " << binc << " pdfVal=" << pdfVal << " norm=" << norm << std::endl << std::endl;
-        double thisNll = 0;
+        double binc = deDxDataHistCombinedThisBin->weight();
+        //std::cout << "BY HAND2 DEBUG: trackdedx: " << TrackdEdxE1.getVal() << " nom: " << nomBin-1 << " binc= " << binc << " pdfVal=" << pdfVal << " norm=" << norm << std::endl << std::endl;
+        double thisLLR = 0;
         if(binc==0)
-          thisNll = pdfVal;
+        {
+          thisLLR = pdfVal;
+        }
         else
-          thisNll = pdfVal-binc+binc*log(binc/pdfVal);
-        nllByHand+=thisNll;
-        nllByHandThisBin+=thisNll;
+        {
+          thisLLR = pdfVal-binc+binc*log(binc/pdfVal);
+        }
+        thisLLR*=2;
+        llrByHand+=thisLLR;
+        llrByHandThisBin+=thisLLR;
+        //chi2
+        if(pdfVal > 0)
+        {
+          chi2ThisBin+=pow(pdfVal-binc,2)/pdfVal;
+          chi2+=pow(pdfVal-binc,2)/pdfVal;
+        }
       }
-      std::cout << "This bin NLL by hand: " << nllByHandThisBin << std::endl << std::endl;
+      //std::cout << "This bin 2*LLR model by hand: " << llrByHandThisBin << std::endl << std::endl;
+      //std::cout << "This bin chi2 model: " << chi2ThisBin << std::endl;
 
-      delete deDxDataHistMuonThisBin;
+      delete deDxDataHistCombinedThisBin;
     }
-    std::cout << "-2*log(lamba) roofit = " << nllFromRooFit << std::endl;
-    std::cout << "2*Nll by hand: " << 2*nllByHand << std::endl;
+    //std::cout << "-2*log(lamba) roofit = " << llrFromRooFit << std::endl;
+    edm::LogInfo("GenerateHSCPToyMC") << "2*Nll by hand this sample: " << llrByHand
+      << "chi2 this sample: " << chi2 << std::endl;
 
-    delete deDxDataHistMuon;
-    delete deDxDataHistMuonNomOnly;
-    delete deDxDataHistMuonDeDxNom;
+    delete deDxDataHistCombined;
+    delete deDxDataHistCombinedNomOnly;
+    delete deDxDataHistCombinedDeDxNom;
 
     //// plot an example -- slice 0
     //TCanvas* eventsCanvas = new TCanvas("eventsCanvas","eventsCanvas",1,1,2500,1000);
@@ -705,133 +616,14 @@ GenerateHSCPToyMC::analyze(const edm::Event& iEvent, const edm::EventSetup& iSet
     //eventsCanvas->Write();
     //dedxFrame->Write();
 
-    //HSCP
-    if(genSignalAndBackground_)
-    {
-      //const RooDataSet* hscpData = mcStudyEtaPtHscp.genData(i);
-      //RooDataSet hscpDeDxData = generateDeDxInPSlices(hscpData,true);
-      RooDataHist* deDxDataHistHscp = hscpDeDxData.binnedClone();
-      RooDataHist* deDxDataHistHscpNomOnly = (RooDataHist*) deDxDataHistHscp->reduce(Tracknom);
-      RooDataHist* deDxDataHistHscpDeDxNom = (RooDataHist*)deDxDataHistHscp->reduce(RooArgSet(TrackdEdxE1,Tracknom));
-      double normFactorsHscp[4];
-      for(int idx=1; idx<5; ++idx)
-      {
-        deDxDataHistHscpNomOnly->get(idx);
-        normFactorsHscp[idx-1] = deDxDataHistHscpNomOnly->weight()*(TrackdEdxE1.getMax()-TrackdEdxE1.getMin())/TrackdEdxE1.getBins();
-      }
-      for(int bin=0; bin < TrackdEdxE1.numBins()*Tracknom.numBins(); ++bin)
-      {
-        tempHscp = const_cast<RooArgSet*>((deDxDataHistHscpDeDxNom->get(bin)));
-        if(!deDxDataHistHscp->valid())
-          continue;
-        Tracknom = tempHscp->getRealValue("Tracknom");
-        if(Tracknom.getVal() < 6)
-          continue;
-        TrackdEdxE1 = tempHscp->getRealValue("TrackdEdxE1");
-        //Trackp = tempHscp->getRealValue("Trackp");
-        int slice = getSliceFromNom(Tracknom.getVal());
-        //int index = getSliceFromNomAndPHscp(Tracknom.getVal(),Trackp.getVal());
-        //if(index < 1 || index==4 || index==5)
-        //  continue;
-        double pdfVal = dEdxE1PAndNoMSlicePdfs[slice-2]->getVal(new RooArgSet(TrackdEdxE1));
-        pdfVal*=normFactorsHscp[slice-2];
-        double pdfValSignalOnly = -1;
-        double thisNllSignalOnly = 0;
-        //FOR SIGNAL, HAVE TO LOOP OVER 3-D dataset!!
-        for(int pBin=0; pBin < 5; ++pBin)
-        {
-          tempHscp = const_cast<RooArgSet*>(deDxDataHistHscp->get(bin+pBin*TrackdEdxE1.numBins()*Tracknom.numBins()));
-          if(!deDxDataHistHscp->valid())
-            continue;
-          Trackp = tempHscp->getRealValue("Trackp");
-          Tracknom = tempHscp->getRealValue("Tracknom");
-          if(Tracknom.getVal() < 6)
-            continue;
-          TrackdEdxE1 = tempHscp->getRealValue("TrackdEdxE1");
-          int index = getSliceFromNomAndPHscp(Tracknom.getVal(),Trackp.getVal());
-          if(index < 1 || index==4 || index==5)
-            continue;
-
-          // Signal PDF value
-          pdfValSignalOnly = hscpDeDxGenPNomSliceHistPdfs[index-1]->getVal(new RooArgSet(TrackdEdxE1));
-          pdfValSignalOnly*=deDxDataHistHscp->weight();
-          pdfValSignalOnly*=((TrackdEdxE1.getMax()-TrackdEdxE1.getMin())/TrackdEdxE1.getBins());
-          double binc = deDxDataHistMuon->weight();
-          if(binc==0)
-          {
-            thisNllSignalOnly = pdfValSignalOnly;
-          }
-          else
-          {
-            thisNllSignalOnly = pdfValSignalOnly-binc+binc*log(binc/pdfValSignalOnly);
-          }
-          //debug
-          //std::cout << "NLL signal (signal dataset) only this point: " << thisNllSignalOnly << std::endl;
-          nllBinnedSignalOnly+=thisNllSignalOnly;
-          //std::cout << "NLL signal so far: " << nllBinnedSignalOnly << std::endl;
-        }
-        double binc = deDxDataHistHscpDeDxNom->weight();
-        double thisNll= 0;
-        if(binc==0)
-        {
-          thisNll = pdfVal;
-        }
-        else
-        {
-          thisNll = pdfVal-binc+binc*log(binc/pdfVal);
-        }
-
-        nllBinned+=thisNll;
-        if(pdfVal > 0)
-          chi2+=pow(pdfVal-binc,2)/pdfVal;
-
-        NLLthisSample+=thisNll;
-
-        nllPerEventVsDeDxHist->Fill(TrackdEdxE1.getVal(),pdfVal);
-        nllPerHscpEventHist->Fill(pdfVal);
-        slicesUsedHscpHist->Fill(slice-2);
-        if(slice-2==0)
-          nllPerEventVsDeDxSlice0Hist->Fill(TrackdEdxE1.getVal(),pdfVal);
-        else if(slice-2==1)
-          nllPerEventVsDeDxSlice1Hist->Fill(TrackdEdxE1.getVal(),pdfVal);
-        else if(slice-2==2)
-          nllPerEventVsDeDxSlice2Hist->Fill(TrackdEdxE1.getVal(),pdfVal);
-        else if(slice-2==3)
-          nllPerEventVsDeDxSlice3Hist->Fill(TrackdEdxE1.getVal(),pdfVal);
-      }
-      delete deDxDataHistHscp;
-      delete deDxDataHistHscpNomOnly;
-      delete deDxDataHistHscpDeDxNom;
-    }
-    //map<float,float>::const_iterator itr = nllsAndDeDxs.end();
-    //for(int i=0; i<5; ++i)
-    //{
-    //  itr--;
-    //  //cout << "NLL: " << itr->first << " dEdx: " << itr->second << endl;
-    //  dedxOfHighestNLLHist->Fill(itr->second);
-    //}
-    nllBinned*=2;
-    nllBinnedSignalOnly*=2;
-    // Composite PDF
-    //RooAddPdf compositePdf("compositePdf","compositePdf",hscpDeDxGenPNomSliceHistPdfs[index-1],dEdxE1PAndNoMSlicePdfs[slice-2],sigFrac);
-    //RooDataHist combinedData(deDxDataHistMuon);
-    //combinedData.add(deDxDataHistHscp);
-    //RooNLLVar nll("nll","nll",f,*db) ;
-    //RooMinuit m(nll) ;
-    //m.migrad() ;
-    //m.hesse() ;
-    //RooFitResult* r1 = m.save() ;
-    //cout << "result of binned likelihood fit" << endl ;
-    //r1->Print("v") ;
-    //compositePdf.fitTo(combinedData,Extended(true),Hesse(true));
-
-    nllBackHist->Fill(nllBinned);
-    nllSignalHist->Fill(nllBinnedSignalOnly);
+    chi2VsNLLBinnedHist->Fill(llrByHand,chi2);
+    nllBackHist->Fill(llrByHand);
+    //nllSignalHist->Fill(nllBinnedSignalOnly);
     //nllSBHist->Fill(nllBinnedPlusSignal);
     chi2Hist->Fill(chi2);
-    std::cout << "-2*LogLikelihoodBack = " << nllBinned << std::endl;
+    //std::cout << "-2*LogLikelihoodBack = " << nllBinned << std::endl;
     //std::cout << "-2*LogLikelihoodSig = " << nllBinnedSignalOnly << std::endl;
-    std::cout << "chi2 = " << chi2 << std::endl;
+    //std::cout << "chi2 = " << chi2 << std::endl;
     //nllSignalHist->Fill(logLikelihoodSignal);
     //std::cout << "-LogLikelihood = " << logLikelihood << std::endl;
     //std::cout << "-LogLikelihoodBack = " << logLikelihoodBack << std::endl;
@@ -839,9 +631,8 @@ GenerateHSCPToyMC::analyze(const edm::Event& iEvent, const edm::EventSetup& iSet
     if(!hasHighDeDxTrack)
       nllSamplesLowDeDxHist->Fill(NLLthisSample);
 
-    if((i+1) % 100 == 0)
-      std::cout << "Done with trial: " << i+1 << std::endl;
-
+    //if((i+1) % 100 == 0)
+    edm::LogInfo("GenerateHSCPToyMC") << "Done with trial: " << i+1 << std::endl;
   }
 
   //// One example to plot
