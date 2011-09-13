@@ -45,3 +45,9 @@
   <use   name="root"/>
   <use   name="rootgraphics"/>
 </bin>
+<bin   name="sampleLandauToyMC" file="sampleLandauToyMC.cpp">
+  <use   name=root>
+  <use   name=roofit>
+  <use   name=roofitcore>
+</bin>
+
