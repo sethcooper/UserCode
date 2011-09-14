@@ -51,4 +51,13 @@
   <use   name="roofit"/>
   <use   name="roofitcore"/>
 </bin>
-
+<bin   name="makeHSCParticlePlots" file="makeHSCParticlePlots.cpp">
+  <use   name="FWCore/FWLite"/>
+  <use   name="FWCore/PythonParameterSet"/>
+  <use   name="CommonTools/Utils"/>
+  <use   name="DataFormats/FWLite"/>
+  <use   name="DataFormats/TrackReco"/>
+  <use   name="PhysicsTools/FWLite"/>
+  <use   name="root"/>
+  <use   name="clhep"/>
+</bin>
