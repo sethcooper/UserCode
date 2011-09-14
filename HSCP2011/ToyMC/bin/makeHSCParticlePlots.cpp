@@ -32,7 +32,14 @@ namespace edm     {class TriggerResults; class TriggerResultsByName; class Input
 #include "DataFormats/FWLite/interface/Handle.h"
 #include "DataFormats/FWLite/interface/Event.h"
 #include "DataFormats/FWLite/interface/ChainEvent.h"
+#include "DataFormats/FWLite/interface/InputSource.h"
+#include "DataFormats/FWLite/interface/OutputFiles.h"
+
 #include "PhysicsTools/FWLite/interface/CommandLineParser.h"
+#include "FWCore/ParameterSet/interface/ProcessDesc.h"
+#include "FWCore/PythonParameterSet/interface/PythonProcessDesc.h"
+#include "FWCore/PythonParameterSet/interface/MakeParameterSets.h"
+
 #include "PhysicsTools/FWLite/interface/TFileService.h"
 
 #include "DataFormats/VertexReco/interface/Vertex.h"
@@ -81,21 +88,19 @@ int main(int argc, char ** argv)
   gSystem->Load("libFWCoreFWLite");
   AutoLibraryLoader::enable();
 
-  // initialize command line parser
-  optutl::CommandLineParser parser("Analyze FWLite Histograms");
-
-  // set option defaults
-  parser.integerValue ("maxEvents"  ) = -1;
-  parser.integerValue ("outputEvery") = 10000;
-  parser.stringValue  ("outputFile" ) = "makeHSCParticlePlots.root";
-  // must specify input files
-
   // parse arguments
-  parser.parseArguments(argc, argv);
-  int maxEvents_ = parser.integerValue("maxEvents");
-  unsigned int outputEvery_ = parser.integerValue("outputEvery");
-  std::string outputFile_ = parser.stringValue("outputFile");
-  std::vector<std::string> inputFiles_ = parser.stringVector("inputFiles");
+  if(argc < 2)
+  {
+    std::cout << "Usage : " << argv[0] << " [parameters.py]" << std::endl;
+    return 0;
+  }
+
+  // get the python configuration
+  const edm::ParameterSet& process = edm::readPSetsFrom(argv[1])->getParameter<edm::ParameterSet>("process");
+  fwlite::InputSource inputHandler_(process);
+  fwlite::OutputFiles outputHandler_(process);
+  int maxEvents_( inputHandler_.maxEvents() );
+
 
   // preselections
   const int minTrackNoH = 11;
@@ -120,7 +125,7 @@ int main(int argc, char ** argv)
   //const float maxTrackEta = 2.5;
 
   // fileService initialization
-  fwlite::TFileService fs = fwlite::TFileService(outputFile_.c_str());
+  fwlite::TFileService fs = fwlite::TFileService(outputHandler_.file().c_str());
   // declare binning and histos
   const int nNomBins = 30;
   // p bins
@@ -140,10 +145,13 @@ int main(int argc, char ** argv)
   const int etaBinLow = 0;
   const float etaBinHigh = 2.5;
 
+  //TFileDirectory dir = fs.mkdir("analyzeBasicPat");
+
   // no (pre)selections
   TH2F* dedxIhEta2dInNoMBins[nNomBins]; // 1-30 NoM; dE/dx, eta
   TH2F* dedxIasEta2dInNoMBins[nNomBins]; // 1-30 NoM; dE/dx, eta
   // track hits preselection
+  TH1F* trackHitsFoundInNomBins[nNomBins];
   TH2F* dedxIhEta2dInNoMBinsTrackHitPresel[nNomBins]; // 1-30 NoM; dE/dx, eta
   TH2F* dedxIasEta2dInNoMBinsTrackHitPresel[nNomBins]; // 1-30 NoM; dE/dx, eta
   //// track valid frac presel
@@ -213,59 +221,110 @@ int main(int argc, char ** argv)
     dedxIhEta2dInNoMBins[i] = fs.make<TH2F>(histNameIh.c_str(),histTitleIh.c_str(),nIhBins,ihBinLow,ihBinHigh,nEtaBins,etaBinLow,etaBinHigh);
     dedxIasEta2dInNoMBins[i] = fs.make<TH2F>(histNameIas.c_str(),histTitleIas.c_str(),nIasBins,iasBinLow,iasBinHigh,nEtaBins,etaBinLow,etaBinHigh);
     // track hit presel
+    trackHitsFoundInNomBins[i] = fs.make<TH1F>(("trackHitsFoundInNomBin"+intToString(i+1)).c_str(),("track hits found in NoM bin "+intToString(i+1)).c_str(),50,0,50);
     dedxIhEta2dInNoMBinsTrackHitPresel[i] = fs.make<TH2F>(histNameIhTrackHitsPresel.c_str(),histTitleIhTrackHitsPresel.c_str(),nIhBins,ihBinLow,ihBinHigh,nEtaBins,etaBinLow,etaBinHigh);
     dedxIasEta2dInNoMBinsTrackHitPresel[i] = fs.make<TH2F>(histNameIasTrackHitsPresel.c_str(),histTitleIasTrackHitsPresel.c_str(),nIasBins,iasBinLow,iasBinHigh,nEtaBins,etaBinLow,etaBinHigh);
   }
 
-  // chain the input files
-  fwlite::ChainEvent ev(inputFiles_);
-
-  int ievt = 0;
-  for (ev.toBegin(); ! ev.atEnd(); ++ev, ++ievt)
+  // loop the events
+  int ievt=0;  
+  for(unsigned int iFile=0; iFile<inputHandler_.files().size(); ++iFile)
   {
-    // break loop if maximal number of events is reached 
-    if(maxEvents_>0 ? ievt+1>maxEvents_ : false) break;
-    // simple event counter
-    if(outputEvery_!=0 ? (ievt>0 && ievt%outputEvery_==0) : false) 
-      std::cout << "  processing event: " << ievt << std::endl;
-
-    fwlite::Handle<susybsm::HSCParticleCollection> hscpCollHandle;
-    hscpCollHandle.getByLabel(ev,"HSCParticleProducer");
-    if(!hscpCollHandle.isValid()){printf("HSCP Collection NotFound\n");continue;}
-    const susybsm::HSCParticleCollection& hscpColl = *hscpCollHandle;
-
-    fwlite::Handle<reco::DeDxDataValueMap> dEdxSCollH;
-    dEdxSCollH.getByLabel(ev, "dedxASmi");
-    if(!dEdxSCollH.isValid()){printf("Invalid dEdx Selection collection\n");continue;}
-
-    fwlite::Handle<reco::DeDxDataValueMap> dEdxMCollH;
-    dEdxMCollH.getByLabel(ev, "dedxHarm2");
-    if(!dEdxMCollH.isValid()){printf("Invalid dEdx Mass collection\n");continue;}
-
-    // loop over HSCParticles in this event
-    for(unsigned int c=0;c<hscpColl.size();c++)
+    // open input file (can be located on castor)
+    TFile* inFile = TFile::Open(inputHandler_.files()[iFile].c_str());
+    if( inFile )
     {
-      susybsm::HSCParticle hscp  = hscpColl[c];
-      reco::MuonRef  muon  = hscp.muonRef();
-      reco::TrackRef track = hscp.trackRef();
-      if(track.isNull())continue;
-
-      const reco::DeDxData& dedxSObj  = dEdxSCollH->get(track.key());
-      const reco::DeDxData& dedxMObj  = dEdxMCollH->get(track.key());
-      int ihNoM = findFineNoMBin(dedxMObj.numberOfMeasurements());
-      int iasNoM = findFineNoMBin(dedxSObj.numberOfMeasurements());
-      float ih = dedxMObj.dEdx();
-      float ias = dedxSObj.dEdx();
-
-      dedxIhEta2dInNoMBins[ihNoM]->Fill(ih,fabs(track->eta()));
-      dedxIasEta2dInNoMBins[iasNoM]->Fill(ias,fabs(track->eta()));
-      // track hit presel
-      if(track->found() > minTrackNoH)
+      fwlite::Event ev(inFile);
+      for(ev.toBegin(); !ev.atEnd(); ++ev, ++ievt)
       {
-        dedxIhEta2dInNoMBinsTrackHitPresel[ihNoM]->Fill(ih,fabs(track->eta()));
-        dedxIasEta2dInNoMBinsTrackHitPresel[iasNoM]->Fill(ias,fabs(track->eta()));
-      }
+        //edm::EventBase const & event = ev;
+        // break loop if maximal number of events is reached 
+        if(maxEvents_>0 ? ievt+1>maxEvents_ : false) break;
+        // simple event counter
+        if(inputHandler_.reportAfter()!=0 ? (ievt>0 && ievt%inputHandler_.reportAfter()==0) : false) 
+          std::cout << "  processing event: " << ievt << std::endl;
+
+        fwlite::Handle<susybsm::HSCParticleCollection> hscpCollHandle;
+        hscpCollHandle.getByLabel(ev,"HSCParticleProducer");
+        if(!hscpCollHandle.isValid()){printf("HSCP Collection NotFound\n");continue;}
+        const susybsm::HSCParticleCollection& hscpColl = *hscpCollHandle;
+
+        fwlite::Handle<reco::DeDxDataValueMap> dEdxSCollH;
+        dEdxSCollH.getByLabel(ev, "dedxASmi");
+        if(!dEdxSCollH.isValid()){printf("Invalid dEdx Selection collection\n");continue;}
+
+        fwlite::Handle<reco::DeDxDataValueMap> dEdxMCollH;
+        dEdxMCollH.getByLabel(ev, "dedxHarm2");
+        if(!dEdxMCollH.isValid()){printf("Invalid dEdx Mass collection\n");continue;}
+
+        // loop over HSCParticles in this event
+        for(unsigned int c=0;c<hscpColl.size();c++)
+        {
+          susybsm::HSCParticle hscp  = hscpColl[c];
+          reco::MuonRef  muon  = hscp.muonRef();
+          reco::TrackRef track = hscp.trackRef();
+          if(track.isNull())continue;
+
+          const reco::DeDxData& dedxSObj  = dEdxSCollH->get(track.key());
+          const reco::DeDxData& dedxMObj  = dEdxMCollH->get(track.key());
+          int ihNoMbin = findFineNoMBin(dedxMObj.numberOfMeasurements());
+          int iasNoMbin = findFineNoMBin(dedxSObj.numberOfMeasurements());
+          if(ihNoMbin < 0 || iasNoMbin < 0 || ihNoMbin > 29 || iasNoMbin > 29)
+          {
+            //std::cout << "ERROR in NoM: Ih NoM = " << dedxMObj.numberOfMeasurements() <<
+            //  " Ias NoM = " << dedxSObj.numberOfMeasurements() <<std::endl;
+            //continue;
+          }
+          float ih = dedxMObj.dEdx();
+          float ias = dedxSObj.dEdx();
+
+          if(ihNoMbin >= 0)
+            dedxIhEta2dInNoMBins[ihNoMbin]->Fill(ih,fabs(track->eta()));
+          if(iasNoMbin >= 0)
+            dedxIasEta2dInNoMBins[iasNoMbin]->Fill(ias,fabs(track->eta()));
+          // track hit presel
+          if(ihNoMbin >= 0)
+            trackHitsFoundInNomBins[ihNoMbin]->Fill(track->found());
+          if(track->found() >= minTrackNoH)
+          {
+            if(ihNoMbin >= 0)
+              dedxIhEta2dInNoMBinsTrackHitPresel[ihNoMbin]->Fill(ih,fabs(track->eta()));
+            if(iasNoMbin >= 0)
+              dedxIasEta2dInNoMBinsTrackHitPresel[iasNoMbin]->Fill(ias,fabs(track->eta()));
+          }
+        }
+
+      }  
+      // close input file
+      inFile->Close();
     }
+    // break loop if maximal number of events is reached:
+    // this has to be done twice to stop the file loop as well
+    if(maxEvents_>0 ? ievt+1>maxEvents_ : false) break;
   }
+
+
+  // chain the input files
+  //fwlite::ChainEvent ev(inputFiles_);
+  //int ievt = 0;
+  //for(unsigned int iFile=0; iFile<inputHandler_.files().size(); ++iFile)
+  //{
+  //  // open input file (can be located on castor)
+  //  TFile* inFile = TFile::Open(inputHandler_.files()[iFile].c_str());
+  //  if(!inFile)
+  //    continue;
+
+  //  fwlite::Event ev(inFile);
+
+  //  for(ev.toBegin(); ! ev.atEnd(); ++ev, ++ievt)
+  //  {
+  //    // break loop if maximal number of events is reached 
+  //    if(maxEvents_>0 ? ievt+1>maxEvents_ : false) break;
+  //    // simple event counter
+  //    if(outputEvery_!=0 ? (ievt>0 && ievt%outputEvery_==0) : false) 
+  //      std::cout << "  processing event: " << ievt << std::endl;
+
+  //  }
+  //}
 }
 
