@@ -126,105 +126,9 @@ int main(int argc, char ** argv)
 
   // fileService initialization
   fwlite::TFileService fs = fwlite::TFileService(outputHandler_.file().c_str());
-  // declare binning and histos
-  const int nNomBins = 30;
-  // p bins
-  const int nPBins = 200;
-  const int pBinLow = 0;
-  const int pBinHigh = 1000;
-  // Ih bins
-  const int nIhBins = 200;
-  const int ihBinLow = 0;
-  const int ihBinHigh = 20;
-  // Ias bins
-  const int nIasBins = 100;
-  const int iasBinLow = 0;
-  const int iasBinHigh = 1;
-  // eta Bins
-  const int nEtaBins = 25;
-  const int etaBinLow = 0;
-  const float etaBinHigh = 2.5;
-
   //TFileDirectory dir = fs.mkdir("analyzeBasicPat");
-
-  // no (pre)selections
-  TH2F* dedxIhEta2dInNoMBins[nNomBins]; // 1-30 NoM; dE/dx, eta
-  TH2F* dedxIasEta2dInNoMBins[nNomBins]; // 1-30 NoM; dE/dx, eta
-  // track hits preselection
-  TH1F* trackHitsFoundInNomBins[nNomBins];
-  TH2F* dedxIhEta2dInNoMBinsTrackHitPresel[nNomBins]; // 1-30 NoM; dE/dx, eta
-  TH2F* dedxIasEta2dInNoMBinsTrackHitPresel[nNomBins]; // 1-30 NoM; dE/dx, eta
-  //// track valid frac presel
-  //TH2F* dedxIhEta2dInNoMBinsTrackValidFracPresel[nNomBins]; // 1-30 NoM; dE/dx, eta
-  //TH2F* dedxIasEta2dInNoMBinsTrackValidFracPresel[nNomBins]; // 1-30 NoM; dE/dx, eta
-  //// pixel hits presel
-  //TH2F* dedxIhEta2dInNoMBinsPixelHitPresel[nNomBins]; // 1-30 NoM; dE/dx, eta
-  //TH2F* dedxIasEta2dInNoMBinsPixelHitPresel[nNomBins]; // 1-30 NoM; dE/dx, eta
-  //// track quality
-  //TH2F* dedxIhEta2dInNoMBinsTrackQualityMaskPresel[nNomBins]; // 1-30 NoM; dE/dx, eta
-  //TH2F* dedxIasEta2dInNoMBinsTrackQualityMaskPresel[nNomBins]; // 1-30 NoM; dE/dx, eta
-  //// track chi2/ndf
-  //TH2F* dedxIhEta2dInNoMBinsTrackChi2NdfPresel[nNomBins]; // 1-30 NoM; dE/dx, eta
-  //TH2F* dedxIasEta2dInNoMBinsTrackChi2NdfPresel[nNomBins]; // 1-30 NoM; dE/dx, eta
-  //// num vertices
-  //TH2F* dedxIhEta2dInNoMBinsNumVerticesPresel[nNomBins]; // 1-30 NoM; dE/dx, eta
-  //TH2F* dedxIasEta2dInNoMBinsNumVerticesPresel[nNomBins]; // 1-30 NoM; dE/dx, eta
-  //// V3D
-  //TH2F* dedxIhEta2dInNoMBinsV3DPresel[nNomBins]; // 1-30 NoM; dE/dx, eta
-  //TH2F* dedxIasEta2dInNoMBinsV3DPresel[nNomBins]; // 1-30 NoM; dE/dx, eta
-  //// track Et iso
-  //TH2F* dedxIhEta2dInNoMBinsTrackEtIsoPresel[nNomBins]; // 1-30 NoM; dE/dx, eta
-  //TH2F* dedxIasEta2dInNoMBinsTrackEtIsoPresel[nNomBins]; // 1-30 NoM; dE/dx, eta
-  //// cal E/p iso
-  //TH2F* dedxIhEta2dInNoMBinsCalEPIsoPresel[nNomBins]; // 1-30 NoM; dE/dx, eta
-  //TH2F* dedxIasEta2dInNoMBinsCalEPIsoPresel[nNomBins]; // 1-30 NoM; dE/dx, eta
-  //// pt error
-  //TH2F* dedxIhEta2dInNoMBinsTrackPtErrPresel[nNomBins]; // 1-30 NoM; dE/dx, eta
-  //TH2F* dedxIasEta2dInNoMBinsTrackPtErrPresel[nNomBins]; // 1-30 NoM; dE/dx, eta
-  // book 'em
-  std::string histNameIhBeg = "dedxIh2d";
-  std::string histNameIasBeg = "dedxIas2d";
-  std::string histTitleIhBeg = "dE/dx Ih 2D ";
-  std::string histTitleIasBeg = "dE/dx Ias 2D ";
-  for(int i=0; i<30; ++i)
-  {
-    std::string histNameIh = "dedxIh2dInNoMBin";
-    histNameIh+=intToString(i+1);
-    std::string histTitleIh = "dE/dx Ih 2D in NoM bin ";
-    histTitleIh+=intToString(i+1);
-    histTitleIh+=";MeV/cm;#eta";
-    std::string histNameIas = "dedxIas2dInNoMBin";
-    histNameIas+=intToString(i+1);
-    std::string histTitleIas = "dE/dx Ias 2D in NoM bin ";
-    histTitleIas+=intToString(i+1);
-    histTitleIh+=";;#eta";
-    // track hit presel
-    std::string histNameIhTrackHitsPresel = histNameIhBeg;
-    histNameIhTrackHitsPresel+="TrackHitPreselNomBin";
-    histNameIhTrackHitsPresel+=intToString(i+1);
-    std::string histTitleIhTrackHitsPresel = histTitleIhBeg;
-    histTitleIhTrackHitsPresel+=" after track hit > ";
-    histTitleIhTrackHitsPresel+=intToString(minTrackNoH);
-    histTitleIhTrackHitsPresel+=" in NoM bin ";
-    histTitleIhTrackHitsPresel+=intToString(i+1);
-    histTitleIhTrackHitsPresel+=";MeV/cm;#eta";
-    std::string histNameIasTrackHitsPresel = histNameIasBeg;
-    histNameIasTrackHitsPresel+="TrackHitPreselNomBin";
-    histNameIasTrackHitsPresel+=intToString(i+1);
-    std::string histTitleIasTrackHitsPresel = histTitleIasBeg;
-    histTitleIasTrackHitsPresel+=" after track hit > ";
-    histTitleIasTrackHitsPresel+=intToString(minTrackNoH);
-    histTitleIasTrackHitsPresel+=" in NoM bin ";
-    histTitleIasTrackHitsPresel+=intToString(i+1);
-    histTitleIasTrackHitsPresel+=";;#eta";
-
-    dedxIhEta2dInNoMBins[i] = fs.make<TH2F>(histNameIh.c_str(),histTitleIh.c_str(),nIhBins,ihBinLow,ihBinHigh,nEtaBins,etaBinLow,etaBinHigh);
-    dedxIasEta2dInNoMBins[i] = fs.make<TH2F>(histNameIas.c_str(),histTitleIas.c_str(),nIasBins,iasBinLow,iasBinHigh,nEtaBins,etaBinLow,etaBinHigh);
-    // track hit presel
-    trackHitsFoundInNomBins[i] = fs.make<TH1F>(("trackHitsFoundInNomBin"+intToString(i+1)).c_str(),("track hits found in NoM bin "+intToString(i+1)).c_str(),50,0,50);
-    dedxIhEta2dInNoMBinsTrackHitPresel[i] = fs.make<TH2F>(histNameIhTrackHitsPresel.c_str(),histTitleIhTrackHitsPresel.c_str(),nIhBins,ihBinLow,ihBinHigh,nEtaBins,etaBinLow,etaBinHigh);
-    dedxIasEta2dInNoMBinsTrackHitPresel[i] = fs.make<TH2F>(histNameIasTrackHitsPresel.c_str(),histTitleIasTrackHitsPresel.c_str(),nIasBins,iasBinLow,iasBinHigh,nEtaBins,etaBinLow,etaBinHigh);
-  }
+  TH2F* trackDeDxE1VsDeDxD3LowPSBHist = fs.make<TH2F>("trackDeDxE1VsDeDxD3LowPSB","Tracker dE/dx Ih vs. Ias for P < 50 GeV;Ias;Ih [MeV/cm]",100,0,1,250,0,25);
+  TH1F* trackPMipSBHist = fs.make<TH1F>("trackPMipSB","Track P for Ih < 3.5 MeV/cm;GeV",4000,0,2000);
 
   // loop the events
   int ievt=0;  
@@ -237,7 +141,6 @@ int main(int argc, char ** argv)
       fwlite::Event ev(inFile);
       for(ev.toBegin(); !ev.atEnd(); ++ev, ++ievt)
       {
-        //edm::EventBase const & event = ev;
         // break loop if maximal number of events is reached 
         if(maxEvents_>0 ? ievt+1>maxEvents_ : false) break;
         // simple event counter
@@ -267,31 +170,18 @@ int main(int argc, char ** argv)
 
           const reco::DeDxData& dedxSObj  = dEdxSCollH->get(track.key());
           const reco::DeDxData& dedxMObj  = dEdxMCollH->get(track.key());
-          int ihNoMbin = findFineNoMBin(dedxMObj.numberOfMeasurements());
-          int iasNoMbin = findFineNoMBin(dedxSObj.numberOfMeasurements());
-          if(ihNoMbin < 0 || iasNoMbin < 0 || ihNoMbin > 29 || iasNoMbin > 29)
-          {
-            //std::cout << "ERROR in NoM: Ih NoM = " << dedxMObj.numberOfMeasurements() <<
-            //  " Ias NoM = " << dedxSObj.numberOfMeasurements() <<std::endl;
-            //continue;
-          }
+
           float ih = dedxMObj.dEdx();
           float ias = dedxSObj.dEdx();
+          float trackP = track->p();
+          int ihNoM = dedxMObj.numberOfMeasurements();
+          float trackEta = track->eta();
+          //if(track->found() >= minTrackNoH)
 
-          if(ihNoMbin >= 0)
-            dedxIhEta2dInNoMBins[ihNoMbin]->Fill(ih,fabs(track->eta()));
-          if(iasNoMbin >= 0)
-            dedxIasEta2dInNoMBins[iasNoMbin]->Fill(ias,fabs(track->eta()));
-          // track hit presel
-          if(ihNoMbin >= 0)
-            trackHitsFoundInNomBins[ihNoMbin]->Fill(track->found());
-          if(track->found() >= minTrackNoH)
-          {
-            if(ihNoMbin >= 0)
-              dedxIhEta2dInNoMBinsTrackHitPresel[ihNoMbin]->Fill(ih,fabs(track->eta()));
-            if(iasNoMbin >= 0)
-              dedxIasEta2dInNoMBinsTrackHitPresel[iasNoMbin]->Fill(ias,fabs(track->eta()));
-          }
+          if(trackP < 50) // p SB
+            trackDeDxE1VsDeDxD3LowPSBHist->Fill(ias,ih);
+          if(ih < 3.5) // MIP peak
+            trackPMipSBHist->Fill(trackP);
         }
 
       }  
@@ -303,28 +193,5 @@ int main(int argc, char ** argv)
     if(maxEvents_>0 ? ievt+1>maxEvents_ : false) break;
   }
 
-
-  // chain the input files
-  //fwlite::ChainEvent ev(inputFiles_);
-  //int ievt = 0;
-  //for(unsigned int iFile=0; iFile<inputHandler_.files().size(); ++iFile)
-  //{
-  //  // open input file (can be located on castor)
-  //  TFile* inFile = TFile::Open(inputHandler_.files()[iFile].c_str());
-  //  if(!inFile)
-  //    continue;
-
-  //  fwlite::Event ev(inFile);
-
-  //  for(ev.toBegin(); ! ev.atEnd(); ++ev, ++ievt)
-  //  {
-  //    // break loop if maximal number of events is reached 
-  //    if(maxEvents_>0 ? ievt+1>maxEvents_ : false) break;
-  //    // simple event counter
-  //    if(outputEvery_!=0 ? (ievt>0 && ievt%outputEvery_==0) : false) 
-  //      std::cout << "  processing event: " << ievt << std::endl;
-
-  //  }
-  //}
 }
 
