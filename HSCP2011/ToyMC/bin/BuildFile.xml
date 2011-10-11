@@ -61,3 +61,11 @@
   <use   name="root"/>
   <use   name="clhep"/>
 </bin>
+<bin   name="readHSCPTreeTKplotsLight" file="readHSCPTreeTKplotsLight.cpp">
+  <use   name="DataFormats/EcalDetId"/>
+  <use   name="DataFormats/MuonReco"/>
+  <use   name="root"/>
+  <use   name="rootmath"/>
+  <use   name="clhep"/>
+  <flags   LCGDICT_ARGS="--deep"/>
+</bin>

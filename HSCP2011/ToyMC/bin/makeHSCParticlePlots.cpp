@@ -127,8 +127,47 @@ int main(int argc, char ** argv)
   // fileService initialization
   fwlite::TFileService fs = fwlite::TFileService(outputHandler_.file().c_str());
   //TFileDirectory dir = fs.mkdir("analyzeBasicPat");
-  TH2F* trackDeDxE1VsDeDxD3LowPSBHist = fs.make<TH2F>("trackDeDxE1VsDeDxD3LowPSB","Tracker dE/dx Ih vs. Ias for P < 50 GeV;Ias;Ih [MeV/cm]",100,0,1,250,0,25);
-  TH1F* trackPMipSBHist = fs.make<TH1F>("trackPMipSB","Track P for Ih < 3.5 MeV/cm;GeV",4000,0,2000);
+  const int numNoMbins = 30;
+  TH3F* trackDeDxE1VsDeDxD3LowPSBNoMSliceHists[numNoMbins];
+  TH2F* trackPMipSBNoMSliceHists[numNoMbins];
+  TH2F* iasDistributionHighIhHighPNoMSliceHists[numNoMbins];
+  // book hists
+  for(int nom=1; nom < numNoMbins+1; ++nom)
+  {
+    // ias -- high P, high Ih region
+    std::string iasName = "trackIasHighPHighIhNoMSlice";
+    iasName+=intToString(nom);
+    std::string iasTitle;
+    if(nom==30) 
+      iasTitle="Ias for P >= 50 GeV, Ih >= 3.5 MeV/cm, NoM>=";
+    else
+      iasTitle="Ias for P >= 50 GeV, Ih >= 3.5 MeV/cm, NoM=";
+    iasTitle+=intToString(nom);
+    iasTitle+=";;|#eta|";
+    iasDistributionHighIhHighPNoMSliceHists[nom-1] = fs.make<TH2F>(iasName.c_str(),iasTitle.c_str(),400,0,1,24,0,2.4);
+    // dedx -- low P SB
+    std::string dedxName = "trackDeDxE1VsDeDxD3LowPSBNoMSlice";
+    dedxName+=intToString(nom);
+    std::string dedxTitle;
+    if(nom==30) 
+      dedxTitle="Tracker dE/dx Ih vs. Ias for P < 50 GeV, NoM>=";
+    else
+      dedxTitle="Tracker dE/dx Ih vs. Ias for P < 50 GeV, NoM=";
+    dedxTitle+=intToString(nom);
+    dedxTitle+=";Ias;Ih [MeV/cm];|#eta|";
+    trackDeDxE1VsDeDxD3LowPSBNoMSliceHists[nom-1] = fs.make<TH3F>(dedxName.c_str(),dedxTitle.c_str(),100,0,1,250,0,25,24,0,2.4);
+    // p -- low Ih SB
+    std::string pName = "trackPMipSBNoMSlice";
+    pName+=intToString(nom);
+    std::string pTitle;
+    if(nom==30) 
+      pTitle="Track P for Ih < 3.5 MeV/cm, NoM>=";
+    else
+      pTitle="Track P for Ih < 3.5 MeV/cm, NoM=";
+    pTitle+=intToString(nom);
+    pTitle+=";GeV;|#eta|";
+    trackPMipSBNoMSliceHists[nom-1] = fs.make<TH2F>(pName.c_str(),pTitle.c_str(),4000,0,2000,24,0,2.4);
+  }
 
   // loop the events
   int ievt=0;  
@@ -178,10 +217,20 @@ int main(int argc, char ** argv)
           float trackEta = track->eta();
           //if(track->found() >= minTrackNoH)
 
+          int myFineNoMbin = findFineNoMBin(ihNoM);
+          if(myFineNoMbin<0)
+            continue;
+
           if(trackP < 50) // p SB
-            trackDeDxE1VsDeDxD3LowPSBHist->Fill(ias,ih);
+            trackDeDxE1VsDeDxD3LowPSBNoMSliceHists[myFineNoMbin]->Fill(ias,ih,fabs(trackEta));
           if(ih < 3.5) // MIP peak
-            trackPMipSBHist->Fill(trackP);
+            trackPMipSBNoMSliceHists[myFineNoMbin]->Fill(trackP,fabs(trackEta));
+
+          if(trackP >= 50)
+          {
+            if(ih >= 3.5)
+              iasDistributionHighIhHighPNoMSliceHists[myFineNoMbin]->Fill(ias);
+          }
         }
 
       }  
