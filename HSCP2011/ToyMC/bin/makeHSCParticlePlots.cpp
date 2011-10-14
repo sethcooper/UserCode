@@ -74,6 +74,14 @@ std::string floatToString(float num)
     return (myStream.str ());
 }
 //
+std::string doubleToString(double num)
+{
+    using namespace std;
+    ostringstream myStream;
+    myStream << num << flush;
+    return (myStream.str ());
+}
+//
 int findFineNoMBin(int nom)
 {
   if(nom >= 30) return 29;
@@ -99,8 +107,16 @@ int main(int argc, char ** argv)
   const edm::ParameterSet& process = edm::readPSetsFrom(argv[1])->getParameter<edm::ParameterSet>("process");
   fwlite::InputSource inputHandler_(process);
   fwlite::OutputFiles outputHandler_(process);
-  int maxEvents_( inputHandler_.maxEvents() );
+  int maxEvents_(inputHandler_.maxEvents());
+  // now get each parameterset
+  const edm::ParameterSet& ana = process.getParameter<edm::ParameterSet>("makeHSCParticlePlots");
+  double scaleFactor_(ana.getParameter<double>("ScaleFactor"));
+  // mass cut to use for the high-p high-Ih (search region) ias dist
+  double massCutIasHighPHighIh_ (ana.getParameter<double>("MassCutIasHighPHighIh"));
 
+  // dE/dx calibration
+  const float k_dEdx = 2.468;
+  const float c_dEdx = 2.679;
 
   // preselections
   const int minTrackNoH = 11;
@@ -130,7 +146,9 @@ int main(int argc, char ** argv)
   const int numNoMbins = 30;
   TH3F* trackDeDxE1VsDeDxD3LowPSBNoMSliceHists[numNoMbins];
   TH2F* trackPMipSBNoMSliceHists[numNoMbins];
-  TH2F* iasDistributionHighIhHighPNoMSliceHists[numNoMbins];
+  TH2F* iasDistributionHighIhHighPNoMSliceMassCutHists[numNoMbins];
+  TH1F* pDistributionHist = fs.make<TH1F>("pDistribution","P;GeV",200,0,2000);
+  TH1F* pDistributionUnscaledHist = fs.make<TH1F>("pDistributionUnscaled","P (unscaled);GeV",200,0,2000);
   // book hists
   for(int nom=1; nom < numNoMbins+1; ++nom)
   {
@@ -139,12 +157,20 @@ int main(int argc, char ** argv)
     iasName+=intToString(nom);
     std::string iasTitle;
     if(nom==30) 
-      iasTitle="Ias for P >= 50 GeV, Ih >= 3.5 MeV/cm, NoM>=";
+    {
+      iasTitle="Ias for P >= 50 GeV, Ih >= 3.5 MeV/cm, mass >= ";
+      iasTitle+=doubleToString(massCutIasHighPHighIh_);
+      iasTitle+=", NoM>=";
+    }
     else
-      iasTitle="Ias for P >= 50 GeV, Ih >= 3.5 MeV/cm, NoM=";
+    {
+      iasTitle="Ias for P >= 50 GeV, Ih >= 3.5 MeV/cm, mass >= ";
+      iasTitle+=doubleToString(massCutIasHighPHighIh_);
+      iasTitle+=", NoM=";
+    }
     iasTitle+=intToString(nom);
     iasTitle+=";;|#eta|";
-    iasDistributionHighIhHighPNoMSliceHists[nom-1] = fs.make<TH2F>(iasName.c_str(),iasTitle.c_str(),400,0,1,24,0,2.4);
+    iasDistributionHighIhHighPNoMSliceMassCutHists[nom-1] = fs.make<TH2F>(iasName.c_str(),iasTitle.c_str(),400,0,1,24,0,2.4);
     // dedx -- low P SB
     std::string dedxName = "trackDeDxE1VsDeDxD3LowPSBNoMSlice";
     dedxName+=intToString(nom);
@@ -170,7 +196,9 @@ int main(int argc, char ** argv)
   }
 
   // loop the events
-  int ievt=0;  
+  int ievt = 0;
+  int eventsInHighIhHighPRegion = 0;
+  int eventsInHighIhHighPRegionWithMassCut = 0;
   for(unsigned int iFile=0; iFile<inputHandler_.files().size(); ++iFile)
   {
     // open input file (can be located on castor)
@@ -221,6 +249,9 @@ int main(int argc, char ** argv)
           if(myFineNoMbin<0)
             continue;
 
+          pDistributionHist->Fill(trackP);
+          pDistributionUnscaledHist->Fill(trackP);
+
           if(trackP < 50) // p SB
             trackDeDxE1VsDeDxD3LowPSBNoMSliceHists[myFineNoMbin]->Fill(ias,ih,fabs(trackEta));
           if(ih < 3.5) // MIP peak
@@ -229,7 +260,15 @@ int main(int argc, char ** argv)
           if(trackP >= 50)
           {
             if(ih >= 3.5)
-              iasDistributionHighIhHighPNoMSliceHists[myFineNoMbin]->Fill(ias);
+            {
+              eventsInHighIhHighPRegion++;
+              double massSqr = (ih-c_dEdx)*pow(trackP,2)/k_dEdx;
+              if(sqrt(massSqr) >= massCutIasHighPHighIh_)
+              {
+                iasDistributionHighIhHighPNoMSliceMassCutHists[myFineNoMbin]->Fill(ias,fabs(trackEta));
+                eventsInHighIhHighPRegionWithMassCut++;
+              }
+            }
           }
         }
 
@@ -241,6 +280,29 @@ int main(int argc, char ** argv)
     // this has to be done twice to stop the file loop as well
     if(maxEvents_>0 ? ievt+1>maxEvents_ : false) break;
   }
+  
+  // optional: scale hists
+  for(int nom=1; nom < numNoMbins+1; ++nom)
+  {
+    iasDistributionHighIhHighPNoMSliceMassCutHists[nom-1]->Sumw2();
+    iasDistributionHighIhHighPNoMSliceMassCutHists[nom-1]->Scale(scaleFactor_);
+    trackDeDxE1VsDeDxD3LowPSBNoMSliceHists[nom-1]->Sumw2();
+    trackDeDxE1VsDeDxD3LowPSBNoMSliceHists[nom-1]->Scale(scaleFactor_);
+    trackPMipSBNoMSliceHists[nom-1]->Sumw2();
+    trackPMipSBNoMSliceHists[nom-1]->Scale(scaleFactor_);
+  }
+  pDistributionHist->Sumw2();
+  pDistributionHist->Scale(scaleFactor_);
 
+  //TCanvas t;
+  //t.cd();
+  //pDistributionUnscaledHist->Draw();
+  //t.Print("pDistUnscaled.C");
+  //pDistributionHist->Draw();
+  //t.Print("pDistScaled.C");
+
+  //std::cout << "Events with Ih >= 3.5 MeV/cm and P >= 50 GeV: " << eventsInHighIhHighPRegion
+  //  << "; also passing mass >= " << massCutIasHighPHighIh_ << " : " << eventsInHighIhHighPRegionWithMassCut
+  //  << std::endl;
 }
 
