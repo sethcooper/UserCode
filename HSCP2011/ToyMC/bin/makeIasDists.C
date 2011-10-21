@@ -87,7 +87,7 @@ makeIasDists(int nomSlice, int etaSlice, float massCut)
   if(nomSlice < 0 || nomSlice > 11 || etaSlice < 0 || etaSlice > 11)
   {
     cout << "Usage error." << endl
-      << "makeIasDists(nomSlice, etaSlice, massCut, numEntries" << endl
+      << "makeIasDists(nomSlice, etaSlice, massCut" << endl
       << "nomSlice, etaSlice can be between 0 and 11" << endl;
     return;
   }
@@ -114,6 +114,24 @@ makeIasDists(int nomSlice, int etaSlice, float massCut)
   predHistTitle+="-";
   predHistTitle+=floatToString(etaHigh);
   predHistTitle+=";Ias";
+
+  string predHistFixedBinsName="fixedBinsIasFactorizedIhPNoMSlice";
+  predHistFixedBinsName+=intToString(nomSlice);
+  predHistFixedBinsName+="etaSlice";
+  predHistFixedBinsName+=intToString(etaSlice);
+  predHistFixedBinsName+="massCut";
+  predHistFixedBinsName+=intToString(massCut);
+  string predHistFixedBinsTitle="Track Ias from Ih,P SB hists with mass > ";
+  predHistFixedBinsTitle+=floatToString(massCut);
+  predHistFixedBinsTitle+=" for nom ";
+  predHistFixedBinsTitle+=intToString(nomLow);
+  predHistFixedBinsTitle+="-";
+  predHistFixedBinsTitle+=intToString(nomHigh);
+  predHistFixedBinsTitle+=", |#eta| ";
+  predHistFixedBinsTitle+=floatToString(etaLow);
+  predHistFixedBinsTitle+="-";
+  predHistFixedBinsTitle+=floatToString(etaHigh);
+  predHistFixedBinsTitle+=";Ias";
 
   string successRate2DHistName="successRate2DOfIasNoMSlice";
   successRate2DHistName+=intToString(nomSlice);
@@ -281,6 +299,14 @@ makeIasDists(int nomSlice, int etaSlice, float massCut)
   ////XXX DEBUG
 
   myOutputFile->cd();
+  string dirName="plotsNoMSlice";
+  dirName+=intToString(nomSlice);
+  dirName+="etaSlice";
+  dirName+=intToString(etaSlice);
+  dirName+="massCut";
+  dirName+=intToString(massCut);
+  TDirectory* thisEtaNoMSliceDir = myOutputFile->mkdir(dirName.c_str());
+  thisEtaNoMSliceDir->cd();
   dedxHist->Write();
   _file0->cd();
   // set ranges to make the eta slice and project, dE/dx first
@@ -300,6 +326,8 @@ makeIasDists(int nomSlice, int etaSlice, float massCut)
   histTitleEtaSlicedDeDx+=floatToString(etaHigh);
   etaSlicedNoMSlicedDeDxHist->SetNameTitle(histNameEtaSlicedDeDx.c_str(),histTitleEtaSlicedDeDx.c_str());
   // make the 1-D Ias for this eta/NoM (P SB)
+  // first, only look at Ih > 3.5 MeV/cm, then project to Ias
+  etaSlicedNoMSlicedDeDxHist->GetYaxis()->SetRangeUser(3.5,25);
   TH1D* iasInThisEtaNoMBinBeforeMassCut = etaSlicedNoMSlicedDeDxHist->ProjectionX();
   string histNameIasEtaNoMBefMassCut="iasInNoMSliced";
   histNameIasEtaNoMBefMassCut+=intToString(nomSlice);
@@ -365,7 +393,8 @@ makeIasDists(int nomSlice, int etaSlice, float massCut)
     }
   }
 
-  myOutputFile->cd();
+  thisEtaNoMSliceDir->cd();
+
   for(int i=1; i<numIasBins+1; ++i)
   {
     // make 1-D Ih dist for this eta/NoM/Ias
@@ -407,6 +436,7 @@ makeIasDists(int nomSlice, int etaSlice, float massCut)
   for(int i=0; i<numIasBins;++i)
   {
     double weightSum = 0;
+    double weightSqrSum = 0;
     double weightedAvg = 0;
     double errorAvg = 0;
     for(int j=0; j<numIhBins; ++j)
@@ -420,7 +450,10 @@ makeIasDists(int nomSlice, int etaSlice, float massCut)
       {
         double successRate = successCount[i][j]/(double)thisBinTrialsCount;
         successRate2DHist->SetBinContent(i+1,j+1,successRate);
-        double binErr = sqrt(thisBinTrialsCount*successRate*(1-successRate))/(double)thisBinTrialsCount;
+        //double binErr = sqrt(thisBinTrialsCount*successRate*(1-successRate))/(double)thisBinTrialsCount;
+        //double stdDev = sqrt(thisBinTrialsCount*successRate*(1-successRate));
+        double stdDev = sqrt(successRate*(1-successRate));
+        double binErr = stdDev/sqrt(thisBinTrialsCount);
         if(binErr==0)
           successRate2DHist->SetBinError(i+1,j+1,sqrt(thisBinTrialsCount));
         else 
@@ -435,20 +468,24 @@ makeIasDists(int nomSlice, int etaSlice, float massCut)
       //}
       // create weighted average for this Ias slice
       weightSum+=thisBinTrialsCount;
+      weightSqrSum+=thisBinTrialsCount*thisBinTrialsCount;
       weightedAvg+=successRate*thisBinTrialsCount;
-      errorAvg+=binErr*thisBinTrialsCount;
+      errorAvg+=binErr*binErr*thisBinTrialsCount*thisBinTrialsCount;
     }
     if(weightSum>0)
     {
       successRateHist->SetBinContent(i+1,weightedAvg/weightSum);
+      double stdDev = sqrt(errorAvg/weightSqrSum);
+      successRateHist->SetBinError(i+1,stdDev/sqrt(weightSum*weightSum/weightSqrSum));
+      //successRateHist->SetBinContent(i+1,weightedAvg/weightSum);
       //TODO: calculate error
-      successRateHist->SetBinError(i+1,errorAvg/weightSum);
+      //successRateHist->SetBinError(i+1,errorAvg/weightSum);
       //if(i+1==12)
       //  cout << "binx: " << i+1 << " weightedAvg= " << weightedAvg/weightSum << std::endl;
     }
   }
   moveBinsTH2F(successRate2DHist);
-  successRate2DHist->SetMinimum(-0.1);
+  successRate2DHist->SetMinimum(-0.01);
 
 
   std::vector<double> binVec;
@@ -474,26 +511,25 @@ makeIasDists(int nomSlice, int etaSlice, float massCut)
   //trackDeDxE1VsDeDxD3LowPSBNoMSliceHists[nom-1] = fs.make<TH3F>(dedxName.c_str(),dedxTitle.c_str(),binVec.size()-1,&(*binVec.begin()),250,ihBinArray,24,etaBinArray);
 
   myOutputFile->cd();
-  //FIXME
-  //TH1D* tempHist = new TH1D("tempHist","tempHist",100,0,1);
-  ////TH1D* trackIasFactorizedIhPHist = new TH1D(predHistName.c_str(),predHistTitle.c_str(),100,0,1);
-  ////trackIasFactorizedIhPHist->Sumw2();
-  //tempHist->Sumw2();
-  //// the below uses uncorrelated errors between the two hists
-  //tempHist->Multiply(iasInThisEtaNoMBinBeforeMassCut,successRateHist);
-  ////debug
-  //tempHist->Write();
-  //TH1D* trackIasFactorizedIhPHist;
-  //trackIasFactorizedIhPHist = (TH1D*)tempHist->Rebin(binVec.size()-1,predHistName.c_str(),&(*binVec.begin()));
-  //trackIasFactorizedIhPHist->SetTitle(predHistTitle.c_str());
-  ////debug
-  //std::cout << "iasInThisEtaNoMBinBeforeMassCut entries=" <<
-  //  iasInThisEtaNoMBinBeforeMassCut->GetEntries() <<
-  //  " successRateHist entries=" <<
-  //  successRateHist->GetEntries() <<
-  //  " and final trackIasFactorizedIhPHist entries=" <<
-  //  trackIasFactorizedIhPHist->GetEntries() <<
-  //  std::endl;
+  TH1D* tempHist = new TH1D(predHistFixedBinsName.c_str(),predHistFixedBinsTitle.c_str(),100,0,1);
+  //TH1D* trackIasFactorizedIhPHist = new TH1D(predHistName.c_str(),predHistTitle.c_str(),100,0,1);
+  //trackIasFactorizedIhPHist->Sumw2();
+  tempHist->Sumw2();
+  // the below uses uncorrelated errors between the two hists
+  tempHist->Multiply(iasInThisEtaNoMBinBeforeMassCut,successRateHist);
+  TH1D* trackIasFactorizedIhPHist;
+  trackIasFactorizedIhPHist = (TH1D*)tempHist->Rebin(binVec.size()-1,predHistName.c_str(),&(*binVec.begin()));
+  trackIasFactorizedIhPHist->SetTitle(predHistTitle.c_str());
+  //debug
+  std::cout << "iasInThisEtaNoMBinBeforeMassCut entries=" <<
+    iasInThisEtaNoMBinBeforeMassCut->GetEntries() <<
+    " binsX: " << iasInThisEtaNoMBinBeforeMassCut->GetNbinsX() <<
+    " successRateHist entries=" <<
+    successRateHist->GetEntries() <<
+    " and final trackIasFactorizedIhPHist entries=" <<
+    trackIasFactorizedIhPHist->GetEntries() <<
+    " binsX: " << trackIasFactorizedIhPHist->GetNbinsX() <<
+    std::endl;
   
   //std::cout << "Generated " << numEntries << " points using " << trialsCount << " trials: "
   //  << 100*(float)(trialsCount-numEntries)/trialsCount << "\% loss" << std::endl;
@@ -506,19 +542,11 @@ makeIasDists(int nomSlice, int etaSlice, float massCut)
   //t.Print((histName+".C").c_str());
   //t.Print((histName+".png").c_str());
 
-  string dirName="plotsNoMSlice";
-  dirName+=intToString(nomSlice);
-  dirName+="etaSlice";
-  dirName+=intToString(etaSlice);
-  dirName+="massCut";
-  dirName+=intToString(massCut);
-  TDirectory* thisEtaNoMSliceDir = myOutputFile->mkdir(dirName.c_str());
   thisEtaNoMSliceDir->cd();
+  tempHist->Write();
   trialsHist->Write();
-  //FIXME
-  //trackIasFactorizedIhPHist->Write();
+  trackIasFactorizedIhPHist->Write();
   pHist->Write();
-  //dedxHist->Write();
   etaSlicedNoMSlicedPHist->Write();
   etaSlicedNoMSlicedDeDxHist->Write();
   massGeneratedHist->Write();
