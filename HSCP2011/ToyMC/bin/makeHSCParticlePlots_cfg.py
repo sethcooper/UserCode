@@ -2,15 +2,22 @@ import FWCore.ParameterSet.Config as cms
 
 process = cms.PSet()
 
+from HSCP2011.ToyMC.makeHSCParticlePlotsAndDoLikelihoodFitsCommonParameters_cfi import *
+
 process.fwliteInput = cms.PSet(
     fileNames   = cms.vstring(),
     maxEvents   = cms.int32(-1),
+    #maxEvents   = cms.int32(1),
     outputEvery = cms.uint32(100000),
 )
 
 process.fwliteOutput = cms.PSet(
     #fileName  = cms.string('2.oct5.makeHSCParticlePlots.ZJetToMuMuPt30to50.root'),
-    #fileName  = cms.string('1.oct7.makeHSCParticlePlots.EPSrunPostEPSprod.root'),
+    #fileName  = cms.string('oct17.makeHSCParticlePlots.EPSrunPostEPSprod.100GeVpSB.root'),
+    #fileName  = cms.string('oct17.makeHSCParticlePlots.EPSrunPostEPSprod.50GeVpSB.root'),
+    #fileName  = cms.string('oct18.makeHSCParticlePlots.EPSrunPostEPSprod.100GeVpSB.root'),
+    #fileName  = cms.string('oct26.makeHSCParticlePlots.jetTriggeredData.100GeVpSB.root'),
+    fileName  = cms.string('oct27.makeHSCParticlePlots.EPSrunPostEPSprod.100GeVpSB.root'),
 
     #fileName  = cms.string('1.oct12.makeHSCParticlePlots.ZJetToMuMuPt0to15.root'),
     #fileName  = cms.string('2.oct12.makeHSCParticlePlots.ZJetToMuMuPt15to20.root'),
@@ -22,31 +29,41 @@ process.fwliteOutput = cms.PSet(
     #fileName  = cms.string('8.oct12.makeHSCParticlePlots.ZJetToMuMuPt170to230.root'),
     #fileName  = cms.string('9.oct12.makeHSCParticlePlots.ZJetToMuMuPt230to300.root'),
     #fileName  = cms.string('10.oct12.makeHSCParticlePlots.ZJetToMuMuPt300.root'),
-    fileName  = cms.string('oct14.makeHSCParticlePlots.DYToMuMu.root'),
+    #fileName  = cms.string('oct14.makeHSCParticlePlots.DYToMuMu.root'),
+    #fileName  = cms.string('oct14.test.EPSrunPostEPSprod.varBins.root'),
+    #fileName  = cms.string('oct17.test.GMSBstau100.matched.varBins.root'),
+    #fileName  = cms.string('oct17.test.GMSBstau200.matched.varBins.root'),
 )
 
 process.makeHSCParticlePlots = cms.PSet(
-    MassCutIasHighPHighIh = cms.double(100), # this is for the high Ih/high P Ias dist, e.g., "search region"
-    #ScaleFactor = cms.double(37.93) # ZJetToMuMuPt0-15
-    #ScaleFactor = cms.double(1.24) # ZJetToMuMuPt15-20
-    #ScaleFactor = cms.double(16.19) # ZJetToMuMuPt20-30
-    ScaleFactor = cms.double(1) # ZJetToMuMuPt30-50
-    #ScaleFactor = cms.double(0.56) # ZJetToMuMuPt50-80
-    #ScaleFactor = cms.double(0.168) # ZJetToMuMuPt80-120
-    #ScaleFactor = cms.double(0.046) # ZJetToMuMuPt120-170
-    #ScaleFactor = cms.double(0.012) # ZJetToMuMuPt170-230
-    #ScaleFactor = cms.double(0.00332) # ZJetToMuMuPt230-300
-    #ScaleFactor = cms.double(0.001279) # ZJetToMuMuPt300
+    analysisCommonParameters,
+    MatchToHSCP = cms.bool(False),
+    ScaleFactor = cms.double(1)
 )
+
+print 'Running with p threshold: ',
+print analysisCommonParameters.PSidebandThreshold
+print 'Running with Ih threshold:',
+print analysisCommonParameters.IhSidebandThreshold
 
 process.fwliteInput.fileNames.extend([
     # EPS runs -- from post EPS production (trigger thresh different?)
-    #'file:/data3/scooper/data/hscp/428/Data/HSCParticles_HSCP2011_PostEPS_Sep30/Data_RunA_160404_163869.root',
-    #'file:/data3/scooper/data/hscp/428/Data/HSCParticles_HSCP2011_PostEPS_Sep30/Data_RunA_165001_166033.root',
-    #'file:/data3/scooper/data/hscp/428/Data/HSCParticles_HSCP2011_PostEPS_Sep30/Data_RunA_166034_166500.root',
-    #'file:/data3/scooper/data/hscp/428/Data/HSCParticles_HSCP2011_PostEPS_Sep30/Data_RunA_166894_167151.root',
-    #'file:/data3/scooper/data/hscp/428/Data/HSCParticles_HSCP2011_PostEPS_Sep30/Data_RunA_166501_166893.root',
-    #'file:/data3/scooper/data/hscp/428/Data/HSCParticles_HSCP2011_PostEPS_Sep30/Data_RunA_167153_167913.root',
+    # ==> 1.09/fb
+    'file:/data3/scooper/data/hscp/428/Data/HSCParticles_HSCP2011_PostEPS_Sep30/Data_RunA_160404_163869.root',
+    'file:/data3/scooper/data/hscp/428/Data/HSCParticles_HSCP2011_PostEPS_Sep30/Data_RunA_165001_166033.root',
+    'file:/data3/scooper/data/hscp/428/Data/HSCParticles_HSCP2011_PostEPS_Sep30/Data_RunA_166034_166500.root',
+    'file:/data3/scooper/data/hscp/428/Data/HSCParticles_HSCP2011_PostEPS_Sep30/Data_RunA_166894_167151.root',
+    'file:/data3/scooper/data/hscp/428/Data/HSCParticles_HSCP2011_PostEPS_Sep30/Data_RunA_166501_166893.root',
+    'file:/data3/scooper/data/hscp/428/Data/HSCParticles_HSCP2011_PostEPS_Sep30/Data_RunA_167153_167913.root',
+
+    # Jet-triggered data; should be same run range as EPS runs
+    #'file:/data3/scooper/data/hscp/428/Data/MyProcessing_SkimAndHSCParticles/RunA_May10ReReco_Jet_160404_163869/filtered_merged.root',
+    #'file:/data3/scooper/data/hscp/428/Data/MyProcessing_SkimAndHSCParticles/RunA_PromptRecoV4_Jet_165001_166033/filtered_merged.root',
+    #'file:/data3/scooper/data/hscp/428/Data/MyProcessing_SkimAndHSCParticles/RunA_PromptRecoV4_Jet_166034_166500/filtered_merged.root',
+    #'file:/data3/scooper/data/hscp/428/Data/MyProcessing_SkimAndHSCParticles/RunA_PromptRecoV4_Jet_166894_167151/filtered_merged.root',
+    #'file:/data3/scooper/data/hscp/428/Data/MyProcessing_SkimAndHSCParticles/RunA_PromptRecoV4_Jet_166501_166893/filtered_merged.root',
+    #'file:/data3/scooper/data/hscp/428/Data/MyProcessing_SkimAndHSCParticles/RunA_PromptRecoV4_Jet_167153_167913/filtered_merged.root',
+
     # Z+Jet --> MuMu MonteCarlo Summer11
     #'file:/data3/scooper/data/hscp/428/Data/HSCParticles_HSCP2011_PostEPS_Sep30/MC_ZJetToMuMu_Pt-0to15.root',
     #'file:/data3/scooper/data/hscp/428/Data/HSCParticles_HSCP2011_PostEPS_Sep30/MC_ZJetToMuMu_Pt-15to20.root',
@@ -59,7 +76,11 @@ process.fwliteInput.fileNames.extend([
     #'file:/data3/scooper/data/hscp/428/Data/HSCParticles_HSCP2011_PostEPS_Sep30/MC_ZJetToMuMu_Pt-230to300.root',
     #'file:/data3/scooper/data/hscp/428/Data/HSCParticles_HSCP2011_PostEPS_Sep30/MC_ZJetToMuMu_Pt-300.root',
     # DY (m20) to MuMu
-    'file:/data3/scooper/data/hscp/428/Data/HSCParticles_HSCP2011_PostEPS_Sep30/MC_DYToMuMu.root',
+    #'file:/data3/scooper/data/hscp/428/Data/HSCParticles_HSCP2011_PostEPS_Sep30/MC_DYToMuMu.root',
+    # GMSB STAU 100
+    #'file:/data3/scooper/data/hscp/428/Data/HSCParticles_HSCP2011_PostEPS_Sep30/GMStau100.root'
+    # GMSB STAU 200
+    #'file:/data3/scooper/data/hscp/428/Data/HSCParticles_HSCP2011_PostEPS_Sep30/GMStau200.root'
 
 ]);
 

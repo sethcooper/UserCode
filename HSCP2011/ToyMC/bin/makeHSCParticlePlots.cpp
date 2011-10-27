@@ -21,6 +21,8 @@
 #include "TSystem.h"
 #include "FWCore/FWLite/interface/AutoLibraryLoader.h"
 
+#include <vector>
+
 namespace reco    { class Vertex; class Track; class GenParticle; class DeDxData; class MuonTimeExtra;}
 namespace susybsm { class HSCParticle; class HSCPIsolation;}
 namespace fwlite  { class ChainEvent;}
@@ -53,41 +55,11 @@ namespace edm     {class TriggerResults; class TriggerResultsByName; class Input
 #include "DataFormats/HLTReco/interface/TriggerEvent.h"
 #include "DataFormats/HLTReco/interface/TriggerObject.h"
 #include "DataFormats/Common/interface/TriggerResults.h"
+#include "DataFormats/Math/interface/deltaR.h"
 
 #endif
 
-// ****** helper functions
-std::string intToString(int num)
-{
-    using namespace std;
-    ostringstream myStream;
-    myStream << num << flush;
-    return (myStream.str ());
-}
-
-//
-std::string floatToString(float num)
-{
-    using namespace std;
-    ostringstream myStream;
-    myStream << num << flush;
-    return (myStream.str ());
-}
-//
-std::string doubleToString(double num)
-{
-    using namespace std;
-    ostringstream myStream;
-    myStream << num << flush;
-    return (myStream.str ());
-}
-//
-int findFineNoMBin(int nom)
-{
-  if(nom >= 30) return 29;
-
-  return nom-1;
-}
+#include "commonFunctions.h"
 
 // ****** main
 int main(int argc, char ** argv)
@@ -112,33 +84,14 @@ int main(int argc, char ** argv)
   const edm::ParameterSet& ana = process.getParameter<edm::ParameterSet>("makeHSCParticlePlots");
   double scaleFactor_(ana.getParameter<double>("ScaleFactor"));
   // mass cut to use for the high-p high-Ih (search region) ias dist
-  double massCutIasHighPHighIh_ (ana.getParameter<double>("MassCutIasHighPHighIh"));
-
+  double massCutIasHighPHighIh_ (ana.getParameter<double>("MassCut"));
   // dE/dx calibration
-  const float k_dEdx = 2.468;
-  const float c_dEdx = 2.679;
-
-  // preselections
-  const int minTrackNoH = 11;
-  //const float minTrackValidFraction = 0.8;
-  //const int minValidPixelHits = 2;
-  //const int minIasNoM = 5;
-  //const int minTofNdof = 8;
-  //const int minTofNdofDt = 6;
-  //const int minTofNdofCsc = 6;
-  //const int minTrackQualityMask = 2;
-  //const float maxTrackChi2OverNdf = 5.0;
-  //const float minTrackPt = 35.0;
-  //const float minIas = 0.0;
-  //const float minIh = 3.0;
-  //const float minTofInvBeta = 1.0;
-  //const float maxTofIntBetaErr = 0.07;
-  //const int minNumVertices = 1;
-  //const float maxV3D = 2.0;
-  //const float maxTrackEtIso = 50;
-  //const float maxCalEOverPIso = 0.3;
-  //const float maxTrackPtErr = 0.25;
-  //const float maxTrackEta = 2.5;
+  double dEdx_k (ana.getParameter<double>("dEdx_k"));
+  double dEdx_c (ana.getParameter<double>("dEdx_c"));
+  // definition of sidebands/search region
+  double pSidebandThreshold (ana.getParameter<double>("PSidebandThreshold"));
+  double ihSidebandThreshold (ana.getParameter<double>("IhSidebandThreshold"));
+  bool matchToHSCP (ana.getParameter<bool>("MatchToHSCP"));
 
   // fileService initialization
   fwlite::TFileService fs = fwlite::TFileService(outputHandler_.file().c_str());
@@ -147,52 +100,148 @@ int main(int argc, char ** argv)
   TH3F* trackDeDxE1VsDeDxD3LowPSBNoMSliceHists[numNoMbins];
   TH2F* trackPMipSBNoMSliceHists[numNoMbins];
   TH2F* iasDistributionHighIhHighPNoMSliceMassCutHists[numNoMbins];
+  TH2F* iasDistributionHighIhHighPNoMSliceNoMassCutHists[numNoMbins];
+  TH3F* iasDistributionHighIhNoMSliceNoMassCutWithPHists[numNoMbins];
+  TH3F* ihWithPandEtaHists[numNoMbins];
+  //TH2F* ihInPSidebandMassCutHists[numNoMbins];
   TH1F* pDistributionHist = fs.make<TH1F>("pDistribution","P;GeV",200,0,2000);
+  pDistributionHist->Sumw2();
+  TH2F* pVsIasDistributionHists[numNoMbins];
+  TH2F* pVsIasHighIhDistributionHists[numNoMbins];
+  TH2F* pVsIhDistributionHists[numNoMbins];
+  TH2F* pVsIasHist = fs.make<TH2F>("pVsIas","P vs Ias;;GeV",20,0,1,40,0,1000);
+  pVsIasHist->Sumw2();
   TH1F* pDistributionUnscaledHist = fs.make<TH1F>("pDistributionUnscaled","P (unscaled);GeV",200,0,2000);
+  pDistributionUnscaledHist->Sumw2();
+  TH2F* trackEtaVsPHist = fs.make<TH2F>("trackEtaVsP","Track #eta vs. p;GeV",4000,0,2000,24,0,2.4);
+  trackEtaVsPHist->Sumw2();
   // book hists
   for(int nom=1; nom < numNoMbins+1; ++nom)
   {
-    // ias -- high P, high Ih region
+    // ias -- high P, high Ih region with mass cut
     std::string iasName = "trackIasHighPHighIhNoMSlice";
     iasName+=intToString(nom);
-    std::string iasTitle;
+    std::string iasTitle="Ias for P >= ";
+    iasTitle+=doubleToString(pSidebandThreshold);
+    iasTitle+=" GeV, Ih >= ";
+    iasTitle+=doubleToString(ihSidebandThreshold);
+    iasTitle+=" MeV/cm, mass >= ";
+    iasTitle+=doubleToString(massCutIasHighPHighIh_);
     if(nom==30) 
-    {
-      iasTitle="Ias for P >= 50 GeV, Ih >= 3.5 MeV/cm, mass >= ";
-      iasTitle+=doubleToString(massCutIasHighPHighIh_);
       iasTitle+=", NoM>=";
-    }
     else
-    {
-      iasTitle="Ias for P >= 50 GeV, Ih >= 3.5 MeV/cm, mass >= ";
-      iasTitle+=doubleToString(massCutIasHighPHighIh_);
       iasTitle+=", NoM=";
-    }
     iasTitle+=intToString(nom);
     iasTitle+=";;|#eta|";
-    iasDistributionHighIhHighPNoMSliceMassCutHists[nom-1] = fs.make<TH2F>(iasName.c_str(),iasTitle.c_str(),400,0,1,24,0,2.4);
+    iasDistributionHighIhHighPNoMSliceMassCutHists[nom-1] = fs.make<TH2F>(iasName.c_str(),iasTitle.c_str(),100,0,1,24,0,2.4);
+    iasDistributionHighIhHighPNoMSliceMassCutHists[nom-1]->Sumw2();
+    // ias with eta -- high P, high Ih region, no mass cut
+    std::string iasNoMassCutName = "trackIasHighPHighIhNoMassCutNoMSlice";
+    iasNoMassCutName+=intToString(nom);
+    std::string iasNoMassCutTitle="Ias for P >= ";
+    iasNoMassCutTitle+=doubleToString(pSidebandThreshold);
+    iasNoMassCutTitle+=" GeV, Ih >= ";
+    iasNoMassCutTitle+=doubleToString(ihSidebandThreshold);
+    iasNoMassCutTitle+=" MeV/cm, no mass cut";
+    if(nom==30) 
+      iasNoMassCutTitle+=", NoM>=";
+    else
+      iasNoMassCutTitle+=", NoM=";
+    iasNoMassCutTitle+=intToString(nom);
+    iasNoMassCutTitle+=";;|#eta|";
+    iasDistributionHighIhHighPNoMSliceNoMassCutHists[nom-1] = fs.make<TH2F>(iasNoMassCutName.c_str(),iasNoMassCutTitle.c_str(),100,0,1,24,0,2.4);
+    iasDistributionHighIhHighPNoMSliceNoMassCutHists[nom-1]->Sumw2();
+    // ias with eta, p high Ih region, no mass cut
+    std::string iasNoMassCutWithPName = "trackIasHighIhNoMassCutWithPNoMSlice";
+    iasNoMassCutWithPName+=intToString(nom);
+    std::string iasNoMassCutWithPTitle="Ias for Ih >= ";
+    iasNoMassCutWithPTitle+=doubleToString(ihSidebandThreshold);
+    iasNoMassCutWithPTitle+=" MeV/cm, no mass cut";
+    if(nom==30) 
+      iasNoMassCutWithPTitle+=", NoM>=";
+    else
+      iasNoMassCutWithPTitle+=", NoM=";
+    iasNoMassCutWithPTitle+=intToString(nom);
+    iasNoMassCutWithPTitle+=";;|#eta|";
+    iasDistributionHighIhNoMSliceNoMassCutWithPHists[nom-1] = fs.make<TH3F>(iasNoMassCutWithPName.c_str(),iasNoMassCutWithPTitle.c_str(),100,0,1,100,0,1000,24,0,2.4);
+    iasDistributionHighIhNoMSliceNoMassCutWithPHists[nom-1]->Sumw2();
     // dedx -- low P SB
     std::string dedxName = "trackDeDxE1VsDeDxD3LowPSBNoMSlice";
     dedxName+=intToString(nom);
-    std::string dedxTitle;
+    std::string dedxTitle = "Tracker dE/dx Ih vs. Ias for P < ";
+    dedxTitle+=doubleToString(pSidebandThreshold);
     if(nom==30) 
-      dedxTitle="Tracker dE/dx Ih vs. Ias for P < 50 GeV, NoM>=";
+      dedxTitle+=" GeV, NoM>=";
     else
-      dedxTitle="Tracker dE/dx Ih vs. Ias for P < 50 GeV, NoM=";
+      dedxTitle+=" GeV, NoM=";
     dedxTitle+=intToString(nom);
     dedxTitle+=";Ias;Ih [MeV/cm];|#eta|";
-    trackDeDxE1VsDeDxD3LowPSBNoMSliceHists[nom-1] = fs.make<TH3F>(dedxName.c_str(),dedxTitle.c_str(),100,0,1,250,0,25,24,0,2.4);
+    // book the hist
+    trackDeDxE1VsDeDxD3LowPSBNoMSliceHists[nom-1] = fs.make<TH3F>(dedxName.c_str(),dedxTitle.c_str(),400,0,1,400,0,10,24,0,2.4);
+    //trackDeDxE1VsDeDxD3LowPSBNoMSliceHists[nom-1] = fs.make<TH3F>(dedxName.c_str(),dedxTitle.c_str(),binVec[nom-1].size()-1,&(*binVec[nom-1].begin()),250,ihBinArray,24,etaBinArray);
+    trackDeDxE1VsDeDxD3LowPSBNoMSliceHists[nom-1]->Sumw2();
     // p -- low Ih SB
     std::string pName = "trackPMipSBNoMSlice";
     pName+=intToString(nom);
-    std::string pTitle;
+    std::string pTitle="Track P for Ih < ";
+    pTitle+=doubleToString(ihSidebandThreshold);
     if(nom==30) 
-      pTitle="Track P for Ih < 3.5 MeV/cm, NoM>=";
+      pTitle+=" MeV/cm, NoM>=";
     else
-      pTitle="Track P for Ih < 3.5 MeV/cm, NoM=";
+      pTitle+=" MeV/cm, NoM=";
     pTitle+=intToString(nom);
     pTitle+=";GeV;|#eta|";
     trackPMipSBNoMSliceHists[nom-1] = fs.make<TH2F>(pName.c_str(),pTitle.c_str(),4000,0,2000,24,0,2.4);
+    trackPMipSBNoMSliceHists[nom-1]->Sumw2();
+    // p vs Ias
+    std::string pVsIasName = "trackPvsIasNoMSlice";
+    pVsIasName+=intToString(nom);
+    std::string pVsIasTitle="Track P vs ias";
+    if(nom==30) 
+      pVsIasTitle+=", NoM>=";
+    else
+      pVsIasTitle+=", NoM=";
+    pVsIasTitle+=intToString(nom);
+    pVsIasTitle+=";;GeV";
+    pVsIasDistributionHists[nom-1] = fs.make<TH2F>(pVsIasName.c_str(),pVsIasTitle.c_str(),400,0,1,100,0,1000);
+    pVsIasDistributionHists[nom-1]->Sumw2();
+    // p vs Ias -- high Ih
+    std::string pVsIasHighIhName = "trackPvsIasHighIhNoMSlice";
+    pVsIasHighIhName+=intToString(nom);
+    std::string pVsIasHighIhTitle="Track P vs ias for ih > ";
+    pVsIasHighIhTitle+=doubleToString(ihSidebandThreshold);
+    if(nom==30) 
+      pVsIasHighIhTitle+="MeV/cm, NoM>=";
+    else
+      pVsIasHighIhTitle+="MeV/cm, NoM=";
+    pVsIasHighIhTitle+=intToString(nom);
+    pVsIasHighIhTitle+=";;GeV";
+    pVsIasHighIhDistributionHists[nom-1] = fs.make<TH2F>(pVsIasHighIhName.c_str(),pVsIasHighIhTitle.c_str(),400,0,1,100,0,1000);
+    pVsIasHighIhDistributionHists[nom-1]->Sumw2();
+    // p vs Ih
+    std::string pVsIhName = "trackPvsIhNoMSlice";
+    pVsIhName+=intToString(nom);
+    std::string pVsIhTitle="Track P vs ih";
+    if(nom==30) 
+      pVsIhTitle+=", NoM>=";
+    else
+      pVsIhTitle+=", NoM=";
+    pVsIhTitle+=intToString(nom);
+    pVsIhTitle+=";;GeV";
+    pVsIhDistributionHists[nom-1] = fs.make<TH2F>(pVsIhName.c_str(),pVsIhTitle.c_str(),400,0,10,100,0,1000);
+    pVsIhDistributionHists[nom-1]->Sumw2();
+    // Ih vs p vs eta
+    std::string ihWithPandEtaName = "IhWithPandEtaNoMSlice";
+    ihWithPandEtaName+=intToString(nom);
+    std::string ihWithPandEtaTitle="Track #eta vs p vs ih";
+    if(nom==30) 
+      ihWithPandEtaTitle+=", NoM>=";
+    else
+      ihWithPandEtaTitle+=", NoM=";
+    ihWithPandEtaTitle+=intToString(nom);
+    ihWithPandEtaTitle+=";MeV/cm;GeV;";
+    ihWithPandEtaHists[nom-1] = fs.make<TH3F>(ihWithPandEtaName.c_str(),ihWithPandEtaTitle.c_str(),400,0,10,100,0,1000,24,0,2.4);
+    ihWithPandEtaHists[nom-1]->Sumw2();
   }
 
   // loop the events
@@ -227,23 +276,46 @@ int main(int argc, char ** argv)
         dEdxMCollH.getByLabel(ev, "dedxHarm2");
         if(!dEdxMCollH.isValid()){printf("Invalid dEdx Mass collection\n");continue;}
 
+        fwlite::Handle< std::vector<reco::GenParticle> > genCollHandle;
+        std::vector<reco::GenParticle> genColl;
+        if(matchToHSCP)
+        {
+          genCollHandle.getByLabel(ev, "genParticles");
+          if(!genCollHandle.isValid()){printf("GenParticle Collection NotFound\n");continue;}
+          genColl = *genCollHandle;
+        }
+
+
         // loop over HSCParticles in this event
         for(unsigned int c=0;c<hscpColl.size();c++)
         {
           susybsm::HSCParticle hscp  = hscpColl[c];
           reco::MuonRef  muon  = hscp.muonRef();
           reco::TrackRef track = hscp.trackRef();
-          if(track.isNull())continue;
+          if(track.isNull())
+            continue;
 
           const reco::DeDxData& dedxSObj  = dEdxSCollH->get(track.key());
           const reco::DeDxData& dedxMObj  = dEdxMCollH->get(track.key());
+
+          // for signal MC
+          int NChargedHSCP = 0;
+          if(matchToHSCP)
+          {
+            int ClosestGen;
+            if(DistToHSCP(hscp, genColl, ClosestGen)>0.03)
+              continue;
+            NChargedHSCP = HowManyChargedHSCP(genColl);
+          }
 
           float ih = dedxMObj.dEdx();
           float ias = dedxSObj.dEdx();
           float trackP = track->p();
           int ihNoM = dedxMObj.numberOfMeasurements();
           float trackEta = track->eta();
-          //if(track->found() >= minTrackNoH)
+
+          if(!passesPreselection(hscp,dedxSObj,dedxMObj,ev))
+            continue;
 
           int myFineNoMbin = findFineNoMBin(ihNoM);
           if(myFineNoMbin<0)
@@ -251,18 +323,39 @@ int main(int argc, char ** argv)
 
           pDistributionHist->Fill(trackP);
           pDistributionUnscaledHist->Fill(trackP);
+          trackEtaVsPHist->Fill(trackP,fabs(trackEta));
+          pVsIasHist->Fill(ias,trackP);
+          //XXX testing
+          //if(fabs(trackEta) < 0.4)
+          //{
+          //double massSqr = (ih-dEdx_c)*pow(trackP,2)/dEdx_k;
+          //if(sqrt(massSqr) >= massCutIasHighPHighIh_)
+          //{
+            pVsIasDistributionHists[myFineNoMbin]->Fill(ias,trackP);
+            pVsIhDistributionHists[myFineNoMbin]->Fill(ih,trackP);
+            if(ih >= ihSidebandThreshold)
+              pVsIasHighIhDistributionHists[myFineNoMbin]->Fill(ias,trackP);
+          //}
+          //}
 
-          if(trackP < 50) // p SB
+          ihWithPandEtaHists[myFineNoMbin]->Fill(ih,trackP,fabs(trackEta));
+
+          //XXX testing
+          //if(trackP < pSidebandThreshold && ih > ihSidebandThreshold)
+          if(trackP < pSidebandThreshold) // p SB
             trackDeDxE1VsDeDxD3LowPSBNoMSliceHists[myFineNoMbin]->Fill(ias,ih,fabs(trackEta));
-          if(ih < 3.5) // MIP peak
+          if(ih < ihSidebandThreshold) // MIP peak
             trackPMipSBNoMSliceHists[myFineNoMbin]->Fill(trackP,fabs(trackEta));
 
-          if(trackP >= 50)
+          if(ih >= ihSidebandThreshold)
           {
-            if(ih >= 3.5)
+            iasDistributionHighIhNoMSliceNoMassCutWithPHists[myFineNoMbin]->Fill(ias,trackP,fabs(trackEta));
+            if(trackP >= pSidebandThreshold)
             {
+              iasDistributionHighIhHighPNoMSliceNoMassCutHists[myFineNoMbin]->Fill(ias,fabs(trackEta));
+
               eventsInHighIhHighPRegion++;
-              double massSqr = (ih-c_dEdx)*pow(trackP,2)/k_dEdx;
+              double massSqr = (ih-dEdx_c)*pow(trackP,2)/dEdx_k;
               if(sqrt(massSqr) >= massCutIasHighPHighIh_)
               {
                 iasDistributionHighIhHighPNoMSliceMassCutHists[myFineNoMbin]->Fill(ias,fabs(trackEta));
@@ -284,14 +377,10 @@ int main(int argc, char ** argv)
   // optional: scale hists
   for(int nom=1; nom < numNoMbins+1; ++nom)
   {
-    iasDistributionHighIhHighPNoMSliceMassCutHists[nom-1]->Sumw2();
     iasDistributionHighIhHighPNoMSliceMassCutHists[nom-1]->Scale(scaleFactor_);
-    trackDeDxE1VsDeDxD3LowPSBNoMSliceHists[nom-1]->Sumw2();
     trackDeDxE1VsDeDxD3LowPSBNoMSliceHists[nom-1]->Scale(scaleFactor_);
-    trackPMipSBNoMSliceHists[nom-1]->Sumw2();
     trackPMipSBNoMSliceHists[nom-1]->Scale(scaleFactor_);
   }
-  pDistributionHist->Sumw2();
   pDistributionHist->Scale(scaleFactor_);
 
   //TCanvas t;
