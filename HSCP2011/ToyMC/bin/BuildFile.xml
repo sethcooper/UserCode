@@ -57,8 +57,11 @@
   <use   name="CommonTools/Utils"/>
   <use   name="DataFormats/FWLite"/>
   <use   name="DataFormats/TrackReco"/>
+  <use   name="DataFormats/Math"/>
+  <use   name="DataFormats/HepMCCandidate"/>
   <use   name="PhysicsTools/FWLite"/>
   <use   name="root"/>
+  <use   name="rootgraphics"/>
   <use   name="clhep"/>
 </bin>
 <bin   name="readHSCPTreeTKplotsLight" file="readHSCPTreeTKplotsLight.cpp">
@@ -68,4 +71,20 @@
   <use   name="rootmath"/>
   <use   name="clhep"/>
   <flags   LCGDICT_ARGS="--deep"/>
+</bin>
+<bin   name="doLikelihoodFits" file="doLikelihoodFits.cpp">
+  <use   name="FWCore/FWLite"/>
+  <use   name="FWCore/PythonParameterSet"/>
+  <use   name="CommonTools/Utils"/>
+  <use   name="DataFormats/FWLite"/>
+  <use   name="DataFormats/TrackReco"/>
+  <use   name="PhysicsTools/FWLite"/>
+  <use   name="root"/>
+  <use   name="rootgraphics"/>
+  <use   name="roofit"/>
+  <use   name="clhep"/>
+</bin>
+<bin   name="makeIasDists" file="makeIasDists.cpp">
+  <use   name="root"/>
+  <use   name="rootgraphics"/>
 </bin>

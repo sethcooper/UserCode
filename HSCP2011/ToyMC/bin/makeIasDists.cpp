@@ -1,3 +1,17 @@
+#include "TH3.h"
+#include "TH2.h"
+#include "TProfile.h"
+#include "TH1.h"
+#include "TProfile2D.h"
+#include "TFile.h"
+#include "TDirectory.h"
+
+#include <string>
+#include <iostream>
+#include <sstream>
+#include <stdlib.h>
+#include <math.h>
+
 // ****** helper functions
 std::string intToString(int num)
 {
@@ -82,14 +96,28 @@ void moveBinsTH2F(TH2F* myprof)
 // start from 0 for slices
 // 0-11 for NoM (slice 11--> NoM>=24)
 // 0-11 for eta (slice 11--> 2.2 < |eta| < 2.4)
-makeIasDists(int nomSlice, int etaSlice, float massCut)
+int main(int argc, char* argv[])
 {
+  using namespace std;
+  if(argc < 5)
+  {
+    cout << "Usage error." << endl
+      << "makeIasDists nomSlice etaSlice massCut rootfile" << endl
+      << "nomSlice, etaSlice can be between 0 and 11" << endl;
+    return -1;
+  }
+
+  float nomSlice = atof(argv[1]);
+  float etaSlice = atof(argv[2]);
+  float massCut = atof(argv[3]);
+  char* rootFilename = argv[4];
+
   if(nomSlice < 0 || nomSlice > 11 || etaSlice < 0 || etaSlice > 11)
   {
     cout << "Usage error." << endl
-      << "makeIasDists(nomSlice, etaSlice, massCut" << endl
+      << "makeIasDists nomSlice etaSlice massCut rootfile" << endl
       << "nomSlice, etaSlice can be between 0 and 11" << endl;
-    return;
+    return -1;
   }
 
   string predHistName="trackIasFactorizedIhPNoMSlice";
@@ -167,7 +195,43 @@ makeIasDists(int nomSlice, int etaSlice, float massCut)
   successRateHistTitle+=floatToString(etaLow);
   successRateHistTitle+="-";
   successRateHistTitle+=floatToString(etaHigh);
-  successRateHistTitle+=";Ias;Ih [MeV/cm]";
+  successRateHistTitle+=";Ias";
+
+  string successIhHistName="successIhNoMSlice";
+  successIhHistName+=intToString(nomSlice);
+  successIhHistName+="etaSlice";
+  successIhHistName+=intToString(etaSlice);
+  successIhHistName+="massCut";
+  successIhHistName+=intToString(massCut);
+  string successIhHistTitle="Ih predicted with mass > ";
+  successIhHistTitle+=floatToString(massCut);
+  successIhHistTitle+=" for nom ";
+  successIhHistTitle+=intToString(nomLow);
+  successIhHistTitle+="-";
+  successIhHistTitle+=intToString(nomHigh);
+  successIhHistTitle+=", |#eta| ";
+  successIhHistTitle+=floatToString(etaLow);
+  successIhHistTitle+="-";
+  successIhHistTitle+=floatToString(etaHigh);
+  successIhHistTitle+=";Ih [MeV/cm]";
+
+  string successRateIhHistName="successRateIhNoMSlice";
+  successRateIhHistName+=intToString(nomSlice);
+  successRateIhHistName+="etaSlice";
+  successRateIhHistName+=intToString(etaSlice);
+  successRateIhHistName+="massCut";
+  successRateIhHistName+=intToString(massCut);
+  string successRateIhHistTitle="Ih predicted with mass > ";
+  successRateIhHistTitle+=floatToString(massCut);
+  successRateIhHistTitle+=" for nom ";
+  successRateIhHistTitle+=intToString(nomLow);
+  successRateIhHistTitle+="-";
+  successRateIhHistTitle+=intToString(nomHigh);
+  successRateIhHistTitle+=", |#eta| ";
+  successRateIhHistTitle+=floatToString(etaLow);
+  successRateIhHistTitle+="-";
+  successRateIhHistTitle+=floatToString(etaHigh);
+  successRateIhHistTitle+=";Ih [MeV/cm]";
 
   string trialsHistName="trialsInIasNoMSlice";
   trialsHistName+=intToString(nomSlice);
@@ -209,11 +273,14 @@ makeIasDists(int nomSlice, int etaSlice, float massCut)
   myOutputFile->cd();
   TH1F* massGeneratedHist = new TH1F("massGenerated","Masses generated;GeV",100,0,1000);
   TH1F* successRateHist = new TH1F(successRateHistName.c_str(),successRateHistTitle.c_str(),100,0,1);
-  TH2F* successRate2DHist = new TH2F(successRate2DHistName.c_str(),successRate2DHistTitle.c_str(),100,0,1,250,0,25);
-  TH2F* trialsHist = new TH2F(trialsHistName.c_str(),trialsHistTitle.c_str(),100,0,1,250,0,25);
-  TH2F* selectedIhvsPHist = new TH2F(selectedIhvsPHistName.c_str(),selectedIhvsPHistTitle.c_str(),2000,0,2000,250,0,25);
+  TH1D* successIhHist = new TH1D(successIhHistName.c_str(),successIhHistTitle.c_str(),400,0,10);
+  TH1F* successRateIhHist = new TH1F(successRateIhHistName.c_str(),successRateIhHistTitle.c_str(),400,0,10);
+  TH2F* successRate2DHist = new TH2F(successRate2DHistName.c_str(),successRate2DHistTitle.c_str(),100,0,1,400,0,10);
+  TH2F* trialsHist = new TH2F(trialsHistName.c_str(),trialsHistTitle.c_str(),100,0,1,400,0,10);
+  TH2F* selectedIhvsPHist = new TH2F(selectedIhvsPHistName.c_str(),selectedIhvsPHistTitle.c_str(),2000,0,2000,400,0,10);
   successRateHist->Sumw2();
   successRate2DHist->Sumw2();
+  TFile* _file0 = new TFile(rootFilename);
   _file0->cd();
   const float k = 2.468;
   const float c = 2.679;
@@ -311,7 +378,7 @@ makeIasDists(int nomSlice, int etaSlice, float massCut)
   _file0->cd();
   // set ranges to make the eta slice and project, dE/dx first
   dedxHist->GetZaxis()->SetRange(etaSlice*2+1,etaSlice*2+2);
-  TH2F* etaSlicedNoMSlicedDeDxHist = dedxHist->Project3D("yx");
+  TH2F* etaSlicedNoMSlicedDeDxHist = (TH2F*) dedxHist->Project3D("yx");
   string histNameEtaSlicedDeDx="etaSlicedIhVsIasNoMSlice";
   histNameEtaSlicedDeDx+=intToString(nomSlice);
   histNameEtaSlicedDeDx+="etaSlice";
@@ -327,7 +394,9 @@ makeIasDists(int nomSlice, int etaSlice, float massCut)
   etaSlicedNoMSlicedDeDxHist->SetNameTitle(histNameEtaSlicedDeDx.c_str(),histTitleEtaSlicedDeDx.c_str());
   // make the 1-D Ias for this eta/NoM (P SB)
   // first, only look at Ih > 3.5 MeV/cm, then project to Ias
-  etaSlicedNoMSlicedDeDxHist->GetYaxis()->SetRangeUser(3.5,25);
+  //XXX fixed possible bug here
+  //etaSlicedNoMSlicedDeDxHist->GetYaxis()->SetRangeUser(3.5,10);
+  etaSlicedNoMSlicedDeDxHist->GetYaxis()->SetRange(etaSlicedNoMSlicedDeDxHist->FindBin(3.5),etaSlicedNoMSlicedDeDxHist->GetNbinsY());
   TH1D* iasInThisEtaNoMBinBeforeMassCut = etaSlicedNoMSlicedDeDxHist->ProjectionX();
   string histNameIasEtaNoMBefMassCut="iasInNoMSliced";
   histNameIasEtaNoMBefMassCut+=intToString(nomSlice);
@@ -343,7 +412,25 @@ makeIasDists(int nomSlice, int etaSlice, float massCut)
   histTitleIasEtaNoMBefMassCut+="-";
   histTitleIasEtaNoMBefMassCut+=floatToString(etaHigh);
   iasInThisEtaNoMBinBeforeMassCut->SetNameTitle(histNameIasEtaNoMBefMassCut.c_str(), histTitleIasEtaNoMBefMassCut.c_str());
+  // same for ih
+  TH1D* ihInThisEtaNoMBinBeforeMassCut = etaSlicedNoMSlicedDeDxHist->ProjectionY();
+  string histNameIhEtaNoMBefMassCut="ihInNoMSliced";
+  histNameIhEtaNoMBefMassCut+=intToString(nomSlice);
+  histNameIhEtaNoMBefMassCut+="etaSlice";
+  histNameIhEtaNoMBefMassCut+=intToString(etaSlice);
+  histNameIhEtaNoMBefMassCut+="beforeMassCut";
+  string histTitleIhEtaNoMBefMassCut="Ih ( > 3.5MeV/cm) from P SB for nom ";
+  histTitleIhEtaNoMBefMassCut+=intToString(nomLow);
+  histTitleIhEtaNoMBefMassCut+="-";
+  histTitleIhEtaNoMBefMassCut+=intToString(nomHigh);
+  histTitleIhEtaNoMBefMassCut+=", |#eta| ";
+  histTitleIhEtaNoMBefMassCut+=floatToString(etaLow);
+  histTitleIhEtaNoMBefMassCut+="-";
+  histTitleIhEtaNoMBefMassCut+=floatToString(etaHigh);
+  ihInThisEtaNoMBinBeforeMassCut->SetNameTitle(histNameIhEtaNoMBefMassCut.c_str(), histTitleIhEtaNoMBefMassCut.c_str());
   // p dist
+  // set P range to be 100 GeV first
+  pHist->GetXaxis()->SetRangeUser(100,2000);
   TH1D* etaSlicedNoMSlicedPHist = pHist->ProjectionX("etaSlicedNoMSlicedPHist_px",etaSlice*2+1,etaSlice*2+2);
   string histNameEtaSlicedP="pNoMSlice";
   histNameEtaSlicedP+=intToString(nomSlice);
@@ -375,10 +462,15 @@ makeIasDists(int nomSlice, int etaSlice, float massCut)
       << "\t " << pHistName2 << "\t\t\t" << pHist2->GetEntries() << endl
       << "\t " << dedxHistName << "\t" << dedxHist->GetEntries() << endl
       << "\t " << dedxHistName2 << "\t" << dedxHist2->GetEntries() << endl;
-    return;
+    return -1;
   }
 
-  int numTrialPerIasBin = etaSlicedNoMSlicedPHist->GetEntries();
+  TH1D* fluctuatedPHist = (TH1D*)etaSlicedNoMSlicedPHist->Clone();
+  fluctuatedPHist->Reset();
+  fluctuatedPHist->FillRandom(etaSlicedNoMSlicedPHist,(int)etaSlicedNoMSlicedPHist->Integral());
+  //int numTrialPerIasBin = etaSlicedNoMSlicedPHist->GetEntries();
+  //int numTrialPerIasBin = fluctuatedPHist->GetEntries();
+  int numTrialPerIasBin = (int)fluctuatedPHist->Integral();
   // setup the arrays for keeping track of the pass/fail in each Ias bin
   const int numIasBins = 100;
   const int numIhBins = 250;
@@ -394,6 +486,8 @@ makeIasDists(int nomSlice, int etaSlice, float massCut)
   }
 
   thisEtaNoMSliceDir->cd();
+  TDirectory* ihDir = thisEtaNoMSliceDir->mkdir("ihDistsInIasSlices");
+  ihDir->cd();
 
   for(int i=1; i<numIasBins+1; ++i)
   {
@@ -402,26 +496,52 @@ makeIasDists(int nomSlice, int etaSlice, float massCut)
     ihForThisIasHist->Write();
     if(ihForThisIasHist->GetEntries() < 1)
       continue;
+    TH1D* fluctuatedIhHist = (TH1D*)ihForThisIasHist->Clone();
+    fluctuatedIhHist->Reset();
+    fluctuatedIhHist->FillRandom(ihForThisIasHist, (int)ihForThisIasHist->Integral());
+    //XXX possible bug fix in range here
+    //fluctuatedIhHist->GetXaxis()->SetRangeUser(3.5,25);
+    fluctuatedIhHist->GetXaxis()->SetRange(fluctuatedIhHist->FindBin(3.5),fluctuatedIhHist->GetNbinsX());
 
+    fluctuatedIhHist->SetName(("fluctuatedIhForIasBin"+intToString(i)).c_str());
+    fluctuatedIhHist->Write();
+    if(fluctuatedIhHist->GetEntries() < 1)
+      continue;
+
+    //debug
+    cout << "Ias: bin=" << i << " entries=" << fluctuatedIhHist->GetEntries() <<
+      " mean ih=" << fluctuatedIhHist->GetMean() << endl;
+
+    int successesThisBin = 0;
+    int trialsThisBin = 0;
     // generate the Ias dist, keeping track of pass/fail for each Ias bin
     for(int trial=1; trial < numTrialPerIasBin+1; ++trial)
     {
-      double ih = ihForThisIasHist->GetRandom();
-      double p = etaSlicedNoMSlicedPHist->GetRandom();
+      //double ih = ihForThisIasHist->GetRandom();
+      //double p = etaSlicedNoMSlicedPHist->GetRandom();
+      //TODO for now, only using mean of the Ih
+      double ih = fluctuatedIhHist->GetMean();
+      double p = fluctuatedPHist->GetRandom();
+
+      // require the candidate to be in the high Ih/high P region
+      if(ih < 3.5 || p < 100)
+        cout << "Ias: bin=" << i << " ERROR IN Ih/P range from hist: p=" << p << " mean ih=" << ih << endl;
+      //if(ih < 3.5) continue;
+      if(ih < 3.5) break;
+      if(p < 100) continue;
+
       double massSqr = (ih-c)*pow(p,2)/k;
       trialsCount[i-1][ihForThisIasHist->FindBin(ih)-1]++;
       //debug
       //std::cout << "Generated points--  Ih=" << ih << "; p=" << p << "; mass=" << sqrt(massSqr) << std::endl;
+      trialsThisBin++;
 
       if(massSqr < 0)
         continue;
       else if(sqrt(massSqr) < massCut)
         continue;
       
-      // require the candidate to be in the high Ih/high P region
-      if(ih < 3.5) continue;
-      if(p < 100) continue;
-
+      successesThisBin++;
       massGeneratedHist->Fill(sqrt(massSqr));
       selectedIhvsPHist->Fill(p,ih);
       ////debug
@@ -430,7 +550,20 @@ makeIasDists(int nomSlice, int etaSlice, float massCut)
       successCount[i-1][ihForThisIasHist->FindBin(ih)-1]++;
     }
 
-    //delete ihForThisIasHist;
+    delete ihForThisIasHist;
+    delete fluctuatedIhHist;
+    double ias = successRateHist->GetBinCenter(i);
+    double successRate = successesThisBin/(double)trialsThisBin;
+    if(trialsThisBin > 0)
+    {
+      successRateHist->SetBinContent(i,successRate);
+      successRateHist->SetBinError(i,sqrt(successRate*(1-successRate)/trialsThisBin));
+    }
+    //debug
+    cout << "Ias: bin=" << i << " ias=" << ias
+      << " successRate=" << successRate << " trials="
+      << trialsThisBin << " error=" << sqrt(successRate*(1-successRate)/trialsThisBin)
+      << endl;
   }
 
   for(int i=0; i<numIasBins;++i)
@@ -467,26 +600,72 @@ makeIasDists(int nomSlice, int etaSlice, float massCut)
       //    << " successCount: " << successCount[i][j] << " thisBinTrialsCount: " << thisBinTrialsCount << endl;
       //}
       // create weighted average for this Ias slice
-      weightSum+=thisBinTrialsCount;
-      weightSqrSum+=thisBinTrialsCount*thisBinTrialsCount;
-      weightedAvg+=successRate*thisBinTrialsCount;
-      errorAvg+=binErr*binErr*thisBinTrialsCount*thisBinTrialsCount;
+      //weightSum+=thisBinTrialsCount;
+      //weightSqrSum+=thisBinTrialsCount*thisBinTrialsCount;
+      //weightedAvg+=successRate*thisBinTrialsCount;
+      //errorAvg+=binErr*binErr*thisBinTrialsCount*thisBinTrialsCount;
     }
-    if(weightSum>0)
-    {
-      successRateHist->SetBinContent(i+1,weightedAvg/weightSum);
-      double stdDev = sqrt(errorAvg/weightSqrSum);
-      successRateHist->SetBinError(i+1,stdDev/sqrt(weightSum*weightSum/weightSqrSum));
-      //successRateHist->SetBinContent(i+1,weightedAvg/weightSum);
-      //TODO: calculate error
-      //successRateHist->SetBinError(i+1,errorAvg/weightSum);
-      //if(i+1==12)
-      //  cout << "binx: " << i+1 << " weightedAvg= " << weightedAvg/weightSum << std::endl;
-    }
+    //if(weightSum>0)
+    //{
+    //  successRateHist->SetBinContent(i+1,weightedAvg/weightSum);
+    //  double stdDev = sqrt(errorAvg/weightSqrSum);
+    //  successRateHist->SetBinError(i+1,stdDev/sqrt(weightSum*weightSum/weightSqrSum));
+    //  //successRateHist->SetBinContent(i+1,weightedAvg/weightSum);
+    //  //TODO: calculate error
+    //  //successRateHist->SetBinError(i+1,errorAvg/weightSum);
+    //  //if(i+1==12)
+    //  //  cout << "binx: " << i+1 << " weightedAvg= " << weightedAvg/weightSum << std::endl;
+    //}
   }
   moveBinsTH2F(successRate2DHist);
   successRate2DHist->SetMinimum(-0.01);
 
+  // do Ih with mass cut
+  for(int bin=0; bin < numIhBins; ++bin)
+  {
+    int trialsThisBin = 0;
+    int successesInThisBin = 0;
+    if(ihInThisEtaNoMBinBeforeMassCut->GetBinContent(bin+1) < 1) continue;
+    double ih = ihInThisEtaNoMBinBeforeMassCut->GetBinCenter(bin+1);
+    if(ih < 3.5) continue;
+
+    for(int trial=0; trial < (int)etaSlicedNoMSlicedPHist->Integral();
+        ++trial)
+    {
+      //double ih = ihInThisEtaNoMBinBeforeMassCut->GetRandom();
+      double p = etaSlicedNoMSlicedPHist->GetRandom();
+      double massSqr = (ih-c)*pow(p,2)/k;
+      // require the candidate to be in the high Ih/high P region
+      if(ih < 3.5 || p < 100)
+        cout << "Ih: ERROR IN Ih/P range from hist: p=" << p << " ih=" << ih << endl;
+      if(ih < 3.5) continue;
+      if(p < 100) continue;
+
+      trialsThisBin++;
+
+      if(massSqr < 0)
+        continue;
+      else if(sqrt(massSqr) < massCut)
+        continue;
+
+      successesInThisBin++;
+    }
+    double successRate = successesInThisBin/(double)trialsThisBin;
+    if(trialsThisBin > 0)
+    {
+      successRateIhHist->SetBinContent(successRateIhHist->FindBin(ih),successRate);
+      successRateIhHist->SetBinError(successRateIhHist->FindBin(ih),sqrt(successRate*(1-successRate)/trialsThisBin));
+    }
+    //debug
+    //cout << "Ih: bin=" << bin << " ih=" << ihInThisEtaNoMBinBeforeMassCut->GetBinCenter(bin+1)
+    //  << " successRate=" << successRate << " trials="
+    //  << trialsThisBin << " error=" << sqrt(successRate*(1-successRate)/trialsThisBin)
+    //  << endl;
+  }
+
+  successIhHist = ihInThisEtaNoMBinBeforeMassCut;
+  successIhHist->Sumw2();
+  successIhHist->Multiply(successRateIhHist);
 
   std::vector<double> binVec;
   //float ihBinArray[251]; // 250, 0 - 25
@@ -543,6 +722,9 @@ makeIasDists(int nomSlice, int etaSlice, float massCut)
   //t.Print((histName+".png").c_str());
 
   thisEtaNoMSliceDir->cd();
+  ihInThisEtaNoMBinBeforeMassCut->Write();
+  successIhHist->Write();
+  successRateIhHist->Write();
   tempHist->Write();
   trialsHist->Write();
   trackIasFactorizedIhPHist->Write();
