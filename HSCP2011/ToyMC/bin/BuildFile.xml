@@ -62,6 +62,7 @@
   <use   name="PhysicsTools/FWLite"/>
   <use   name="root"/>
   <use   name="rootgraphics"/>
+  <use   name="roofit"/>
   <use   name="clhep"/>
 </bin>
 <bin   name="readHSCPTreeTKplotsLight" file="readHSCPTreeTKplotsLight.cpp">
@@ -87,4 +88,18 @@
 <bin   name="makeIasDists" file="makeIasDists.cpp">
   <use   name="root"/>
   <use   name="rootgraphics"/>
+</bin>
+<bin   name="makeIasPredictions" file="makeIasPredictions.cpp">
+  <use   name="FWCore/FWLite"/>
+  <use   name="FWCore/PythonParameterSet"/>
+  <use   name="CommonTools/Utils"/>
+  <use   name="DataFormats/FWLite"/>
+  <use   name="DataFormats/TrackReco"/>
+  <use   name="DataFormats/Math"/>
+  <use   name="DataFormats/HepMCCandidate"/>
+  <use   name="PhysicsTools/FWLite"/>
+  <use   name="root"/>
+  <use   name="rootgraphics"/>
+  <use   name="roofit"/>
+  <use   name="clhep"/>
 </bin>

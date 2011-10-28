@@ -7,7 +7,7 @@ from HSCP2011.ToyMC.makeHSCParticlePlotsAndDoLikelihoodFitsCommonParameters_cfi 
 process.fwliteInput = cms.PSet(
     fileNames   = cms.vstring(),
     maxEvents   = cms.int32(-1),
-    #maxEvents   = cms.int32(1),
+    #maxEvents   = cms.int32(200000),
     outputEvery = cms.uint32(100000),
 )
 
@@ -17,7 +17,10 @@ process.fwliteOutput = cms.PSet(
     #fileName  = cms.string('oct17.makeHSCParticlePlots.EPSrunPostEPSprod.50GeVpSB.root'),
     #fileName  = cms.string('oct18.makeHSCParticlePlots.EPSrunPostEPSprod.100GeVpSB.root'),
     #fileName  = cms.string('oct26.makeHSCParticlePlots.jetTriggeredData.100GeVpSB.root'),
-    fileName  = cms.string('oct27.makeHSCParticlePlots.EPSrunPostEPSprod.100GeVpSB.root'),
+    #fileName  = cms.string('oct18.makeHSCParticlePlots.EPSrunPostEPSprod.100GeVpSB.root'),
+    #fileName  = cms.string('oct27.NewTest.100kevts.makeHSCParticlePlots.EPSrunPostEPSprod.100GeVpSB.root'),
+    #fileName  = cms.string('oct28.new.makeHSCParticlePlots.EPSrunPostEPSprod.100GeVpSB.3p5MeVcmIhSB.root'),
+    fileName  = cms.string('oct28.withRooDataSet.makeHSCParticlePlots.EPSrunPostEPSprod.root'),
 
     #fileName  = cms.string('1.oct12.makeHSCParticlePlots.ZJetToMuMuPt0to15.root'),
     #fileName  = cms.string('2.oct12.makeHSCParticlePlots.ZJetToMuMuPt15to20.root'),
@@ -41,10 +44,10 @@ process.makeHSCParticlePlots = cms.PSet(
     ScaleFactor = cms.double(1)
 )
 
-print 'Running with p threshold: ',
-print analysisCommonParameters.PSidebandThreshold
-print 'Running with Ih threshold:',
-print analysisCommonParameters.IhSidebandThreshold
+#print 'Running with p threshold: ',
+#print analysisCommonParameters.PSidebandThreshold
+#print 'Running with Ih threshold:',
+#print analysisCommonParameters.IhSidebandThreshold
 
 process.fwliteInput.fileNames.extend([
     # EPS runs -- from post EPS production (trigger thresh different?)
