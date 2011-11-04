@@ -73,158 +73,36 @@ namespace edm     {class TriggerResults; class TriggerResultsByName; class Input
 
 #include "commonFunctions.h"
 
-// ****** helper functions
-int findNoMSlice(int nom)
+// helper functions
+std::string getHistNameBeg(int lowerNom, float lowerEta)
 {
-  if(nom==5 || nom==6)
-    return 0;
-  else if(nom==7 || nom==8)
-    return 1;
-  else if(nom==9 || nom==10)
-    return 2;
-  else if(nom==11 || nom==12)
-    return 3;
-  else if(nom==13 || nom==14)
-    return 4;
-  else if(nom==15 || nom==16)
-    return 5;
-  else if(nom==17 || nom==18)
-    return 6;
-  else if(nom==19 || nom==20)
-    return 7;
-  else if(nom>=21)
-    return 8;
-  else
-    return -1;
+  string histName="nom";
+  histName+=intToString(lowerNom);
+  histName+="to";
+  histName+=intToString(lowerNom+1);
+  histName+="eta";
+  histName+=intToString(lowerEta*10);
+  histName+="to";
+  histName+=intToString((lowerEta+0.2)*10);
+  return histName;
 }
-//
-int findEtaSlice(double absEta)
+
+std::string getHistTitleEnd(int lowerNom, float lowerEta, float massCut)
 {
-  if(absEta < 0.2)
-    return 0;
-  else if(absEta < 0.4)
-    return 1;
-  else if(absEta < 0.6)
-    return 2;
-  else if(absEta < 0.8)
-    return 3;
-  else if(absEta < 1.0)
-    return 4;
-  else if(absEta < 1.2)
-    return 5;
-  else if(absEta < 1.4)
-    return 6;
-  else if(absEta < 1.6)
-    return 7;
-  else if(absEta < 1.8)
-    return 8;
-  else if(absEta < 2.0)
-    return 9;
-  else if(absEta < 2.2)
-    return 10;
-  else if(absEta < 2.4)
-    return 11;
-  else
-    return -1;
+  std::string title =" for ";
+  title+=intToString(lowerNom);
+  title+="-";
+  title+=intToString(lowerNom+1);
+  title+=", ";
+  title+=floatToString(lowerEta);
+  title+=" < #eta < ";
+  title+=floatToString(lowerEta+0.2);
+  title+=", mass > ";
+  title+=floatToString(massCut);
+  title+=" GeV";
+  return title;
 }
-//
-float getLastBinLowEdge(int nom)
-{
-  if(nom<7)
-    return 0.9;
-  else if(nom==7 || nom==8)
-    return 0.65;
-  else if(nom==9 || nom==10)
-    return 0.5;
-  else if(nom==11 || nom==12)
-    return 0.4;
-  else if(nom==13 || nom==14)
-    return 0.4;
-  else if(nom==15 || nom==16)
-    return 0.3;
-  else if(nom==17 || nom==18)
-    return 0.25;
-  else if(nom==19 || nom==20)
-    return 0.2;
-  else
-    return 0.1;
-}
-//
-float getSecondToLastBinLowEdge(int nom)
-{
-  if(nom<7)
-    return 0.8;
-  else if(nom==7 || nom==8)
-    return 0.55;
-  else if(nom==9 || nom==10)
-    return 0.4;
-  else if(nom==11 || nom==12)
-    return 0.35;
-  else if(nom==13 || nom==14)
-    return 0.35;
-  else if(nom==15 || nom==16)
-    return 0.25;
-  else if(nom==17 || nom==18)
-    return 0.2;
-  else if(nom==19 || nom==20)
-    return 0.15;
-  else
-    return 0.05;
-}
-// get NoM string from NoM slice #
-std::string getNoMRangeFromSlice(int slice)
-{
-  if(slice==0)
-    return std::string("5-6");
-  else if(slice==1)
-    return std::string("7-8");
-  else if(slice==2)
-    return std::string("9-10");
-  else if(slice==3)
-    return std::string("11-12");
-  else if(slice==4)
-    return std::string("13-14");
-  else if(slice==5)
-    return std::string("15-16");
-  else if(slice==6)
-    return std::string("17-18");
-  else if(slice==7)
-    return std::string("19-20");
-  else if(slice==8)
-    return std::string(">=21");
-  else
-    return std::string("-1");
-}
-// get eta string from eta slice #
-std::string getEtaRangeFromSlice(int slice)
-{
-  if(slice==0)
-    return std::string("0-0.2");
-  else if(slice==1)
-    return std::string("0.2-0.4");
-  else if(slice==2)
-    return std::string("0.4-0.6");
-  else if(slice==3)
-    return std::string("0.6-0.8");
-  else if(slice==4)
-    return std::string("0.8-1.0");
-  else if(slice==5)
-    return std::string("1.0-1.2");
-  else if(slice==6)
-    return std::string("1.2-1.4");
-  else if(slice==7)
-    return std::string("1.4-1.6");
-  else if(slice==8)
-    return std::string("1.6-1.8");
-  else if(slice==9)
-    return std::string("1.8-2.0");
-  else if(slice==10)
-    return std::string("2.0-2.2");
-  else if(slice==11)
-    return std::string("2.2-2.4");
-  else
-    return std::string("-1");
-}
+
 
 // ****** main
 int main(int argc, char ** argv)
@@ -257,69 +135,84 @@ int main(int argc, char ** argv)
   // definition of sidebands/search region
   double pSidebandThreshold (ana.getParameter<double>("PSidebandThreshold"));
   double ihSidebandThreshold (ana.getParameter<double>("IhSidebandThreshold"));
-  int numBackgroundTracksToGen (ana.getParameter<int>("NumberOfBackgroundTracks"));
+  // num background tracks D region after all skimming and preselections
+  int numBackgroundTracksInDRegionInput (ana.getParameter<int>("NumberOfBackgroundTracksInDRegion"));
+  // number of signal tracks expected in this int. lumi
   int numSignalTracksToGen (ana.getParameter<int>("NumberOfSignalTracks"));
   int numTrialsToDo (ana.getParameter<int>("NumberOfTrials"));
+  int lowerNoM (ana.getParameter<int>("LowerNoMOfSlice"));
+  double lowerEta (ana.getParameter<double>("LowerEtaOfSlice"));
+
+  if(lowerNoM < 5 || lowerNoM > 21 || lowerEta < 0 || lowerEta > 2.2)
+  {
+    std::cout << "Eta/NoM slice specified (eta=" << lowerEta <<
+      "-" << lowerEta+0.2 << ", nom=" << lowerNoM << "-" <<
+      lowerNoM+1 << ") is out of range NoM [5-21], eta [0-2.2]. Exiting."
+      << std::endl;
+    return -1;
+  }
 
   TFile* outputRootFile = new TFile(outputRootFilename_.c_str(),"recreate");
-
   TFile* backgroundPredictionRootFile = TFile::Open(backgroundPredictionRootFilename_.c_str());
   TFile* signalRootFile = TFile::Open(signalRootFilename_.c_str());
 
-  const int numNoMslices = 9;
-  const int numEtaSlices = 12;
-  TH1F* iasBackgroundPredictionMassCutNoMSliceHists[numNoMslices][numEtaSlices];
-  TH1F* iasSignalMassCutNoMSliceHists[numNoMslices][numEtaSlices];
-  // get hists, skip NoM < 5
-  for(int nom=5; nom < 23; nom+=2)
+  // get this eta/nom hist
+  string dirName="iasPredictionsVariableBins";
+  //string dirName="iasPredictionsFixedBins";
+  string getHistName = getHistNameBeg(lowerNoM,lowerEta);
+  string sigHistName = getHistName;
+  sigHistName+="iasSignalVarBinHist";
+  getHistName+="iasPredictionVarBinHist";
+  //getHistName+="iasPredictionFixedHist";
+  std::string iasSignalVarBinHistTitle = "Ias of signal";
+  iasSignalVarBinHistTitle+=getHistTitleEnd(lowerNoM,lowerEta,massCut_);
+
+  string fullPath = dirName;
+  fullPath+="/";
+  fullPath+=getHistName;
+
+  TH1F* iasBackgroundPredictionMassCutNoMSliceHist =
+    (TH1F*)backgroundPredictionRootFile->Get(fullPath.c_str());
+
+  TH1F* iasSignalMassCutNoMSliceHist;
+  if(iasBackgroundPredictionMassCutNoMSliceHist)
   {
-    for(int etaSlice=0; etaSlice < 25; etaSlice+=2)
-    {
-      string dirName="iasPredictionsVariableBins";
-      //string dirName="iasPredictionsFixedBins";
+    iasSignalMassCutNoMSliceHist =
+      (TH1F*)iasBackgroundPredictionMassCutNoMSliceHist->Clone();
+    iasSignalMassCutNoMSliceHist->Reset("ICESM");
+    iasSignalMassCutNoMSliceHist->SetName(sigHistName.c_str());
+    iasSignalMassCutNoMSliceHist->SetTitle(iasSignalVarBinHistTitle.c_str());
+  }
+  else
+  {
+    std::cout << "Cannot proceed further: no background prediction found (histogram " <<
+      fullPath << ") in file: " << backgroundPredictionRootFilename_ << ")." << std::endl;
+    return -2;
+  }
 
-      string histName="nom";
-      histName+=intToString(nom);
-      histName+="to";
-      histName+=intToString(nom+1);
-      histName+="eta";
-      histName+=intToString(etaSlice);
-      histName+="to";
-      histName+=intToString(etaSlice+2);
-      string sigHistName = histName;
-      sigHistName+="iasSignalVarBinHist";
-      histName+="iasPredictionVarBinHist";
-      //histName+="iasPredictionFixedHist";
-      std::string iasSignalVarBinHistTitle = "Ias of signal for nom ";
-      iasSignalVarBinHistTitle+=intToString(nom);
-      iasSignalVarBinHistTitle+="-";
-      iasSignalVarBinHistTitle+=intToString(nom+1);
-      iasSignalVarBinHistTitle+=", ";
-      iasSignalVarBinHistTitle+=floatToString(etaSlice/10.);
-      iasSignalVarBinHistTitle+=" < #eta < ";
-      iasSignalVarBinHistTitle+=floatToString((etaSlice+2)/10.);
-      iasSignalVarBinHistTitle+=", mass > ";
-      iasSignalVarBinHistTitle+=floatToString(massCut_);
-      iasSignalVarBinHistTitle+=" GeV";
+  // get the background B region hist
+  dirName="bRegionHistograms";
+  getHistName = getHistNameBeg(lowerNoM,lowerEta);
+  getHistName+="bRegionHist";
+  fullPath=dirName;
+  fullPath+="/";
+  fullPath+=getHistName;
+  TH1F* bRegionBackgroundHist = (TH1F*)backgroundPredictionRootFile->Get(fullPath.c_str());
+  if(!bRegionBackgroundHist)
+  {
+    std::cout << "Cannot proceed further: no b region hist found (histogram " <<
+      fullPath << ") in file: " << backgroundPredictionRootFilename_ << ")." << std::endl;
+    return -3;
+  }
 
-      string fullPath = dirName;
-      fullPath+="/";
-      fullPath+=histName;
-
-      iasBackgroundPredictionMassCutNoMSliceHists[nom/2-2][etaSlice/2] =
-        (TH1F*)backgroundPredictionRootFile->Get(fullPath.c_str());
-
-      if(iasBackgroundPredictionMassCutNoMSliceHists[nom/2-2][etaSlice/2])
-      {
-        iasSignalMassCutNoMSliceHists[nom/2-2][etaSlice/2] =
-          (TH1F*)iasBackgroundPredictionMassCutNoMSliceHists[nom/2-2][etaSlice/2]->Clone();
-        iasSignalMassCutNoMSliceHists[nom/2-2][etaSlice/2]->Reset("ICESM");
-        iasSignalMassCutNoMSliceHists[nom/2-2][etaSlice/2]->SetName(sigHistName.c_str());
-        iasSignalMassCutNoMSliceHists[nom/2-2][etaSlice/2]->SetTitle(iasSignalVarBinHistTitle.c_str());
-      }
-      else
-        iasSignalMassCutNoMSliceHists[nom/2-2][etaSlice/2] = 0;
-    }
+  // get the background entries in D region hist
+  getHistName = "entriesInDRegion";
+  TH2F* entriesInDRegionHist = (TH2F*)backgroundPredictionRootFile->Get(getHistName.c_str());
+  if(!entriesInDRegionHist)
+  {
+    std::cout << "Cannot proceed further: no D region entries hist found (histogram " <<
+      getHistName << ") in file: " << backgroundPredictionRootFilename_ << ")." << std::endl;
+    return -4;
   }
 
   // define observables
@@ -333,254 +226,286 @@ int main(int argc, char ** argv)
   RooDataSet* rooDataSetAllSignal = (RooDataSet*)signalRootFile->Get("rooDataSetAll");
   if(rooDataSetAllSignal->numEntries() < 1)
   {
-    std::cout << "Problem with RooDataSet named rooDataSetAll in file " <<
+    std::cout << "Problem with RooDataSet named rooDataSetAll in signal file " <<
       signalRootFilename_.c_str() << std::endl;
-    return -1;
+    return -3;
   }
-
+  
+  // construct D region for signal
   std::string pSearchCutString = "rooVarP>";
   pSearchCutString+=floatToString(pSidebandThreshold);
   std::string ihSearchCutString = "rooVarIh>";
   ihSearchCutString+=floatToString(ihSidebandThreshold);
   RooDataSet* regionD1DataSetSignal = (RooDataSet*)rooDataSetAllSignal->reduce(Cut(pSearchCutString.c_str()));
   RooDataSet* regionDDataSetSignal = (RooDataSet*)regionD1DataSetSignal->reduce(Cut(ihSearchCutString.c_str()));
-
-  // construct signal prediction hists
-  for(int nomSlice=0; nomSlice < numNoMslices; ++nomSlice)
+  int numSignalTracksInDRegion = regionDDataSetSignal->numEntries();
+  // construct D region for signal in this eta/nom slice
+  std::string nomCutString = "rooVarNoMias==";
+  nomCutString+=intToString(lowerNoM);
+  nomCutString+="||rooVarNoMias==";
+  nomCutString+=intToString(lowerNoM+1);
+  RooDataSet* nomCutDRegionDataSetSignal =
+    (RooDataSet*)regionDDataSetSignal->reduce(Cut(nomCutString.c_str()));
+  std::string etaCutString = "rooVarEta>";
+  etaCutString+=floatToString(lowerEta);
+  etaCutString+="&&rooVarEta<";
+  etaCutString+=floatToString(lowerEta+0.2);
+  RooDataSet* etaCutNomCutDRegionDataSetSignal =
+    (RooDataSet*)nomCutDRegionDataSetSignal->reduce(Cut(etaCutString.c_str()));
+  int numSignalTracksInDRegionThisSlice = etaCutNomCutDRegionDataSetSignal->numEntries();
+  // construct signal prediction hist (with mass cut)
+  const RooArgSet* argSet = etaCutNomCutDRegionDataSetSignal->get();
+  RooRealVar* iasData = (RooRealVar*)argSet->find(rooVarIas.GetName());
+  RooRealVar* ihData = (RooRealVar*)argSet->find(rooVarIh.GetName());
+  RooRealVar* pData = (RooRealVar*)argSet->find(rooVarP.GetName());
+  for(int evt=0; evt < etaCutNomCutDRegionDataSetSignal->numEntries(); ++evt)
   {
-    for(int etaSlice=0; etaSlice < numEtaSlices; ++etaSlice)
-    {
-      if(!iasSignalMassCutNoMSliceHists[nomSlice][etaSlice])
-        continue;
-
-      std::string nomCutString = "rooVarNoMias==";
-      nomCutString+=intToString(nomSlice*2+5);
-      nomCutString+="||rooVarNoMias==";
-      nomCutString+=intToString(nomSlice*2+6);
-      RooDataSet* nomCutDRegionDataSetSignal =
-        (RooDataSet*)regionDDataSetSignal->reduce(Cut(nomCutString.c_str()));
-      std::string etaCutString = "rooVarEta>";
-      etaCutString+=floatToString(etaSlice*0.2);
-      etaCutString+="&&rooVarEta<";
-      etaCutString+=floatToString((etaSlice+1)*0.2);
-      RooDataSet* etaCutNomCutDRegionDataSetSignal =
-        (RooDataSet*)nomCutDRegionDataSetSignal->reduce(Cut(etaCutString.c_str()));
-
-      const RooArgSet* argSet = etaCutNomCutDRegionDataSetSignal->get();
-      RooRealVar* iasData = (RooRealVar*)argSet->find(rooVarIas.GetName());
-      RooRealVar* ihData = (RooRealVar*)argSet->find(rooVarIh.GetName());
-      RooRealVar* pData = (RooRealVar*)argSet->find(rooVarP.GetName());
-      for(int evt=0; evt < etaCutNomCutDRegionDataSetSignal->numEntries(); ++evt)
-      {
-        etaCutNomCutDRegionDataSetSignal->get(evt);
-        // apply mass cut
-        float massSqr = (ihData->getVal()-dEdx_c)*pow(pData->getVal(),2)/dEdx_k;
-        if(massSqr < 0)
-          continue;
-        else if(sqrt(massSqr) >= massCut_)
-          iasSignalMassCutNoMSliceHists[nomSlice][etaSlice]->Fill(iasData->getVal());
-      }
-      for(int bin=1; bin<=iasSignalMassCutNoMSliceHists[nomSlice][etaSlice]->GetNbinsX(); ++bin)
-      {
-        double binWidthRatio =
-          iasSignalMassCutNoMSliceHists[nomSlice][etaSlice]->GetBinWidth(1)/
-          iasSignalMassCutNoMSliceHists[nomSlice][etaSlice]->GetBinWidth(bin);
-        double binc = iasSignalMassCutNoMSliceHists[nomSlice][etaSlice]->GetBinContent(bin);
-        double bine = iasSignalMassCutNoMSliceHists[nomSlice][etaSlice]->GetBinError(bin);
-        iasSignalMassCutNoMSliceHists[nomSlice][etaSlice]->SetBinContent(bin,binWidthRatio*binc);
-        iasSignalMassCutNoMSliceHists[nomSlice][etaSlice]->SetBinError(bin,binWidthRatio*bine);
-      }
-    }
+    etaCutNomCutDRegionDataSetSignal->get(evt);
+    // apply mass cut
+    float massSqr = (ihData->getVal()-dEdx_c)*pow(pData->getVal(),2)/dEdx_k;
+    if(massSqr < 0)
+      continue;
+    else if(sqrt(massSqr) >= massCut_)
+      iasSignalMassCutNoMSliceHist->Fill(iasData->getVal());
+  }
+  double numSignalTracksInDRegionMassCut = iasSignalMassCutNoMSliceHist->Integral();
+  for(int bin=1; bin<=iasSignalMassCutNoMSliceHist->GetNbinsX(); ++bin)
+  {
+    double binWidthRatio =
+      iasSignalMassCutNoMSliceHist->GetBinWidth(1)/
+      iasSignalMassCutNoMSliceHist->GetBinWidth(bin);
+    double binc = iasSignalMassCutNoMSliceHist->GetBinContent(bin);
+    double bine = iasSignalMassCutNoMSliceHist->GetBinError(bin);
+    iasSignalMassCutNoMSliceHist->SetBinContent(bin,binWidthRatio*binc);
+    iasSignalMassCutNoMSliceHist->SetBinError(bin,binWidthRatio*bine);
   }
 
-  RooDataHist* iasBackgroundDataHists[numNoMslices][numEtaSlices];
-  RooHistPdf* iasBackgroundHistPdfs[numNoMslices][numEtaSlices];
-  RooDataHist* iasSignalDataHists[numNoMslices][numEtaSlices];
-  RooHistPdf* iasSignalHistPdfs[numNoMslices][numEtaSlices];
-  // Make the dataHists/histPdfs
-  for(int nomSlice=0; nomSlice < numNoMslices; ++nomSlice)
-  {
-    for(int etaSlice=0; etaSlice < numEtaSlices; ++etaSlice)
-    {
-      std::string histName;
-      std::string histTitle;
-      if(iasBackgroundPredictionMassCutNoMSliceHists[nomSlice][etaSlice])
-      {
-        histName = iasBackgroundPredictionMassCutNoMSliceHists[nomSlice][etaSlice]->GetName();
-        histTitle = iasBackgroundPredictionMassCutNoMSliceHists[nomSlice][etaSlice]->GetTitle();
-        std::string dataHistName=histName;
-        dataHistName+="DataHistBG";
-        std::string dataHistTitle=histTitle;
-        dataHistTitle+=" dataHistBG";
-        std::string histPdfName=histName;
-        histPdfName+="HistPdfBG";
-        std::string histPdfTitle=histTitle;
-        histPdfTitle+=" histPdfBG";
-        iasBackgroundDataHists[nomSlice][etaSlice] = new RooDataHist(dataHistName.c_str(),dataHistTitle.c_str(),
-            rooVarIas,iasBackgroundPredictionMassCutNoMSliceHists[nomSlice][etaSlice]);
-        iasBackgroundHistPdfs[nomSlice][etaSlice] = new RooHistPdf(histPdfName.c_str(),histPdfTitle.c_str(),
-            rooVarIas, *iasBackgroundDataHists[nomSlice][etaSlice]);
-        // signal -- if there are any entries in this eta/nom slice
-        if(iasSignalMassCutNoMSliceHists[nomSlice][etaSlice])
-        {
-          histName = iasSignalMassCutNoMSliceHists[nomSlice][etaSlice]->GetName();
-          histTitle = iasSignalMassCutNoMSliceHists[nomSlice][etaSlice]->GetTitle();
-          dataHistName=histName;
-          dataHistName+="DataHistSig";
-          dataHistTitle=histTitle;
-          dataHistTitle+=" dataHistSig";
-          histPdfName=histName;
-          histPdfName+="HistPdfSig";
-          histPdfTitle=histTitle;
-          histPdfTitle+=" histPdfSig";
-          iasSignalDataHists[nomSlice][etaSlice] = new RooDataHist(dataHistName.c_str(),dataHistTitle.c_str(),
-              rooVarIas,iasSignalMassCutNoMSliceHists[nomSlice][etaSlice]);
-          iasSignalHistPdfs[nomSlice][etaSlice] = new RooHistPdf(histPdfName.c_str(),histPdfTitle.c_str(),
-              rooVarIas, *iasSignalDataHists[nomSlice][etaSlice]);
-        }
-      }
-      else
-      {
-        iasBackgroundDataHists[nomSlice][etaSlice] = 0;
-        iasBackgroundHistPdfs[nomSlice][etaSlice] = 0;
-        iasSignalDataHists[nomSlice][etaSlice] = 0;
-        iasSignalHistPdfs[nomSlice][etaSlice] = 0;
-      }
-    }
-  }
+  RooDataHist* iasBackgroundDataHist;
+  RooHistPdf* iasBackgroundHistPdf;
+  RooDataHist* iasSignalDataHist;
+  RooHistPdf* iasSignalHistPdf;
+  // Make the dataHist/histPdf -- background
+  std::string histName = iasBackgroundPredictionMassCutNoMSliceHist->GetName();
+  std::string histTitle = iasBackgroundPredictionMassCutNoMSliceHist->GetTitle();
+  std::string dataHistName=histName;
+  dataHistName+="DataHistBG";
+  std::string dataHistTitle=histTitle;
+  dataHistTitle+=" dataHistBG";
+  std::string histPdfName=histName;
+  histPdfName+="HistPdfBG";
+  std::string histPdfTitle=histTitle;
+  histPdfTitle+=" histPdfBG";
+  iasBackgroundDataHist = new RooDataHist(dataHistName.c_str(),dataHistTitle.c_str(),
+      rooVarIas,iasBackgroundPredictionMassCutNoMSliceHist);
+  iasBackgroundHistPdf = new RooHistPdf(histPdfName.c_str(),histPdfTitle.c_str(),
+      rooVarIas, *iasBackgroundDataHist);
+  // signal
+  histName = iasSignalMassCutNoMSliceHist->GetName();
+  histTitle = iasSignalMassCutNoMSliceHist->GetTitle();
+  dataHistName=histName;
+  dataHistName+="DataHistSig";
+  dataHistTitle=histTitle;
+  dataHistTitle+=" dataHistSig";
+  histPdfName=histName;
+  histPdfName+="HistPdfSig";
+  histPdfTitle=histTitle;
+  histPdfTitle+=" histPdfSig";
+  iasSignalDataHist = new RooDataHist(dataHistName.c_str(),dataHistTitle.c_str(),
+      rooVarIas,iasSignalMassCutNoMSliceHist);
+  iasSignalHistPdf = new RooHistPdf(histPdfName.c_str(),histPdfTitle.c_str(),
+      rooVarIas, *iasSignalDataHist);
 
-  outputRootFile->cd();
 
   RooRealVar fsig("fsig","signal frac",0.2,0,1);
-  RooRealVar nsig("nSig","signal evts",11,0,100000);
-  RooRealVar nback("nBack","background evts",71994,0,2e8);
+  //RooRealVar nsig("nSig","signal evts",11,0,100000);
+  //RooRealVar nback("nBack","background evts",71994,0,2e8);
+  RooAddPdf sigBackPdf("sigBackPdf","sigBackPdf",RooArgList(*iasSignalHistPdf,
+        *iasBackgroundHistPdf),fsig);
+  //RooAddPdf sigBackPdf("sigBackPdf","sigBackPdf",RooArgList(*iasSignalHistPdfs,
+  //      *iasBackgroundHistPdf),RooArgList(nsig,nback));
+  int nBins = iasBackgroundPredictionMassCutNoMSliceHist->GetNbinsX();
+  RooBinning thisBinning(nBins,
+      iasBackgroundPredictionMassCutNoMSliceHist->GetXaxis()->GetXbins()->GetArray());
+  rooVarIas.setBinning(thisBinning);
+  const int numTrials = numTrialsToDo;
+  // figure out how many background tracks to generate in this eta/nom slice
+  double fractionOfBGTracksPassingMassCutThisSlice =
+    iasBackgroundPredictionMassCutNoMSliceHist->Integral()/bRegionBackgroundHist->Integral();
+  //std::cout << "Found " << bRegionBackgroundHist->Integral() <<
+  //  " tracks in bRegion background and " << iasBackgroundPredictionMassCutNoMSliceHist->Integral() <<
+  //  " tracks in dRegion prediction after mass cut." << std::endl;
+  std::cout << "Found " << fractionOfBGTracksPassingMassCutThisSlice*100 <<
+    "% of background tracks passing mass cut in this slice. " << std::endl;
+  double bgEntriesInDRegionThisSlice =
+    entriesInDRegionHist->GetBinContent(entriesInDRegionHist->FindBin(lowerEta,lowerNoM));
+  double fractionOfBGTracksInThisSlice = bgEntriesInDRegionThisSlice/entriesInDRegionHist->Integral();
+  int numBackgroundTracksThisSliceToGen =
+    fractionOfBGTracksInThisSlice*fractionOfBGTracksPassingMassCutThisSlice*numBackgroundTracksInDRegionInput;
+  std::cout << "Found " << fractionOfBGTracksInThisSlice*100 << "% of background tracks in this slice" <<
+    std::endl;
+  std::cout << "Generating " << numBackgroundTracksThisSliceToGen << " background tracks" <<
+    " from " << numBackgroundTracksInDRegionInput << " for entire D region." << std::endl;
+  //std::cout << "Found " << bgEntriesInDRegionThisSlice << 
+  //  " background tracks in D region this slice, calculated " << bgTracksInThisDRegionAfterMassCut <<
+  //  " background tracks to generate in this slice (after mass cut)." << std::endl;
+  double fractionOfSigTracksPassingMassCutThisSlice =
+    numSignalTracksInDRegionMassCut/numSignalTracksInDRegionThisSlice;
+  std::cout << "Found " << fractionOfSigTracksPassingMassCutThisSlice*100 <<
+    "% of signal tracks passing mass cut in this slice. " << std::endl;
+  //std::cout << "Found " << numSignalTracksInDRegionThisSlice <<
+  //  " signal tracks in D region for this slice and " <<
+  //  numSignalTracksInDRegion << " signal tracks in D region. " <<
+  //  std::endl;
+  double fractionOfSigTracksInThisSlice = numSignalTracksInDRegionThisSlice/(double)numSignalTracksInDRegion;
+  std::cout << "Found " << 100*fractionOfSigTracksInThisSlice << "% of signal tracks in this slice" <<
+    std::endl;
+  int numSignalTracksThisSliceToGen =
+    fractionOfSigTracksInThisSlice*fractionOfSigTracksPassingMassCutThisSlice*numSignalTracksToGen;
+  std::cout << "Generating " << numSignalTracksThisSliceToGen << " signal tracks" <<
+    " from " << numSignalTracksToGen << " for entire D region." << std::endl;
+  //std::cout << "Found " << numSignalTracksInDRegionThisSlice << 
+  //  " signal tracks in D region this slice, calculated " << numSignalTracksThisSliceToGen <<
+  //  " signal tracks to generate in this slice (after mass cut)." << std::endl;
 
-  //for(int nomSlice=0; nomSlice < numNoMslices; ++nomSlice)
-  //XXX TESTING
-  for(int nomSlice=4; nomSlice < 5; ++nomSlice)
+  int totalNumTracks = numSignalTracksThisSliceToGen+numBackgroundTracksThisSliceToGen;
+  //fsig = 11/(double)(10799+11); // standard 1/fb hypothesis
+  fsig = numSignalTracksThisSliceToGen/(double)totalNumTracks;
+  // NB: RooMCStudy apparently already fluctuates the number of tracks
+  //RooMCStudy mcStudy(*iasBackgroundHistPdf,rooVarIas,Silence(),Binned(true));
+  RooMCStudy mcStudy(sigBackPdf,rooVarIas,Silence(),Binned(true));
+  mcStudy.generate(numTrials,totalNumTracks,true); // keep gen data
+  //mcStudy.generate(numTrials,10799+11,true); // keep gen data; standard 1/fb hypothesis
+  //mcStudy.generate(numTrials,10799+22,true); // keep gen data; standard 1/fb hypothesis
+
+  // NLL B/sat hist
+  std::string nllBSatHistName = getHistNameBeg(lowerNoM,lowerEta);
+  nllBSatHistName+="nllBSatHist";
+  std::string nllBSatHistTitle = "-2*ln(B/sat)";
+  nllBSatHistTitle+=getHistTitleEnd(lowerNoM,lowerEta,massCut_);
+  TH1F* nllBSatHist = new TH1F(nllBSatHistName.c_str(),nllBSatHistTitle.c_str(),1000,0,100);
+  // NLL sat only hist
+  std::string nllSatOnlyHistName = getHistNameBeg(lowerNoM,lowerEta);
+  nllSatOnlyHistName+="nllSatonlyHist";
+  std::string nllSatOnlyHistTitle = "NLL sat only";
+  nllSatOnlyHistTitle+=getHistTitleEnd(lowerNoM,lowerEta,massCut_);
+  TH1F* nllSatOnlyHist = new TH1F(nllSatOnlyHistName.c_str(),nllSatOnlyHistTitle.c_str(),30000,-30000,0);
+  // NLL B only hist
+  std::string nllBOnlyHistName = getHistNameBeg(lowerNoM,lowerEta);
+  nllBOnlyHistName+="nllBonlyHist";
+  std::string nllBOnlyHistTitle = "NLL B only";
+  nllBOnlyHistTitle+=getHistTitleEnd(lowerNoM,lowerEta,massCut_);
+  TH1F* nllBOnlyHist = new TH1F(nllBOnlyHistName.c_str(),nllBOnlyHistTitle.c_str(),30000,-30000,0);
+  // NLL S only hist
+  std::string nllSonlyHistName = getHistNameBeg(lowerNoM,lowerEta);
+  nllSonlyHistName+="nllSonlyHist";
+  std::string nllSonlyHistTitle = "NLL S only";
+  nllSonlyHistTitle+=getHistTitleEnd(lowerNoM,lowerEta,massCut_);
+  TH1F* nllSOnlyHist = new TH1F(nllSonlyHistName.c_str(),nllSonlyHistTitle.c_str(),30000,-30000,0);
+  // NLL SB hist
+  std::string nllSBHistName = getHistNameBeg(lowerNoM,lowerEta);
+  nllSBHistName+="nllSBHist";
+  std::string nllSBHistTitle = "NLL SB";
+  nllSBHistTitle+=getHistTitleEnd(lowerNoM,lowerEta,massCut_);
+  TH1F* nllSBHist = new TH1F(nllSBHistName.c_str(),nllSBHistTitle.c_str(),30000,-30000,0);
+  // NLL S+B/B
+  std::string nllSBOverBHistName = getHistNameBeg(lowerNoM,lowerEta);
+  nllSBOverBHistName+="nllSBOverBHist";
+  std::string nllSBOverBHistTitle = "NLL -2*ln(SB/B)";
+  nllSBOverBHistTitle+=getHistTitleEnd(lowerNoM,lowerEta,massCut_);
+  TH1F* nllSBOverBHist = new TH1F(nllSBOverBHistName.c_str(),nllSBOverBHistTitle.c_str(),2000,-100,100);
+
+  TH1F* numTracksPerTrialHist = new TH1F("numTracksPerTrial","Tracks per trial",
+      500,totalNumTracks-250,totalNumTracks+250);
+
+  // loop over gen data and do fits
+  for(int i=0; i<numTrials; ++i)
   {
-    //for(int etaSlice=0; etaSlice < numEtaSlices; ++etaSlice)
-    //XXX TESTING
-    for(int etaSlice=1; etaSlice < 2; ++etaSlice)
-    {
-      if(!iasBackgroundPredictionMassCutNoMSliceHists[nomSlice][etaSlice])
-        continue;
+    const RooDataSet* thisData = mcStudy.genData(i);
+    RooDataHist* sampleData = new RooDataHist("sampleData","sampleData",rooVarIas,*thisData);
+    //TH1F* sampleDataHist = (TH1F*)sampleData->createHistogram("sampleDataHist",rooVarIas,Binning(thisBinning));
+    //sampleDataHist->Write();
+    //RooDataSet* sampleData = iasBackgroundHistPdf->generate(rooVarIas,2000);
+    //RooDataHist* sampleData = iasBackgroundHistPdf->generateBinned(rooVarIas,
+    //    10799);//,Extended(true));
+    //sampleData->add(*iasSignalHistPdf->generateBinned(rooVarIas,
+    //      11,Extended(true)));
+    numTracksPerTrialHist->Fill(thisData->sumEntries());
 
-      // histPdf plots
-      if(iasBackgroundHistPdfs[nomSlice][etaSlice])
-      {
-        RooAddPdf sigBackPdf("sigBackPdf","sigBackPdf",RooArgList(*iasSignalHistPdfs[nomSlice][etaSlice],
-              *iasBackgroundHistPdfs[nomSlice][etaSlice]),fsig);
-        //RooAddPdf sigBackPdf("sigBackPdf","sigBackPdf",RooArgList(*iasSignalHistPdfs[nomSlice][etaSlice],
-        //      *iasBackgroundHistPdfs[nomSlice][etaSlice]),RooArgList(nsig,nback));
-        int nBins = iasBackgroundPredictionMassCutNoMSliceHists[nomSlice][etaSlice]->GetNbinsX();
-        RooBinning thisBinning(nBins,
-            iasBackgroundPredictionMassCutNoMSliceHists[nomSlice][etaSlice]->GetXaxis()->GetXbins()->GetArray());
-        rooVarIas.setBinning(thisBinning);
-        //TODO check here for a signal prediction 
-        const int numTrials = numTrialsToDo;
-        int totalNumTracks = numSignalTracksToGen+numBackgroundTracksToGen;
-        //fsig = 11/(double)(10799+11); // standard 1/fb hypothesis
-        fsig = numSignalTracksToGen/(double)totalNumTracks;
-        //RooMCStudy mcStudy(*iasBackgroundHistPdfs[nomSlice][etaSlice],rooVarIas,Silence(),Binned(true));
-        RooMCStudy mcStudy(sigBackPdf,rooVarIas,Silence(),Binned(true));
-        mcStudy.generate(numTrials,totalNumTracks,true); // keep gen data
-        //mcStudy.generate(numTrials,10799+11,true); // keep gen data; standard 1/fb hypothesis
-        //mcStudy.generate(numTrials,10799+22,true); // keep gen data; standard 1/fb hypothesis
+    // saturated model
+    RooHistPdf saturatedModel("saturatedModel","saturatedModel",rooVarIas,*sampleData);
 
-        TH1F* nllBSatHist = new TH1F("nllBSatHist","#chi^{2} ~ 2*(NLL_b-NLL_sat)",1000,0,100);
-        TH1F* nllSatOnlyHist = new TH1F("nllSatonlyHist","NLL sat only",30000,-30000,0);
-        TH1F* nllBOnlyHist = new TH1F("nllBonlyHist","NLL B only",30000,-30000,0);
-        TH1F* nllSOnlyHist = new TH1F("nllSonlyHist","NLL S only",30000,-30000,0);
-        TH1F* nllSBHist = new TH1F("nllSBHist","NLL SB",30000,-30000,0);
+    std::string name = string(iasBackgroundHistPdf->GetName());
+    std::string title = string(iasBackgroundHistPdf->GetTitle());
+    //iasBackgroundHistPdf->fitTo(*sampleData);
 
-        TH1F* numTracksPerTrialHist = new TH1F("numTracksPerTrial","Tracks per trial",
-            500,totalNumTracks-250,totalNumTracks+250);
+    //RooPlot* iasFrame = rooVarIas.frame();
+    //sampleData->plotOn(iasFrame);
+    ////sampleData->statOn(iasFrame,Label("data"),Format("NEU",AutoPrecision(1)));
+    sigBackPdf.fitTo(*sampleData);
+    //sigBackPdf.plotOn(iasFrame,Components(*iasSignalHistPdf),LineStyle(kDashed),
+    //      LineColor(kRed));
+    //sigBackPdf.plotOn(iasFrame,Components(*iasBackgroundHistPdf),LineStyle(kDashed),
+    //      LineColor(kBlue));
+    ////iasBackgroundHistPdf->plotOn(iasFrame,LineColor(kBlue));
+    ////iasBackgroundHistPdf->paramOn(iasFrame,Label("fit result"),Format("NEU",AutoPrecision(1)));
+    //sigBackPdf.paramOn(iasFrame,Format("NEU",AutoPrecision(1)));
+    //name+="Plot";
+    //title+=" Hist PDF";
+    //iasFrame->SetName(name.c_str());
+    //iasFrame->SetTitle(title.c_str());
+    //iasFrame->Write();
+    //delete iasFrame;
+    // NLLs
+    RooNLLVar nllVarBOnly("nllVarBOnly","NLL B only",*iasBackgroundHistPdf,*sampleData);
+    RooNLLVar nllVarSOnly("nllVarSOnly","NLL S only",*iasSignalHistPdf,*sampleData);
+    RooNLLVar nllVarSB("nllVarSB","NLL SB",sigBackPdf,*sampleData);
+    RooNLLVar nllVarSatModel("nllVarSatModel","NLL Saturated Model",saturatedModel,*sampleData);
 
-        for(int i=0; i<numTrials; ++i)
-        {
-          const RooDataSet* thisData = mcStudy.genData(i);
-          RooDataHist* sampleData = new RooDataHist("sampleData","sampleData",rooVarIas,*thisData);
-          //TH1F* sampleDataHist = (TH1F*)sampleData->createHistogram("sampleDataHist",rooVarIas,Binning(thisBinning));
-          //sampleDataHist->Write();
-          //RooDataSet* sampleData = iasBackgroundHistPdfs[nomSlice][etaSlice]->generate(rooVarIas,2000);
-          //RooDataHist* sampleData = iasBackgroundHistPdfs[nomSlice][etaSlice]->generateBinned(rooVarIas,
-          //    10799);//,Extended(true));
-          //sampleData->add(*iasSignalHistPdfs[nomSlice][etaSlice]->generateBinned(rooVarIas,
-          //      11,Extended(true)));
-          numTracksPerTrialHist->Fill(thisData->sumEntries());
-
-          // saturated model
-          RooHistPdf saturatedModel("saturatedModel","saturatedModel",rooVarIas,*sampleData);
-
-          std::string name = string(iasBackgroundHistPdfs[nomSlice][etaSlice]->GetName());
-          std::string title = string(iasBackgroundHistPdfs[nomSlice][etaSlice]->GetTitle());
-          //iasBackgroundHistPdfs[nomSlice][etaSlice]->fitTo(*sampleData);
-
-          //RooPlot* iasFrame = rooVarIas.frame();
-          //sampleData->plotOn(iasFrame);
-          ////sampleData->statOn(iasFrame,Label("data"),Format("NEU",AutoPrecision(1)));
-          sigBackPdf.fitTo(*sampleData);
-          //sigBackPdf.plotOn(iasFrame,Components(*iasSignalHistPdfs[nomSlice][etaSlice]),LineStyle(kDashed),
-          //      LineColor(kRed));
-          //sigBackPdf.plotOn(iasFrame,Components(*iasBackgroundHistPdfs[nomSlice][etaSlice]),LineStyle(kDashed),
-          //      LineColor(kBlue));
-          ////iasBackgroundHistPdfs[nomSlice][etaSlice]->plotOn(iasFrame,LineColor(kBlue));
-          ////iasBackgroundHistPdfs[nomSlice][etaSlice]->paramOn(iasFrame,Label("fit result"),Format("NEU",AutoPrecision(1)));
-          //sigBackPdf.paramOn(iasFrame,Format("NEU",AutoPrecision(1)));
-          //name+="Plot";
-          //title+=" Hist PDF";
-          //iasFrame->SetName(name.c_str());
-          //iasFrame->SetTitle(title.c_str());
-          //iasFrame->Write();
-          //delete iasFrame;
-          // NLLs
-          RooNLLVar nllVarBOnly("nllVarBOnly","NLL B only",*iasBackgroundHistPdfs[nomSlice][etaSlice],*sampleData);
-          RooNLLVar nllVarSOnly("nllVarSOnly","NLL S only",*iasSignalHistPdfs[nomSlice][etaSlice],*sampleData);
-          RooNLLVar nllVarSB("nllVarSB","NLL SB",sigBackPdf,*sampleData);
-          RooNLLVar nllVarSatModel("nllVarSatModel","NLL Saturated Model",saturatedModel,*sampleData);
-
-          nllBSatHist->Fill(2*(nllVarBOnly.getVal()-nllVarSatModel.getVal()));
-          nllSatOnlyHist->Fill(nllVarSatModel.getVal());
-          nllBOnlyHist->Fill(nllVarBOnly.getVal());
-          nllSOnlyHist->Fill(nllVarSOnly.getVal());
-          nllSBHist->Fill(nllVarSB.getVal());
-          //std::cout << "NLL SB: " << nllVarSB.getVal() << std::endl;
-          //std::cout << "NLL S ONLY: " << nllVarSOnly.getVal() << std::endl;
-          //std::cout << "NLL B ONLY: " << nllVarBOnly.getVal() << std::endl;
-          //std::cout << "NLL saturated model: " << nllVarSatModel.getVal() << std::endl;
-          //std::cout << "chi2 = 2*(NLL_B-Nll_sat) = " << 2*(nllVarBOnly.getVal()-nllVarSatModel.getVal()) << std::endl;
-
-          delete sampleData;
-          //delete thisData;
-        }
-        nllBSatHist->Write();
-        nllSatOnlyHist->Write();
-        nllBOnlyHist->Write();
-        nllSOnlyHist->Write();
-        nllSBHist->Write();
-        numTracksPerTrialHist->Write();
-        
-      }
-    }
+    nllBSatHist->Fill(2*(nllVarBOnly.getVal()-nllVarSatModel.getVal()));
+    nllSatOnlyHist->Fill(nllVarSatModel.getVal());
+    nllBOnlyHist->Fill(nllVarBOnly.getVal());
+    nllSOnlyHist->Fill(nllVarSOnly.getVal());
+    nllSBHist->Fill(nllVarSB.getVal());
+    nllSBOverBHist->Fill(2*(nllVarSB.getVal()-nllVarBOnly.getVal()));
+    //std::cout << "NLL SB: " << nllVarSB.getVal() << std::endl;
+    //std::cout << "NLL S ONLY: " << nllVarSOnly.getVal() << std::endl;
+    //std::cout << "NLL B ONLY: " << nllVarBOnly.getVal() << std::endl;
+    //std::cout << "NLL saturated model: " << nllVarSatModel.getVal() << std::endl;
+    //std::cout << "chi2 = 2*(NLL_B-Nll_sat) = " << 2*(nllVarBOnly.getVal()-nllVarSatModel.getVal()) << std::endl;
+    delete sampleData;
+    //delete thisData;
   }
 
+
+  // Write the hists
+  TDirectory* nllBSatDir = outputRootFile->mkdir("NllBOverSat");
+  nllBSatDir->cd();
+  nllBSatHist->Write();
+  TDirectory* nllSatOnlyDir = outputRootFile->mkdir("NllSatOnly");
+  nllSatOnlyDir->cd();
+  nllSatOnlyHist->Write();
+  TDirectory* nllBOnlyDir = outputRootFile->mkdir("NllBOnly");
+  nllBOnlyDir->cd();
+  nllBOnlyHist->Write();
+  TDirectory* nllSOnlyDir = outputRootFile->mkdir("NllSOnly");
+  nllSOnlyDir->cd();
+  nllSOnlyHist->Write();
+  TDirectory* nllSBDir = outputRootFile->mkdir("NllSB");
+  nllSBDir->cd();
+  nllSBHist->Write();
+  TDirectory* nllSBOverBDir = outputRootFile->mkdir("NllSBOverB");
+  nllSBOverBDir->cd();
+  nllSBOverBHist->Write();
   TDirectory* iasBackgroundPredDir = outputRootFile->mkdir("iasBackgroundPredictions");
-  TDirectory* iasSignalDir = outputRootFile->mkdir("iasSignal");
-  // Write the dataHists/histPdfs
-  for(int nomSlice=0; nomSlice < numNoMslices; ++nomSlice)
-  {
-    for(int etaSlice=0; etaSlice < numEtaSlices; ++etaSlice)
-    {
-      if(iasBackgroundPredictionMassCutNoMSliceHists[nomSlice][etaSlice])
-      {
-        iasBackgroundPredDir->cd();
-        iasBackgroundPredictionMassCutNoMSliceHists[nomSlice][etaSlice]->Write();
-        iasSignalDir->cd();
-        iasSignalMassCutNoMSliceHists[nomSlice][etaSlice]->Write();
-      }
-    }
-  }
+  iasBackgroundPredDir->cd();
+  iasBackgroundPredictionMassCutNoMSliceHist->Write();
+  TDirectory* iasSignalDir = outputRootFile->mkdir("iasSignalPredictions");
+  iasSignalDir->cd();
+  iasSignalMassCutNoMSliceHist->Write();
+  TDirectory* tracksPerTrialDir = outputRootFile->mkdir("tracksPerTrial");
+  tracksPerTrialDir->cd();
+  numTracksPerTrialHist->Write();
+
 
   outputRootFile->Close();
 

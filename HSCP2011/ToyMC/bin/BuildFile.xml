@@ -103,3 +103,15 @@
   <use   name="roofit"/>
   <use   name="clhep"/>
 </bin>
+<bin   name="doToyMC" file="doToyMC.cpp">
+  <use   name="FWCore/FWLite"/>
+  <use   name="FWCore/PythonParameterSet"/>
+  <use   name="CommonTools/Utils"/>
+  <use   name="DataFormats/FWLite"/>
+  <use   name="DataFormats/TrackReco"/>
+  <use   name="PhysicsTools/FWLite"/>
+  <use   name="root"/>
+  <use   name="rootgraphics"/>
+  <use   name="roofit"/>
+  <use   name="clhep"/>
+</bin>
