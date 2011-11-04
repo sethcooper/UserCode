@@ -98,9 +98,10 @@ int main(int argc, char ** argv)
   //double dEdx_k (ana.getParameter<double>("dEdx_k"));
   //double dEdx_c (ana.getParameter<double>("dEdx_c"));
   // definition of sidebands/search region
-  //double pSidebandThreshold (ana.getParameter<double>("PSidebandThreshold"));
-  //double ihSidebandThreshold (ana.getParameter<double>("IhSidebandThreshold"));
+  double pSidebandThreshold (ana.getParameter<double>("PSidebandThreshold"));
+  double ihSidebandThreshold (ana.getParameter<double>("IhSidebandThreshold"));
   bool matchToHSCP (ana.getParameter<bool>("MatchToHSCP"));
+  bool isMC (ana.getParameter<bool>("IsMC"));
 
   // fileService initialization
   fwlite::TFileService fs = fwlite::TFileService(outputHandler_.file().c_str());
@@ -136,6 +137,10 @@ int main(int argc, char ** argv)
   RooDataSet* rooDataSetAll = fs.make<RooDataSet>("rooDataSetAll","rooDataSetAll",RooArgSet(rooVarIas,rooVarIh,rooVarP,rooVarNoMias,rooVarEta));
 
 
+  int numTracksInSearchRegion = 0;
+  int numEventsPassingTrigger = 0;
+  int numTracksPassingPreselection = 0;
+
   // loop the events
   int ievt = 0;
   for(unsigned int iFile=0; iFile<inputHandler_.files().size(); ++iFile)
@@ -168,13 +173,17 @@ int main(int argc, char ** argv)
 
         fwlite::Handle< std::vector<reco::GenParticle> > genCollHandle;
         std::vector<reco::GenParticle> genColl;
-        if(matchToHSCP)
+        if(isMC)
         {
           genCollHandle.getByLabel(ev, "genParticles");
           if(!genCollHandle.isValid()){printf("GenParticle Collection NotFound\n");continue;}
           genColl = *genCollHandle;
         }
 
+        if(!passesTrigger(ev))
+          continue;
+
+        numEventsPassingTrigger++;
 
         // loop over HSCParticles in this event
         for(unsigned int c=0;c<hscpColl.size();c++)
@@ -190,7 +199,7 @@ int main(int argc, char ** argv)
 
           // for signal MC
           int NChargedHSCP = 0;
-          if(matchToHSCP)
+          if(isMC && matchToHSCP)
           {
             int ClosestGen;
             if(DistToHSCP(hscp, genColl, ClosestGen)>0.03)
@@ -207,9 +216,15 @@ int main(int argc, char ** argv)
           if(!passesPreselection(hscp,dedxSObj,dedxMObj,ev))
             continue;
 
+          numTracksPassingPreselection++;
+
+
           //int myFineNoMbin = findFineNoMBin(iasNoM);
           //if(myFineNoMbin<0)
           //  continue;
+
+          if(ih > ihSidebandThreshold && trackP > pSidebandThreshold)
+            numTracksInSearchRegion++;
 
           // fill some overall hists
           pDistributionHist->Fill(trackP);
@@ -237,6 +252,22 @@ int main(int argc, char ** argv)
   // end of file/event loop
   
   pDistributionHist->Scale(scaleFactor_);
+
+  std::cout << "Found: " << numEventsPassingTrigger << " events passing trigger selection." <<
+    std::endl;
+  std::cout << "Found: " << numTracksPassingPreselection << " tracks passing preselections." <<
+    std::endl;
+  std::cout << "Found " << numTracksInSearchRegion << " tracks in search region ( p > " <<
+    pSidebandThreshold << ", ih > " << ihSidebandThreshold << " )." << std::endl;
+
+
+  // testing
+  if(isMC)
+  {
+    std::cout << "Number of initial MC events: " << GetInitialNumberOfMCEvent(inputHandler_.files())
+      << std::endl;
+  }
+
 
 }
 

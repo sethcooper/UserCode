@@ -5,6 +5,9 @@
 #include "DataFormats/HepMCCandidate/interface/GenParticle.h"
 #include "SimDataFormats/GeneratorProducts/interface/GenEventInfoProduct.h"
 #include "DataFormats/Math/interface/deltaR.h"
+#include "DataFormats/Common/interface/MergeableCounter.h"
+#include "DataFormats/Common/interface/TriggerResults.h"
+
 
 // preselection -- adapted from Analysis_Step234.C
 bool passesPreselection(const susybsm::HSCParticle& hscp,  const reco::DeDxData& dedxSObj,
@@ -152,4 +155,35 @@ double DistToHSCP(const susybsm::HSCParticle& hscp, const std::vector<reco::GenP
   return RMin;
 }
 
+// taken from Analysis_Step234.C
+unsigned long GetInitialNumberOfMCEvent(const vector<string>& fileNames)
+{
+  unsigned long Total = 0;
+  fwlite::ChainEvent tree(fileNames);
+
+  for(unsigned int f=0;f<fileNames.size();f++){
+    TFile file(fileNames[f].c_str() );
+    fwlite::LuminosityBlock ls( &file );
+    for(ls.toBegin(); !ls.atEnd(); ++ls){
+      fwlite::Handle<edm::MergeableCounter> nEventsTotalCounter;
+      nEventsTotalCounter.getByLabel(ls,"nEventsBefSkim");
+      if(!nEventsTotalCounter.isValid()){printf("Invalid nEventsTotalCounterH\n");continue;}
+      Total+= nEventsTotalCounter->value;
+    }
+  }
+  return Total;
+}
+
+// taken from Analysis_Step234.C
+bool passesTrigger(const fwlite::Event& ev)
+{
+      edm::TriggerResultsByName tr = ev.triggerResultsByName("MergeHLT");
+      if(!tr.isValid())return false;
+
+      if(tr.accept(tr.triggerIndex("HscpPathSingleMu")))return true;
+//      if(tr.accept(tr.triggerIndex("HscpPathDoubleMu")))return true;
+      if(tr.accept(tr.triggerIndex("HscpPathPFMet")))return true;
+//      if(tr.accept(tr.triggerIndex("HscpPathCaloMet")))return true;
+      return false;
+}
 

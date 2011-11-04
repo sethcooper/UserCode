@@ -115,8 +115,15 @@ std::vector<double> computeVariableBins(TH1* hist)
   std::vector<double> binArray;
 
   int lastBinWithContent = hist->GetNbinsX();
-  while(hist->GetBinContent(lastBinWithContent)<=0)
+  while(hist->GetBinContent(lastBinWithContent)<=0 && lastBinWithContent>0)
+  {
+    //std::cout << "BinContent for bin: " << lastBinWithContent << " = " <<
+    //  hist->GetBinContent(lastBinWithContent) << std::endl;
     lastBinWithContent--;
+  }
+
+  if(lastBinWithContent==0)
+    lastBinWithContent=hist->GetNbinsX();
 
   double xCoordOfLastBinWithContent = hist->GetBinLowEdge(lastBinWithContent);
   for(double x = hist->GetXaxis()->GetXmin(); x < xCoordOfLastBinWithContent; x+=binWidth)
@@ -227,10 +234,12 @@ int main(int argc, char ** argv)
   cRegionHist->SetName("pLowIhSB_C");
   cRegionHist->SetTitle("P in low Ih SB (C region);GeV");
   // number of entries in datasets histos
-  TH2F* entriesInCRegionHist = fs.make<TH2F>("entriesInCRegion","Entries in C region (P in low Ih SB);#eta;nom",12,1,13,9,1,10);
-  setBinLabelsEntriesHist(entriesInCRegionHist);
-  TH2F* entriesInBRegionHist = fs.make<TH2F>("entriesInBRegion","Entries in B region (Ih in low P SB);#eta;nom",12,1,13,9,1,10);
-  setBinLabelsEntriesHist(entriesInBRegionHist);
+  TH2F* entriesInCRegionHist = fs.make<TH2F>("entriesInCRegion","Entries in C region (P in low Ih SB);#eta;nom",12,0,2.4,9,5,23);
+  //setBinLabelsEntriesHist(entriesInCRegionHist);
+  TH2F* entriesInBRegionHist = fs.make<TH2F>("entriesInBRegion","Entries in B region (Ih in low P SB);#eta;nom",12,0,2.4,9,5,23);
+  //setBinLabelsEntriesHist(entriesInBRegionHist);
+  TH2F* entriesInDRegionHist = fs.make<TH2F>("entriesInDRegion","Entries in D region (search--> high Ih, high P);#eta;nom",12,0,2.4,9,5,23);
+  //setBinLabelsEntriesHist(entriesInDRegionHist);
 
 
   // RooFit observables and dataset
@@ -268,18 +277,21 @@ int main(int argc, char ** argv)
   // C ==> high P, low Ih
   RooDataSet* regionC1DataSet = (RooDataSet*)rooDataSetAll->reduce(Cut(pSearchCutString.c_str()));
   RooDataSet* regionCDataSet = (RooDataSet*)regionC1DataSet->reduce(Cut(ihSBcutString.c_str()));
+  // D ==> search region, high P, high Ih
+  RooDataSet* regionD1DataSet = (RooDataSet*)rooDataSetAll->reduce(Cut(pSearchCutString.c_str()));
+  RooDataSet* regionDDataSet = (RooDataSet*)regionD1DataSet->reduce(Cut(ihSearchCutString.c_str()));
 
   int nomSlice = 0;
   // loop over all nom/eta slices
   for(int nom=5; nom < 22; nom+=2)
   //XXX TESTING
-  //for(int nom=15; nom < 16; nom+=2)
+  //for(int nom=13; nom < 14; nom+=2)
   {
     nomSlice++;
     int etaSlice = 0;
     for(float lowerEta = 0.0; lowerEta < 2.3; lowerEta+=0.2)
     //XXX TESTING
-    //for(float lowerEta = 0.0; lowerEta < 0.2; lowerEta+=0.2)
+    //for(float lowerEta = 0.0; lowerEta < 0.1; lowerEta+=0.2)
     {
       etaSlice++;
       double successRateSumsInIasBins[100];
@@ -326,18 +338,22 @@ int main(int argc, char ** argv)
       nomCutString+=intToString(nom);
       nomCutString+="||rooVarNoMias==";
       nomCutString+=intToString(nom+1);
-      RooDataSet* nomCutBRegionDataSet = (RooDataSet*)regionBDataSet->reduce(Cut(nomCutString.c_str()));
       std::string etaCutString = "rooVarEta>";
       etaCutString+=floatToString(lowerEta);
       etaCutString+="&&rooVarEta<";
       etaCutString+=floatToString(lowerEta+0.2);
+      RooDataSet* nomCutBRegionDataSet = (RooDataSet*)regionBDataSet->reduce(Cut(nomCutString.c_str()));
       RooDataSet* etaCutNomCutBRegionDataSet = (RooDataSet*)nomCutBRegionDataSet->reduce(Cut(etaCutString.c_str()));
       // C region dataset
       RooDataSet* nomCutCRegionDataSet = (RooDataSet*)regionCDataSet->reduce(Cut(nomCutString.c_str()));
       RooDataSet* etaCutNomCutCRegionDataSet = (RooDataSet*)nomCutCRegionDataSet->reduce(Cut(etaCutString.c_str()));
+      // D region dataset
+      RooDataSet* nomCutDRegionDataSet = (RooDataSet*)regionDDataSet->reduce(Cut(nomCutString.c_str()));
+      RooDataSet* etaCutNomCutDRegionDataSet = (RooDataSet*)nomCutDRegionDataSet->reduce(Cut(etaCutString.c_str()));
 
-      entriesInBRegionHist->Fill(etaSlice,nomSlice,etaCutNomCutBRegionDataSet->numEntries());
-      entriesInCRegionHist->Fill(etaSlice,nomSlice,etaCutNomCutCRegionDataSet->numEntries());
+      entriesInBRegionHist->Fill(lowerEta,nom,etaCutNomCutBRegionDataSet->numEntries());
+      entriesInCRegionHist->Fill(lowerEta,nom,etaCutNomCutCRegionDataSet->numEntries());
+      entriesInDRegionHist->Fill(lowerEta,nom,etaCutNomCutDRegionDataSet->numEntries());
 
       // require at least 25 entries in each dataset to do prediction
       if(etaCutNomCutBRegionDataSet->numEntries() < 25 || etaCutNomCutCRegionDataSet->numEntries() < 25)
@@ -463,6 +479,7 @@ int main(int argc, char ** argv)
 
       std::cout << "INFO doing slice ( " << (nomSlice-1)*12+etaSlice << " / " << "108 ): eta=" <<
         lowerEta << "-" << lowerEta+0.2 << " nom=" << nom << "-" << nom+1 << std::endl;
+
       // loop over Ih/Ias and calculate successRate
       for(int index=0; index < etaCutNomCutBRegionDataSet->numEntries(); ++index)
       {
@@ -518,8 +535,6 @@ int main(int argc, char ** argv)
       // multiply by the original ias in this slice before mass cut
       iasPredictionFixedHist->Multiply(iasBRegionHist,iasSuccessRateHist);
 
-      // figure out variable bins
-      std::vector<double> binVec = computeVariableBins(iasPredictionFixedHist);
       // ias prediction histogram in this NoM/eta bin -- variable
       std::string iasPredictionVarBinHistName = getHistNameBeg(nom,lowerEta);
       iasPredictionVarBinHistName+="iasPredictionVarBinHist";
@@ -534,10 +549,14 @@ int main(int argc, char ** argv)
       iasPredictionVarBinHistTitle+=", mass > ";
       iasPredictionVarBinHistTitle+=floatToString(massCutIasHighPHighIh_);
       iasPredictionVarBinHistTitle+=" GeV";
-      TH1F* iasPredictionVarBinHist = iasPredictionVarBinsDir.make<TH1F>(iasPredictionVarBinHistName.c_str(),iasPredictionVarBinHistTitle.c_str(),binVec.size()-1,&(*binVec.begin()));
+      // figure out variable bins
+      std::vector<double> binVec = computeVariableBins(iasPredictionFixedHist);
+      TH1F* iasPredictionVarBinHist = iasPredictionVarBinsDir.make<TH1F>(iasPredictionVarBinHistName.c_str(),
+          iasPredictionVarBinHistTitle.c_str(),binVec.size()-1,&(*binVec.begin()));
       iasPredictionVarBinHist->Sumw2();
+
       // get bin contents/errors
-      const int numVarBins = binVec.size()-1;
+      const int numVarBins = iasPredictionVarBinHist->GetNbinsX();
       std::vector<double> binContents;
       std::vector<double> binErrors;
       for(int i=0; i<numVarBins; ++i)
@@ -560,10 +579,19 @@ int main(int argc, char ** argv)
       {
         if(binContents[i-1] > 0)
         {
-          iasPredictionVarBinHist->SetBinContent(i,binContents[i-1]);
-          iasPredictionVarBinHist->SetBinError(i,sqrt(binErrors[i-1]));
+          // make bins contain number of events per horizontal unit
+          double binWidthRatio = iasPredictionVarBinHist->GetBinWidth(1)/iasPredictionVarBinHist->GetBinWidth(i);
+          iasPredictionVarBinHist->SetBinContent(i,binWidthRatio*binContents[i-1]);
+          iasPredictionVarBinHist->SetBinError(i,binWidthRatio*sqrt(binErrors[i-1]));
         }
       }
+
+      delete nomCutBRegionDataSet;
+      delete nomCutCRegionDataSet;
+      delete nomCutDRegionDataSet;
+      delete etaCutNomCutBRegionDataSet;
+      delete etaCutNomCutCRegionDataSet;
+      delete etaCutNomCutDRegionDataSet;
 
     } // eta slices
   } // nom slices
