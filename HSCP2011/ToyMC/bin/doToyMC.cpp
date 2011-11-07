@@ -339,7 +339,7 @@ int main(int argc, char ** argv)
   double bgEntriesInDRegionThisSlice =
     entriesInDRegionHist->GetBinContent(entriesInDRegionHist->FindBin(lowerEta,lowerNoM));
   double fractionOfBGTracksInThisSlice = bgEntriesInDRegionThisSlice/entriesInDRegionHist->Integral();
-  int numBackgroundTracksThisSliceToGen =
+  float numBackgroundTracksThisSliceToGen =
     fractionOfBGTracksInThisSlice*fractionOfBGTracksPassingMassCutThisSlice*numBackgroundTracksInDRegionInput;
   std::cout << "Found " << fractionOfBGTracksInThisSlice*100 << "% of background tracks in this slice" <<
     std::endl;
@@ -359,7 +359,7 @@ int main(int argc, char ** argv)
   double fractionOfSigTracksInThisSlice = numSignalTracksInDRegionThisSlice/(double)numSignalTracksInDRegion;
   std::cout << "Found " << 100*fractionOfSigTracksInThisSlice << "% of signal tracks in this slice" <<
     std::endl;
-  int numSignalTracksThisSliceToGen =
+  float numSignalTracksThisSliceToGen =
     fractionOfSigTracksInThisSlice*fractionOfSigTracksPassingMassCutThisSlice*numSignalTracksToGen;
   std::cout << "Generating " << numSignalTracksThisSliceToGen << " signal tracks" <<
     " from " << numSignalTracksToGen << " for entire D region." << std::endl;
@@ -367,13 +367,13 @@ int main(int argc, char ** argv)
   //  " signal tracks in D region this slice, calculated " << numSignalTracksThisSliceToGen <<
   //  " signal tracks to generate in this slice (after mass cut)." << std::endl;
 
-  int totalNumTracks = numSignalTracksThisSliceToGen+numBackgroundTracksThisSliceToGen;
+  float totalNumTracks = numSignalTracksThisSliceToGen+numBackgroundTracksThisSliceToGen;
   //fsig = 11/(double)(10799+11); // standard 1/fb hypothesis
   fsig = numSignalTracksThisSliceToGen/(double)totalNumTracks;
   // NB: RooMCStudy apparently already fluctuates the number of tracks
   //RooMCStudy mcStudy(*iasBackgroundHistPdf,rooVarIas,Silence(),Binned(true));
-  RooMCStudy mcStudy(sigBackPdf,rooVarIas,Silence(),Binned(true));
-  mcStudy.generate(numTrials,totalNumTracks,true); // keep gen data
+  //RooMCStudy mcStudy(sigBackPdf,rooVarIas,Silence(),Binned(true));
+  //mcStudy.generate(numTrials,totalNumTracks,true); // keep gen data
   //mcStudy.generate(numTrials,10799+11,true); // keep gen data; standard 1/fb hypothesis
   //mcStudy.generate(numTrials,10799+22,true); // keep gen data; standard 1/fb hypothesis
 
@@ -413,15 +413,45 @@ int main(int argc, char ** argv)
   std::string nllSBOverBHistTitle = "NLL -2*ln(SB/B)";
   nllSBOverBHistTitle+=getHistTitleEnd(lowerNoM,lowerEta,massCut_);
   TH1F* nllSBOverBHist = new TH1F(nllSBOverBHistName.c_str(),nllSBOverBHistTitle.c_str(),2000,-100,100);
-
-  TH1F* numTracksPerTrialHist = new TH1F("numTracksPerTrial","Tracks per trial",
+  // Num tracks per trial
+  std::string numTracksPerTrialHistName = getHistNameBeg(lowerNoM,lowerEta);
+  numTracksPerTrialHistName+="numTracksPerTrial";
+  std::string numTracksPerTrialHistTitle = "Tracks per trial";
+  numTracksPerTrialHistTitle+=getHistTitleEnd(lowerNoM,lowerEta,massCut_);
+  TH1F* numTracksPerTrialHist = new TH1F(numTracksPerTrialHistName.c_str(),numTracksPerTrialHistTitle.c_str(),
       500,totalNumTracks-250,totalNumTracks+250);
+  // Num signal tracks vs. NLL S+B/B
+  std::string numSigTracksVsNLLSBOverBHistName = getHistNameBeg(lowerNoM,lowerEta);
+  numSigTracksVsNLLSBOverBHistName+="numSigTracksVsNLLSBOverB";
+  std::string numSigTracksVsNLLSBOverBHistTitle = "Number of Signal tracks vs. NLL -2*ln(SB/B)";
+  numSigTracksVsNLLSBOverBHistTitle+=getHistTitleEnd(lowerNoM,lowerEta,massCut_);
+  TH2F* numSigTracksVsNLLSBOverBHist = new TH2F(numSigTracksVsNLLSBOverBHistName.c_str(),numSigTracksVsNLLSBOverBHistTitle.c_str(),
+      2000,-100,100,15,0,15);
+  // Num tracks in last bin vs. NLL S+B/B
+  std::string numTracksInLastBinVsSBOverBHistName = getHistNameBeg(lowerNoM,lowerEta);
+  numTracksInLastBinVsSBOverBHistName+="numTracksInLastBinVsNLLBSOverB";
+  std::string numTracksInLastBinVsSBOverBHistTitle = "Number of tracks in last bin vs. NLL -2*ln(SB/B)";
+  numTracksInLastBinVsSBOverBHistTitle+=getHistTitleEnd(lowerNoM,lowerEta,massCut_);
+  TH2F* numTracksInLastBinVsSBOverBHist = new TH2F(numTracksInLastBinVsSBOverBHistName.c_str(),
+      numTracksInLastBinVsSBOverBHistTitle.c_str(),2000,-100,100,50,0,50);
+
+  TRandom3 myRandom;
+  TDirectory* experimentsDir = outputRootFile->mkdir("experiments");
 
   // loop over gen data and do fits
   for(int i=0; i<numTrials; ++i)
   {
-    const RooDataSet* thisData = mcStudy.genData(i);
-    RooDataHist* sampleData = new RooDataHist("sampleData","sampleData",rooVarIas,*thisData);
+    // fluctuate num signal tracks by poisson
+    int signalTracksThisSample = myRandom.Poisson(numSignalTracksThisSliceToGen);
+    int backgroundTracksThisSample = (int)numBackgroundTracksThisSliceToGen;
+    RooDataSet* thisSampleDataSet = iasSignalHistPdf->generate(rooVarIas,signalTracksThisSample);
+    thisSampleDataSet->append(*(iasBackgroundHistPdf->generate(rooVarIas,backgroundTracksThisSample)));
+    RooDataHist* sampleData = thisSampleDataSet->binnedClone();
+
+    fsig = numSignalTracksThisSliceToGen/(double)totalNumTracks;
+
+    //const RooDataSet* thisData = mcStudy.genData(i);
+    //RooDataHist* sampleData = new RooDataHist("sampleData","sampleData",rooVarIas,*thisData);
     //TH1F* sampleDataHist = (TH1F*)sampleData->createHistogram("sampleDataHist",rooVarIas,Binning(thisBinning));
     //sampleDataHist->Write();
     //RooDataSet* sampleData = iasBackgroundHistPdf->generate(rooVarIas,2000);
@@ -429,7 +459,8 @@ int main(int argc, char ** argv)
     //    10799);//,Extended(true));
     //sampleData->add(*iasSignalHistPdf->generateBinned(rooVarIas,
     //      11,Extended(true)));
-    numTracksPerTrialHist->Fill(thisData->sumEntries());
+    //numTracksPerTrialHist->Fill(thisData->sumEntries());
+    numTracksPerTrialHist->Fill(sampleData->sumEntries());
 
     // saturated model
     RooHistPdf saturatedModel("saturatedModel","saturatedModel",rooVarIas,*sampleData);
@@ -438,23 +469,6 @@ int main(int argc, char ** argv)
     std::string title = string(iasBackgroundHistPdf->GetTitle());
     //iasBackgroundHistPdf->fitTo(*sampleData);
 
-    //RooPlot* iasFrame = rooVarIas.frame();
-    //sampleData->plotOn(iasFrame);
-    ////sampleData->statOn(iasFrame,Label("data"),Format("NEU",AutoPrecision(1)));
-    sigBackPdf.fitTo(*sampleData);
-    //sigBackPdf.plotOn(iasFrame,Components(*iasSignalHistPdf),LineStyle(kDashed),
-    //      LineColor(kRed));
-    //sigBackPdf.plotOn(iasFrame,Components(*iasBackgroundHistPdf),LineStyle(kDashed),
-    //      LineColor(kBlue));
-    ////iasBackgroundHistPdf->plotOn(iasFrame,LineColor(kBlue));
-    ////iasBackgroundHistPdf->paramOn(iasFrame,Label("fit result"),Format("NEU",AutoPrecision(1)));
-    //sigBackPdf.paramOn(iasFrame,Format("NEU",AutoPrecision(1)));
-    //name+="Plot";
-    //title+=" Hist PDF";
-    //iasFrame->SetName(name.c_str());
-    //iasFrame->SetTitle(title.c_str());
-    //iasFrame->Write();
-    //delete iasFrame;
     // NLLs
     RooNLLVar nllVarBOnly("nllVarBOnly","NLL B only",*iasBackgroundHistPdf,*sampleData);
     RooNLLVar nllVarSOnly("nllVarSOnly","NLL S only",*iasSignalHistPdf,*sampleData);
@@ -467,12 +481,40 @@ int main(int argc, char ** argv)
     nllSOnlyHist->Fill(nllVarSOnly.getVal());
     nllSBHist->Fill(nllVarSB.getVal());
     nllSBOverBHist->Fill(2*(nllVarSB.getVal()-nllVarBOnly.getVal()));
+    numSigTracksVsNLLSBOverBHist->Fill(2*(nllVarSB.getVal()-nllVarBOnly.getVal()),signalTracksThisSample);
+    //rooVarIas = 0.999;
+    //double lastBinVolume = sampleData->binVolume(rooVarIas);
+    RooDataSet* lastBinData = (RooDataSet*)thisSampleDataSet->reduce("rooVarIas>0.3");
+    double lastBinVolume = lastBinData->numEntries();
+    numTracksInLastBinVsSBOverBHist->Fill(2*(nllVarSB.getVal()-nllVarBOnly.getVal()),lastBinVolume);
     //std::cout << "NLL SB: " << nllVarSB.getVal() << std::endl;
     //std::cout << "NLL S ONLY: " << nllVarSOnly.getVal() << std::endl;
     //std::cout << "NLL B ONLY: " << nllVarBOnly.getVal() << std::endl;
     //std::cout << "NLL saturated model: " << nllVarSatModel.getVal() << std::endl;
     //std::cout << "chi2 = 2*(NLL_B-Nll_sat) = " << 2*(nllVarBOnly.getVal()-nllVarSatModel.getVal()) << std::endl;
+
+    //experimentsDir->cd();
+    //RooPlot* iasFrame = rooVarIas.frame();
+    //sampleData->plotOn(iasFrame);
+    ////sampleData->statOn(iasFrame,Label("data"),Format("NEU",AutoPrecision(1)));
+    ////sigBackPdf.fitTo(*sampleData);
+    //sigBackPdf.plotOn(iasFrame,Components(*iasSignalHistPdf),LineStyle(kDashed),
+    //      LineColor(kRed));
+    //sigBackPdf.plotOn(iasFrame,Components(*iasBackgroundHistPdf),LineStyle(kDashed),
+    //      LineColor(kBlue));
+    ////iasBackgroundHistPdf->plotOn(iasFrame,LineColor(kBlue));
+    ////iasBackgroundHistPdf->paramOn(iasFrame,Label("fit result"),Format("NEU",AutoPrecision(1)));
+    //sigBackPdf.paramOn(iasFrame,Format("NEU",AutoPrecision(1)));
+    //name+="Plot";
+    //title+=" Hist PDF";
+    //iasFrame->SetName((name+intToString(i)).c_str());
+    //iasFrame->SetTitle((title+intToString(i)).c_str());
+    //iasFrame->Write();
+
+    //delete iasFrame;
     delete sampleData;
+    delete lastBinData;
+    delete thisSampleDataSet;
     //delete thisData;
   }
 
@@ -505,6 +547,12 @@ int main(int argc, char ** argv)
   TDirectory* tracksPerTrialDir = outputRootFile->mkdir("tracksPerTrial");
   tracksPerTrialDir->cd();
   numTracksPerTrialHist->Write();
+  TDirectory* numSignalTracksVsNLLSBOverBDir = outputRootFile->mkdir("numSignalTracksVsNLLSBOverB");
+  numSignalTracksVsNLLSBOverBDir->cd();
+  numSigTracksVsNLLSBOverBHist->Write();
+  TDirectory* numTracksLastBinVsNLLSBOverBDir = outputRootFile->mkdir("numTracksInLastBinVsNLLSBOverB");
+  numTracksLastBinVsNLLSBOverBDir->cd();
+  numTracksInLastBinVsSBOverBHist->Write();
 
 
   outputRootFile->Close();
