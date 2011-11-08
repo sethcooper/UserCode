@@ -434,6 +434,13 @@ int main(int argc, char ** argv)
   numTracksInLastBinVsSBOverBHistTitle+=getHistTitleEnd(lowerNoM,lowerEta,massCut_);
   TH2F* numTracksInLastBinVsSBOverBHist = new TH2F(numTracksInLastBinVsSBOverBHistName.c_str(),
       numTracksInLastBinVsSBOverBHistTitle.c_str(),2000,-100,100,50,0,50);
+  // RooDataSet with interesting quantities
+  RooRealVar sigNLLRooVar("sigNLLRooVar","signal NLL",-100000,100000);
+  RooRealVar backNLLRooVar("backNLLRooVar","background NLL",-100000,100000);
+  RooRealVar sigBackNLLRooVar("sigBackNLLRooVar","signal+background NLL",-100000,100000);
+  RooRealVar satModelNLLRooVar("satModelNLLRooVar","sat model NLL",-100000,100000);
+  RooDataSet* nllValues = new RooDataSet("nllValues","nllValues",
+      RooArgSet(sigNLLRooVar,backNLLRooVar,sigBackNLLRooVar,satModelNLLRooVar));
 
   TRandom3 myRandom;
   TDirectory* experimentsDir = outputRootFile->mkdir("experiments");
@@ -482,6 +489,13 @@ int main(int argc, char ** argv)
     nllSBHist->Fill(nllVarSB.getVal());
     nllSBOverBHist->Fill(2*(nllVarSB.getVal()-nllVarBOnly.getVal()));
     numSigTracksVsNLLSBOverBHist->Fill(2*(nllVarSB.getVal()-nllVarBOnly.getVal()),signalTracksThisSample);
+    // roo vars for dataset
+    sigNLLRooVar = nllVarSOnly.getVal();
+    backNLLRooVar = nllVarBOnly.getVal();
+    sigBackNLLRooVar = nllVarSB.getVal();
+    satModelNLLRooVar = nllVarSatModel.getVal();
+    nllValues->add(RooArgSet(sigNLLRooVar,backNLLRooVar,sigBackNLLRooVar,satModelNLLRooVar)); 
+
     //rooVarIas = 0.999;
     //double lastBinVolume = sampleData->binVolume(rooVarIas);
     RooDataSet* lastBinData = (RooDataSet*)thisSampleDataSet->reduce("rooVarIas>0.3");
@@ -520,6 +534,8 @@ int main(int argc, char ** argv)
 
 
   // Write the hists
+  outputRootFile->cd();
+  nllValues->Write();
   TDirectory* nllBSatDir = outputRootFile->mkdir("NllBOverSat");
   nllBSatDir->cd();
   nllBSatHist->Write();
