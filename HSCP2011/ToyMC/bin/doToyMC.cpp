@@ -138,10 +138,11 @@ int main(int argc, char ** argv)
   // num background tracks D region after all skimming and preselections
   int numBackgroundTracksInDRegionInput (ana.getParameter<int>("NumberOfBackgroundTracksInDRegion"));
   // number of signal tracks expected in this int. lumi
-  int numSignalTracksToGen (ana.getParameter<int>("NumberOfSignalTracks"));
+  int numSignalTracksTotal (ana.getParameter<int>("NumberOfSignalTracks"));
   int numTrialsToDo (ana.getParameter<int>("NumberOfTrials"));
   int lowerNoM (ana.getParameter<int>("LowerNoMOfSlice"));
   double lowerEta (ana.getParameter<double>("LowerEtaOfSlice"));
+  bool generateBackgroundOnly_ (ana.getParameter<bool>("GenerateBackgroundOnlySamples"));
 
   if(lowerNoM < 5 || lowerNoM > 21 || lowerEta < 0 || lowerEta > 2.2)
   {
@@ -224,7 +225,7 @@ int main(int argc, char ** argv)
 
   // get roodataset from signal file
   RooDataSet* rooDataSetAllSignal = (RooDataSet*)signalRootFile->Get("rooDataSetAll");
-  if(rooDataSetAllSignal->numEntries() < 1)
+  if(!rooDataSetAllSignal)
   {
     std::cout << "Problem with RooDataSet named rooDataSetAll in signal file " <<
       signalRootFilename_.c_str() << std::endl;
@@ -339,11 +340,11 @@ int main(int argc, char ** argv)
   double bgEntriesInDRegionThisSlice =
     entriesInDRegionHist->GetBinContent(entriesInDRegionHist->FindBin(lowerEta,lowerNoM));
   double fractionOfBGTracksInThisSlice = bgEntriesInDRegionThisSlice/entriesInDRegionHist->Integral();
-  float numBackgroundTracksThisSliceToGen =
+  float numBackgroundTracksThisSlice =
     fractionOfBGTracksInThisSlice*fractionOfBGTracksPassingMassCutThisSlice*numBackgroundTracksInDRegionInput;
   std::cout << "Found " << fractionOfBGTracksInThisSlice*100 << "% of background tracks in this slice" <<
     std::endl;
-  std::cout << "Generating " << numBackgroundTracksThisSliceToGen << " background tracks" <<
+  std::cout << "Generating " << numBackgroundTracksThisSlice << " background tracks" <<
     " from " << numBackgroundTracksInDRegionInput << " for entire D region." << std::endl;
   //std::cout << "Found " << bgEntriesInDRegionThisSlice << 
   //  " background tracks in D region this slice, calculated " << bgTracksInThisDRegionAfterMassCut <<
@@ -359,17 +360,22 @@ int main(int argc, char ** argv)
   double fractionOfSigTracksInThisSlice = numSignalTracksInDRegionThisSlice/(double)numSignalTracksInDRegion;
   std::cout << "Found " << 100*fractionOfSigTracksInThisSlice << "% of signal tracks in this slice" <<
     std::endl;
-  float numSignalTracksThisSliceToGen =
-    fractionOfSigTracksInThisSlice*fractionOfSigTracksPassingMassCutThisSlice*numSignalTracksToGen;
-  std::cout << "Generating " << numSignalTracksThisSliceToGen << " signal tracks" <<
-    " from " << numSignalTracksToGen << " for entire D region." << std::endl;
+  float numSignalTracksThisSlice =
+    fractionOfSigTracksInThisSlice*fractionOfSigTracksPassingMassCutThisSlice*numSignalTracksTotal;
+  //float numSignalTracksThisSliceToGen =
+  //  fractionOfSigTracksInThisSlice*fractionOfSigTracksPassingMassCutThisSlice*11;
+  if(!generateBackgroundOnly_)
+    std::cout << "Generating " << numSignalTracksThisSlice << " signal tracks" <<
+      " from " << numSignalTracksTotal << " for entire D region." << std::endl;
+  else
+    std::cout << "Generating 0 signal tracks" <<
+      " from " << numSignalTracksTotal << " for entire D region." << std::endl;
   //std::cout << "Found " << numSignalTracksInDRegionThisSlice << 
   //  " signal tracks in D region this slice, calculated " << numSignalTracksThisSliceToGen <<
   //  " signal tracks to generate in this slice (after mass cut)." << std::endl;
 
-  float totalNumTracks = numSignalTracksThisSliceToGen+numBackgroundTracksThisSliceToGen;
-  //fsig = 11/(double)(10799+11); // standard 1/fb hypothesis
-  fsig = numSignalTracksThisSliceToGen/(double)totalNumTracks;
+  float totalNumTracks = numSignalTracksThisSlice+numBackgroundTracksThisSlice;
+  fsig = numSignalTracksThisSlice/(double)totalNumTracks;
   // NB: RooMCStudy apparently already fluctuates the number of tracks
   //RooMCStudy mcStudy(*iasBackgroundHistPdf,rooVarIas,Silence(),Binned(true));
   //RooMCStudy mcStudy(sigBackPdf,rooVarIas,Silence(),Binned(true));
@@ -449,13 +455,14 @@ int main(int argc, char ** argv)
   for(int i=0; i<numTrials; ++i)
   {
     // fluctuate num signal tracks by poisson
-    int signalTracksThisSample = myRandom.Poisson(numSignalTracksThisSliceToGen);
-    int backgroundTracksThisSample = (int)numBackgroundTracksThisSliceToGen;
-    RooDataSet* thisSampleDataSet = iasSignalHistPdf->generate(rooVarIas,signalTracksThisSample);
-    thisSampleDataSet->append(*(iasBackgroundHistPdf->generate(rooVarIas,backgroundTracksThisSample)));
+    int signalTracksThisSample = myRandom.Poisson(numSignalTracksThisSlice);
+    int backgroundTracksThisSample = (int)numBackgroundTracksThisSlice;
+    RooDataSet* thisSampleDataSet = iasBackgroundHistPdf->generate(rooVarIas,backgroundTracksThisSample);
+    if(!generateBackgroundOnly_)
+      thisSampleDataSet->append(*(iasSignalHistPdf->generate(rooVarIas,signalTracksThisSample)));
     RooDataHist* sampleData = thisSampleDataSet->binnedClone();
 
-    fsig = numSignalTracksThisSliceToGen/(double)totalNumTracks;
+    fsig = numSignalTracksThisSlice/(double)totalNumTracks;
 
     //const RooDataSet* thisData = mcStudy.genData(i);
     //RooDataHist* sampleData = new RooDataHist("sampleData","sampleData",rooVarIas,*thisData);
@@ -506,6 +513,7 @@ int main(int argc, char ** argv)
     //std::cout << "NLL B ONLY: " << nllVarBOnly.getVal() << std::endl;
     //std::cout << "NLL saturated model: " << nllVarSatModel.getVal() << std::endl;
     //std::cout << "chi2 = 2*(NLL_B-Nll_sat) = " << 2*(nllVarBOnly.getVal()-nllVarSatModel.getVal()) << std::endl;
+    //std::cout << "NLL SB/B = " << 2*(nllVarSB.getVal()-nllVarBOnly.getVal()) << std::endl;
 
     //experimentsDir->cd();
     //RooPlot* iasFrame = rooVarIas.frame();
@@ -524,8 +532,8 @@ int main(int argc, char ** argv)
     //iasFrame->SetName((name+intToString(i)).c_str());
     //iasFrame->SetTitle((title+intToString(i)).c_str());
     //iasFrame->Write();
-
     //delete iasFrame;
+
     delete sampleData;
     delete lastBinData;
     delete thisSampleDataSet;
