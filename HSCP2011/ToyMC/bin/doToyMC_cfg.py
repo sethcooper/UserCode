@@ -6,16 +6,15 @@ from HSCP2011.ToyMC.makeHSCParticlePlotsAndDoLikelihoodFitsCommonParameters_cfi 
 
 process.doToyMC = cms.PSet(
     analysisCommonParameters,
-    #BackgroundPredictionInputRootFile = cms.string("4.nov1.allSlices.EPSrunPostEPSprod.makeIasPredictions.root"),
-    #BackgroundPredictionInputRootFile = cms.string("3.nov2.allSlices.EPSrunPostEPSprod.makeIasPredictions.root"),
-    BackgroundPredictionInputRootFile = cms.string("2.nov4.allSlices.EPSrunPostEPSprod.makeIasPredictions.root"),
-    SignalInputRootFile = cms.string("nov1.withRooDataSet.makeHSCParticlePlots.GMstau200.root"),
-    OutputRootFile = cms.string("1.nov7.rooMCStudy.110sigTracksOneEtaNomSlice.toyMC.root"),
-    NumberOfBackgroundTracksInDRegion = cms.int32(1079901), # after all skim/presels
-    NumberOfSignalTracks = cms.int32(110), # for this int lumi, after all skim/presels
-    LowerNoMOfSlice = cms.int32(13),
-    LowerEtaOfSlice = cms.double(0.2),
-    NumberOfTrials = cms.int32(10000)
+    BackgroundPredictionInputRootFile = cms.string("XXX_BACKGROUNDINPUTFILE_XXX"),
+    SignalInputRootFile = cms.string("XXX_SIGNALINPUTFILE_XXX"),
+    OutputRootFile = cms.string("XXX_OUTPUT_XXX"),
+    NumberOfBackgroundTracksInDRegion = cms.int32(XXX_NBACKTRACKSD_XXX), # after all skim/presels
+    NumberOfSignalTracks = cms.int32(XXX_NSIGTRACKS_XXX), # for this int lumi, after all skim/presels
+    LowerNoMOfSlice = cms.int32(XXX_LOWERNOM_XXX),
+    LowerEtaOfSlice = cms.double(XXX_LOWERETA_XXX),
+    NumberOfTrials = cms.int32(XXX_NUMTRIALS_XXX),
+    GenerateBackgroundOnlySamples = cms.bool(XXX_BACKGROUNDONLY_XXX)
 )
 
 print 'Running with p threshold: ',
