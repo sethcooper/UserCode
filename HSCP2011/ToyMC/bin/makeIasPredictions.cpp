@@ -109,63 +109,83 @@ void setBinLabelsEntriesHist(TH2F* hist)
   hist->GetYaxis()->SetBinLabel(9,"21-22");
 }
 
-std::vector<double> computeVariableBins(TH1* hist)
-{
-  double binWidth = 0.02;
-  std::vector<double> binArray;
-
-  int lastBinWithContent = hist->GetNbinsX();
-  while(hist->GetBinContent(lastBinWithContent)<=0 && lastBinWithContent>0)
-  {
-    //std::cout << "BinContent for bin: " << lastBinWithContent << " = " <<
-    //  hist->GetBinContent(lastBinWithContent) << std::endl;
-    lastBinWithContent--;
-  }
-
-  if(lastBinWithContent==0)
-    lastBinWithContent=hist->GetNbinsX();
-
-  double xCoordOfLastBinWithContent = hist->GetBinLowEdge(lastBinWithContent);
-  for(double x = hist->GetXaxis()->GetXmin(); x < xCoordOfLastBinWithContent; x+=binWidth)
-    binArray.push_back(x);
-
-  if(xCoordOfLastBinWithContent-binArray.back() >= binWidth)
-    binArray.push_back(xCoordOfLastBinWithContent);
-  binArray.push_back(hist->GetXaxis()->GetXmax());
-
-  return binArray;
-}
-
-// compute variable bin array from fixed bin hist
 //std::vector<double> computeVariableBins(TH1* hist)
 //{
-//  std::vector<double> binArray;
-//  binArray.push_back(hist->GetXaxis()->GetXmin());
-//
 //  double binWidth = 0.02;
-//  double rangeCovered = hist->GetXaxis()->GetXmin();
-//  while(rangeCovered < hist->GetXaxis()->GetXmax())
-//  {
-//    int lastBin = hist->FindBin(binArray.back());
-//    int nextBin = hist->FindBin(binArray.back()+binWidth);
-//    double proposedBinContent = hist->Integral(lastBin,nextBin)-hist->GetBinContent(nextBin);
+//  std::vector<double> binArray;
 //
-//    if(proposedBinContent > 0)
-//    {
-//      binArray.push_back(rangeCovered+binWidth);
-//    }
-//    rangeCovered+=(binWidth);
+//  int lastBinWithContent = hist->GetNbinsX();
+//  while(hist->GetBinContent(lastBinWithContent)<=0 && lastBinWithContent>0)
+//  {
+//    //std::cout << "BinContent for bin: " << lastBinWithContent << " = " <<
+//    //  hist->GetBinContent(lastBinWithContent) << std::endl;
+//    lastBinWithContent--;
 //  }
 //
-//  while(hist->Integral(hist->FindBin(binArray.back()),hist->FindBin(hist->GetXaxis()->GetXmax())) <= 0)
-//  {
-//    binArray.erase(binArray.end()-1);
-//  }
+//  if(lastBinWithContent==0)
+//    lastBinWithContent=hist->GetNbinsX();
 //
+//  double xCoordOfLastBinWithContent = hist->GetBinLowEdge(lastBinWithContent);
+//  for(double x = hist->GetXaxis()->GetXmin(); x < xCoordOfLastBinWithContent; x+=binWidth)
+//    binArray.push_back(x);
+//
+//  if(xCoordOfLastBinWithContent-binArray.back() >= binWidth)
+//    binArray.push_back(xCoordOfLastBinWithContent);
 //  binArray.push_back(hist->GetXaxis()->GetXmax());
 //
 //  return binArray;
 //}
+
+// compute variable bin array from fixed bin hist
+std::vector<double> computeVariableBins(TH1* hist)
+{
+  std::vector<double> binArray;
+  binArray.push_back(hist->GetXaxis()->GetXmin());
+
+  int binsExamined = 0;
+  int binsToCombine = 2;
+  while(binsExamined < hist->GetNbinsX())
+  {
+    int lastBin = hist->FindBin(binArray.back());
+    int nextBin = lastBin+binsToCombine-1;
+
+    double proposedBinContent = hist->Integral(lastBin,nextBin);
+    // don't include that bin in the integral, but use its lower edge for the bin array
+    nextBin++;
+
+    ////debug
+    //std::cout << "binsExamined: " << binsExamined << " lastBin: " << lastBin
+    //  << " nextBin: " << nextBin
+    //  << " lastBinLEdge: " << hist->GetBinLowEdge(lastBin)
+    //  << " nextBin LEdge: " << hist->GetBinLowEdge(nextBin)
+    //  << " proposedBinContent: " << proposedBinContent << " binsToCombine: " << binsToCombine
+    //  << std::endl;
+     
+    binsExamined=nextBin;
+
+    if(proposedBinContent > 0)
+      binArray.push_back(hist->GetBinLowEdge(nextBin));
+    else
+      binsToCombine+=2;
+  }
+
+  //// debug
+  //for(unsigned int i=0; i<binArray.size(); ++i)
+  //  std::cout << "initial binArray[" << i << "]: " << binArray[i] << std::endl;
+
+  while(hist->Integral(hist->FindBin(binArray.back()),hist->FindBin(hist->GetXaxis()->GetXmax())) <= 0)
+  {
+    binArray.erase(binArray.end()-1);
+  }
+
+  binArray.push_back(hist->GetXaxis()->GetXmax());
+
+  //// debug
+  //for(unsigned int i=0; i<binArray.size(); ++i)
+  //  std::cout << "final binArray[" << i << "]: " << binArray[i] << std::endl;
+
+  return binArray;
+}
 
 //// compute variable bin array from fixed bin hist
 //std::vector<double> computeVariableBins(TH1* hist)
@@ -234,12 +254,10 @@ int main(int argc, char ** argv)
   cRegionHist->SetName("pLowIhSB_C");
   cRegionHist->SetTitle("P in low Ih SB (C region);GeV");
   // number of entries in datasets histos
+  TH2F* entriesInARegionHist = fs.make<TH2F>("entriesInARegion","Entries in A region (low P, low Ih);#eta;nom",12,0,2.4,9,5,23);
   TH2F* entriesInCRegionHist = fs.make<TH2F>("entriesInCRegion","Entries in C region (P in low Ih SB);#eta;nom",12,0,2.4,9,5,23);
-  //setBinLabelsEntriesHist(entriesInCRegionHist);
   TH2F* entriesInBRegionHist = fs.make<TH2F>("entriesInBRegion","Entries in B region (Ih in low P SB);#eta;nom",12,0,2.4,9,5,23);
-  //setBinLabelsEntriesHist(entriesInBRegionHist);
   TH2F* entriesInDRegionHist = fs.make<TH2F>("entriesInDRegion","Entries in D region (search--> high Ih, high P);#eta;nom",12,0,2.4,9,5,23);
-  //setBinLabelsEntriesHist(entriesInDRegionHist);
 
 
   // RooFit observables and dataset
@@ -271,6 +289,9 @@ int main(int argc, char ** argv)
   ihSBcutString+=floatToString(ihSidebandThreshold);
   std::string ihSearchCutString = "rooVarIh>";
   ihSearchCutString+=floatToString(ihSidebandThreshold);
+  // A ==> low P, low Ih
+  RooDataSet* regionA1DataSet = (RooDataSet*)rooDataSetAll->reduce(Cut(pSBcutString.c_str()));
+  RooDataSet* regionADataSet = (RooDataSet*)regionA1DataSet->reduce(Cut(ihSBcutString.c_str()));
   // B ==> low P, high Ih
   RooDataSet* regionB1DataSet = (RooDataSet*)rooDataSetAll->reduce(Cut(pSBcutString.c_str()));
   RooDataSet* regionBDataSet = (RooDataSet*)regionB1DataSet->reduce(Cut(ihSearchCutString.c_str()));
@@ -285,13 +306,13 @@ int main(int argc, char ** argv)
   // loop over all nom/eta slices
   for(int nom=5; nom < 22; nom+=2)
   //XXX TESTING
-  //for(int nom=13; nom < 14; nom+=2)
+  //for(int nom=7; nom < 8; nom+=2)
   {
     nomSlice++;
     int etaSlice = 0;
     for(float lowerEta = 0.0; lowerEta < 2.3; lowerEta+=0.2)
     //XXX TESTING
-    //for(float lowerEta = 0.0; lowerEta < 0.1; lowerEta+=0.2)
+    //for(float lowerEta = 0.4; lowerEta < 0.5; lowerEta+=0.2)
     {
       etaSlice++;
       double successRateSumsInIasBins[100];
@@ -350,7 +371,11 @@ int main(int argc, char ** argv)
       // D region dataset
       RooDataSet* nomCutDRegionDataSet = (RooDataSet*)regionDDataSet->reduce(Cut(nomCutString.c_str()));
       RooDataSet* etaCutNomCutDRegionDataSet = (RooDataSet*)nomCutDRegionDataSet->reduce(Cut(etaCutString.c_str()));
+      // A region dataset
+      RooDataSet* nomCutARegionDataSet = (RooDataSet*)regionADataSet->reduce(Cut(nomCutString.c_str()));
+      RooDataSet* etaCutNomCutARegionDataSet = (RooDataSet*)nomCutARegionDataSet->reduce(Cut(etaCutString.c_str()));
 
+      entriesInARegionHist->Fill(lowerEta,nom,etaCutNomCutARegionDataSet->numEntries());
       entriesInBRegionHist->Fill(lowerEta,nom,etaCutNomCutBRegionDataSet->numEntries());
       entriesInCRegionHist->Fill(lowerEta,nom,etaCutNomCutCRegionDataSet->numEntries());
       entriesInDRegionHist->Fill(lowerEta,nom,etaCutNomCutDRegionDataSet->numEntries());
@@ -583,6 +608,22 @@ int main(int argc, char ** argv)
           double binWidthRatio = iasPredictionVarBinHist->GetBinWidth(1)/iasPredictionVarBinHist->GetBinWidth(i);
           iasPredictionVarBinHist->SetBinContent(i,binWidthRatio*binContents[i-1]);
           iasPredictionVarBinHist->SetBinError(i,binWidthRatio*sqrt(binErrors[i-1]));
+        }
+      }
+
+      // check to make sure there are no empty bins in the prediction hist
+      for(int bin=1; bin <= iasPredictionVarBinHist->GetNbinsX(); ++bin)
+      {
+        if(iasPredictionVarBinHist->GetBinContent(bin) <= 0)
+        {
+          std::cout << "ERROR: For this hist: " << iasPredictionVarBinHist->GetName()
+            << " bin content for bin "
+             << bin << " is " << iasPredictionVarBinHist->GetBinContent(bin)
+             << " with binLowEdge= " << iasPredictionVarBinHist->GetBinLowEdge(bin)
+             << " to binHighEdge="
+             << iasPredictionVarBinHist->GetBinLowEdge(bin)+iasPredictionVarBinHist->GetBinWidth(bin)
+             << ". Fix the binning.  Bailing out." << std::endl;
+          return -9;
         }
       }
 
