@@ -440,13 +440,85 @@ int main(int argc, char ** argv)
   numTracksInLastBinVsSBOverBHistTitle+=getHistTitleEnd(lowerNoM,lowerEta,massCut_);
   TH2F* numTracksInLastBinVsSBOverBHist = new TH2F(numTracksInLastBinVsSBOverBHistName.c_str(),
       numTracksInLastBinVsSBOverBHistTitle.c_str(),2000,-100,100,50,0,50);
+  // background histPDF histogram
+  TH1F* histPdfHist = (TH1F*)iasBackgroundHistPdf->createHistogram("iasBackgroundPdfHist",rooVarIas);
   // RooDataSet with interesting quantities
   RooRealVar sigNLLRooVar("sigNLLRooVar","signal NLL",-100000,100000);
   RooRealVar backNLLRooVar("backNLLRooVar","background NLL",-100000,100000);
   RooRealVar sigBackNLLRooVar("sigBackNLLRooVar","signal+background NLL",-100000,100000);
   RooRealVar satModelNLLRooVar("satModelNLLRooVar","sat model NLL",-100000,100000);
+  RooRealVar expectedEventsInLastBinRooVar("expectedEventsInLastBinRooVar","expected events in last bin",0,20000);
+  RooRealVar actualEventsInLastBinRooVar("actualEventsInLastBinRooVar","actual events in last bin",0,20000);
+  RooRealVar signalEventsInLastBinRooVar("signalEventsInLastBinRooVar","signal events in last bin",0,0,20000);
   RooDataSet* nllValues = new RooDataSet("nllValues","nllValues",
-      RooArgSet(sigNLLRooVar,backNLLRooVar,sigBackNLLRooVar,satModelNLLRooVar));
+      RooArgSet(sigNLLRooVar,backNLLRooVar,sigBackNLLRooVar,satModelNLLRooVar,expectedEventsInLastBinRooVar,
+        actualEventsInLastBinRooVar,signalEventsInLastBinRooVar));
+
+  expectedEventsInLastBinRooVar = 
+    numBackgroundTracksThisSlice*histPdfHist->GetBinContent(histPdfHist->GetNbinsX())
+    *histPdfHist->GetBinWidth(histPdfHist->GetNbinsX())*histPdfHist->GetNbinsX();
+  //std::cout << "Expected events last bin: " << expectedEventsInLastBinRooVar.getVal() << std::endl;
+  //std::cout << "binWidth last bin: " << histPdfHist->GetBinWidth(histPdfHist->GetNbinsX()) << std::endl;
+  //std::cout << "bincontent last bin: " << histPdfHist->GetBinContent(histPdfHist->GetNbinsX()) << std::endl;
+  //std::cout << "nbins: " << histPdfHist->GetNbinsX() << std::endl;
+
+  //// temp for display
+  //outputRootFile->cd();
+  ////int backgroundTracksThisSample = (int)numBackgroundTracksThisSlice;
+  //int backgroundTracksThisSample = 1e6;
+  //RooDataSet* displayDataSet = iasBackgroundHistPdf->generate(rooVarIas,backgroundTracksThisSample);
+  //RooDataHist* displayDataHist = displayDataSet->binnedClone();
+  //RooPlot* iasFrame = rooVarIas.frame();
+  //displayDataHist->plotOn(iasFrame);
+  //displayDataHist->statOn(iasFrame,Format("NEU",AutoPrecision(1)));
+  ////sigBackPdf.fitTo(*sampleData);
+  ////sigBackPdf.plotOn(iasFrame,Components(*iasSignalHistPdf),LineStyle(kDashed),
+  ////      LineColor(kRed));
+  ////sigBackPdf.plotOn(iasFrame,Components(*iasBackgroundHistPdf),LineStyle(kDashed),
+  ////      LineColor(kBlue));
+  //iasBackgroundHistPdf->plotOn(iasFrame,LineColor(kBlue));
+  ////iasBackgroundHistPdf->paramOn(iasFrame,Label("fit result"),Format("NEU",AutoPrecision(1)));
+  ////sigBackPdf.paramOn(iasFrame,Format("NEU",AutoPrecision(1)));
+  //std::string name="Plot of sample dataset";
+  //std::string title="Hist PDF for sample dataset";
+  //iasFrame->SetName(name.c_str());
+  //iasFrame->SetTitle(title.c_str());
+  //iasFrame->Write();
+  //// histogram
+  //TH1F* histPdfHist = (TH1F*)iasBackgroundHistPdf->createHistogram("iasBackgroundPdfHist",rooVarIas);
+  //histPdfHist->Write();
+  //std::cout << "expected events in last bin: " <<
+  //  backgroundTracksThisSample*histPdfHist->GetBinContent(histPdfHist->GetNbinsX())*0.7/0.0625 << std::endl;
+  //// output
+  //const RooArgSet* displayArgSet = displayDataSet->get();
+  //RooRealVar* iasDisplayData = (RooRealVar*)displayArgSet->find(rooVarIas.GetName());
+  //for(int evt=0; evt < displayDataSet->numEntries(); ++evt)
+  //{
+  //  displayDataSet->get(evt);
+  //  std::cout << "ias generated: " << iasDisplayData->getVal() << std::endl;
+  //}
+  //// Examine the statistics of a binned dataset
+  //cout << ">> number of bins in    : " << displayDataHist->numEntries() << endl ;
+  //cout << ">> sum of weights in    : " << displayDataHist->sum(kFALSE)  << endl ;
+  //cout << ">> integral over histogram: " << displayDataHist->sum(kTRUE)   << endl ; // accounts for bin volume
+  //// Locate a bin from a set of coordinates and retrieve its properties
+  //rooVarIas = 0.05 ;
+  //cout << ">> retrieving the properties of the bin enclosing coordinate rooVarIas = (0.05) " << endl ;
+  //cout << " bin center:" << endl ;
+  //displayDataHist->get(RooArgSet(rooVarIas))->Print("v") ; // load bin center coordinates in internal buffer
+  //cout << " weight = " << displayDataHist->weight() << endl ; // return weight of last loaded coordinates
+  //cout << " bin volume = " << displayDataHist->binVolume(RooArgSet(rooVarIas)) << endl ; // return bin volume
+  // Locate a bin from a set of coordinates and retrieve its properties
+  //rooVarIas = 0.6 ;
+  //cout << ">> retrieving the properties of the bin enclosing coordinate rooVarIas = (0.6) " << endl ;
+  //cout << " bin center:" << endl ;
+  //displayDataHist->get(RooArgSet(rooVarIas))->Print("v") ; // load bin center coordinates in internal buffer
+  //cout << " weight = " << displayDataHist->weight() << endl ; // return weight of last loaded coordinates
+  //cout << " bin volume = " << displayDataHist->binVolume(RooArgSet(rooVarIas)) << endl ; // return bin volume
+  //delete iasFrame;
+  //delete displayDataHist;
+  //delete displayDataSet;
+
 
   TRandom3 myRandom;
   TDirectory* experimentsDir = outputRootFile->mkdir("experiments");
@@ -458,8 +530,16 @@ int main(int argc, char ** argv)
     int signalTracksThisSample = myRandom.Poisson(numSignalTracksThisSlice);
     int backgroundTracksThisSample = (int)numBackgroundTracksThisSlice;
     RooDataSet* thisSampleDataSet = iasBackgroundHistPdf->generate(rooVarIas,backgroundTracksThisSample);
+    RooDataSet* thisSampleSignalDataSet;
     if(!generateBackgroundOnly_)
-      thisSampleDataSet->append(*(iasSignalHistPdf->generate(rooVarIas,signalTracksThisSample)));
+    {
+      thisSampleSignalDataSet = iasSignalHistPdf->generate(rooVarIas,signalTracksThisSample);
+      thisSampleDataSet->append(*thisSampleSignalDataSet);
+      RooDataHist* signalDataHist = thisSampleSignalDataSet->binnedClone();
+      rooVarIas = 0.99;
+      signalDataHist->get(RooArgSet(rooVarIas));//->Print("v");
+      signalEventsInLastBinRooVar = signalDataHist->weight();
+    }
     RooDataHist* sampleData = thisSampleDataSet->binnedClone();
 
     fsig = numSignalTracksThisSlice/(double)totalNumTracks;
@@ -501,19 +581,19 @@ int main(int argc, char ** argv)
     backNLLRooVar = nllVarBOnly.getVal();
     sigBackNLLRooVar = nllVarSB.getVal();
     satModelNLLRooVar = nllVarSatModel.getVal();
-    nllValues->add(RooArgSet(sigNLLRooVar,backNLLRooVar,sigBackNLLRooVar,satModelNLLRooVar)); 
-
-    //rooVarIas = 0.999;
-    //double lastBinVolume = sampleData->binVolume(rooVarIas);
-    RooDataSet* lastBinData = (RooDataSet*)thisSampleDataSet->reduce("rooVarIas>0.3");
-    double lastBinVolume = lastBinData->numEntries();
-    numTracksInLastBinVsSBOverBHist->Fill(2*(nllVarSB.getVal()-nllVarBOnly.getVal()),lastBinVolume);
+    rooVarIas = 0.99;
+    sampleData->get(RooArgSet(rooVarIas));
+    actualEventsInLastBinRooVar = sampleData->weight();
+    numTracksInLastBinVsSBOverBHist->Fill(2*(nllVarSB.getVal()-nllVarBOnly.getVal()),
+        actualEventsInLastBinRooVar.getVal());
     //std::cout << "NLL SB: " << nllVarSB.getVal() << std::endl;
     //std::cout << "NLL S ONLY: " << nllVarSOnly.getVal() << std::endl;
     //std::cout << "NLL B ONLY: " << nllVarBOnly.getVal() << std::endl;
     //std::cout << "NLL saturated model: " << nllVarSatModel.getVal() << std::endl;
     //std::cout << "chi2 = 2*(NLL_B-Nll_sat) = " << 2*(nllVarBOnly.getVal()-nllVarSatModel.getVal()) << std::endl;
     //std::cout << "NLL SB/B = " << 2*(nllVarSB.getVal()-nllVarBOnly.getVal()) << std::endl;
+    nllValues->add(RooArgSet(sigNLLRooVar,backNLLRooVar,sigBackNLLRooVar,satModelNLLRooVar,
+          expectedEventsInLastBinRooVar,actualEventsInLastBinRooVar,signalEventsInLastBinRooVar)); 
 
     //experimentsDir->cd();
     //RooPlot* iasFrame = rooVarIas.frame();
@@ -535,7 +615,6 @@ int main(int argc, char ** argv)
     //delete iasFrame;
 
     delete sampleData;
-    delete lastBinData;
     delete thisSampleDataSet;
     //delete thisData;
   }
