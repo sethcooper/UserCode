@@ -76,14 +76,15 @@ namespace edm     {class TriggerResults; class TriggerResultsByName; class Input
 // helper functions
 std::string getHistNameBeg(int lowerNom, float lowerEta)
 {
+  int etaSlice = lowerEta*10;
   string histName="nom";
   histName+=intToString(lowerNom);
   histName+="to";
   histName+=intToString(lowerNom+1);
   histName+="eta";
-  histName+=intToString(lowerEta*10);
+  histName+=intToString(etaSlice);
   histName+="to";
-  histName+=intToString((lowerEta+0.2)*10);
+  histName+=intToString(etaSlice+2);
   return histName;
 }
 
@@ -317,13 +318,6 @@ int main(int argc, char ** argv)
       rooVarIas, *iasSignalDataHist);
 
 
-  RooRealVar fsig("fsig","signal frac",0.2,0,1);
-  //RooRealVar nsig("nSig","signal evts",11,0,100000);
-  //RooRealVar nback("nBack","background evts",71994,0,2e8);
-  RooAddPdf sigBackPdf("sigBackPdf","sigBackPdf",RooArgList(*iasSignalHistPdf,
-        *iasBackgroundHistPdf),fsig);
-  //RooAddPdf sigBackPdf("sigBackPdf","sigBackPdf",RooArgList(*iasSignalHistPdfs,
-  //      *iasBackgroundHistPdf),RooArgList(nsig,nback));
   int nBins = iasBackgroundPredictionMassCutNoMSliceHist->GetNbinsX();
   RooBinning thisBinning(nBins,
       iasBackgroundPredictionMassCutNoMSliceHist->GetXaxis()->GetXbins()->GetArray());
@@ -375,13 +369,11 @@ int main(int argc, char ** argv)
   //  " signal tracks to generate in this slice (after mass cut)." << std::endl;
 
   float totalNumTracks = numSignalTracksThisSlice+numBackgroundTracksThisSlice;
-  fsig = numSignalTracksThisSlice/(double)totalNumTracks;
-  // NB: RooMCStudy apparently already fluctuates the number of tracks
-  //RooMCStudy mcStudy(*iasBackgroundHistPdf,rooVarIas,Silence(),Binned(true));
-  //RooMCStudy mcStudy(sigBackPdf,rooVarIas,Silence(),Binned(true));
-  //mcStudy.generate(numTrials,totalNumTracks,true); // keep gen data
-  //mcStudy.generate(numTrials,10799+11,true); // keep gen data; standard 1/fb hypothesis
-  //mcStudy.generate(numTrials,10799+22,true); // keep gen data; standard 1/fb hypothesis
+  float sigFrac = numSignalTracksThisSlice/(double)totalNumTracks;
+  // sig + back PDF
+  RooRealVar fsig("fsig","signal frac",sigFrac);
+  RooAddPdf sigBackPdf("sigBackPdf","sigBackPdf",RooArgList(*iasSignalHistPdf,
+        *iasBackgroundHistPdf),fsig);
 
   // NLL B/sat hist
   std::string nllBSatHistName = getHistNameBeg(lowerNoM,lowerEta);
@@ -443,7 +435,7 @@ int main(int argc, char ** argv)
   // background histPDF histogram
   TH1F* histPdfHist = (TH1F*)iasBackgroundHistPdf->createHistogram("iasBackgroundPdfHist",rooVarIas);
   // RooDataSet with interesting quantities
-  RooRealVar sigNLLRooVar("sigNLLRooVar","signal NLL",-100000,100000);
+  RooRealVar sigNLLRooVar("sigNLLRooVar","signal NLL",0,-100000,100000);
   RooRealVar backNLLRooVar("backNLLRooVar","background NLL",-100000,100000);
   RooRealVar sigBackNLLRooVar("sigBackNLLRooVar","signal+background NLL",-100000,100000);
   RooRealVar satModelNLLRooVar("satModelNLLRooVar","sat model NLL",-100000,100000);
@@ -542,7 +534,6 @@ int main(int argc, char ** argv)
     }
     RooDataHist* sampleData = thisSampleDataSet->binnedClone();
 
-    fsig = numSignalTracksThisSlice/(double)totalNumTracks;
 
     //const RooDataSet* thisData = mcStudy.genData(i);
     //RooDataHist* sampleData = new RooDataHist("sampleData","sampleData",rooVarIas,*thisData);
@@ -565,19 +556,19 @@ int main(int argc, char ** argv)
 
     // NLLs
     RooNLLVar nllVarBOnly("nllVarBOnly","NLL B only",*iasBackgroundHistPdf,*sampleData);
-    RooNLLVar nllVarSOnly("nllVarSOnly","NLL S only",*iasSignalHistPdf,*sampleData);
+    //RooNLLVar nllVarSOnly("nllVarSOnly","NLL S only",*iasSignalHistPdf,*sampleData);
     RooNLLVar nllVarSB("nllVarSB","NLL SB",sigBackPdf,*sampleData);
     RooNLLVar nllVarSatModel("nllVarSatModel","NLL Saturated Model",saturatedModel,*sampleData);
 
     nllBSatHist->Fill(2*(nllVarBOnly.getVal()-nllVarSatModel.getVal()));
     nllSatOnlyHist->Fill(nllVarSatModel.getVal());
     nllBOnlyHist->Fill(nllVarBOnly.getVal());
-    nllSOnlyHist->Fill(nllVarSOnly.getVal());
+    //nllSOnlyHist->Fill(nllVarSOnly.getVal());
     nllSBHist->Fill(nllVarSB.getVal());
     nllSBOverBHist->Fill(2*(nllVarSB.getVal()-nllVarBOnly.getVal()));
     numSigTracksVsNLLSBOverBHist->Fill(2*(nllVarSB.getVal()-nllVarBOnly.getVal()),signalTracksThisSample);
     // roo vars for dataset
-    sigNLLRooVar = nllVarSOnly.getVal();
+    //sigNLLRooVar = nllVarSOnly.getVal();
     backNLLRooVar = nllVarBOnly.getVal();
     sigBackNLLRooVar = nllVarSB.getVal();
     satModelNLLRooVar = nllVarSatModel.getVal();
@@ -586,14 +577,17 @@ int main(int argc, char ** argv)
     actualEventsInLastBinRooVar = sampleData->weight();
     numTracksInLastBinVsSBOverBHist->Fill(2*(nllVarSB.getVal()-nllVarBOnly.getVal()),
         actualEventsInLastBinRooVar.getVal());
-    //std::cout << "NLL SB: " << nllVarSB.getVal() << std::endl;
-    //std::cout << "NLL S ONLY: " << nllVarSOnly.getVal() << std::endl;
-    //std::cout << "NLL B ONLY: " << nllVarBOnly.getVal() << std::endl;
-    //std::cout << "NLL saturated model: " << nllVarSatModel.getVal() << std::endl;
-    //std::cout << "chi2 = 2*(NLL_B-Nll_sat) = " << 2*(nllVarBOnly.getVal()-nllVarSatModel.getVal()) << std::endl;
-    //std::cout << "NLL SB/B = " << 2*(nllVarSB.getVal()-nllVarBOnly.getVal()) << std::endl;
     nllValues->add(RooArgSet(sigNLLRooVar,backNLLRooVar,sigBackNLLRooVar,satModelNLLRooVar,
           expectedEventsInLastBinRooVar,actualEventsInLastBinRooVar,signalEventsInLastBinRooVar)); 
+
+    //std::cout << "NLL S ONLY: " << nllVarSOnly.getVal() << std::endl;
+    std::cout << "NLL SB: " << nllVarSB.getVal() << std::endl;
+    std::cout << "NLL B ONLY: " << nllVarBOnly.getVal() << std::endl;
+    //std::cout << "NLL saturated model: " << nllVarSatModel.getVal() << std::endl;
+    //std::cout << "chi2 = 2*(NLL_B-Nll_sat) = " << 2*(nllVarBOnly.getVal()-nllVarSatModel.getVal()) << std::endl;
+    std::cout << "NLL SB/B = " << 2*(nllVarSB.getVal()-nllVarBOnly.getVal()) << std::endl;
+    std::cout << "Number of events in last bin: " << actualEventsInLastBinRooVar.getVal() << std::endl;
+    std::cout << "Expected events in last bin: " << expectedEventsInLastBinRooVar.getVal() << std::endl;
 
     //experimentsDir->cd();
     //RooPlot* iasFrame = rooVarIas.frame();
