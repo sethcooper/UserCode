@@ -24,11 +24,13 @@ if len(sys.argv[1])==0:
 else:
         QueueName = "1nh"
         #QueueName = "8nm"
-        JobName = "toyMC_nov9_"
-        FarmDirectory = "FARM_ToyMC_nov9_11signalTracks_10799backgroundTracks"
+        JobName = "toyMC_nov15_"
+        FarmDirectory = "FARM_ToyMC_nov15_11signalTracks_71994backgroundTracks"
         backOnly = "False"
-        #FarmDirectory = "FARM_ToyMC_nov9_0signalTracks_10799backgroundTracks"
+        castorPath = "/castor/cern.ch/user/s/scooper/hscp/428/ToyMC/nov15_11signalTracks_71994backgroundTracks"
+        #FarmDirectory = "FARM_ToyMC_nov15_0signalTracks_71994backgroundTracks"
         #backOnly = "True"
+        #castorPath = "/castor/cern.ch/user/s/scooper/hscp/428/ToyMC/nov15_0signalTracks_71994backgroundTracks"
 
         BaseCfg = "doToyMC_cfg.py"
         #bgRootFile = sys.argv[1]
@@ -41,9 +43,9 @@ else:
         sigRootFile = "nov1.withRooDataSet.makeHSCParticlePlots.GMstau200.root"
         nTrials = sys.argv[1]
         nSigTracks = 11
-        nBackgroundTracksD = 10799
+        nBackgroundTracksD = 71994
 
         HSCPToyMCLaunchOnLxBatch.SendCluster_Create(FarmDirectory,JobName,bgRootFile,sigRootFile,nTrials,
-                                                    nSigTracks,nBackgroundTracksD,backOnly,QueueName,BaseCfg)
+                                                    nSigTracks,nBackgroundTracksD,backOnly,QueueName,BaseCfg,castorPath)
         HSCPToyMCLaunchOnLxBatch.SendCluster_Submit()
 

@@ -39,6 +39,7 @@ NTrials          = 0
 NSigTracks = 0
 NBackTracksD = 0
 Base_Cfg = ''
+Castor_Path = ''
 
 
 def CreateTheConfigFile(eta,nom):
@@ -83,6 +84,7 @@ def CreateTheShellFile(eta,nom):
     global Path_Shell
     global CopyRights
     global Jobs_Name
+    global Castor_Path
     CreateTheConfigFile(eta,nom)
     outputFile = 'toyMCoutput_NoM' + `nom` + 'eta' + `int(eta*10)` + '.root'
     Path_Shell = Farm_Directories[1]+Jobs_Name+'nom'+`nom`+'eta'+`int(eta*10)`+'.sh'
@@ -95,7 +97,8 @@ def CreateTheShellFile(eta,nom):
     shell_file.write('eval `scramv1 runtime -sh`\n')
     shell_file.write('cd -\n')
     shell_file.write('doToyMC ' + os.getcwd() + '/'+Path_Cfg + '\n')
-    shell_file.write('mv ' + outputFile + ' ' + os.getcwd() + '/' + Farm_Directories[4])
+    shell_file.write('rfcp ' + outputFile + ' ' +
+                     Castor_Path)
     shell_file.close()
     os.system("chmod 777 "+Path_Shell)
 
@@ -135,7 +138,7 @@ def CreateDirectoryStructure(FarmDirectory):
             os.system('mkdir ' + Farm_Directories[i])
 
 def SendCluster_Create(farmDirectory, jobName, backgroundRootFile, signalRootFile, ntrials, nsigtracks, nbacktracksd, backgroundOnly,
-                       queue, baseCfg):
+                       queue, baseCfg, castorPath):
     global Jobs_Name
     global Jobs_Count
     global Queue_Name
@@ -146,6 +149,7 @@ def SendCluster_Create(farmDirectory, jobName, backgroundRootFile, signalRootFil
     global NBackTracksD
     global Base_Cfg
     global BackgroundOnly
+    global Castor_Path
     Jobs_Name  = jobName
     Jobs_Count = 0
     Queue_Name = queue
@@ -156,6 +160,8 @@ def SendCluster_Create(farmDirectory, jobName, backgroundRootFile, signalRootFil
     NBackTracksD = nbacktracksd
     BackgroundOnly = backgroundOnly
     Base_Cfg = baseCfg
+    Castor_Path = castorPath
+    os.system('rfmkdir ' + Castor_Path)
     CreateDirectoryStructure(farmDirectory)
     CreateTheCmdFile()
     for etaIndex in xrange(0,12):
