@@ -326,16 +326,36 @@ int main(int argc, char ** argv)
   // figure out how many background tracks to generate in this eta/nom slice
   double fractionOfBGTracksPassingMassCutThisSlice =
     iasBackgroundPredictionMassCutNoMSliceHist->Integral()/bRegionBackgroundHist->Integral();
-  //std::cout << "Found " << bRegionBackgroundHist->Integral() <<
-  //  " tracks in bRegion background and " << iasBackgroundPredictionMassCutNoMSliceHist->Integral() <<
-  //  " tracks in dRegion prediction after mass cut." << std::endl;
-  std::cout << "Found " << fractionOfBGTracksPassingMassCutThisSlice*100 <<
-    "% of background tracks passing mass cut in this slice. " << std::endl;
   double bgEntriesInDRegionThisSlice =
     entriesInDRegionHist->GetBinContent(entriesInDRegionHist->FindBin(lowerEta,lowerNoM));
   double fractionOfBGTracksInThisSlice = bgEntriesInDRegionThisSlice/entriesInDRegionHist->Integral();
   float numBackgroundTracksThisSlice =
     fractionOfBGTracksInThisSlice*fractionOfBGTracksPassingMassCutThisSlice*numBackgroundTracksInDRegionInput;
+  // figure out how many signal tracks to generate in this eta/nom slice
+  double fractionOfSigTracksPassingMassCutThisSlice =
+    numSignalTracksInDRegionMassCut/numSignalTracksInDRegionThisSlice;
+  double fractionOfSigTracksInThisSlice = numSignalTracksInDRegionThisSlice/(double)numSignalTracksInDRegion;
+  float numSignalTracksThisSlice =
+    fractionOfSigTracksInThisSlice*fractionOfSigTracksPassingMassCutThisSlice*numSignalTracksTotal;
+  // sig + back PDF
+  float totalNumTracks = numSignalTracksThisSlice+numBackgroundTracksThisSlice;
+  float sigFrac = numSignalTracksThisSlice/(double)totalNumTracks;
+  //RooRealVar fsig("fsig","signal frac",sigFrac,0,1); //XXX floating sig frac
+  RooRealVar fsig("fsig","signal frac",sigFrac); // fixing
+  RooHistPdf* iasBackgroundHistPdfForSBModel = new RooHistPdf("histPdfForSBModelOnly","Hist PDF for BG Model only",
+      rooVarIas, *iasBackgroundDataHist);
+  //RooAddPdf sigBackPdf("sigBackPdf","sigBackPdf",RooArgList(*iasSignalHistPdf,
+  //      *iasBackgroundHistPdf),fsig);
+  RooAddPdf sigBackPdf("sigBackPdf","sigBackPdf",RooArgList(*iasSignalHistPdf,
+        *iasBackgroundHistPdfForSBModel),fsig);
+
+
+  // output
+  //std::cout << "Found " << bRegionBackgroundHist->Integral() <<
+  //  " tracks in bRegion background and " << iasBackgroundPredictionMassCutNoMSliceHist->Integral() <<
+  //  " tracks in dRegion prediction after mass cut." << std::endl;
+  std::cout << "Found " << fractionOfBGTracksPassingMassCutThisSlice*100 <<
+    "% of background tracks passing mass cut in this slice. " << std::endl;
   std::cout << "Found " << fractionOfBGTracksInThisSlice*100 << "% of background tracks in this slice" <<
     std::endl;
   std::cout << "Generating " << numBackgroundTracksThisSlice << " background tracks" <<
@@ -343,21 +363,14 @@ int main(int argc, char ** argv)
   //std::cout << "Found " << bgEntriesInDRegionThisSlice << 
   //  " background tracks in D region this slice, calculated " << bgTracksInThisDRegionAfterMassCut <<
   //  " background tracks to generate in this slice (after mass cut)." << std::endl;
-  double fractionOfSigTracksPassingMassCutThisSlice =
-    numSignalTracksInDRegionMassCut/numSignalTracksInDRegionThisSlice;
   std::cout << "Found " << fractionOfSigTracksPassingMassCutThisSlice*100 <<
     "% of signal tracks passing mass cut in this slice. " << std::endl;
+  std::cout << "Found " << 100*fractionOfSigTracksInThisSlice << "% of signal tracks in this slice" <<
+    std::endl;
   //std::cout << "Found " << numSignalTracksInDRegionThisSlice <<
   //  " signal tracks in D region for this slice and " <<
   //  numSignalTracksInDRegion << " signal tracks in D region. " <<
   //  std::endl;
-  double fractionOfSigTracksInThisSlice = numSignalTracksInDRegionThisSlice/(double)numSignalTracksInDRegion;
-  std::cout << "Found " << 100*fractionOfSigTracksInThisSlice << "% of signal tracks in this slice" <<
-    std::endl;
-  float numSignalTracksThisSlice =
-    fractionOfSigTracksInThisSlice*fractionOfSigTracksPassingMassCutThisSlice*numSignalTracksTotal;
-  //float numSignalTracksThisSliceToGen =
-  //  fractionOfSigTracksInThisSlice*fractionOfSigTracksPassingMassCutThisSlice*11;
   if(!generateBackgroundOnly_)
     std::cout << "Generating " << numSignalTracksThisSlice << " signal tracks" <<
       " from " << numSignalTracksTotal << " for entire D region." << std::endl;
@@ -367,13 +380,8 @@ int main(int argc, char ** argv)
   //std::cout << "Found " << numSignalTracksInDRegionThisSlice << 
   //  " signal tracks in D region this slice, calculated " << numSignalTracksThisSliceToGen <<
   //  " signal tracks to generate in this slice (after mass cut)." << std::endl;
-
-  float totalNumTracks = numSignalTracksThisSlice+numBackgroundTracksThisSlice;
-  float sigFrac = numSignalTracksThisSlice/(double)totalNumTracks;
-  // sig + back PDF
-  RooRealVar fsig("fsig","signal frac",sigFrac);
-  RooAddPdf sigBackPdf("sigBackPdf","sigBackPdf",RooArgList(*iasSignalHistPdf,
-        *iasBackgroundHistPdf),fsig);
+  std::cout << "signal fraction: numSignalTracksThisSlice=" << numSignalTracksThisSlice << " / " <<
+    " totalNumTracks=" << totalNumTracks << " --> sigFrac=" << sigFrac << std::endl;
 
   // NLL B/sat hist
   std::string nllBSatHistName = getHistNameBeg(lowerNoM,lowerEta);
@@ -424,35 +432,49 @@ int main(int argc, char ** argv)
   std::string numSigTracksVsNLLSBOverBHistTitle = "Number of Signal tracks vs. NLL -2*ln(SB/B)";
   numSigTracksVsNLLSBOverBHistTitle+=getHistTitleEnd(lowerNoM,lowerEta,massCut_);
   TH2F* numSigTracksVsNLLSBOverBHist = new TH2F(numSigTracksVsNLLSBOverBHistName.c_str(),numSigTracksVsNLLSBOverBHistTitle.c_str(),
-      2000,-100,100,15,0,15);
+      2000,-10,10,15,0,15);
   // Num tracks in last bin vs. NLL S+B/B
   std::string numTracksInLastBinVsSBOverBHistName = getHistNameBeg(lowerNoM,lowerEta);
   numTracksInLastBinVsSBOverBHistName+="numTracksInLastBinVsNLLBSOverB";
   std::string numTracksInLastBinVsSBOverBHistTitle = "Number of tracks in last bin vs. NLL -2*ln(SB/B)";
   numTracksInLastBinVsSBOverBHistTitle+=getHistTitleEnd(lowerNoM,lowerEta,massCut_);
   TH2F* numTracksInLastBinVsSBOverBHist = new TH2F(numTracksInLastBinVsSBOverBHistName.c_str(),
-      numTracksInLastBinVsSBOverBHistTitle.c_str(),2000,-100,100,50,0,50);
+      numTracksInLastBinVsSBOverBHistTitle.c_str(),2000,-10,10,50,0,50);
   // background histPDF histogram
-  TH1F* histPdfHist = (TH1F*)iasBackgroundHistPdf->createHistogram("iasBackgroundPdfHist",rooVarIas);
+  TH1F* bgHistPdfHist = (TH1F*)iasBackgroundHistPdf->createHistogram("iasBackgroundPdfHist",rooVarIas);
+  // signal histPDF histogram
+  TH1F* sigHistPdfHist = (TH1F*)iasSignalHistPdf->createHistogram("iasSignalPdfHist",rooVarIas);
   // RooDataSet with interesting quantities
   RooRealVar sigNLLRooVar("sigNLLRooVar","signal NLL",0,-100000,100000);
   RooRealVar backNLLRooVar("backNLLRooVar","background NLL",-100000,100000);
   RooRealVar sigBackNLLRooVar("sigBackNLLRooVar","signal+background NLL",-100000,100000);
   RooRealVar satModelNLLRooVar("satModelNLLRooVar","sat model NLL",-100000,100000);
-  RooRealVar expectedEventsInLastBinRooVar("expectedEventsInLastBinRooVar","expected events in last bin",0,20000);
+  RooRealVar expectedBackgroundEventsInLastBinRooVar("expectedBackgroundEventsInLastBinRooVar","expected bg events in last bin",0,20000);
+  RooRealVar expectedSignalEventsInLastBinRooVar("expectedSignalEventsInLastBinRooVar","expected signal events in last bin",0,20000);
+  RooRealVar expectedBackgroundEventsTotalRooVar("expectedBackgroundEventsTotalRooVar","expected bg events",0,50000);
+  RooRealVar expectedSignalEventsTotalRooVar("expectedSignalEventsTotalRooVar","expected signal events",0,20000);
   RooRealVar actualEventsInLastBinRooVar("actualEventsInLastBinRooVar","actual events in last bin",0,20000);
   RooRealVar signalEventsInLastBinRooVar("signalEventsInLastBinRooVar","signal events in last bin",0,0,20000);
   RooDataSet* nllValues = new RooDataSet("nllValues","nllValues",
-      RooArgSet(sigNLLRooVar,backNLLRooVar,sigBackNLLRooVar,satModelNLLRooVar,expectedEventsInLastBinRooVar,
-        actualEventsInLastBinRooVar,signalEventsInLastBinRooVar));
+      RooArgSet(sigNLLRooVar,backNLLRooVar,sigBackNLLRooVar,satModelNLLRooVar));
+  RooDataSet* expectedObservedEvents = new RooDataSet("expectedObservedEvents","expectedObservedEvents",
+      RooArgSet(expectedBackgroundEventsInLastBinRooVar,
+        expectedSignalEventsInLastBinRooVar,actualEventsInLastBinRooVar,signalEventsInLastBinRooVar,
+        expectedBackgroundEventsTotalRooVar,expectedSignalEventsTotalRooVar));
 
-  expectedEventsInLastBinRooVar = 
-    numBackgroundTracksThisSlice*histPdfHist->GetBinContent(histPdfHist->GetNbinsX())
-    *histPdfHist->GetBinWidth(histPdfHist->GetNbinsX())*histPdfHist->GetNbinsX();
-  //std::cout << "Expected events last bin: " << expectedEventsInLastBinRooVar.getVal() << std::endl;
-  //std::cout << "binWidth last bin: " << histPdfHist->GetBinWidth(histPdfHist->GetNbinsX()) << std::endl;
-  //std::cout << "bincontent last bin: " << histPdfHist->GetBinContent(histPdfHist->GetNbinsX()) << std::endl;
-  //std::cout << "nbins: " << histPdfHist->GetNbinsX() << std::endl;
+  expectedBackgroundEventsInLastBinRooVar = 
+    numBackgroundTracksThisSlice*bgHistPdfHist->GetBinContent(bgHistPdfHist->GetNbinsX())
+    *bgHistPdfHist->GetBinWidth(bgHistPdfHist->GetNbinsX())*bgHistPdfHist->GetNbinsX();
+  //std::cout << "Expected bg events last bin: " << expectedEventsInLastBinRooVar.getVal() << std::endl;
+  //std::cout << "binWidth last bin: " << bgHistPdfHist->GetBinWidth(bgHistPdfHist->GetNbinsX()) << std::endl;
+  //std::cout << "bincontent last bin: " << bgHistPdfHist->GetBinContent(bgHistPdfHist->GetNbinsX()) << std::endl;
+  //std::cout << "nbins: " << bgHistPdfHist->GetNbinsX() << std::endl;
+  expectedSignalEventsInLastBinRooVar =
+    numSignalTracksThisSlice*sigHistPdfHist->GetBinContent(sigHistPdfHist->GetNbinsX())
+    *sigHistPdfHist->GetBinWidth(sigHistPdfHist->GetNbinsX())*sigHistPdfHist->GetNbinsX();
+  // total
+  expectedBackgroundEventsTotalRooVar = numBackgroundTracksThisSlice;
+  expectedSignalEventsTotalRooVar = numSignalTracksThisSlice;
 
   //// temp for display
   //outputRootFile->cd();
@@ -534,6 +556,8 @@ int main(int argc, char ** argv)
     }
     RooDataHist* sampleData = thisSampleDataSet->binnedClone();
 
+    //XXX fit the S+B PDF
+    //sigBackPdf.fitTo(*sampleData,PrintLevel(-1));
 
     //const RooDataSet* thisData = mcStudy.genData(i);
     //RooDataHist* sampleData = new RooDataHist("sampleData","sampleData",rooVarIas,*thisData);
@@ -577,36 +601,44 @@ int main(int argc, char ** argv)
     actualEventsInLastBinRooVar = sampleData->weight();
     numTracksInLastBinVsSBOverBHist->Fill(2*(nllVarSB.getVal()-nllVarBOnly.getVal()),
         actualEventsInLastBinRooVar.getVal());
-    nllValues->add(RooArgSet(sigNLLRooVar,backNLLRooVar,sigBackNLLRooVar,satModelNLLRooVar,
-          expectedEventsInLastBinRooVar,actualEventsInLastBinRooVar,signalEventsInLastBinRooVar)); 
+    nllValues->add(RooArgSet(sigNLLRooVar,backNLLRooVar,sigBackNLLRooVar,satModelNLLRooVar));
+    expectedObservedEvents->add(RooArgSet(expectedBackgroundEventsInLastBinRooVar,
+          expectedSignalEventsInLastBinRooVar,
+          actualEventsInLastBinRooVar,signalEventsInLastBinRooVar,
+          expectedBackgroundEventsTotalRooVar,expectedSignalEventsTotalRooVar)); 
 
+    std::cout << "Number of events in last bin: " << actualEventsInLastBinRooVar.getVal() << std::endl;
+    std::cout << "Expected BG events in last bin: " << expectedBackgroundEventsInLastBinRooVar.getVal() << std::endl;
+    std::cout << "Expected sig events in last bin: " << expectedSignalEventsInLastBinRooVar.getVal() << std::endl;
     //std::cout << "NLL S ONLY: " << nllVarSOnly.getVal() << std::endl;
     std::cout << "NLL SB: " << nllVarSB.getVal() << std::endl;
     std::cout << "NLL B ONLY: " << nllVarBOnly.getVal() << std::endl;
     //std::cout << "NLL saturated model: " << nllVarSatModel.getVal() << std::endl;
     //std::cout << "chi2 = 2*(NLL_B-Nll_sat) = " << 2*(nllVarBOnly.getVal()-nllVarSatModel.getVal()) << std::endl;
     std::cout << "NLL SB/B = " << 2*(nllVarSB.getVal()-nllVarBOnly.getVal()) << std::endl;
-    std::cout << "Number of events in last bin: " << actualEventsInLastBinRooVar.getVal() << std::endl;
-    std::cout << "Expected events in last bin: " << expectedEventsInLastBinRooVar.getVal() << std::endl;
+    std::cout << "sigFrac = " << sigFrac << std::endl;
+    std::cout << "--------------------------------------------------------------------------" << std::endl;
 
-    //experimentsDir->cd();
-    //RooPlot* iasFrame = rooVarIas.frame();
-    //sampleData->plotOn(iasFrame);
-    ////sampleData->statOn(iasFrame,Label("data"),Format("NEU",AutoPrecision(1)));
-    ////sigBackPdf.fitTo(*sampleData);
-    //sigBackPdf.plotOn(iasFrame,Components(*iasSignalHistPdf),LineStyle(kDashed),
-    //      LineColor(kRed));
-    //sigBackPdf.plotOn(iasFrame,Components(*iasBackgroundHistPdf),LineStyle(kDashed),
-    //      LineColor(kBlue));
-    ////iasBackgroundHistPdf->plotOn(iasFrame,LineColor(kBlue));
-    ////iasBackgroundHistPdf->paramOn(iasFrame,Label("fit result"),Format("NEU",AutoPrecision(1)));
-    //sigBackPdf.paramOn(iasFrame,Format("NEU",AutoPrecision(1)));
-    //name+="Plot";
-    //title+=" Hist PDF";
-    //iasFrame->SetName((name+intToString(i)).c_str());
-    //iasFrame->SetTitle((title+intToString(i)).c_str());
-    //iasFrame->Write();
-    //delete iasFrame;
+    if(i==0)
+    {
+      experimentsDir->cd();
+      RooPlot* iasFrame = rooVarIas.frame();
+      sampleData->plotOn(iasFrame);
+      //sampleData->statOn(iasFrame,Label("data"),Format("NEU",AutoPrecision(1)));
+      iasBackgroundHistPdf->plotOn(iasFrame,LineColor(kGreen));
+      sigBackPdf.plotOn(iasFrame,Components(*iasSignalHistPdf),LineStyle(kDashed),
+          LineColor(kRed));
+      sigBackPdf.plotOn(iasFrame,Components(*iasBackgroundHistPdfForSBModel),LineStyle(kDashed),
+          LineColor(kBlue));
+      //iasBackgroundHistPdf->paramOn(iasFrame,Label("fit result"),Format("NEU",AutoPrecision(1)));
+      //sigBackPdf.paramOn(iasFrame,Format("NEU",AutoPrecision(1)));
+      name+="Plot";
+      title+=" Hist PDF";
+      iasFrame->SetName((name+intToString(i)).c_str());
+      iasFrame->SetTitle((title+intToString(i)).c_str());
+      iasFrame->Write();
+      delete iasFrame;
+    }
 
     delete sampleData;
     delete thisSampleDataSet;
@@ -617,6 +649,7 @@ int main(int argc, char ** argv)
   // Write the hists
   outputRootFile->cd();
   nllValues->Write();
+  expectedObservedEvents->Write();
   TDirectory* nllBSatDir = outputRootFile->mkdir("NllBOverSat");
   nllBSatDir->cd();
   nllBSatHist->Write();
