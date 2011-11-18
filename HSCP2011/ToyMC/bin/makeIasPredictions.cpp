@@ -375,10 +375,10 @@ int main(int argc, char ** argv)
       RooDataSet* nomCutARegionDataSet = (RooDataSet*)regionADataSet->reduce(Cut(nomCutString.c_str()));
       RooDataSet* etaCutNomCutARegionDataSet = (RooDataSet*)nomCutARegionDataSet->reduce(Cut(etaCutString.c_str()));
 
-      entriesInARegionHist->Fill(lowerEta,nom,etaCutNomCutARegionDataSet->numEntries());
-      entriesInBRegionHist->Fill(lowerEta,nom,etaCutNomCutBRegionDataSet->numEntries());
-      entriesInCRegionHist->Fill(lowerEta,nom,etaCutNomCutCRegionDataSet->numEntries());
-      entriesInDRegionHist->Fill(lowerEta,nom,etaCutNomCutDRegionDataSet->numEntries());
+      entriesInARegionHist->Fill(lowerEta+0.1,nom,etaCutNomCutARegionDataSet->numEntries());
+      entriesInBRegionHist->Fill(lowerEta+0.1,nom,etaCutNomCutBRegionDataSet->numEntries());
+      entriesInCRegionHist->Fill(lowerEta+0.1,nom,etaCutNomCutCRegionDataSet->numEntries());
+      entriesInDRegionHist->Fill(lowerEta+0.1,nom,etaCutNomCutDRegionDataSet->numEntries());
 
       // require at least 25 entries in each dataset to do prediction
       if(etaCutNomCutBRegionDataSet->numEntries() < 25 || etaCutNomCutCRegionDataSet->numEntries() < 25)
