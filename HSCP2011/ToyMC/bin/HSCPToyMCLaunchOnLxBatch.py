@@ -56,8 +56,11 @@ def CreateTheConfigFile(eta,nom):
     global NSigTracks
     global BackgroundOnly
     Path_Cfg   = Farm_Directories[1]+Jobs_Name+'nom'+`nom`+'eta'+`int(eta*10)`+'_cfg.py'
-    outputFile = 'toyMCoutput_NoM' + `nom` + 'eta' + `int(eta*10)` + '.root'
-
+    outputFile = 'toyMCoutput_' + `NBackTracksD` + 'bgTracks_'
+    lastPart = `NSigTracks` + 'sigTracks_NoM' + `nom` + 'eta' + `int(eta*10)` + '.root'
+    if(BackgroundOnly):
+        lastPart= '0sigTracks_NoM' + `nom` + 'eta' + `int(eta*10)` + '.root'
+    outputFile+=lastPart
     config_file=open(Base_Cfg,'r')
     config_txt   = '\n\n' + CopyRights + '\n\n'
     config_txt  += config_file.read()
@@ -86,7 +89,11 @@ def CreateTheShellFile(eta,nom):
     global Jobs_Name
     global Castor_Path
     CreateTheConfigFile(eta,nom)
-    outputFile = 'toyMCoutput_NoM' + `nom` + 'eta' + `int(eta*10)` + '.root'
+    outputFile = 'toyMCoutput_' + `NBackTracksD` + 'bgTracks_'
+    lastPart = `NSigTracks` + 'sigTracks_NoM' + `nom` + 'eta' + `int(eta*10)` + '.root'
+    if(BackgroundOnly):
+        lastPart= '0sigTracks_NoM' + `nom` + 'eta' + `int(eta*10)` + '.root'
+    outputFile+=lastPart
     Path_Shell = Farm_Directories[1]+Jobs_Name+'nom'+`nom`+'eta'+`int(eta*10)`+'.sh'
     shell_file=open(Path_Shell,'w')
     shell_file.write('#!/bin/sh\n')
