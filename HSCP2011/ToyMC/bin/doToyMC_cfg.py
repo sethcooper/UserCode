@@ -14,7 +14,9 @@ process.doToyMC = cms.PSet(
     LowerNoMOfSlice = cms.int32(XXX_LOWERNOM_XXX),
     LowerEtaOfSlice = cms.double(XXX_LOWERETA_XXX),
     NumberOfTrials = cms.int32(XXX_NUMTRIALS_XXX),
-    GenerateBackgroundOnlySamples = cms.bool(XXX_BACKGROUNDONLY_XXX)
+    GenerateBackgroundOnlySamples = cms.bool(XXX_BACKGROUNDONLY_XXX),
+    Verbose = cms.bool(False),
+    ReportEvery = cms.int32(1000)
 )
 
 print 'Running with p threshold: ',

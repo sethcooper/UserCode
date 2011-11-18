@@ -29,7 +29,7 @@
 #include "RooAddPdf.h"
 #include "RooMinuit.h"
 #include "RooNLLVar.h"
-#include "RooMCStudy.h"
+#include "RooMsgService.h"
 
 #include "TSystem.h"
 #include "FWCore/FWLite/interface/AutoLibraryLoader.h"
@@ -144,6 +144,8 @@ int main(int argc, char ** argv)
   int lowerNoM (ana.getParameter<int>("LowerNoMOfSlice"));
   double lowerEta (ana.getParameter<double>("LowerEtaOfSlice"));
   bool generateBackgroundOnly_ (ana.getParameter<bool>("GenerateBackgroundOnlySamples"));
+  bool verbose_ (ana.getParameter<bool>("Verbose"));
+  int reportEvery_ (ana.getParameter<int>("ReportEvery"));
 
   if(lowerNoM < 5 || lowerNoM > 21 || lowerEta < 0 || lowerEta > 2.2)
   {
@@ -152,6 +154,11 @@ int main(int argc, char ** argv)
       lowerNoM+1 << ") is out of range NoM [5-21], eta [0-2.2]. Exiting."
       << std::endl;
     return -1;
+  }
+
+  if(!verbose_) // kill all RooFit messages except warning and error
+  {
+    RooMsgService::instance().setGlobalKillBelow(RooFit::WARNING);
   }
 
   TFile* outputRootFile = new TFile(outputRootFilename_.c_str(),"recreate");
@@ -340,8 +347,7 @@ int main(int argc, char ** argv)
   // sig + back PDF
   float totalNumTracks = numSignalTracksThisSlice+numBackgroundTracksThisSlice;
   float sigFrac = numSignalTracksThisSlice/(double)totalNumTracks;
-  //RooRealVar fsig("fsig","signal frac",sigFrac,0,1); //XXX floating sig frac
-  RooRealVar fsig("fsig","signal frac",sigFrac); // fixing
+  RooRealVar fsig("fsig","signal frac",sigFrac,0,1);
   RooHistPdf* iasBackgroundHistPdfForSBModel = new RooHistPdf("histPdfForSBModelOnly","Hist PDF for BG Model only",
       rooVarIas, *iasBackgroundDataHist);
   //RooAddPdf sigBackPdf("sigBackPdf","sigBackPdf",RooArgList(*iasSignalHistPdf,
@@ -449,14 +455,16 @@ int main(int argc, char ** argv)
   RooRealVar backNLLRooVar("backNLLRooVar","background NLL",-100000,100000);
   RooRealVar sigBackNLLRooVar("sigBackNLLRooVar","signal+background NLL",-100000,100000);
   RooRealVar satModelNLLRooVar("satModelNLLRooVar","sat model NLL",-100000,100000);
+  RooRealVar sigBackFitNLLRooVar("sigBackFitNLLRooVar","signal+background ML fit",-100000,100000);
+  RooRealVar maxLSigFracRooVar("maxLSigFracRooVar","max L fit signal frac",0,1);
+  RooDataSet* nllValues = new RooDataSet("nllValues","nllValues",
+      RooArgSet(sigNLLRooVar,backNLLRooVar,sigBackNLLRooVar,satModelNLLRooVar,sigBackFitNLLRooVar,maxLSigFracRooVar));
   RooRealVar expectedBackgroundEventsInLastBinRooVar("expectedBackgroundEventsInLastBinRooVar","expected bg events in last bin",0,20000);
   RooRealVar expectedSignalEventsInLastBinRooVar("expectedSignalEventsInLastBinRooVar","expected signal events in last bin",0,20000);
   RooRealVar expectedBackgroundEventsTotalRooVar("expectedBackgroundEventsTotalRooVar","expected bg events",0,50000);
   RooRealVar expectedSignalEventsTotalRooVar("expectedSignalEventsTotalRooVar","expected signal events",0,20000);
   RooRealVar actualEventsInLastBinRooVar("actualEventsInLastBinRooVar","actual events in last bin",0,20000);
   RooRealVar signalEventsInLastBinRooVar("signalEventsInLastBinRooVar","signal events in last bin",0,0,20000);
-  RooDataSet* nllValues = new RooDataSet("nllValues","nllValues",
-      RooArgSet(sigNLLRooVar,backNLLRooVar,sigBackNLLRooVar,satModelNLLRooVar));
   RooDataSet* expectedObservedEvents = new RooDataSet("expectedObservedEvents","expectedObservedEvents",
       RooArgSet(expectedBackgroundEventsInLastBinRooVar,
         expectedSignalEventsInLastBinRooVar,actualEventsInLastBinRooVar,signalEventsInLastBinRooVar,
@@ -540,6 +548,8 @@ int main(int argc, char ** argv)
   // loop over gen data and do fits
   for(int i=0; i<numTrials; ++i)
   {
+    if(reportEvery_!=0 ? ((i+1)>0 && (i+1)%reportEvery_==0) : false)
+      std::cout << "  generating/fitting for trial: " << i+1 << " of " << numTrials << std::endl;
     // fluctuate num signal tracks by poisson
     int signalTracksThisSample = myRandom.Poisson(numSignalTracksThisSlice);
     int backgroundTracksThisSample = (int)numBackgroundTracksThisSlice;
@@ -556,8 +566,6 @@ int main(int argc, char ** argv)
     }
     RooDataHist* sampleData = thisSampleDataSet->binnedClone();
 
-    //XXX fit the S+B PDF
-    //sigBackPdf.fitTo(*sampleData,PrintLevel(-1));
 
     //const RooDataSet* thisData = mcStudy.genData(i);
     //RooDataHist* sampleData = new RooDataHist("sampleData","sampleData",rooVarIas,*thisData);
@@ -578,6 +586,9 @@ int main(int argc, char ** argv)
     std::string title = string(iasBackgroundHistPdf->GetTitle());
     //iasBackgroundHistPdf->fitTo(*sampleData);
 
+    // reset signal frac
+    fsig = sigFrac;
+
     // NLLs
     RooNLLVar nllVarBOnly("nllVarBOnly","NLL B only",*iasBackgroundHistPdf,*sampleData);
     //RooNLLVar nllVarSOnly("nllVarSOnly","NLL S only",*iasSignalHistPdf,*sampleData);
@@ -596,28 +607,46 @@ int main(int argc, char ** argv)
     backNLLRooVar = nllVarBOnly.getVal();
     sigBackNLLRooVar = nllVarSB.getVal();
     satModelNLLRooVar = nllVarSatModel.getVal();
+    // fit the S+B PDF
+    sigBackPdf.fitTo(*sampleData,PrintLevel(-1));
+    if(verbose_)
+      std::cout << "preferred fsig after fitting: " << fsig.getVal() << std::endl;
+    maxLSigFracRooVar = fsig.getVal();
+    RooNLLVar nllVarSBFit("nllVarSBFit","NLL SB Fit",sigBackPdf,*sampleData);
+    sigBackFitNLLRooVar = nllVarSBFit.getVal();
+    // reset signal frac
+    fsig = sigFrac;
     rooVarIas = 0.99;
     sampleData->get(RooArgSet(rooVarIas));
     actualEventsInLastBinRooVar = sampleData->weight();
     numTracksInLastBinVsSBOverBHist->Fill(2*(nllVarSB.getVal()-nllVarBOnly.getVal()),
         actualEventsInLastBinRooVar.getVal());
-    nllValues->add(RooArgSet(sigNLLRooVar,backNLLRooVar,sigBackNLLRooVar,satModelNLLRooVar));
+    nllValues->add(RooArgSet(sigNLLRooVar,backNLLRooVar,sigBackNLLRooVar,
+          satModelNLLRooVar,sigBackFitNLLRooVar,maxLSigFracRooVar));
     expectedObservedEvents->add(RooArgSet(expectedBackgroundEventsInLastBinRooVar,
           expectedSignalEventsInLastBinRooVar,
           actualEventsInLastBinRooVar,signalEventsInLastBinRooVar,
           expectedBackgroundEventsTotalRooVar,expectedSignalEventsTotalRooVar)); 
 
-    std::cout << "Number of events in last bin: " << actualEventsInLastBinRooVar.getVal() << std::endl;
-    std::cout << "Expected BG events in last bin: " << expectedBackgroundEventsInLastBinRooVar.getVal() << std::endl;
-    std::cout << "Expected sig events in last bin: " << expectedSignalEventsInLastBinRooVar.getVal() << std::endl;
-    //std::cout << "NLL S ONLY: " << nllVarSOnly.getVal() << std::endl;
-    std::cout << "NLL SB: " << nllVarSB.getVal() << std::endl;
-    std::cout << "NLL B ONLY: " << nllVarBOnly.getVal() << std::endl;
-    //std::cout << "NLL saturated model: " << nllVarSatModel.getVal() << std::endl;
-    //std::cout << "chi2 = 2*(NLL_B-Nll_sat) = " << 2*(nllVarBOnly.getVal()-nllVarSatModel.getVal()) << std::endl;
-    std::cout << "NLL SB/B = " << 2*(nllVarSB.getVal()-nllVarBOnly.getVal()) << std::endl;
-    std::cout << "sigFrac = " << sigFrac << std::endl;
-    std::cout << "--------------------------------------------------------------------------" << std::endl;
+    if(verbose_)
+    {
+      std::cout << "Number of events in last bin: " << actualEventsInLastBinRooVar.getVal() << std::endl;
+      std::cout << "Expected BG events in last bin: " << expectedBackgroundEventsInLastBinRooVar.getVal() << std::endl;
+      std::cout << "Expected sig events in last bin: " << expectedSignalEventsInLastBinRooVar.getVal() << std::endl;
+      //std::cout << "NLL S ONLY: " << sigNLLRooVar.getVal() << std::endl;
+      std::cout << "NLL SB: " << sigBackNLLRooVar.getVal() << std::endl;
+      std::cout << "NLL SBfit: " << sigBackFitNLLRooVar.getVal() << std::endl;
+      std::cout << "NLL B ONLY: " << backNLLRooVar.getVal() << std::endl;
+      //std::cout << "NLL saturated model: " << satModelNLLRooVar.getVal() << std::endl;
+      //std::cout << "chi2 = 2*(NLL_B-Nll_sat) = " << 2*(backNLLRooVar.getVal()-satModelNLLRooVar.getVal()) << std::endl;
+      std::cout << "-2 ln SB/B = " << 2*(sigBackNLLRooVar.getVal()-backNLLRooVar.getVal()) << std::endl;
+      if(maxLSigFracRooVar.getVal() <= sigFrac)
+        std::cout << "-2 ln L(mu)/L(mu_hat) = " << 2*(sigBackNLLRooVar.getVal()-sigBackFitNLLRooVar.getVal()) << std::endl;
+      else
+        std::cout << "-2 ln L(mu)/L(mu_hat) = 0" << std::endl;
+      std::cout << "sigFrac = " << sigFrac << std::endl;
+      std::cout << "--------------------------------------------------------------------------" << std::endl;
+    }
 
     if(i==0)
     {
