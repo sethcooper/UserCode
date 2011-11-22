@@ -74,6 +74,7 @@ namespace edm     {class TriggerResults; class TriggerResultsByName; class Input
 #include "commonFunctions.h"
 
 // helper functions
+//TODO move to commonfunctions
 std::string getHistNameBeg(int lowerNom, float lowerEta)
 {
   int etaSlice = lowerEta*10;
@@ -225,6 +226,7 @@ int main(int argc, char ** argv)
   }
 
   // define observables
+  //TODO move to something like common functions
   RooRealVar rooVarIas("rooVarIas","ias",0,1);
   RooRealVar rooVarIh("rooVarIh","ih",0,15);
   RooRealVar rooVarP("rooVarP","p",0,5000);
@@ -451,21 +453,23 @@ int main(int argc, char ** argv)
   // signal histPDF histogram
   TH1F* sigHistPdfHist = (TH1F*)iasSignalHistPdf->createHistogram("iasSignalPdfHist",rooVarIas);
   // RooDataSet with interesting quantities
-  RooRealVar sigNLLRooVar("sigNLLRooVar","signal NLL",0,-100000,100000);
-  RooRealVar backNLLRooVar("backNLLRooVar","background NLL",-100000,100000);
-  RooRealVar sigBackNLLRooVar("sigBackNLLRooVar","signal+background NLL",-100000,100000);
-  RooRealVar satModelNLLRooVar("satModelNLLRooVar","sat model NLL",-100000,100000);
-  RooRealVar sigBackFitNLLRooVar("sigBackFitNLLRooVar","signal+background ML fit",-100000,100000);
-  RooRealVar maxLSigFracRooVar("maxLSigFracRooVar","max L fit signal frac",0,1);
-  RooDataSet* nllValues = new RooDataSet("nllValues","nllValues",
-      RooArgSet(sigNLLRooVar,backNLLRooVar,sigBackNLLRooVar,satModelNLLRooVar,sigBackFitNLLRooVar,maxLSigFracRooVar));
+  //RooRealVar sigNLLRooVar("sigNLLRooVar","signal NLL",0,-100000,100000);
+  //RooRealVar backNLLRooVar("backNLLRooVar","background NLL",-100000,100000);
+  //RooRealVar sigBackNLLRooVar("sigBackNLLRooVar","signal+background NLL",-100000,100000);
+  //RooRealVar satModelNLLRooVar("satModelNLLRooVar","sat model NLL",-100000,100000);
+  //RooRealVar sigBackFitNLLRooVar("sigBackFitNLLRooVar","signal+background ML fit",-100000,100000);
+  //RooRealVar maxLSigFracRooVar("maxLSigFracRooVar","max L fit signal frac",0,1);
+  //RooDataSet* nllValues = new RooDataSet("nllValues","nllValues",
+  //    RooArgSet(sigNLLRooVar,backNLLRooVar,sigBackNLLRooVar,satModelNLLRooVar,sigBackFitNLLRooVar,maxLSigFracRooVar));
   RooRealVar expectedBackgroundEventsInLastBinRooVar("expectedBackgroundEventsInLastBinRooVar","expected bg events in last bin",0,20000);
   RooRealVar expectedSignalEventsInLastBinRooVar("expectedSignalEventsInLastBinRooVar","expected signal events in last bin",0,20000);
   RooRealVar expectedBackgroundEventsTotalRooVar("expectedBackgroundEventsTotalRooVar","expected bg events",0,50000);
   RooRealVar expectedSignalEventsTotalRooVar("expectedSignalEventsTotalRooVar","expected signal events",0,20000);
   RooRealVar actualEventsInLastBinRooVar("actualEventsInLastBinRooVar","actual events in last bin",0,20000);
   RooRealVar signalEventsInLastBinRooVar("signalEventsInLastBinRooVar","signal events in last bin",0,0,20000);
-  RooDataSet* expectedObservedEvents = new RooDataSet("expectedObservedEvents","expectedObservedEvents",
+  std::string datasetName = getHistNameBeg(lowerNoM,lowerEta);
+  datasetName+="expectedObservedEvents";
+  RooDataSet* expectedObservedEvents = new RooDataSet(datasetName.c_str(),datasetName.c_str(),
       RooArgSet(expectedBackgroundEventsInLastBinRooVar,
         expectedSignalEventsInLastBinRooVar,actualEventsInLastBinRooVar,signalEventsInLastBinRooVar,
         expectedBackgroundEventsTotalRooVar,expectedSignalEventsTotalRooVar));
@@ -545,7 +549,7 @@ int main(int argc, char ** argv)
   TRandom3 myRandom;
   TDirectory* experimentsDir = outputRootFile->mkdir("experiments");
 
-  // loop over gen data and do fits
+  // gen and fit for each trial
   for(int i=0; i<numTrials; ++i)
   {
     if(reportEvery_!=0 ? ((i+1)>0 && (i+1)%reportEvery_==0) : false)
@@ -565,7 +569,12 @@ int main(int argc, char ** argv)
       signalEventsInLastBinRooVar = signalDataHist->weight();
     }
     RooDataHist* sampleData = thisSampleDataSet->binnedClone();
-
+    experimentsDir->cd();
+    std::string sampleDataName = getHistNameBeg(lowerNoM,lowerEta);
+    sampleDataName+="sampleDataTrial";
+    sampleDataName+=intToString(i);
+    sampleData->SetName(sampleDataName.c_str());
+    sampleData->Write();
 
     //const RooDataSet* thisData = mcStudy.genData(i);
     //RooDataHist* sampleData = new RooDataHist("sampleData","sampleData",rooVarIas,*thisData);
@@ -579,50 +588,51 @@ int main(int argc, char ** argv)
     //numTracksPerTrialHist->Fill(thisData->sumEntries());
     numTracksPerTrialHist->Fill(sampleData->sumEntries());
 
-    // saturated model
-    RooHistPdf saturatedModel("saturatedModel","saturatedModel",rooVarIas,*sampleData);
-
     std::string name = string(iasBackgroundHistPdf->GetName());
     std::string title = string(iasBackgroundHistPdf->GetTitle());
-    //iasBackgroundHistPdf->fitTo(*sampleData);
 
-    // reset signal frac
-    fsig = sigFrac;
+    //// saturated model
+    //RooHistPdf saturatedModel("saturatedModel","saturatedModel",rooVarIas,*sampleData);
 
-    // NLLs
-    RooNLLVar nllVarBOnly("nllVarBOnly","NLL B only",*iasBackgroundHistPdf,*sampleData);
-    //RooNLLVar nllVarSOnly("nllVarSOnly","NLL S only",*iasSignalHistPdf,*sampleData);
-    RooNLLVar nllVarSB("nllVarSB","NLL SB",sigBackPdf,*sampleData);
-    RooNLLVar nllVarSatModel("nllVarSatModel","NLL Saturated Model",saturatedModel,*sampleData);
+    ////iasBackgroundHistPdf->fitTo(*sampleData);
 
-    nllBSatHist->Fill(2*(nllVarBOnly.getVal()-nllVarSatModel.getVal()));
-    nllSatOnlyHist->Fill(nllVarSatModel.getVal());
-    nllBOnlyHist->Fill(nllVarBOnly.getVal());
-    //nllSOnlyHist->Fill(nllVarSOnly.getVal());
-    nllSBHist->Fill(nllVarSB.getVal());
-    nllSBOverBHist->Fill(2*(nllVarSB.getVal()-nllVarBOnly.getVal()));
-    numSigTracksVsNLLSBOverBHist->Fill(2*(nllVarSB.getVal()-nllVarBOnly.getVal()),signalTracksThisSample);
-    // roo vars for dataset
-    //sigNLLRooVar = nllVarSOnly.getVal();
-    backNLLRooVar = nllVarBOnly.getVal();
-    sigBackNLLRooVar = nllVarSB.getVal();
-    satModelNLLRooVar = nllVarSatModel.getVal();
-    // fit the S+B PDF
-    sigBackPdf.fitTo(*sampleData,PrintLevel(-1));
-    if(verbose_)
-      std::cout << "preferred fsig after fitting: " << fsig.getVal() << std::endl;
-    maxLSigFracRooVar = fsig.getVal();
-    RooNLLVar nllVarSBFit("nllVarSBFit","NLL SB Fit",sigBackPdf,*sampleData);
-    sigBackFitNLLRooVar = nllVarSBFit.getVal();
-    // reset signal frac
-    fsig = sigFrac;
-    rooVarIas = 0.99;
-    sampleData->get(RooArgSet(rooVarIas));
-    actualEventsInLastBinRooVar = sampleData->weight();
-    numTracksInLastBinVsSBOverBHist->Fill(2*(nllVarSB.getVal()-nllVarBOnly.getVal()),
-        actualEventsInLastBinRooVar.getVal());
-    nllValues->add(RooArgSet(sigNLLRooVar,backNLLRooVar,sigBackNLLRooVar,
-          satModelNLLRooVar,sigBackFitNLLRooVar,maxLSigFracRooVar));
+    //// reset signal frac
+    //fsig = sigFrac;
+
+    //// NLLs
+    //RooNLLVar nllVarBOnly("nllVarBOnly","NLL B only",*iasBackgroundHistPdf,*sampleData);
+    ////RooNLLVar nllVarSOnly("nllVarSOnly","NLL S only",*iasSignalHistPdf,*sampleData);
+    //RooNLLVar nllVarSB("nllVarSB","NLL SB",sigBackPdf,*sampleData);
+    //RooNLLVar nllVarSatModel("nllVarSatModel","NLL Saturated Model",saturatedModel,*sampleData);
+
+    //nllBSatHist->Fill(2*(nllVarBOnly.getVal()-nllVarSatModel.getVal()));
+    //nllSatOnlyHist->Fill(nllVarSatModel.getVal());
+    //nllBOnlyHist->Fill(nllVarBOnly.getVal());
+    ////nllSOnlyHist->Fill(nllVarSOnly.getVal());
+    //nllSBHist->Fill(nllVarSB.getVal());
+    //nllSBOverBHist->Fill(2*(nllVarSB.getVal()-nllVarBOnly.getVal()));
+    //numSigTracksVsNLLSBOverBHist->Fill(2*(nllVarSB.getVal()-nllVarBOnly.getVal()),signalTracksThisSample);
+    //// roo vars for dataset
+    ////sigNLLRooVar = nllVarSOnly.getVal();
+    //backNLLRooVar = nllVarBOnly.getVal();
+    //sigBackNLLRooVar = nllVarSB.getVal();
+    //satModelNLLRooVar = nllVarSatModel.getVal();
+    //// fit the S+B PDF
+    //sigBackPdf.fitTo(*sampleData,PrintLevel(-1));
+    //if(verbose_)
+    //  std::cout << "preferred fsig after fitting: " << fsig.getVal() << std::endl;
+    //maxLSigFracRooVar = fsig.getVal();
+    //RooNLLVar nllVarSBFit("nllVarSBFit","NLL SB Fit",sigBackPdf,*sampleData);
+    //sigBackFitNLLRooVar = nllVarSBFit.getVal();
+    //// reset signal frac
+    //fsig = sigFrac;
+    //rooVarIas = 0.99;
+    //sampleData->get(RooArgSet(rooVarIas));
+    //actualEventsInLastBinRooVar = sampleData->weight();
+    //numTracksInLastBinVsSBOverBHist->Fill(2*(nllVarSB.getVal()-nllVarBOnly.getVal()),
+    //    actualEventsInLastBinRooVar.getVal());
+    //nllValues->add(RooArgSet(sigNLLRooVar,backNLLRooVar,sigBackNLLRooVar,
+    //      satModelNLLRooVar,sigBackFitNLLRooVar,maxLSigFracRooVar));
     expectedObservedEvents->add(RooArgSet(expectedBackgroundEventsInLastBinRooVar,
           expectedSignalEventsInLastBinRooVar,
           actualEventsInLastBinRooVar,signalEventsInLastBinRooVar,
@@ -633,24 +643,24 @@ int main(int argc, char ** argv)
       std::cout << "Number of events in last bin: " << actualEventsInLastBinRooVar.getVal() << std::endl;
       std::cout << "Expected BG events in last bin: " << expectedBackgroundEventsInLastBinRooVar.getVal() << std::endl;
       std::cout << "Expected sig events in last bin: " << expectedSignalEventsInLastBinRooVar.getVal() << std::endl;
-      //std::cout << "NLL S ONLY: " << sigNLLRooVar.getVal() << std::endl;
-      std::cout << "NLL SB: " << sigBackNLLRooVar.getVal() << std::endl;
-      std::cout << "NLL SBfit: " << sigBackFitNLLRooVar.getVal() << std::endl;
-      std::cout << "NLL B ONLY: " << backNLLRooVar.getVal() << std::endl;
+      ////std::cout << "NLL S ONLY: " << sigNLLRooVar.getVal() << std::endl;
+      //std::cout << "NLL SB: " << sigBackNLLRooVar.getVal() << std::endl;
+      //std::cout << "NLL SBfit: " << sigBackFitNLLRooVar.getVal() << std::endl;
+      //std::cout << "NLL B ONLY: " << backNLLRooVar.getVal() << std::endl;
       //std::cout << "NLL saturated model: " << satModelNLLRooVar.getVal() << std::endl;
       //std::cout << "chi2 = 2*(NLL_B-Nll_sat) = " << 2*(backNLLRooVar.getVal()-satModelNLLRooVar.getVal()) << std::endl;
-      std::cout << "-2 ln SB/B = " << 2*(sigBackNLLRooVar.getVal()-backNLLRooVar.getVal()) << std::endl;
-      if(maxLSigFracRooVar.getVal() <= sigFrac)
-        std::cout << "-2 ln L(mu)/L(mu_hat) = " << 2*(sigBackNLLRooVar.getVal()-sigBackFitNLLRooVar.getVal()) << std::endl;
-      else
-        std::cout << "-2 ln L(mu)/L(mu_hat) = 0" << std::endl;
+      //std::cout << "-2 ln SB/B = " << 2*(sigBackNLLRooVar.getVal()-backNLLRooVar.getVal()) << std::endl;
+      //if(maxLSigFracRooVar.getVal() <= sigFrac)
+      //  std::cout << "-2 ln L(mu)/L(mu_hat) = " << 2*(sigBackNLLRooVar.getVal()-sigBackFitNLLRooVar.getVal()) << std::endl;
+      //else
+      //  std::cout << "-2 ln L(mu)/L(mu_hat) = 0" << std::endl;
       std::cout << "sigFrac = " << sigFrac << std::endl;
       std::cout << "--------------------------------------------------------------------------" << std::endl;
     }
 
     if(i==0)
     {
-      experimentsDir->cd();
+      //experimentsDir->cd();
       RooPlot* iasFrame = rooVarIas.frame();
       sampleData->plotOn(iasFrame);
       //sampleData->statOn(iasFrame,Label("data"),Format("NEU",AutoPrecision(1)));
@@ -677,7 +687,9 @@ int main(int argc, char ** argv)
 
   // Write the hists
   outputRootFile->cd();
-  nllValues->Write();
+  TDirectory* datasetDir = outputRootFile->mkdir("expectedObservedEventsDatasets");
+  datasetDir->cd();
+  //nllValues->Write();
   expectedObservedEvents->Write();
   TDirectory* nllBSatDir = outputRootFile->mkdir("NllBOverSat");
   nllBSatDir->cd();
@@ -700,9 +712,13 @@ int main(int argc, char ** argv)
   TDirectory* iasBackgroundPredDir = outputRootFile->mkdir("iasBackgroundPredictions");
   iasBackgroundPredDir->cd();
   iasBackgroundPredictionMassCutNoMSliceHist->Write();
+  iasBackgroundDataHist->Write();
+  iasBackgroundHistPdf->Write();
   TDirectory* iasSignalDir = outputRootFile->mkdir("iasSignalPredictions");
   iasSignalDir->cd();
   iasSignalMassCutNoMSliceHist->Write();
+  iasSignalDataHist->Write();
+  iasSignalHistPdf->Write();
   TDirectory* tracksPerTrialDir = outputRootFile->mkdir("tracksPerTrial");
   tracksPerTrialDir->cd();
   numTracksPerTrialHist->Write();
