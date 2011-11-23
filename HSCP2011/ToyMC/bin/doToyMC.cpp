@@ -461,18 +461,23 @@ int main(int argc, char ** argv)
   //RooRealVar maxLSigFracRooVar("maxLSigFracRooVar","max L fit signal frac",0,1);
   //RooDataSet* nllValues = new RooDataSet("nllValues","nllValues",
   //    RooArgSet(sigNLLRooVar,backNLLRooVar,sigBackNLLRooVar,satModelNLLRooVar,sigBackFitNLLRooVar,maxLSigFracRooVar));
+  RooRealVar actualEventsInLastBinRooVar("actualEventsInLastBinRooVar","actual events in last bin",0,20000);
+  RooRealVar signalEventsInLastBinRooVar("signalEventsInLastBinRooVar","signal events in last bin",0,0,20000);
+  std::string datasetName = getHistNameBeg(lowerNoM,lowerEta);
+  datasetName+="observedEvents";
+  RooDataSet* observedEvents = new RooDataSet(datasetName.c_str(),datasetName.c_str(),
+      RooArgSet(actualEventsInLastBinRooVar,signalEventsInLastBinRooVar));
+
   RooRealVar expectedBackgroundEventsInLastBinRooVar("expectedBackgroundEventsInLastBinRooVar","expected bg events in last bin",0,20000);
   RooRealVar expectedSignalEventsInLastBinRooVar("expectedSignalEventsInLastBinRooVar","expected signal events in last bin",0,20000);
   RooRealVar expectedBackgroundEventsTotalRooVar("expectedBackgroundEventsTotalRooVar","expected bg events",0,50000);
   RooRealVar expectedSignalEventsTotalRooVar("expectedSignalEventsTotalRooVar","expected signal events",0,20000);
-  RooRealVar actualEventsInLastBinRooVar("actualEventsInLastBinRooVar","actual events in last bin",0,20000);
-  RooRealVar signalEventsInLastBinRooVar("signalEventsInLastBinRooVar","signal events in last bin",0,0,20000);
-  std::string datasetName = getHistNameBeg(lowerNoM,lowerEta);
-  datasetName+="expectedObservedEvents";
-  RooDataSet* expectedObservedEvents = new RooDataSet(datasetName.c_str(),datasetName.c_str(),
-      RooArgSet(expectedBackgroundEventsInLastBinRooVar,
-        expectedSignalEventsInLastBinRooVar,actualEventsInLastBinRooVar,signalEventsInLastBinRooVar,
-        expectedBackgroundEventsTotalRooVar,expectedSignalEventsTotalRooVar));
+  RooRealVar expectedSignalFractionRooVar("expectedSignalFractionRooVar","expected signal fraction",0,1);
+  datasetName = getHistNameBeg(lowerNoM,lowerEta);
+  datasetName+="expectedEvents";
+  RooDataSet* expectedEvents = new RooDataSet(datasetName.c_str(),datasetName.c_str(),
+      RooArgSet(expectedBackgroundEventsInLastBinRooVar,expectedSignalEventsInLastBinRooVar,
+        expectedBackgroundEventsTotalRooVar,expectedSignalEventsTotalRooVar,expectedSignalFractionRooVar));
 
   expectedBackgroundEventsInLastBinRooVar = 
     numBackgroundTracksThisSlice*bgHistPdfHist->GetBinContent(bgHistPdfHist->GetNbinsX())
@@ -487,7 +492,11 @@ int main(int argc, char ** argv)
   // total
   expectedBackgroundEventsTotalRooVar = numBackgroundTracksThisSlice;
   expectedSignalEventsTotalRooVar = numSignalTracksThisSlice;
-
+  expectedSignalFractionRooVar = sigFrac;
+  // add it into the dataset
+  expectedEvents->add(RooArgSet(expectedBackgroundEventsInLastBinRooVar,expectedSignalEventsInLastBinRooVar,
+                        expectedBackgroundEventsTotalRooVar,expectedSignalEventsTotalRooVar,
+                        expectedSignalFractionRooVar));
   //// temp for display
   //outputRootFile->cd();
   ////int backgroundTracksThisSample = (int)numBackgroundTracksThisSlice;
@@ -626,17 +635,14 @@ int main(int argc, char ** argv)
     //sigBackFitNLLRooVar = nllVarSBFit.getVal();
     //// reset signal frac
     //fsig = sigFrac;
-    //rooVarIas = 0.99;
-    //sampleData->get(RooArgSet(rooVarIas));
-    //actualEventsInLastBinRooVar = sampleData->weight();
+    rooVarIas = 0.99;
+    sampleData->get(RooArgSet(rooVarIas));
+    actualEventsInLastBinRooVar = sampleData->weight();
     //numTracksInLastBinVsSBOverBHist->Fill(2*(nllVarSB.getVal()-nllVarBOnly.getVal()),
     //    actualEventsInLastBinRooVar.getVal());
     //nllValues->add(RooArgSet(sigNLLRooVar,backNLLRooVar,sigBackNLLRooVar,
     //      satModelNLLRooVar,sigBackFitNLLRooVar,maxLSigFracRooVar));
-    expectedObservedEvents->add(RooArgSet(expectedBackgroundEventsInLastBinRooVar,
-          expectedSignalEventsInLastBinRooVar,
-          actualEventsInLastBinRooVar,signalEventsInLastBinRooVar,
-          expectedBackgroundEventsTotalRooVar,expectedSignalEventsTotalRooVar)); 
+    observedEvents->add(RooArgSet(actualEventsInLastBinRooVar,signalEventsInLastBinRooVar)); 
 
     if(verbose_)
     {
@@ -686,11 +692,14 @@ int main(int argc, char ** argv)
 
 
   // Write the hists
-  outputRootFile->cd();
-  TDirectory* datasetDir = outputRootFile->mkdir("expectedObservedEventsDatasets");
-  datasetDir->cd();
   //nllValues->Write();
-  expectedObservedEvents->Write();
+  outputRootFile->cd();
+  TDirectory* obsDatasetDir = outputRootFile->mkdir("observedEventsDatasets");
+  obsDatasetDir->cd();
+  observedEvents->Write();
+  TDirectory* expDatasetDir = outputRootFile->mkdir("expectedEventsDatasets");
+  expDatasetDir->cd();
+  expectedEvents->Write();
   TDirectory* nllBSatDir = outputRootFile->mkdir("NllBOverSat");
   nllBSatDir->cd();
   nllBSatHist->Write();
