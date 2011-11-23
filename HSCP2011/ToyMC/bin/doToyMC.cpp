@@ -347,15 +347,17 @@ int main(int argc, char ** argv)
   float numSignalTracksThisSlice =
     fractionOfSigTracksInThisSlice*fractionOfSigTracksPassingMassCutThisSlice*numSignalTracksTotal;
   // sig + back PDF
-  float totalNumTracks = numSignalTracksThisSlice+numBackgroundTracksThisSlice;
-  float sigFrac = numSignalTracksThisSlice/(double)totalNumTracks;
-  RooRealVar fsig("fsig","signal frac",sigFrac,0,1);
+  float totalNumTracksThisSlice = numSignalTracksThisSlice+numBackgroundTracksThisSlice;
+  float sigFracThisSlice = numSignalTracksThisSlice/(double)totalNumTracksThisSlice;
+  RooRealVar fsig("fsig","signal frac",sigFracThisSlice,0,1);
   RooHistPdf* iasBackgroundHistPdfForSBModel = new RooHistPdf("histPdfForSBModelOnly","Hist PDF for BG Model only",
       rooVarIas, *iasBackgroundDataHist);
   //RooAddPdf sigBackPdf("sigBackPdf","sigBackPdf",RooArgList(*iasSignalHistPdf,
   //      *iasBackgroundHistPdf),fsig);
   RooAddPdf sigBackPdf("sigBackPdf","sigBackPdf",RooArgList(*iasSignalHistPdf,
         *iasBackgroundHistPdfForSBModel),fsig);
+  double totalSignalFraction =
+    numSignalTracksTotal/(double)(numBackgroundTracksInDRegionInput+numSignalTracksTotal);
 
 
   // output
@@ -389,7 +391,8 @@ int main(int argc, char ** argv)
   //  " signal tracks in D region this slice, calculated " << numSignalTracksThisSliceToGen <<
   //  " signal tracks to generate in this slice (after mass cut)." << std::endl;
   std::cout << "signal fraction: numSignalTracksThisSlice=" << numSignalTracksThisSlice << " / " <<
-    " totalNumTracks=" << totalNumTracks << " --> sigFrac=" << sigFrac << std::endl;
+    " totalNumTracksThisSlice=" << totalNumTracksThisSlice <<
+    " --> sigFracThisSlice =" << sigFracThisSlice << std::endl;
 
   // NLL B/sat hist
   std::string nllBSatHistName = getHistNameBeg(lowerNoM,lowerEta);
@@ -433,7 +436,7 @@ int main(int argc, char ** argv)
   std::string numTracksPerTrialHistTitle = "Tracks per trial";
   numTracksPerTrialHistTitle+=getHistTitleEnd(lowerNoM,lowerEta,massCut_);
   TH1F* numTracksPerTrialHist = new TH1F(numTracksPerTrialHistName.c_str(),numTracksPerTrialHistTitle.c_str(),
-      500,totalNumTracks-250,totalNumTracks+250);
+      500,totalNumTracksThisSlice-250,totalNumTracksThisSlice+250);
   // Num signal tracks vs. NLL S+B/B
   std::string numSigTracksVsNLLSBOverBHistName = getHistNameBeg(lowerNoM,lowerEta);
   numSigTracksVsNLLSBOverBHistName+="numSigTracksVsNLLSBOverB";
@@ -470,14 +473,15 @@ int main(int argc, char ** argv)
 
   RooRealVar expectedBackgroundEventsInLastBinRooVar("expectedBackgroundEventsInLastBinRooVar","expected bg events in last bin",0,20000);
   RooRealVar expectedSignalEventsInLastBinRooVar("expectedSignalEventsInLastBinRooVar","expected signal events in last bin",0,20000);
-  RooRealVar expectedBackgroundEventsTotalRooVar("expectedBackgroundEventsTotalRooVar","expected bg events",0,50000);
-  RooRealVar expectedSignalEventsTotalRooVar("expectedSignalEventsTotalRooVar","expected signal events",0,20000);
-  RooRealVar expectedSignalFractionRooVar("expectedSignalFractionRooVar","expected signal fraction",0,1);
+  RooRealVar expectedBackgroundEventsThisSliceRooVar("expectedBackgroundEventsThisSliceRooVar","expected bg events this slice",0,50000);
+  RooRealVar expectedSignalEventsThisSliceRooVar("expectedSignalEventsThisSliceRooVar","expected signal events this slice",0,20000);
+  RooRealVar expectedTotalSignalFractionRooVar("expectedTotalSignalFractionRooVar","expected total signal fraction",0,1);
   datasetName = getHistNameBeg(lowerNoM,lowerEta);
   datasetName+="expectedEvents";
   RooDataSet* expectedEvents = new RooDataSet(datasetName.c_str(),datasetName.c_str(),
       RooArgSet(expectedBackgroundEventsInLastBinRooVar,expectedSignalEventsInLastBinRooVar,
-        expectedBackgroundEventsTotalRooVar,expectedSignalEventsTotalRooVar,expectedSignalFractionRooVar));
+        expectedBackgroundEventsThisSliceRooVar,expectedSignalEventsThisSliceRooVar,
+        expectedTotalSignalFractionRooVar));
 
   expectedBackgroundEventsInLastBinRooVar = 
     numBackgroundTracksThisSlice*bgHistPdfHist->GetBinContent(bgHistPdfHist->GetNbinsX())
@@ -490,13 +494,13 @@ int main(int argc, char ** argv)
     numSignalTracksThisSlice*sigHistPdfHist->GetBinContent(sigHistPdfHist->GetNbinsX())
     *sigHistPdfHist->GetBinWidth(sigHistPdfHist->GetNbinsX())*sigHistPdfHist->GetNbinsX();
   // total
-  expectedBackgroundEventsTotalRooVar = numBackgroundTracksThisSlice;
-  expectedSignalEventsTotalRooVar = numSignalTracksThisSlice;
-  expectedSignalFractionRooVar = sigFrac;
+  expectedBackgroundEventsThisSliceRooVar = numBackgroundTracksThisSlice;
+  expectedSignalEventsThisSliceRooVar = numSignalTracksThisSlice;
+  expectedTotalSignalFractionRooVar = totalSignalFraction;
   // add it into the dataset
   expectedEvents->add(RooArgSet(expectedBackgroundEventsInLastBinRooVar,expectedSignalEventsInLastBinRooVar,
-                        expectedBackgroundEventsTotalRooVar,expectedSignalEventsTotalRooVar,
-                        expectedSignalFractionRooVar));
+                        expectedBackgroundEventsThisSliceRooVar,expectedSignalEventsThisSliceRooVar,
+                        expectedTotalSignalFractionRooVar));
   //// temp for display
   //outputRootFile->cd();
   ////int backgroundTracksThisSample = (int)numBackgroundTracksThisSlice;
@@ -660,7 +664,7 @@ int main(int argc, char ** argv)
       //  std::cout << "-2 ln L(mu)/L(mu_hat) = " << 2*(sigBackNLLRooVar.getVal()-sigBackFitNLLRooVar.getVal()) << std::endl;
       //else
       //  std::cout << "-2 ln L(mu)/L(mu_hat) = 0" << std::endl;
-      std::cout << "sigFrac = " << sigFrac << std::endl;
+      std::cout << "sigFracThisSlice = " << sigFracThisSlice << std::endl;
       std::cout << "--------------------------------------------------------------------------" << std::endl;
     }
 
