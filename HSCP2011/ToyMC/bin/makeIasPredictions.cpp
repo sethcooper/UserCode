@@ -53,19 +53,6 @@
 #include "commonFunctions.h"
 
 
-std::string getHistNameBeg(int lowerNom, float lowerEta)
-{
-  std::string histName = "nom";
-  histName+=intToString(lowerNom);
-  histName+="to";
-  histName+=intToString(lowerNom+1);
-  histName+="eta";
-  histName+=intToString(lowerEta*10);
-  histName+="to";
-  histName+=intToString((lowerEta+0.2)*10);
-  return histName;
-}
-
 std::string getHistTitleBeg(int lowerNom, float lowerEta, float pSB, float ihSB)
 {
   std::string histTitle = "NoM ";
