@@ -476,12 +476,13 @@ int main(int argc, char ** argv)
   RooRealVar expectedBackgroundEventsThisSliceRooVar("expectedBackgroundEventsThisSliceRooVar","expected bg events this slice",0,50000);
   RooRealVar expectedSignalEventsThisSliceRooVar("expectedSignalEventsThisSliceRooVar","expected signal events this slice",0,20000);
   RooRealVar expectedTotalSignalFractionRooVar("expectedTotalSignalFractionRooVar","expected total signal fraction",0,1);
+  RooRealVar numberOfTrialsRooVar("numberOfTrialsRooVar","number of trials",0,1e8);
   datasetName = getHistNameBeg(lowerNoM,lowerEta);
   datasetName+="expectedEvents";
   RooDataSet* expectedEvents = new RooDataSet(datasetName.c_str(),datasetName.c_str(),
       RooArgSet(expectedBackgroundEventsInLastBinRooVar,expectedSignalEventsInLastBinRooVar,
         expectedBackgroundEventsThisSliceRooVar,expectedSignalEventsThisSliceRooVar,
-        expectedTotalSignalFractionRooVar));
+        expectedTotalSignalFractionRooVar,numberOfTrialsRooVar));
 
   expectedBackgroundEventsInLastBinRooVar = 
     numBackgroundTracksThisSlice*bgHistPdfHist->GetBinContent(bgHistPdfHist->GetNbinsX())
@@ -497,10 +498,11 @@ int main(int argc, char ** argv)
   expectedBackgroundEventsThisSliceRooVar = numBackgroundTracksThisSlice;
   expectedSignalEventsThisSliceRooVar = numSignalTracksThisSlice;
   expectedTotalSignalFractionRooVar = totalSignalFraction;
+  numberOfTrialsRooVar = numTrials;
   // add it into the dataset
   expectedEvents->add(RooArgSet(expectedBackgroundEventsInLastBinRooVar,expectedSignalEventsInLastBinRooVar,
                         expectedBackgroundEventsThisSliceRooVar,expectedSignalEventsThisSliceRooVar,
-                        expectedTotalSignalFractionRooVar));
+                        expectedTotalSignalFractionRooVar,numberOfTrialsRooVar));
   //// temp for display
   //outputRootFile->cd();
   ////int backgroundTracksThisSample = (int)numBackgroundTracksThisSlice;
