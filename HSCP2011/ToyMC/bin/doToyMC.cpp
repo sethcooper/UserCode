@@ -74,37 +74,6 @@ namespace edm     {class TriggerResults; class TriggerResultsByName; class Input
 #include "commonFunctions.h"
 
 // helper functions
-//TODO move to commonfunctions
-std::string getHistNameBeg(int lowerNom, float lowerEta)
-{
-  int etaSlice = lowerEta*10;
-  string histName="nom";
-  histName+=intToString(lowerNom);
-  histName+="to";
-  histName+=intToString(lowerNom+1);
-  histName+="eta";
-  histName+=intToString(etaSlice);
-  histName+="to";
-  histName+=intToString(etaSlice+2);
-  return histName;
-}
-
-std::string getHistTitleEnd(int lowerNom, float lowerEta, float massCut)
-{
-  std::string title =" for ";
-  title+=intToString(lowerNom);
-  title+="-";
-  title+=intToString(lowerNom+1);
-  title+=", ";
-  title+=floatToString(lowerEta);
-  title+=" < #eta < ";
-  title+=floatToString(lowerEta+0.2);
-  title+=", mass > ";
-  title+=floatToString(massCut);
-  title+=" GeV";
-  return title;
-}
-
 
 // ****** main
 int main(int argc, char ** argv)
