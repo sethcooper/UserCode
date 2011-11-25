@@ -686,7 +686,6 @@ int main(int argc, char ** argv)
 
 
   // Write the hists
-  //nllValues->Write();
   outputRootFile->cd();
   TDirectory* obsDatasetDir = outputRootFile->mkdir("observedEventsDatasets");
   obsDatasetDir->cd();
@@ -694,6 +693,9 @@ int main(int argc, char ** argv)
   TDirectory* expDatasetDir = outputRootFile->mkdir("expectedEventsDatasets");
   expDatasetDir->cd();
   expectedEvents->Write();
+  TDirectory* nllDatasetDir = outputRootFile->mkdir("nllDatasets");
+  nllDatasetDir->cd();
+  nllValues->Write();
   TDirectory* nllBSatDir = outputRootFile->mkdir("NllBOverSat");
   nllBSatDir->cd();
   nllBSatHist->Write();
