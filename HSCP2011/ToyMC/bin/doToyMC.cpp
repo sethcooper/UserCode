@@ -113,7 +113,6 @@ int main(int argc, char ** argv)
   int numTrialsToDo (ana.getParameter<int>("NumberOfTrials"));
   int lowerNoM (ana.getParameter<int>("LowerNoMOfSlice"));
   double lowerEta (ana.getParameter<double>("LowerEtaOfSlice"));
-  bool generateBackgroundOnly_ (ana.getParameter<bool>("GenerateBackgroundOnlySamples"));
   bool verbose_ (ana.getParameter<bool>("Verbose"));
   int reportEvery_ (ana.getParameter<int>("ReportEvery"));
 
@@ -327,7 +326,7 @@ int main(int argc, char ** argv)
         *iasBackgroundHistPdfForSBModel),fsig);
   double totalSignalFraction =
     numSignalTracksTotal/(double)(numBackgroundTracksInDRegionInput+numSignalTracksTotal);
-
+  bool generateBackgroundOnly = (totalSignalFraction > 0) ? true : false;
 
   // output
   //std::cout << "Found " << bRegionBackgroundHist->Integral() <<
@@ -350,7 +349,7 @@ int main(int argc, char ** argv)
   //  " signal tracks in D region for this slice and " <<
   //  numSignalTracksInDRegion << " signal tracks in D region. " <<
   //  std::endl;
-  if(!generateBackgroundOnly_)
+  if(!generateBackgroundOnly)
     std::cout << "Generating " << numSignalTracksThisSlice << " signal tracks" <<
       " from " << numSignalTracksTotal << " for entire D region." << std::endl;
   else
@@ -544,13 +543,13 @@ int main(int argc, char ** argv)
   {
     if(reportEvery_!=0 ? ((i+1)>0 && (i+1)%reportEvery_==0) : false)
       std::cout << "  generating/fitting for trial: " << i+1 << " of " << numTrials << std::endl;
-    // fluctuate num signal tracks by poisson
-    int signalTracksThisSample = myRandom.Poisson(numSignalTracksThisSlice);
     int backgroundTracksThisSample = (int)numBackgroundTracksThisSlice;
     RooDataSet* thisSampleDataSet = iasBackgroundHistPdf->generate(rooVarIas,backgroundTracksThisSample);
     RooDataSet* thisSampleSignalDataSet;
-    if(!generateBackgroundOnly_)
+    if(!generateBackgroundOnly)
     {
+      // fluctuate num signal tracks by poisson
+      int signalTracksThisSample = myRandom.Poisson(numSignalTracksThisSlice);
       thisSampleSignalDataSet = iasSignalHistPdf->generate(rooVarIas,signalTracksThisSample);
       thisSampleDataSet->append(*thisSampleSignalDataSet);
       RooDataHist* signalDataHist = thisSampleSignalDataSet->binnedClone();
