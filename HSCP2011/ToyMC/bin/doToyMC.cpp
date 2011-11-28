@@ -326,7 +326,7 @@ int main(int argc, char ** argv)
         *iasBackgroundHistPdfForSBModel),fsig);
   double totalSignalFraction =
     numSignalTracksTotal/(double)(numBackgroundTracksInDRegionInput+numSignalTracksTotal);
-  bool generateBackgroundOnly = (totalSignalFraction > 0) ? true : false;
+  bool generateBackgroundOnly = (totalSignalFraction > 0) ? false : true;
 
   // output
   //std::cout << "Found " << bRegionBackgroundHist->Integral() <<
@@ -431,12 +431,14 @@ int main(int argc, char ** argv)
   RooRealVar sigBackFitNLLRooVar("sigBackFitNLLRooVar","signal+background ML fit",-100000,100000);
   RooRealVar maxLSigFracRooVar("maxLSigFracRooVar","max L fit signal frac",0,1);
   RooRealVar assumedTotalSigTracksRooVar("assumedTotalSigTracksRooVar","assumed total signal tracks",0,1e4);
+  RooRealVar assumedSigTracksThisSliceRooVar("assumedSigTracksThisSliceRooVar","assumed signal tracks this slice",0,1e4);
   RooRealVar trialIndexRooVar("trialIndex","trial index",0,1e8);
   std::string nllDatasetName = getHistNameBeg(lowerNoM,lowerEta);
   nllDatasetName+="nllValues";
   RooDataSet* nllValues = new RooDataSet(nllDatasetName.c_str(),nllDatasetName.c_str(),
       RooArgSet(sigNLLRooVar,backNLLRooVar,sigBackNLLRooVar,satModelNLLRooVar,
-        sigBackFitNLLRooVar,maxLSigFracRooVar,assumedTotalSigTracksRooVar,trialIndexRooVar));
+        sigBackFitNLLRooVar,maxLSigFracRooVar,assumedTotalSigTracksRooVar,
+        assumedSigTracksThisSliceRooVar,trialIndexRooVar));
   // actual events in last bin
   RooRealVar actualEventsInLastBinRooVar("actualEventsInLastBinRooVar","actual events in last bin",0,20000);
   RooRealVar signalEventsInLastBinRooVar("signalEventsInLastBinRooVar","signal events in last bin",0,0,20000);
@@ -450,13 +452,13 @@ int main(int argc, char ** argv)
   RooRealVar expectedBackgroundEventsThisSliceRooVar("expectedBackgroundEventsThisSliceRooVar","expected bg events this slice",0,50000);
   RooRealVar expectedSignalEventsThisSliceRooVar("expectedSignalEventsThisSliceRooVar","expected signal events this slice",0,20000);
   RooRealVar expectedTotalSignalFractionRooVar("expectedTotalSignalFractionRooVar","expected total signal fraction",0,1);
-  RooRealVar numberOfTrialsRooVar("numberOfTrialsRooVar","number of trials",0,1e8);
+  //RooRealVar numberOfTrialsRooVar("numberOfTrialsRooVar","number of trials",0,1e8);
   datasetName = getHistNameBeg(lowerNoM,lowerEta);
   datasetName+="expectedEvents";
   RooDataSet* expectedEvents = new RooDataSet(datasetName.c_str(),datasetName.c_str(),
       RooArgSet(expectedBackgroundEventsInLastBinRooVar,expectedSignalEventsInLastBinRooVar,
         expectedBackgroundEventsThisSliceRooVar,expectedSignalEventsThisSliceRooVar,
-        expectedTotalSignalFractionRooVar,numberOfTrialsRooVar));
+        expectedTotalSignalFractionRooVar));//,numberOfTrialsRooVar));
 
   // fill expected events RooVars
   expectedBackgroundEventsInLastBinRooVar = 
@@ -472,11 +474,11 @@ int main(int argc, char ** argv)
   expectedBackgroundEventsThisSliceRooVar = numBackgroundTracksThisSlice;
   expectedSignalEventsThisSliceRooVar = numSignalTracksThisSlice;
   expectedTotalSignalFractionRooVar = totalSignalFraction;
-  numberOfTrialsRooVar = numTrials;
+  //numberOfTrialsRooVar = numTrials;
   // add it into the dataset
   expectedEvents->add(RooArgSet(expectedBackgroundEventsInLastBinRooVar,expectedSignalEventsInLastBinRooVar,
                         expectedBackgroundEventsThisSliceRooVar,expectedSignalEventsThisSliceRooVar,
-                        expectedTotalSignalFractionRooVar,numberOfTrialsRooVar));
+                        expectedTotalSignalFractionRooVar));//,numberOfTrialsRooVar));
   //// temp for display
   //outputRootFile->cd();
   ////int backgroundTracksThisSample = (int)numBackgroundTracksThisSlice;
@@ -615,6 +617,7 @@ int main(int argc, char ** argv)
       sigBackNLLRooVar = nllVarSB.getVal();
       satModelNLLRooVar = nllVarSatModel.getVal();
       assumedTotalSigTracksRooVar = testNumTotalSigTracks;
+      assumedSigTracksThisSliceRooVar = testSignalTracksThisSlice;
       // fit the S+B PDF
       sigBackPdf.fitTo(*sampleData,PrintLevel(-1));
       if(verbose_)
@@ -626,7 +629,7 @@ int main(int argc, char ** argv)
       //    actualEventsInLastBinRooVar.getVal());
       nllValues->add(RooArgSet(sigNLLRooVar,backNLLRooVar,sigBackNLLRooVar,
             satModelNLLRooVar,sigBackFitNLLRooVar,maxLSigFracRooVar,
-            assumedTotalSigTracksRooVar,trialIndexRooVar));
+            assumedTotalSigTracksRooVar,assumedSigTracksThisSliceRooVar,trialIndexRooVar));
     }
 
     // reset signal frac
