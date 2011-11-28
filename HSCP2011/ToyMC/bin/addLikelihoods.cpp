@@ -72,6 +72,30 @@ namespace edm     {class TriggerResults; class TriggerResultsByName; class Input
 #endif
 
 #include "commonFunctions.h"
+//TODO: consolidate these in a single place (something like common functions)
+// nll values
+RooRealVar sigNLLRooVar("sigNLLRooVar","signal NLL",0,-100000,100000);
+RooRealVar backNLLRooVar("backNLLRooVar","background NLL",-100000,100000);
+RooRealVar sigBackNLLRooVar("sigBackNLLRooVar","signal+background NLL",-100000,100000);
+RooRealVar satModelNLLRooVar("satModelNLLRooVar","sat model NLL",-100000,100000);
+RooRealVar sigBackFitNLLRooVar("sigBackFitNLLRooVar","signal+background ML fit",-100000,100000);
+RooRealVar maxLSigFracRooVar("maxLSigFracRooVar","max L fit signal frac",0,1);
+RooRealVar assumedTotalSigTracksRooVar("assumedTotalSigTracksRooVar","assumed total signal tracks",0,1e4);
+RooRealVar assumedSigTracksThisSliceRooVar("assumedSigTracksThisSliceRooVar","assumed signal tracks this slice",0,1e4);
+RooRealVar trialIndexRooVar("trialIndex","trial index",0,1e8);
+// exp events (tracks)
+RooRealVar expectedBackgroundEventsInLastBinRooVar("expectedBackgroundEventsInLastBinRooVar","expected bg events in last bin",0,20000);
+RooRealVar expectedSignalEventsInLastBinRooVar("expectedSignalEventsInLastBinRooVar","expected signal events in last bin",0,20000);
+RooRealVar expectedBackgroundEventsThisSliceRooVar("expectedBackgroundEventsThisSliceRooVar","expected bg events this slice",0,50000);
+RooRealVar expectedSignalEventsThisSliceRooVar("expectedSignalEventsThisSliceRooVar","expected signal events this slice",0,20000);
+RooRealVar expectedTotalSignalFractionRooVar("expectedTotalSignalFractionRooVar","expected total signal fraction",0,1);
+RooRealVar numberOfTrialsRooVar("numberOfTrialsRooVar","number of trials",0,1e8);
+// observed events
+RooRealVar actualEventsInLastBinRooVar("actualEventsInLastBinRooVar","actual events in last bin",0,20000);
+RooRealVar signalEventsInLastBinRooVar("signalEventsInLastBinRooVar","signal events in last bin",0,0,20000);
+//TODO move to something like common functions
+RooRealVar rooVarIas("rooVarIas","ias",0,1);
+
 
 struct SampleHistos
 {
@@ -97,9 +121,11 @@ struct SampleHistos
   TH2F* eventsTotalVsNLLSBOverBHist;
 };
 
-struct SampleSums
+struct NLLSums
 {
-  std::vector<double> nllSsums;
+  int numTrials;
+  // below, each entry is one trial
+  //std::vector<double> nllSsums;
   std::vector<double> nllBsums;
   std::vector<double> nllSBsums;
   std::vector<double> nllSatsums;
@@ -108,12 +134,30 @@ struct SampleSums
   std::vector<int> pointsPerTrial;
   std::vector<double> expectedBgEvtsLastBinSums;
   std::vector<double> expectedSigEvtsLastBinSums;
-  std::vector<double> expectedBgEvtsTotalSums;
-  std::vector<double> expectedSigEvtsTotalSums;
+  std::vector<double> expectedBgEvtsThisSliceSums;
+  std::vector<double> expectedSigEvtsThisSliceSums;
   std::vector<int> actualEvtsLastBinSums;
   std::vector<int> signalEvtsLastBinSums;
-  std::vector<int> actualEvtsTotalSums;
-  std::vector<int> signalEvtsTotalSums;
+  //std::vector<int> actualEvtsTotalSums;
+  //std::vector<int> signalEvtsTotalSums;
+
+  NLLSums() : numTrials(0)
+  {
+  }
+
+};
+
+struct SampleSums // sums over all nom/eta slices for each trial
+{
+  float totalSignalFraction;
+  int totalSignalTracks;
+
+  // map assumed (total) number of signal tracks to its sums
+  std::map<int,NLLSums> nllSumsMap;
+
+  SampleSums() : totalSignalFraction(0), totalSignalTracks(0)
+  {
+  }
 
 };
 
@@ -136,173 +180,231 @@ int getEtaFromFilename(std::string str)
   return atoi(etaString.c_str());
 }
 //
-int numTotalSignalTracksInSamplesThisFile(std::string str)
+int getNumTotalSignalTracksInSamplesThisFile(std::string str)
 {
   int posSigTracks = str.find("sigTracks");
   int posBgTracks = str.find("bgTracks_");
   std::string numSigTracks = str.substr(posBgTracks+9,posSigTracks-posBgTracks+9);
   return atoi(numSigTracks.c_str());
 }
+// slice is what's used in doToyMC
+//int getNoMSliceFromNoM(int lowerNoM) -- lower NoM is the NoM slice
+//int getLowerNoMFromNoMSlice(int nomSlice)
 //
-int getNoMSliceFromNoM(int NoM)
+int getEtaSliceFromLowerEta(float eta)
 {
-  int nomSlice = NoM-5;
-  return nomSlice/2;
+  return eta*10;
 }
 //
-int getNoMFromNoMSlice(int nomSlice)
+float getLowerEtaFromEtaSlice(int etaSlice)
 {
-  return 2*(nomSlice)+5;
+  return (etaSlice/2)*0.2;
+}
+// index is the array index
+int getNoMIndexFromLowerNoM(int NoM)
+{
+  int nomIndex = NoM-5;
+  return nomIndex/2;
 }
 //
-void initHistos(SampleHistos* histos, bool isSignal, TFileDirectory& tFileDir)
+int getLowerNoMFromNoMIndex(int nomIndex)
 {
+  return 2*(nomIndex)+5;
+}
+//
+int getEtaIndexFromLowerEta(float eta)
+{
+  return (eta*10)/2;
+}
+//
+float getLowerEtaFromEtaIndex(int etaIndex)
+{
+  return (etaIndex*2)/10.0;
+}
+//
+void initHistos(int assumedSignalTracks, SampleHistos& histos, bool isSignal, TFileDirectory& tFileDir)
+{
+  std::string assuSigTracksStr = intToString(assumedSignalTracks);
+  std::string titleEnd = assuSigTracksStr+" assumed signal tracks";
+  std::string nameEnd = assuSigTracksStr+"assumedSignalTracks";
   // NLL B/sat hist
-  std::string nllBSatHistName="nllBSatBGOnlyHist";
-  std::string nllBSatHistTitle = "-2*ln(B/sat), bg only samples";
+  std::string nllBSatHistName="nllBSatBGOnly";
+  std::string nllBSatHistTitle = "-2*ln(B/sat), bg only samples, for ";
   // NLL sat only hist
-  std::string nllSatOnlyHistName="nllSatonlyBGOnlyHist";
-  std::string nllSatOnlyHistTitle = "NLL sat only, bg only samples";
+  std::string nllSatOnlyHistName="nllSatonlyBGOnly";
+  std::string nllSatOnlyHistTitle = "NLL sat only, bg only samples, for ";
   // NLL B only hist
-  std::string nllBOnlyHistName="nllBonlyBGOnlyHist";
-  std::string nllBOnlyHistTitle = "NLL B only, bg only samples";
+  std::string nllBOnlyHistName="nllBonlyBGOnly";
+  std::string nllBOnlyHistTitle = "NLL B only, bg only samples, for ";
   // NLL S only hist
-  std::string nllSonlyHistName="nllSonlyBGOnlyHist";
-  std::string nllSonlyHistTitle = "NLL S only, bg only samples";
+  std::string nllSonlyHistName="nllSonlyBGOnly";
+  std::string nllSonlyHistTitle = "NLL S only, bg only samples, for ";
   // NLL SB hist
-  std::string nllSBHistName="nllSBBGOnlyHist";
-  std::string nllSBHistTitle = "NLL SB, bg only samples";
+  std::string nllSBHistName="nllSBBGOnly";
+  std::string nllSBHistTitle = "NLL SB, bg only samples, for ";
   // NLL S+B/B
-  std::string nllSBOverBHistName="lepQBGOnlyHist";
-  std::string nllSBOverBHistTitle = "-2*ln(L(s+b)/L(b)), bg only samples;-2 ln Q";
+  std::string nllSBOverBHistName="lepQBGOnly";
+  std::string nllSBOverBHistTitle = "-2*ln(L(s+b)/L(b)), bg only samples, for ";
   // profile LR
-  std::string profileLRHistName="profileLRBGOnlyHist";
-  std::string profileLRHistTitle = "-2*ln(L(#mu)/L(#hat{#mu})), bg only samples;q_{#mu}";
+  std::string profileLRHistName="profileLRBGOnly";
+  std::string profileLRHistTitle = "-2*ln(L(#mu)/L(#hat{#mu})), bg only samples, for ";
   // points per trial
-  std::string pointsPerTrialHistName="pointsPerTrialBGOnlyHist";
-  std::string pointsPerTrialHistTitle="Points per trial, bg only samples";
+  std::string pointsPerTrialHistName="pointsPerTrialBGOnly";
+  std::string pointsPerTrialHistTitle="Points per trial, bg only samples, for ";
   // events in last bin vs. NLL SB/B
   std::string eventsInLastBinVsNLLSBOverBHistName="eventsInLastBinVsNLLSBOverBBGOnly";
-  std::string eventsInLastBinVsNLLSBOverBHistTitle="Events in last bin vs. NLL -2*ln(SB/B), bg only samples";
+  std::string eventsInLastBinVsNLLSBOverBHistTitle="Events in last bin vs. NLL -2*ln(SB/B), bg only samples, for ";
   // events total vs. NLL SB/B
   std::string eventsTotalVsNLLSBOverBHistName="eventsInTotalVsNLLSBOverBBGOnly";
-  std::string eventsTotalVsNLLSBOverBHistTitle="Events total vs. NLL -2*ln(SB/B), bg only samples";
+  std::string eventsTotalVsNLLSBOverBHistTitle="Events total vs. NLL -2*ln(SB/B), bg only samples, for ";
   if(isSignal)
   {
-    nllBSatHistName="nllBSatSPlusBHist";
-    nllBSatHistTitle = "-2*ln(B/sat), s+b samples";
-    nllSatOnlyHistName="nllSatonlySPlusBHist";
-    nllSatOnlyHistTitle = "NLL sat only, s+b samples";
-    nllBOnlyHistName="nllBonlySPlusBHist";
-    nllBOnlyHistTitle = "NLL B only, s+b samples";
-    nllSonlyHistName="nllSonlySPlusBHist";
-    nllSonlyHistTitle = "NLL S only, s+b samples";
-    nllSBHistName="nllSBSPlusBHist";
-    nllSBHistTitle = "NLL SB, s+b samples";
-    nllSBOverBHistName="lepQSPlusBHist";
-    nllSBOverBHistTitle = "-2*ln(L(s+b)/L(b)), s+b samples;-2 ln Q";
-    profileLRHistName="profileLRSPlusBHist";
-    profileLRHistTitle = "-2*ln(L(#mu)/L(#hat{#mu})), s+b samples;q_{#mu}";
-    pointsPerTrialHistName="pointsPerTrialSPlusBHist";
-    pointsPerTrialHistTitle="Points per trial, s+b samples";
+    titleEnd = assuSigTracksStr+" signal tracks";
+    nameEnd = assuSigTracksStr+"signalTracks";
+    nllBSatHistName="nllBSatSPlusB";
+    nllBSatHistTitle = "-2*ln(B/sat), s+b samples, for ";
+    nllSatOnlyHistName="nllSatonlySPlusB";
+    nllSatOnlyHistTitle = "NLL sat only, s+b samples, for ";
+    nllBOnlyHistName="nllBonlySPlusB";
+    nllBOnlyHistTitle = "NLL B only, s+b samples, for ";
+    nllSonlyHistName="nllSonlySPlusB";
+    nllSonlyHistTitle = "NLL S only, s+b samples, for ";
+    nllSBHistName="nllSBSPlusB";
+    nllSBHistTitle = "NLL SB, s+b samples, for ";
+    nllSBOverBHistName="lepQSPlusB";
+    nllSBOverBHistTitle = "-2*ln(L(s+b)/L(b)), s+b samples, for ";
+    profileLRHistName="profileLRSPlusB";
+    profileLRHistTitle = "-2*ln(L(#mu)/L(#hat{#mu})), s+b samples, for ";
+    pointsPerTrialHistName="pointsPerTrialSPlusB";
+    pointsPerTrialHistTitle="Points per trial, s+b samples, for ";
     eventsInLastBinVsNLLSBOverBHistName="eventsInLastBinVsNLLSBOverBSPlusB";
-    eventsInLastBinVsNLLSBOverBHistTitle="Events in last bin vs. NLL -2*ln(SB/B), s+b samples";
+    eventsInLastBinVsNLLSBOverBHistTitle="Events in last bin vs. NLL -2*ln(SB/B), s+b samples, for ";
     eventsTotalVsNLLSBOverBHistName="eventsInTotalVsNLLSBOverBSPlusB";
-    eventsTotalVsNLLSBOverBHistTitle="Events total vs. NLL -2*ln(SB/B), s+b samples";
+    eventsTotalVsNLLSBOverBHistTitle="Events total vs. NLL -2*ln(SB/B), s+b samples, for ";
   }
+  nllBSatHistName+=nameEnd;
+  nllBSatHistTitle+=titleEnd;
+  nllSatOnlyHistName+=nameEnd;
+  nllSatOnlyHistTitle+=titleEnd;
+  nllBOnlyHistName+=nameEnd;
+  nllBOnlyHistTitle+=titleEnd;
+  nllSonlyHistName+=nameEnd;
+  nllSonlyHistTitle+=titleEnd;
+  nllSBHistName+=nameEnd;
+  nllSBHistTitle+=titleEnd;
+  nllSBOverBHistName+=nameEnd;
+  nllSBOverBHistTitle+=titleEnd;
+  nllSBOverBHistTitle+=";-2 ln Q";
+  profileLRHistName+=nameEnd;
+  profileLRHistTitle+=titleEnd;
+  profileLRHistTitle+=";q_{#mu}";
+  pointsPerTrialHistName+=nameEnd;
+  pointsPerTrialHistTitle+=titleEnd;
+  eventsInLastBinVsNLLSBOverBHistName+=nameEnd;
+  eventsInLastBinVsNLLSBOverBHistTitle+=titleEnd;
+  eventsTotalVsNLLSBOverBHistName+=nameEnd;
+  eventsTotalVsNLLSBOverBHistTitle+=titleEnd;
 
   // init hists
-  histos->nllBSatHist = tFileDir.make<TH1F>(nllBSatHistName.c_str(),nllBSatHistTitle.c_str(),100,0,1000);
-  histos->nllSatOnlyHist = tFileDir.make<TH1F>(nllSatOnlyHistName.c_str(),nllSatOnlyHistTitle.c_str(),10000,-5000,5000);
-  histos->nllBOnlyHist = tFileDir.make<TH1F>(nllBOnlyHistName.c_str(),nllBOnlyHistTitle.c_str(),10000,-5000,5000);
-  histos->nllSOnlyHist = tFileDir.make<TH1F>(nllSonlyHistName.c_str(),nllSonlyHistTitle.c_str(),10000,-5000,5000);
-  histos->nllSBHist = tFileDir.make<TH1F>(nllSBHistName.c_str(),nllSBHistTitle.c_str(),10000,-5000,5000);
-  histos->nllSBOverBHist = tFileDir.make<TH1F>(nllSBOverBHistName.c_str(),nllSBOverBHistTitle.c_str(),800,-1000,1000);
-  histos->profileLRHist = tFileDir.make<TH1F>(profileLRHistName.c_str(),profileLRHistTitle.c_str(),2000,-100,100);
-  histos->pointsPerTrialHist = tFileDir.make<TH1F>(pointsPerTrialHistName.c_str(),
+  histos.nllBSatHist = tFileDir.make<TH1F>(nllBSatHistName.c_str(),nllBSatHistTitle.c_str(),100,0,1000);
+  histos.nllSatOnlyHist = tFileDir.make<TH1F>(nllSatOnlyHistName.c_str(),nllSatOnlyHistTitle.c_str(),10000,-5000,5000);
+  histos.nllBOnlyHist = tFileDir.make<TH1F>(nllBOnlyHistName.c_str(),nllBOnlyHistTitle.c_str(),10000,-5000,5000);
+  histos.nllSOnlyHist = tFileDir.make<TH1F>(nllSonlyHistName.c_str(),nllSonlyHistTitle.c_str(),10000,-5000,5000);
+  histos.nllSBHist = tFileDir.make<TH1F>(nllSBHistName.c_str(),nllSBHistTitle.c_str(),10000,-5000,5000);
+  histos.nllSBOverBHist = tFileDir.make<TH1F>(nllSBOverBHistName.c_str(),nllSBOverBHistTitle.c_str(),800,-1000,1000);
+  histos.profileLRHist = tFileDir.make<TH1F>(profileLRHistName.c_str(),profileLRHistTitle.c_str(),2000,-100,100);
+  histos.pointsPerTrialHist = tFileDir.make<TH1F>(pointsPerTrialHistName.c_str(),
       pointsPerTrialHistTitle.c_str(),20000,0,20000);
-  histos->eventsInLastBinVsNLLSBOverBHist = tFileDir.make<TH2F>(eventsInLastBinVsNLLSBOverBHistName.c_str(),
+  histos.eventsInLastBinVsNLLSBOverBHist = tFileDir.make<TH2F>(eventsInLastBinVsNLLSBOverBHistName.c_str(),
       eventsInLastBinVsNLLSBOverBHistTitle.c_str(),800,-1000,1000,100,0,100);
-  histos->eventsTotalVsNLLSBOverBHist = tFileDir.make<TH2F>(eventsTotalVsNLLSBOverBHistName.c_str(),
+  histos.eventsTotalVsNLLSBOverBHist = tFileDir.make<TH2F>(eventsTotalVsNLLSBOverBHistName.c_str(),
       eventsTotalVsNLLSBOverBHistTitle.c_str(),800,-1000,1000,100,0,100);
 }
 //
-void fillSampleSums(SampleSums* sampleSums,const RooArgSet& nllArgSet,
-    const RooArgSet& expObsArgSet, int sampleNum)
+void fillSampleSums(SampleSums& sampleSums, int trialIndex, int assumedSignalTracks,
+    float nllB, float nllSB, float nllSat, float nllSBFit, float maxLSigFrac,
+    float sigFracAssumedThisSlice, float expBgEventsLastBin, float expSigEventsLastBin,
+    float expBgEventsThisSlice, float expSigEventsThisSlice, float actEventsLastBin,
+    float sigEventsLastBin, float expTotalSignalFraction)
 {
-  //TODO: consolidate these in a single place (something like common functions)
-  // nll values
-  RooRealVar sigNLLRooVar("sigNLLRooVar","signal NLL",-100000,100000);
-  RooRealVar backNLLRooVar("backNLLRooVar","background NLL",-100000,100000);
-  RooRealVar sigBackNLLRooVar("sigBackNLLRooVar","signal+background NLL",-100000,100000);
-  RooRealVar satModelNLLRooVar("satModelNLLRooVar","sat model NLL",-100000,100000);
-  RooRealVar sigBackFitNLLRooVar("sigBackFitNLLRooVar","signal+background ML fit",-100000,100000);
-  RooRealVar maxLSigFracRooVar("maxLSigFracRooVar","max L fit signal frac",0,1);
-  // exp events (tracks)
-  RooRealVar expectedBackgroundEventsInLastBinRooVar("expectedBackgroundEventsInLastBinRooVar","expected bg events in last bin",0,20000);
-  RooRealVar expectedSignalEventsInLastBinRooVar("expectedSignalEventsInLastBinRooVar","expected signal events in last bin",0,20000);
-  RooRealVar expectedBackgroundEventsTotalRooVar("expectedBackgroundEventsTotalRooVar","expected bg events",0,50000);
-  RooRealVar expectedSignalEventsTotalRooVar("expectedSignalEventsTotalRooVar","expected signal events",0,20000);
-  RooRealVar actualEventsInLastBinRooVar("actualEventsInLastBinRooVar","actual events in last bin",0,20000);
-  RooRealVar signalEventsInLastBinRooVar("signalEventsInLastBinRooVar","signal events in last bin",0,0,20000);
+  //debug
+  //std::cout << "fillSampleSums()" << std::endl;
 
-  RooRealVar nllS = *(RooRealVar*)nllArgSet.find(sigNLLRooVar.GetName());
-  RooRealVar nllB = *(RooRealVar*)nllArgSet.find(backNLLRooVar.GetName());
-  RooRealVar nllSB = *(RooRealVar*)nllArgSet.find(sigBackNLLRooVar.GetName());
-  RooRealVar nllSat = *(RooRealVar*)nllArgSet.find(satModelNLLRooVar.GetName());
-  RooRealVar nllSBFit = *(RooRealVar*)nllArgSet.find(sigBackFitNLLRooVar.GetName());
-  RooRealVar maxLSigFrac = *(RooRealVar*)nllArgSet.find(maxLSigFracRooVar.GetName());
-  RooRealVar expBgEventsLastBin = *(RooRealVar*)expObsArgSet.find(expectedBackgroundEventsInLastBinRooVar.GetName());
-  RooRealVar expSigEventsLastBin = *(RooRealVar*)expObsArgSet.find(expectedSignalEventsInLastBinRooVar.GetName());
-  RooRealVar expBgEventsTotal = *(RooRealVar*)expObsArgSet.find(expectedBackgroundEventsTotalRooVar.GetName());
-  RooRealVar expSigEventsTotal = *(RooRealVar*)expObsArgSet.find(expectedSignalEventsTotalRooVar.GetName());
-  RooRealVar actEventsLastBin = *(RooRealVar*)expObsArgSet.find(actualEventsInLastBinRooVar.GetName());
-  RooRealVar sigEventsLastBin = *(RooRealVar*)expObsArgSet.find(signalEventsInLastBinRooVar.GetName());
-
-  double sigFracExp = expSigEventsTotal.getVal()/(double)(expSigEventsTotal.getVal()+expBgEventsTotal.getVal());
-
-  if(sampleSums->nllSsums.size() < (unsigned int) sampleNum+1)
+  // if no sums object for this assumedSignalTracks value, make it
+  if(sampleSums.nllSumsMap.find(assumedSignalTracks)==sampleSums.nllSumsMap.end())
   {
-    // make an entry for this trial if there isn't one already
-    sampleSums->nllSsums.push_back(nllS.getVal());
-    sampleSums->nllBsums.push_back(nllB.getVal());
-    sampleSums->nllSBsums.push_back(nllSB.getVal());
-    sampleSums->nllSatsums.push_back(nllSat.getVal());
-    sampleSums->nllSBFitsums.push_back(nllSBFit.getVal());
-    if(maxLSigFrac.getVal() <= sigFracExp)
-      sampleSums->profileLRsums.push_back(2*(nllSB.getVal()-nllSBFit.getVal()));
+    //debug
+    //std::cout << "\tno sums object for assumedSignalTracks = " << assumedSignalTracks <<
+    //  " so let's make it." << std::endl;
+    sampleSums.nllSumsMap.insert(pair<int,NLLSums>(assumedSignalTracks,NLLSums()));
+  }
+
+  if(sampleSums.nllSumsMap[assumedSignalTracks].numTrials==0)
+  {
+    sampleSums.totalSignalFraction = expTotalSignalFraction;
+    if(expTotalSignalFraction > 0) // it's an S+B sample
+      sampleSums.totalSignalTracks = assumedSignalTracks;
+  }
+
+  //debug
+  //std::cout << "\tTrialIndex = " << trialIndex << std::endl;
+
+  // make entries for this trial if needed 
+  if(sampleSums.nllSumsMap[assumedSignalTracks].numTrials < trialIndex+1)
+  {
+    //debug
+    //std::cout << "\tno entry in the sum vectors for this trial, so pushing back" << std::endl;
+    //std::cout << "\tNumTrials = " << sampleSums.nllSumsMap[assumedSignalTracks].numTrials << std::endl;
+    //sampleSums.nllSumsMap[assumedSignalTracks].nllSsums.push_back(nllS);
+    sampleSums.nllSumsMap[assumedSignalTracks].nllBsums.push_back(nllB);
+    sampleSums.nllSumsMap[assumedSignalTracks].nllSBsums.push_back(nllSB);
+    sampleSums.nllSumsMap[assumedSignalTracks].nllSatsums.push_back(nllSat);
+    sampleSums.nllSumsMap[assumedSignalTracks].nllSBFitsums.push_back(nllSBFit);
+    if(maxLSigFrac <= sigFracAssumedThisSlice)
+      sampleSums.nllSumsMap[assumedSignalTracks].profileLRsums.push_back(2*(nllSB-nllSBFit));
     else
-      sampleSums->profileLRsums.push_back(0);
-    sampleSums->pointsPerTrial.push_back(1);
-    sampleSums->expectedBgEvtsLastBinSums.push_back(expBgEventsLastBin.getVal());
-    sampleSums->expectedSigEvtsLastBinSums.push_back(expSigEventsLastBin.getVal());
-    sampleSums->expectedBgEvtsTotalSums.push_back(expBgEventsTotal.getVal());
-    sampleSums->expectedSigEvtsTotalSums.push_back(expSigEventsTotal.getVal());
-    sampleSums->actualEvtsLastBinSums.push_back(actEventsLastBin.getVal());
-    sampleSums->signalEvtsLastBinSums.push_back(sigEventsLastBin.getVal());
-    //sampleSums->actualEvtsTotalSums.push_back(actEventsTotal.getVal());
-    //sampleSums->signalEvtsTotalSums.push_back(sigEventsTotal.getVal());
+      sampleSums.nllSumsMap[assumedSignalTracks].profileLRsums.push_back(0);
+    sampleSums.nllSumsMap[assumedSignalTracks].pointsPerTrial.push_back(1);
+    sampleSums.nllSumsMap[assumedSignalTracks].expectedBgEvtsLastBinSums.push_back(expBgEventsLastBin);
+    sampleSums.nllSumsMap[assumedSignalTracks].expectedSigEvtsLastBinSums.push_back(expSigEventsLastBin);
+    sampleSums.nllSumsMap[assumedSignalTracks].expectedBgEvtsThisSliceSums.push_back(expBgEventsThisSlice);
+    sampleSums.nllSumsMap[assumedSignalTracks].expectedSigEvtsThisSliceSums.push_back(expSigEventsThisSlice);
+    sampleSums.nllSumsMap[assumedSignalTracks].actualEvtsLastBinSums.push_back(actEventsLastBin);
+    sampleSums.nllSumsMap[assumedSignalTracks].signalEvtsLastBinSums.push_back(sigEventsLastBin);
+    //sampleSums.nllSumsMap[assumedSignalTracks].actualEvtsTotalSums.push_back(actEventsTotal);
+    //sampleSums.nllSumsMap[assumedSignalTracks].signalEvtsTotalSums.push_back(sigEventsTotal);
+    sampleSums.nllSumsMap[assumedSignalTracks].numTrials++;
   }
   else
   {
-    sampleSums->nllSsums[sampleNum]+=nllS.getVal();
-    sampleSums->nllBsums[sampleNum]+=nllB.getVal();
-    sampleSums->nllSBsums[sampleNum]+=nllSB.getVal();
-    sampleSums->nllSatsums[sampleNum]+=nllSat.getVal();
-    sampleSums->nllSBFitsums[sampleNum]+=nllSBFit.getVal();
-    if(maxLSigFrac.getVal() <= sigFracExp)
-      sampleSums->profileLRsums[sampleNum]+=(2*(nllSB.getVal()-nllSBFit.getVal()));
-    sampleSums->pointsPerTrial[sampleNum]++;
-    sampleSums->expectedBgEvtsLastBinSums[sampleNum]+=expBgEventsLastBin.getVal();
-    sampleSums->expectedSigEvtsLastBinSums[sampleNum]+=expSigEventsLastBin.getVal();
-    sampleSums->expectedBgEvtsTotalSums[sampleNum]+=expBgEventsTotal.getVal();
-    sampleSums->expectedSigEvtsTotalSums[sampleNum]+=expSigEventsTotal.getVal();
-    sampleSums->actualEvtsLastBinSums[sampleNum]+=actEventsLastBin.getVal();
-    sampleSums->signalEvtsLastBinSums[sampleNum]+=sigEventsLastBin.getVal();
-    //sampleSums->actualEvtsTotalSums[sampleNum]+=actEventsTotal.getVal();
-    //sampleSums->signalEvtsTotalSums[sampleNum]+=sigEventsTotal.getVal();
-  }
+    //debug
+    //std::cout << "\tshould be an entry in the sum vectors for this trial" << std::endl;
+    //std::cout << "\tNumTrials = " << sampleSums.nllSumsMap[assumedSignalTracks].numTrials << std::endl;
 
+    //sampleSums.nllSumsMap[assumedSignalTracks].nllSsums[trialIndex]+=nllS;
+    sampleSums.nllSumsMap[assumedSignalTracks].nllBsums[trialIndex]+=nllB;
+    sampleSums.nllSumsMap[assumedSignalTracks].nllSBsums[trialIndex]+=nllSB;
+    sampleSums.nllSumsMap[assumedSignalTracks].nllSatsums[trialIndex]+=nllSat;
+    sampleSums.nllSumsMap[assumedSignalTracks].nllSBFitsums[trialIndex]+=nllSBFit;
+    if(maxLSigFrac <= sigFracAssumedThisSlice)
+    {
+      //debug
+      //cout << "INFO: adding profile NLL: " << 2*(nllSB-nllSBFit) << " for this trial. " <<
+      //  " nllSB: " << nllSB << " nllSBFit: " << nllSBFit << " maxLSigFrac: " << maxLSigFrac <<
+      //  " sigFracAssumedThisSlice: " << sigFracAssumedThisSlice << endl;
+
+      sampleSums.nllSumsMap[assumedSignalTracks].profileLRsums[trialIndex]+=(2*(nllSB-nllSBFit));
+    }
+    sampleSums.nllSumsMap[assumedSignalTracks].pointsPerTrial[trialIndex]++;
+    sampleSums.nllSumsMap[assumedSignalTracks].expectedBgEvtsLastBinSums[trialIndex]+=expBgEventsLastBin;
+    sampleSums.nllSumsMap[assumedSignalTracks].expectedSigEvtsLastBinSums[trialIndex]+=expSigEventsLastBin;
+    sampleSums.nllSumsMap[assumedSignalTracks].expectedBgEvtsThisSliceSums[trialIndex]+=expBgEventsThisSlice;
+    sampleSums.nllSumsMap[assumedSignalTracks].expectedSigEvtsThisSliceSums[trialIndex]+=expSigEventsThisSlice;
+    sampleSums.nllSumsMap[assumedSignalTracks].actualEvtsLastBinSums[trialIndex]+=actEventsLastBin;
+    sampleSums.nllSumsMap[assumedSignalTracks].signalEvtsLastBinSums[trialIndex]+=sigEventsLastBin;
+    //sampleSums.nllSumsMap[assumedSignalTracks].actualEvtsTotalSums[trialIndex]+=actEventsTotal;
+    //sampleSums.nllSumsMap[assumedSignalTracks].signalEvtsTotalSums[trialIndex]+=sigEventsTotal;
+  }
 }
 
 
@@ -339,237 +441,450 @@ int main(int argc, char ** argv)
   //double ihSidebandThreshold (ana.getParameter<double>("IhSidebandThreshold"));
   int minNoM_ (ana.getParameter<int>("MinNoM"));
   double maxEta_ (ana.getParameter<double>("MaxEta"));
+  int reportEvery_ = 10000; //TODO: put this in the python
   
-
   fwlite::TFileService fs = fwlite::TFileService(outputHandler_.file().c_str());
-  // hists for BG only samples
-  SampleHistos* backgroundSampleHistos = new SampleHistos;
-  TFileDirectory backgroundOnlyDir = fs.mkdir("backgroundOnlySamples");
-  initHistos(backgroundSampleHistos,false,backgroundOnlyDir);
-  // hists for S+B samples
-  SampleHistos* signalAndBackgroundSampleHistos = new SampleHistos;
-  TFileDirectory signalBackgroundDir = fs.mkdir("signalAndBackgroundSamples");
-  initHistos(signalAndBackgroundSampleHistos,true,signalBackgroundDir);
+  // sampleSums objects
+  SampleSums bgOnlySamplesSums;
+  vector<SampleSums> sigAndBgSamplesSumsVec; // one for each sigFrac
 
-  // for both s+b and b samples, same hists from s+b samples
-  TH2F* sOverRootBExpInDRegionHist = fs.make<TH2F>("sOverRootBExpInDRegion",
-      "Expected s/sqrt(b) in D region;#eta;nom",12,0,2.4,9,5,23);
-  TH2F* expBgEventsInDRegionHist = fs.make<TH2F>("expBgEventsInDRegion",
-      "Expected bg tracks in D region;#eta;nom",12,0,2.4,9,5,23);
-  TH2F* expSigEventsInDRegionHist = fs.make<TH2F>("expSigEventsInDRegion",
-      "Expected sig tracks in D region;#eta;nom",12,0,2.4,9,5,23);
-  TH2F* expBgEventsInLastBinHist = fs.make<TH2F>("expBgEventsInLastBin",
-      "Expected bg tracks in last bin;#eta;nom",12,0,2.4,9,5,23);
-  TH2F* expSigEventsInLastBinHist = fs.make<TH2F>("expSigEventsInLastBin",
-      "Expected sig tracks in last bin;#eta;nom",12,0,2.4,9,5,23);
-  TH2F* sOverRootBExpInLastBinHist = fs.make<TH2F>("sOverRootBExpInLastBinRegion",
-      "Expected s/sqrt(b) in last bin;#eta;nom",12,0,2.4,9,5,23);
+  //TODO fix this
+  //// for both s+b and b samples, same hists from s+b samples
+  //TH2F* sOverRootBExpInDRegionHist = fs.make<TH2F>("sOverRootBExpInDRegion",
+  //    "Expected s/sqrt(b) in D region;#eta;nom",12,0,2.4,9,5,23);
+  //TH2F* expBgEventsInDRegionHist = fs.make<TH2F>("expBgEventsInDRegion",
+  //    "Expected bg tracks in D region;#eta;nom",12,0,2.4,9,5,23);
+  //TH2F* expSigEventsInDRegionHist = fs.make<TH2F>("expSigEventsInDRegion",
+  //    "Expected sig tracks in D region;#eta;nom",12,0,2.4,9,5,23);
+  //TH2F* expBgEventsInLastBinHist = fs.make<TH2F>("expBgEventsInLastBin",
+  //    "Expected bg tracks in last bin;#eta;nom",12,0,2.4,9,5,23);
+  //TH2F* expSigEventsInLastBinHist = fs.make<TH2F>("expSigEventsInLastBin",
+  //    "Expected sig tracks in last bin;#eta;nom",12,0,2.4,9,5,23);
+  //TH2F* sOverRootBExpInLastBinHist = fs.make<TH2F>("sOverRootBExpInLastBinRegion",
+  //    "Expected s/sqrt(b) in last bin;#eta;nom",12,0,2.4,9,5,23);
 
-  SampleSums* bgOnlySamplesSums = new SampleSums;
-  SampleSums* sigAndBgSamplesSums = new SampleSums;
+  const int numNomSlices = 8; // 5-19
+  const int numEtaSlices = 12; // 0-2.4
 
-  //const int numNomSlices = 9;
-  //const int numEtaSlices = 12;
-
-  //TODO: consolidate these in a single place (something like common functions)
-  // nll values
-  RooRealVar sigNLLRooVar("sigNLLRooVar","signal NLL",-100000,100000);
-  RooRealVar backNLLRooVar("backNLLRooVar","background NLL",-100000,100000);
-  RooRealVar sigBackNLLRooVar("sigBackNLLRooVar","signal+background NLL",-100000,100000);
-  RooRealVar satModelNLLRooVar("satModelNLLRooVar","sat model NLL",-100000,100000);
-  RooRealVar sigBackFitNLLRooVar("sigBackFitNLLRooVar","signal+background ML fit",-100000,100000);
-  RooRealVar maxLSigFracRooVar("maxLSigFracRooVar","max L fit signal frac",0,1);
-  // exp events (tracks)
-  RooRealVar expectedBackgroundEventsInLastBinRooVar("expectedBackgroundEventsInLastBinRooVar","expected bg events in last bin",0,20000);
-  RooRealVar expectedSignalEventsInLastBinRooVar("expectedSignalEventsInLastBinRooVar","expected signal events in last bin",0,20000);
-  RooRealVar expectedBackgroundEventsTotalRooVar("expectedBackgroundEventsTotalRooVar","expected bg events",0,50000);
-  RooRealVar expectedSignalEventsTotalRooVar("expectedSignalEventsTotalRooVar","expected signal events",0,20000);
-  RooRealVar actualEventsInLastBinRooVar("actualEventsInLastBinRooVar","actual events in last bin",0,20000);
-  RooRealVar signalEventsInLastBinRooVar("signalEventsInLastBinRooVar","signal events in last bin",0,0,20000);
+  unsigned int numSigBackgroundSamples = 0;
+  unsigned int lastSigBackIFilePlusOne = 0;
 
   // loop over files
   for(unsigned int iFile=0; iFile<inputHandler_.files().size(); ++iFile)
   {
     // open input file (can be located on castor)
     TFile* inFile = TFile::Open(inputHandler_.files()[iFile].c_str());
-    if( inFile )
+    if(!inFile)
+      continue;
+
+    std::cout << "-----------------------------" << std::endl;
+    std::cout << "Reading file: " << inFile->GetName() << std::endl;
+
+
+    // now each input file corresponds to one signal fraction
+    // all NoM/eta slices are included in the file
+    for(int nomIndex = 0; nomIndex < numNomSlices; ++nomIndex)
     {
-      // figure out nom/eta from filename
-      int nom = getNoMFromFilename(std::string(inFile->GetName()));
-      int etaSlice = getEtaFromFilename(std::string(inFile->GetName()))/2;
-      float eta = etaSlice*0.2;
-      if(nom < minNoM_) continue;
-      if(eta+0.2 > maxEta_) continue;
-
-      std::cout << "-----------------------------" << std::endl;
-      std::cout << "File: " << inFile->GetName() << std::endl;
-      //debug
-      std::cout << "numTotalSignalTracksInSamplesThisFile: " << 
-        numTotalSignalTracksInSamplesThisFile(std::string(inFile->GetName())) <<
-        std::endl;
-
-      RooDataSet* thisNLLDataSet = (RooDataSet*) inFile->Get("nllValues");
-      if(!thisNLLDataSet)
+      for(int etaIndex = 0; etaIndex < numEtaSlices; ++etaIndex)
       {
-        cout << "Unable to find roodataset called nllValues in this file: " <<
-          inFile->GetName() << endl;
-        continue;
-      }
-      RooDataSet* thisExpObsDataSet = (RooDataSet*) inFile->Get("expectedObservedEvents");
-      if(!thisExpObsDataSet)
-      {
-        cout << "Unable to find roodataset called expectedObservedEvents in this file: " <<
-          inFile->GetName() << endl;
-        continue;
-      }
+        int lowerNoM = getLowerNoMFromNoMIndex(nomIndex);
+        float lowerEta = getLowerEtaFromEtaIndex(etaIndex);
+        if(lowerNoM < minNoM_) continue;
+        if(lowerEta+0.2 > maxEta_) continue;
 
-      bool isSignalAndBackground = true;
-      if(numTotalSignalTracksInSamplesThisFile(std::string(inFile->GetName())) <= 0)
-        isSignalAndBackground = false;
-
-      const RooArgSet* nllArgSet = thisNLLDataSet->get();
-      RooRealVar* nllS = (RooRealVar*)nllArgSet->find(sigNLLRooVar.GetName());
-      RooRealVar* nllB = (RooRealVar*)nllArgSet->find(backNLLRooVar.GetName());
-      RooRealVar* nllSB = (RooRealVar*)nllArgSet->find(sigBackNLLRooVar.GetName());
-      RooRealVar* nllSat = (RooRealVar*)nllArgSet->find(satModelNLLRooVar.GetName());
-      RooRealVar* nllSBFit = (RooRealVar*)nllArgSet->find(sigBackFitNLLRooVar.GetName());
-      RooRealVar* maxLSigFrac = (RooRealVar*)nllArgSet->find(maxLSigFracRooVar.GetName());
-      const RooArgSet* expObsArgSet = thisExpObsDataSet->get();
-      RooRealVar* expBgEventsLastBin = (RooRealVar*)expObsArgSet->find(expectedBackgroundEventsInLastBinRooVar.GetName());
-      RooRealVar* expSigEventsLastBin = (RooRealVar*)expObsArgSet->find(expectedSignalEventsInLastBinRooVar.GetName());
-      RooRealVar* expBgEventsTotal = (RooRealVar*)expObsArgSet->find(expectedBackgroundEventsTotalRooVar.GetName());
-      RooRealVar* expSigEventsTotal = (RooRealVar*)expObsArgSet->find(expectedSignalEventsTotalRooVar.GetName());
-      RooRealVar* actEventsLastBin = (RooRealVar*)expObsArgSet->find(actualEventsInLastBinRooVar.GetName());
-      RooRealVar* sigEventsLastBin = (RooRealVar*)expObsArgSet->find(signalEventsInLastBinRooVar.GetName());
-
-      // loop over dataset (looping over the trials)
-      for(int i=0; i < thisNLLDataSet->numEntries(); ++i)
-      {
-         thisNLLDataSet->get(i);
-         thisExpObsDataSet->get(i);
-
-        if(isSignalAndBackground)
-          fillSampleSums(sigAndBgSamplesSums,*nllArgSet,*expObsArgSet,i);
-        else
-          fillSampleSums(bgOnlySamplesSums,*nllArgSet,*expObsArgSet,i);
-
-        if(i==0)
+        string expDatasetName = "expectedEventsDatasets/";
+        expDatasetName+=getHistNameBeg(lowerNoM,lowerEta);
+        expDatasetName+="expectedEvents";
+        RooDataSet* thisExpDataSet = (RooDataSet*) inFile->Get(expDatasetName.c_str());
+        if(!thisExpDataSet)
         {
-          if(isSignalAndBackground)
+          cout << "\tUnable to find roodataset called " << expDatasetName << endl;
+          continue;
+        }
+        string obsDatasetName ="observedEventsDatasets/";
+        obsDatasetName+= getHistNameBeg(lowerNoM,lowerEta);
+        obsDatasetName+="observedEvents";
+        RooDataSet* thisObsDataSet = (RooDataSet*) inFile->Get(obsDatasetName.c_str());
+        if(!thisObsDataSet)
+        {
+          cout << "\tUnable to find roodataset called " << obsDatasetName << endl;
+          continue;
+        }
+        string nllDatasetName ="nllDatasets/";
+        nllDatasetName+=getHistNameBeg(lowerNoM,lowerEta);
+        nllDatasetName+="nllValues";
+        RooDataSet* thisNllDataSet = (RooDataSet*) inFile->Get(nllDatasetName.c_str());
+        if(!thisNllDataSet)
+        {
+          cout << "\tUnable to find roodataset called " << nllDatasetName << endl;
+          continue;
+        }
+        // now we have the exp/obs/nll datasets for this eta/NoM
+
+        cout << "\tlooking at lowerNoM: " << lowerNoM << " lowerEta: " << lowerEta << endl;
+
+        // load up the expected variables
+        const RooArgSet* expArgSet = thisExpDataSet->get();
+        RooRealVar* expBgEventsLastBin = (RooRealVar*)expArgSet->find(expectedBackgroundEventsInLastBinRooVar.GetName());
+        RooRealVar* expSigEventsLastBin = (RooRealVar*)expArgSet->find(expectedSignalEventsInLastBinRooVar.GetName());
+        RooRealVar* expBgEventsThisSlice = (RooRealVar*)expArgSet->find(expectedBackgroundEventsThisSliceRooVar.GetName());
+        RooRealVar* expSigEventsThisSlice = (RooRealVar*)expArgSet->find(expectedSignalEventsThisSliceRooVar.GetName());
+        RooRealVar* expTotalSignalFraction = (RooRealVar*)expArgSet->find(expectedTotalSignalFractionRooVar.GetName());
+        //RooRealVar* numberOfTrials = (RooRealVar*)expArgSet->find(numberOfTrialsRooVar.GetName());
+        thisExpDataSet->get(0);
+        // load up the obs variables
+        const RooArgSet* obsArgSet = thisObsDataSet->get();
+        RooRealVar* actEventsLastBin = (RooRealVar*)obsArgSet->find(actualEventsInLastBinRooVar.GetName());
+        RooRealVar* sigEventsLastBin = (RooRealVar*)obsArgSet->find(signalEventsInLastBinRooVar.GetName());
+        // load up the nll variables
+        const RooArgSet* nllArgSet = thisNllDataSet->get();
+        //RooRealVar* sigNLL = (RooRealVar*)nllArgSet->find(sigNLLRooVar.GetName());
+        RooRealVar* backNLL = (RooRealVar*)nllArgSet->find(backNLLRooVar.GetName());
+        RooRealVar* sigBackNLL = (RooRealVar*)nllArgSet->find(sigBackNLLRooVar.GetName());
+        RooRealVar* satModelNLL = (RooRealVar*)nllArgSet->find(satModelNLLRooVar.GetName());
+        RooRealVar* sigBackFitNLL = (RooRealVar*)nllArgSet->find(sigBackFitNLLRooVar.GetName());
+        RooRealVar* maxLSigFrac = (RooRealVar*)nllArgSet->find(maxLSigFracRooVar.GetName());
+        RooRealVar* assumedTotalSigTracks = (RooRealVar*)nllArgSet->find(assumedTotalSigTracksRooVar.GetName());
+        RooRealVar* assumedSigTracksThisSlice = (RooRealVar*)nllArgSet->find(assumedSigTracksThisSliceRooVar.GetName());
+        RooRealVar* trialIndex = (RooRealVar*)nllArgSet->find(trialIndexRooVar.GetName());
+
+        int numTotalSignalTracksThisFile = getNumTotalSignalTracksInSamplesThisFile(inFile->GetName());
+        bool isSignalAndBackground = false;
+        if(expTotalSignalFraction->getVal() > 0)
+        {
+          isSignalAndBackground = true;
+          //debug
+          //cout << "iFile+1: " << iFile+1 << " lastSigBackIFile: " << lastSigBackIFilePlusOne << 
+          //  " numSigBackgroundSamples: " << numSigBackgroundSamples << endl;
+          if(iFile+1 > lastSigBackIFilePlusOne)
           {
-            expBgEventsInLastBinHist->Fill(eta+0.1,nom,expBgEventsLastBin->getVal());
-            expSigEventsInLastBinHist->Fill(eta+0.1,nom,expSigEventsLastBin->getVal());
-            expBgEventsInDRegionHist->Fill(eta+0.1,nom,expBgEventsTotal->getVal());
-            expSigEventsInDRegionHist->Fill(eta+0.1,nom,expSigEventsTotal->getVal());
-            if(expBgEventsLastBin->getVal() > 0)
-              sOverRootBExpInLastBinHist->Fill(eta,nom,expSigEventsLastBin->getVal()/(double)sqrt(expBgEventsLastBin->getVal()));
-            if(expBgEventsTotal->getVal() > 0)
-              sOverRootBExpInDRegionHist->Fill(eta,nom,expSigEventsTotal->getVal()/(double)sqrt(expBgEventsTotal->getVal()));
+            numSigBackgroundSamples++;
+            lastSigBackIFilePlusOne = iFile+1;
+            //debug
+          //cout << "(2) iFile: " << iFile+1 << " lastSigBackIFile: " << lastSigBackIFilePlusOne << 
+          //  " numSigBackgroundSamples: " << numSigBackgroundSamples << endl;
+          }
+        }
+        //debug
+        //cout << "expTotalSignalFraction" << expTotalSignalFraction->getVal() << endl;
+        //cout << "isSignalAndBackground? " << isSignalAndBackground << endl;
+
+        //// get the PDFs
+        //string bgHistPdfName = "iasBackgroundPredictions/";
+        //bgHistPdfName+=getHistNameBeg(lowerNoM,lowerEta);
+        //bgHistPdfName+="iasPredictionVarBinHistHistPdfBG";
+        //RooHistPdf* backgroundPredictionHistPdf = (RooHistPdf*)inFile->Get(bgHistPdfName.c_str());
+        //if(!backgroundPredictionHistPdf)
+        //{
+        //  cout << "Unable to find roohistPdf " << bgHistPdfName << " in this file: " <<
+        //    inFile->GetName() << endl;
+        //  continue;
+        //}
+        //string sigHistPdfName = "iasSignalPredictions/";
+        //sigHistPdfName+=getHistNameBeg(lowerNoM,lowerEta);
+        //sigHistPdfName+="iasSignalVarBinHistHistPdfSig";
+        //RooHistPdf* signalPredictionHistPdf = (RooHistPdf*)inFile->Get(sigHistPdfName.c_str());
+        //if(!signalPredictionHistPdf)
+        //{
+        //  cout << "Unable to find roohistPdf " << sigHistPdfName << " in this file: " <<
+        //    inFile->GetName() << endl;
+        //  continue;
+        //}
+        //RooRealVar fsig("fsig","signal frac",0,1);
+        //RooHistPdf* iasBackgroundHistPdfForSBModel = (RooHistPdf*)backgroundPredictionHistPdf->Clone();
+        //RooAddPdf sigBackPdf("sigBackPdf","sigBackPdf",RooArgList(*signalPredictionHistPdf,
+        //      *iasBackgroundHistPdfForSBModel),fsig);
+
+        //debug
+        //cout << "Looping over trials" << endl;
+
+        // loop over the trials
+        int nllCounter = 0;
+        thisNllDataSet->get(0);
+        for(int i=0; i < thisObsDataSet->numEntries(); ++i)
+        {
+          if(reportEvery_!=0 ? ((i+1)>0 && (i+1)%reportEvery_==0) : false)
+            cout << "  getting  trial: " << i+1 << " of " << thisObsDataSet->numEntries() << endl;
+          // get the obs data
+          thisObsDataSet->get(i);
+          // look at all the different assumed signal tracks scenarios in each sample
+
+          //debug
+          //if(i>995)
+          //  cout << "(loop over events) TrialIndex = " << trialIndex->getVal() << " i = " << i << " nllCounter = " << nllCounter << endl;
+
+          while(trialIndex->getVal()==i && nllCounter < thisNllDataSet->numEntries())
+          {
+            //debug
+            //if(i>995)
+            //  cout << "(while) TrialIndex = " << trialIndex->getVal() << " i = " << i << " nllCounter = " << nllCounter << endl;
+
+            // compute signal fraction this slice
+            float assumedSignalFractionThisSlice = assumedSigTracksThisSlice->getVal() /
+              (double)(assumedSigTracksThisSlice->getVal()+expBgEventsThisSlice->getVal());
+
+            if(!isSignalAndBackground)
+            {
+
+              fillSampleSums(bgOnlySamplesSums,i,assumedTotalSigTracks->getVal(),
+                  backNLL->getVal(),sigBackNLL->getVal(),satModelNLL->getVal(),
+                  sigBackFitNLL->getVal(),maxLSigFrac->getVal(),
+                  assumedSignalFractionThisSlice,expBgEventsLastBin->getVal(),expSigEventsLastBin->getVal(),
+                  expBgEventsThisSlice->getVal(),expSigEventsThisSlice->getVal(),actEventsLastBin->getVal(),
+                  sigEventsLastBin->getVal(),expTotalSignalFraction->getVal());
+              //debug
+              if(i==0 && assumedTotalSigTracks->getVal() == 11)
+                cout << "BG only (assumed sig tracks 11): " << " slice eta = " << lowerEta << " lower NoM = " <<
+                  lowerNoM << " sigBackFitNLL = " << sigBackFitNLL->getVal() <<
+                  " sigBackNLL = " << sigBackNLL->getVal() <<
+                  " maxLSigFrac = " << maxLSigFrac->getVal() << endl;
+            }
+            else 
+            {
+              //debug
+              //cout << "size of sigAndBgSamplesSumsVec: " << sigAndBgSamplesSumsVec.size() <<
+              //  " numSigBackgroundSamples: " << numSigBackgroundSamples <<
+              //  "  " << endl;
+
+              // only make an entry for the assumed S+B fraction = actual gen S+B fraction
+              if(numTotalSignalTracksThisFile == assumedTotalSigTracks->getVal())
+              {
+                //debug
+                //cout << "numTotalSignalTracksThisFile = " << numTotalSignalTracksThisFile <<
+                //  " assumedTotalSigTracks here = " << assumedTotalSigTracks->getVal() << endl;
+                if(sigAndBgSamplesSumsVec.size() < numSigBackgroundSamples)
+                  sigAndBgSamplesSumsVec.push_back(SampleSums());
+                //debug
+                //cout << "fill SB sample sums for element: " << sigAndBgSamplesSumsVec.size()-1 <<
+                //  " trial: " << i << endl;
+
+                fillSampleSums(sigAndBgSamplesSumsVec[sigAndBgSamplesSumsVec.size()-1],
+                    i,assumedTotalSigTracks->getVal(),
+                    backNLL->getVal(),sigBackNLL->getVal(),satModelNLL->getVal(),
+                    sigBackFitNLL->getVal(),maxLSigFrac->getVal(),
+                    assumedSignalFractionThisSlice,expBgEventsLastBin->getVal(),expSigEventsLastBin->getVal(),
+                    expBgEventsThisSlice->getVal(),expSigEventsThisSlice->getVal(),actEventsLastBin->getVal(),
+                    sigEventsLastBin->getVal(),expTotalSignalFraction->getVal());
+              //debug
+              if(i==0 && assumedTotalSigTracks->getVal() == 11)
+                cout << "SIG+BG: (assumed sig tracks 11)" << " slice eta = " << lowerEta << " lower NoM = " <<
+                  lowerNoM << " sigBackFitNLL = " << sigBackFitNLL->getVal() <<
+                  " sigBackNLL = " << sigBackNLL->getVal() <<
+                  " maxLSigFrac = " << maxLSigFrac->getVal() << endl;
+              }
+            }
+
+            nllCounter++;
+            thisNllDataSet->get(nllCounter);
           }
 
-          cout << "trial: " << i << endl;
-          cout << " file: " << inFile->GetName() << endl;
-          cout << "\n\t nllSonly: " << nllS->getVal()<< endl;
-          cout << "\n\t nllBOnly: " << nllB->getVal() << " nllSB: " << nllSB->getVal()<< endl;
-          cout << "\n\t nllSBOverB: " << 2*(nllSB->getVal()-nllB->getVal())<< endl;
-          cout << "\n\t nllBSat: " << 2*(nllB->getVal()-nllSat->getVal())<< endl;
-          cout << "\n\t eventsInLastBin: " << actEventsLastBin->getVal()<< endl;
-          cout << "\n\t expectedBgEventsInLastBin: " << expBgEventsLastBin->getVal()<< endl;
-          cout << "\n\t expectedSigEventsInLastBin: " << expSigEventsLastBin->getVal()<< endl;
-            //<< endl;
+
+          if(i==0)
+          {
+            //TODO FIXME fill these
+            //if(isSignalAndBackground)
+            //{
+            //  expBgEventsInLastBinHist->Fill(lowerEta+0.1,lowerNoM,expBgEventsLastBin->getVal());
+            //  expSigEventsInLastBinHist->Fill(lowerEta+0.1,lowerNoM,expSigEventsLastBin->getVal());
+            //  expBgEventsInDRegionHist->Fill(lowerEta+0.1,lowerNoM,expBgEventsTotal->getVal());
+            //  expSigEventsInDRegionHist->Fill(lowerEta+0.1,lowerNoM,expSigEventsTotal->getVal());
+            //  if(expBgEventsLastBin->getVal() > 0)
+            //    sOverRootBExpInLastBinHist->Fill(lowerEta,lowerNoM,expSigEventsLastBin->getVal()/(double)sqrt(expBgEventsLastBin->getVal()));
+            //  if(expBgEventsTotal->getVal() > 0)
+            //    sOverRootBExpInDRegionHist->Fill(lowerEta,lowerNoM,expSigEventsTotal->getVal()/(double)sqrt(expBgEventsTotal->getVal()));
+            //}
+
+            cout << "\ttrial: " << i << endl;
+            cout << "\tlowerNoM: " << lowerNoM << " lowerEta: " << lowerEta << endl;
+            //cout << "\t nllSonly: " << nllS->getVal()<< endl;
+            cout << "\t nllBOnly: " << backNLL->getVal() << " nllSB: " << sigBackNLL->getVal()<< endl;
+            cout << "\t nllSBOverB: " << 2*(sigBackNLL->getVal()-backNLL->getVal())<< endl;
+            cout << "\t nllBSat: " << 2*(backNLL->getVal()-satModelNLL->getVal())<< endl;
+            cout << "\t eventsInLastBin: " << actEventsLastBin->getVal()<< endl;
+            cout << "\t expectedBgEventsInLastBin: " << expBgEventsLastBin->getVal()<< endl;
+            cout << "\t expectedSigEventsInLastBin: " << expSigEventsLastBin->getVal()<< endl;
+          }
         }
+
+        // delete pointers
+        delete thisExpDataSet;
+        delete thisObsDataSet;
+        delete thisNllDataSet;
+        //delete expArgSet;
+        //delete expBgEventsLastBin;
+        //delete expSigEventsLastBin;
+        //delete expBgEventsThisSlice;
+        //delete expSigEventsThisSlice;
+        //delete expTotalSignalFraction;
+       // //delete numberOfTrials;
+       // delete obsArgSet;
+       // delete actEventsLastBin;
+       // delete sigEventsLastBin;
+       // delete nllArgSet;
+       // delete backNLL;
+       // delete sigBackNLL;
+       // delete satModelNLL;
+       // delete sigBackFitNLL;
+       // delete maxLSigFrac;
+       // delete assumedTotalSigTracks;
+       // delete trialIndex;
+        //delete backgroundPredictionHistPdf;
+        //delete signalPredictionHistPdf;
+        //delete iasBackgroundHistPdfForSBModel;
       }
     }
   }
 
 
-  if(sigAndBgSamplesSums->expectedBgEvtsLastBinSums.size() < 1)
+  if(bgOnlySamplesSums.nllSumsMap[0].expectedBgEvtsLastBinSums.size() < 1)
   {
-    std::cout << "ERROR: unable to find any information from any S+B input file.  Stopping." << std::endl;
-    return -2;
-  }
-  if(bgOnlySamplesSums->expectedBgEvtsLastBinSums.size() < 1)
-  {
-    std::cout << "ERROR: unable to find any information from any B-only input file.  Stopping." << std::endl;
+    std::cout << "ERROR: didn't find any information from any B-only input file.  Stopping." << std::endl;
     return -3;
   }
+  //if(sigAndBgSamplesSumsVec[0].nllSumsMap[0].expectedBgEvtsLastBinSums.size() < 1)
+  if(sigAndBgSamplesSumsVec.size() < 1)
+  {
+    std::cout << "ERROR: didn't find any information from any S+B input file.  Stopping." << std::endl;
+    //cout << " INFO: numTrials = " << sigAndBgSamplesSumsVec[0].nllSumsMap[0].numTrials <<
+    //  " totalSignalFraction = " << sigAndBgSamplesSumsVec[0].totalSignalFraction << 
+    //  " totalSignalTracks = " << sigAndBgSamplesSumsVec[0].totalSignalTracks << endl;
+    //  //" nllBSums[0] = " << sigAndBgSamplesSumsVec[0].nllSumsMap[0].nllBsums[0] << endl;
+    return -2;
+  }
 
 
-  std::cout << "INFO: expected BG #events in last bin=" << bgOnlySamplesSums->expectedBgEvtsLastBinSums[0]
-    << std::endl;
-  std::cout << "INFO: expected Sig #events in last bin=" << bgOnlySamplesSums->expectedSigEvtsLastBinSums[0]
-    << std::endl;
-  std::cout << "INFO: expected BG #events total=" << bgOnlySamplesSums->expectedBgEvtsTotalSums[0]
-    << std::endl;
-  std::cout << "INFO: expected Sig #events total=" << bgOnlySamplesSums->expectedSigEvtsTotalSums[0]
-    << std::endl;
+  cout << "INFO: assumed sig tracks 11: trial 0: expected BG #events in last bin sum=" <<
+    bgOnlySamplesSums.nllSumsMap[11].expectedBgEvtsLastBinSums[0] << endl;
+  cout << "INFO: assumed sig tracks 11: trial 0: expected BG #events this slice sum=" <<
+    bgOnlySamplesSums.nllSumsMap[11].expectedBgEvtsThisSliceSums[0] << endl;
+  // loop over different S+B samples read in
+  for(vector<SampleSums>::const_iterator itr = sigAndBgSamplesSumsVec.begin();
+      itr != sigAndBgSamplesSumsVec.end(); ++itr)
+  {
+    SampleSums thisSBSampleSums = *itr;
+    cout << "INFO: S+B sample signal fraction = " << 
+      thisSBSampleSums.totalSignalFraction << endl;
+    cout << "\tINFO: S+B sample signal tracks total = " << thisSBSampleSums.totalSignalTracks << endl;
+    cout << "\tINFO: trial 0: expected Sig #events in last bin sum=" <<
+      thisSBSampleSums.nllSumsMap.begin()->second.expectedSigEvtsLastBinSums[0] << endl;
+    cout << "\tINFO: trial 0: expected Sig #events this slice sum=" <<
+      thisSBSampleSums.nllSumsMap.begin()->second.expectedSigEvtsThisSliceSums[0] << endl;
+  }
 
+  // hists for BG only samples
+  TFileDirectory backgroundOnlyDir = fs.mkdir("backgroundOnlySamples");
+  map<int,SampleHistos> backgroundSampleHistosMap;
 
-  vector<double> qMuBgOnlyVec;
+  map<int, vector<double> > qMuBgOnlyMap;
+  map<int, float> medianQMuZeroMap;
   // plot histograms -- b only first
-  for(unsigned int i=0; i<bgOnlySamplesSums->nllSsums.size(); ++i)
+  for(map<int,NLLSums>::const_iterator nllMapItr = bgOnlySamplesSums.nllSumsMap.begin();
+      nllMapItr != bgOnlySamplesSums.nllSumsMap.end(); ++nllMapItr)
   {
-    double nllSsum = bgOnlySamplesSums->nllSsums[i];
-    double nllBsum = bgOnlySamplesSums->nllBsums[i];
-    double nllSatsum = bgOnlySamplesSums->nllSatsums[i];
-    double nllSBsum = bgOnlySamplesSums->nllSBsums[i];
-    double profileLRsum = bgOnlySamplesSums->profileLRsums[i];
-    double pointsPerTrial = bgOnlySamplesSums->pointsPerTrial[i];
-    double eventsInLastBin = bgOnlySamplesSums->actualEvtsLastBinSums[i];
-    //double totalEvts = bgOnlySamplesSums->actualEvtsTotalSums[i];
+    cout << "looking at background sample with assumed signal tracks = " << nllMapItr->first <<
+      endl;
 
-    backgroundSampleHistos->nllSOnlyHist->Fill(nllSsum);
-    backgroundSampleHistos->nllBOnlyHist->Fill(nllBsum);
-    backgroundSampleHistos->nllSatOnlyHist->Fill(nllSatsum);
-    backgroundSampleHistos->nllSBHist->Fill(nllSBsum);
-    backgroundSampleHistos->nllSBOverBHist->Fill(2*(nllSBsum-nllBsum));
-    backgroundSampleHistos->nllBSatHist->Fill(2*(nllBsum-nllSatsum));
-    backgroundSampleHistos->profileLRHist->Fill(profileLRsum);
-    backgroundSampleHistos->pointsPerTrialHist->Fill(pointsPerTrial);
-    backgroundSampleHistos->eventsInLastBinVsNLLSBOverBHist->Fill(2*(nllSBsum-nllBsum),eventsInLastBin);
-    //backgroundSampleHistos->eventsTotalVsNLLSBOverBHist->Fill(2*(nllSBsum-nllBsum),totalEvts);
+    backgroundSampleHistosMap.insert(pair<int,SampleHistos>(nllMapItr->first,SampleHistos()));
+    initHistos(nllMapItr->first,backgroundSampleHistosMap[nllMapItr->first],false,backgroundOnlyDir);
+    SampleHistos backgroundSampleHistos = backgroundSampleHistosMap[nllMapItr->first];
+    qMuBgOnlyMap.insert(pair<int,vector<double> >(nllMapItr->first,vector<double>()));
 
-    qMuBgOnlyVec.push_back(profileLRsum);
-  }
-  // plot histograms -- sb
-  for(unsigned int i=0; i<sigAndBgSamplesSums->nllSsums.size(); ++i)
-  {
-    double nllSsum = sigAndBgSamplesSums->nllSsums[i];
-    double nllBsum = sigAndBgSamplesSums->nllBsums[i];
-    double nllSatsum = sigAndBgSamplesSums->nllSatsums[i];
-    double nllSBsum = sigAndBgSamplesSums->nllSBsums[i];
-    double profileLRsum = sigAndBgSamplesSums->profileLRsums[i];
-    double pointsPerTrial = sigAndBgSamplesSums->pointsPerTrial[i];
-    double eventsInLastBin = sigAndBgSamplesSums->actualEvtsLastBinSums[i];
-    //double totalEvts = sigAndBgSamplesSums->actualEvtsTotalSums[i];
-    //std::cout << "profileLR sum: " << sigAndBgSamplesSums->nllSsums[i] << std::endl;
+    // loop over trials
+    for(unsigned int i=0; i<nllMapItr->second.nllBsums.size(); ++i)
+    {
+      //double nllSsum = nllMapItr->second.nllSsums[i];
+      double nllBsum = nllMapItr->second.nllBsums[i];
+      double nllSatsum = nllMapItr->second.nllSatsums[i];
+      double nllSBsum = nllMapItr->second.nllSBsums[i];
+      double profileLRsum = nllMapItr->second.profileLRsums[i];
+      double pointsPerTrial = nllMapItr->second.pointsPerTrial[i];
+      double eventsInLastBin = nllMapItr->second.actualEvtsLastBinSums[i];
+      //double totalEvts = nllMapItr->second.actualEvtsTotalSums[i];
 
-    signalAndBackgroundSampleHistos->nllSOnlyHist->Fill(nllSsum);
-    signalAndBackgroundSampleHistos->nllBOnlyHist->Fill(nllBsum);
-    signalAndBackgroundSampleHistos->nllSatOnlyHist->Fill(nllSatsum);
-    signalAndBackgroundSampleHistos->nllSBHist->Fill(nllSBsum);
-    signalAndBackgroundSampleHistos->nllSBOverBHist->Fill(2*(nllSBsum-nllBsum));
-    signalAndBackgroundSampleHistos->nllBSatHist->Fill(2*(nllBsum-nllSatsum));
-    signalAndBackgroundSampleHistos->profileLRHist->Fill(profileLRsum);
-    signalAndBackgroundSampleHistos->pointsPerTrialHist->Fill(pointsPerTrial);
-    signalAndBackgroundSampleHistos->eventsInLastBinVsNLLSBOverBHist->Fill(2*(nllSBsum-nllBsum),eventsInLastBin);
-    //signalAndBackgroundSampleHistos->eventsTotalVsNLLSBOverBHist->Fill(2*(nllSBsum-nllBsum),totalEvts);
+      //backgroundSampleHistos.nllSOnlyHist->Fill(nllSsum);
+      backgroundSampleHistos.nllBOnlyHist->Fill(nllBsum);
+      backgroundSampleHistos.nllSatOnlyHist->Fill(nllSatsum);
+      backgroundSampleHistos.nllSBHist->Fill(nllSBsum);
+      backgroundSampleHistos.nllSBOverBHist->Fill(2*(nllSBsum-nllBsum));
+      backgroundSampleHistos.nllBSatHist->Fill(2*(nllBsum-nllSatsum));
+      backgroundSampleHistos.profileLRHist->Fill(profileLRsum);
+      backgroundSampleHistos.pointsPerTrialHist->Fill(pointsPerTrial);
+      backgroundSampleHistos.eventsInLastBinVsNLLSBOverBHist->Fill(2*(nllSBsum-nllBsum),eventsInLastBin);
+      //backgroundSampleHistos.eventsTotalVsNLLSBOverBHist->Fill(2*(nllSBsum-nllBsum),totalEvts);
+
+      //cout << "Pushing back profileLRsum = " << profileLRsum << endl;
+      qMuBgOnlyMap[nllMapItr->first].push_back(profileLRsum);
+    }
+
+    // median q_mu
+    double medianQmuZero = 0;
+    sort(qMuBgOnlyMap[nllMapItr->first].begin(),qMuBgOnlyMap[nllMapItr->first].end());
+    medianQmuZero = qMuBgOnlyMap[nllMapItr->first].at(qMuBgOnlyMap[nllMapItr->first].size()/2+1);
+    medianQMuZeroMap.insert(pair<int,float>(nllMapItr->first,medianQmuZero));
+    cout << "Median q_mu|0 value: " << medianQmuZero << endl;
+  
   }
 
-  // median q_mu
-  double medianQmuZero = 0;
-  sort(qMuBgOnlyVec.begin(),qMuBgOnlyVec.end());
-  medianQmuZero = qMuBgOnlyVec.at(qMuBgOnlyVec.size()/2+1);
-  cout << "Median q_mu|0 value: " << medianQmuZero << endl;
+  // hists for S+B samples
+  vector<SampleHistos> signalAndBackgroundSampleHistosVec;
+  // loop over different S+B samples read in
+  for(vector<SampleSums>::const_iterator itr = sigAndBgSamplesSumsVec.begin();
+      itr != sigAndBgSamplesSumsVec.end(); ++itr)
+  {
+    SampleSums thisSBSampleSums = *itr;
+    // each SampleSums should only have one element in the nll map
+    if(thisSBSampleSums.nllSumsMap.size() != 1)
+      cout << "ERROR: thisSBSampleSums nllSumsMap size is : " <<
+        thisSBSampleSums.nllSumsMap.size() << " which is not 1" << endl;
+    map<int,NLLSums>::iterator nllMapItr = thisSBSampleSums.nllSumsMap.begin();
 
-  // p-value
-  TH1F* sigBackProfileLRHist = signalAndBackgroundSampleHistos->profileLRHist;
-  int medianQMuZeroBin = sigBackProfileLRHist->FindBin(medianQmuZero);
-  int maxBin = sigBackProfileLRHist->GetNbinsX();
-  double pvalue = sigBackProfileLRHist->Integral(medianQMuZeroBin,maxBin)/sigBackProfileLRHist->Integral();
-  std::cout << "p-value of for this signal fraction: " << pvalue
-    << " this upper limit on signal fraction has CL = " << 1-pvalue << std::endl;
-    
+    signalAndBackgroundSampleHistosVec.push_back(SampleHistos());
+    string histoDirName = "signalAndBackgroundSamplesHists_sigTracks";
+    histoDirName+=intToString(thisSBSampleSums.totalSignalTracks);
+    TFileDirectory signalBackgroundDir = fs.mkdir(histoDirName.c_str());
+    initHistos(nllMapItr->first,signalAndBackgroundSampleHistosVec.back(),true,signalBackgroundDir);
+
+    // looping over trials
+    for(unsigned int i=0; i<nllMapItr->second.nllBsums.size(); ++i)
+    {
+      //double nllSsum = nllMapItr->second.nllSsums[i];
+      double nllBsum = nllMapItr->second.nllBsums[i];
+      double nllSatsum = nllMapItr->second.nllSatsums[i];
+      double nllSBsum = nllMapItr->second.nllSBsums[i];
+      double profileLRsum = nllMapItr->second.profileLRsums[i];
+      double pointsPerTrial = nllMapItr->second.pointsPerTrial[i];
+      double eventsInLastBin = nllMapItr->second.actualEvtsLastBinSums[i];
+      //double totalEvts = nllMapItr->second.actualEvtsTotalSums[i];
+      //std::cout << "profileLR sum: " << nllMapItr->second.nllSsums[i] << std::endl;
+
+      //signalAndBackgroundSampleHistosVec.back().nllSOnlyHist->Fill(nllSsum);
+      signalAndBackgroundSampleHistosVec.back().nllBOnlyHist->Fill(nllBsum);
+      signalAndBackgroundSampleHistosVec.back().nllSatOnlyHist->Fill(nllSatsum);
+      signalAndBackgroundSampleHistosVec.back().nllSBHist->Fill(nllSBsum);
+      signalAndBackgroundSampleHistosVec.back().nllSBOverBHist->Fill(2*(nllSBsum-nllBsum));
+      signalAndBackgroundSampleHistosVec.back().nllBSatHist->Fill(2*(nllBsum-nllSatsum));
+      signalAndBackgroundSampleHistosVec.back().profileLRHist->Fill(profileLRsum);
+      signalAndBackgroundSampleHistosVec.back().pointsPerTrialHist->Fill(pointsPerTrial);
+      signalAndBackgroundSampleHistosVec.back().eventsInLastBinVsNLLSBOverBHist->Fill(2*(nllSBsum-nllBsum),eventsInLastBin);
+      //signalAndBackgroundSampleHistosVec.back().eventsTotalVsNLLSBOverBHist->Fill(2*(nllSBsum-nllBsum),totalEvts);
+    }
+
+    // p-value
+    TH1F* sigBackProfileLRHist = signalAndBackgroundSampleHistosVec.back().profileLRHist;
+    map<int,float>::const_iterator itr = medianQMuZeroMap.find(nllMapItr->first);
+    if(itr==medianQMuZeroMap.end())
+      cout << "ERROR: number of signal tracks = " << nllMapItr->first << 
+        " not found in the background QMuZero map!" << endl;
+
+    int medianQMuZeroBin = sigBackProfileLRHist->FindBin(itr->second);
+    int maxBin = sigBackProfileLRHist->GetNbinsX();
+    double pvalue = sigBackProfileLRHist->Integral(medianQMuZeroBin,maxBin)/sigBackProfileLRHist->Integral();
+    std::cout << "signal fraction: " << thisSBSampleSums.totalSignalFraction
+      << " total signal tracks: " << thisSBSampleSums.totalSignalTracks
+      << " p-value : " << pvalue
+      << " this upper limit on signal fraction has CL = " << 1-pvalue << std::endl;
+  }
+
 
 }
 
