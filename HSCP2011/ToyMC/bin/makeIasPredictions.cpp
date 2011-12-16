@@ -160,7 +160,8 @@ std::vector<double> computeVariableBins(TH1* hist)
   //for(unsigned int i=0; i<binArray.size(); ++i)
   //  std::cout << "initial binArray[" << i << "]: " << binArray[i] << std::endl;
 
-  while(hist->Integral(hist->FindBin(binArray.back()),hist->FindBin(hist->GetXaxis()->GetXmax())) <= 0)
+  while(hist->Integral(hist->FindBin(binArray.back()),hist->FindBin(hist->GetXaxis()->GetXmax())) <= 0
+      && binArray.size() > 1)
   {
     binArray.erase(binArray.end()-1);
   }
@@ -251,6 +252,7 @@ int main(int argc, char ** argv)
   RooRealVar rooVarIas("rooVarIas","ias",0,1);
   RooRealVar rooVarIh("rooVarIh","ih",0,15);
   RooRealVar rooVarP("rooVarP","p",0,5000);
+  RooRealVar rooVarPt("rooVarPt","pt",0,5000);
   RooRealVar rooVarNoMias("rooVarNoMias","nom",0,30);
   RooRealVar rooVarEta("rooVarEta","eta",0,2.5);
   TFile* inFile = TFile::Open(inputHandler_.files()[0].c_str());
@@ -385,6 +387,7 @@ int main(int argc, char ** argv)
       RooRealVar* etaData_B = (RooRealVar*)argSet_B->find(rooVarEta.GetName());
       const RooArgSet* argSet_C = etaCutNomCutCRegionDataSet->get();
       RooRealVar* pData_C = (RooRealVar*)argSet_C->find(rooVarP.GetName());
+      RooRealVar* ptData_C = (RooRealVar*)argSet_C->find(rooVarPt.GetName());
       RooRealVar* nomData_C = (RooRealVar*)argSet_C->find(rooVarNoMias.GetName());
       RooRealVar* etaData_C = (RooRealVar*)argSet_C->find(rooVarEta.GetName());
       // fill b region hist
@@ -598,19 +601,22 @@ int main(int argc, char ** argv)
         }
       }
 
-      // check to make sure there are no empty bins in the prediction hist
-      for(int bin=1; bin <= iasPredictionVarBinHist->GetNbinsX(); ++bin)
+      // if nonzero integral, check to make sure there are no empty bins in the prediction hist
+      if(iasPredictionVarBinHist->Integral() > 0)
       {
-        if(iasPredictionVarBinHist->GetBinContent(bin) <= 0)
+        for(int bin=1; bin <= iasPredictionVarBinHist->GetNbinsX(); ++bin)
         {
-          std::cout << "ERROR: For this hist: " << iasPredictionVarBinHist->GetName()
-            << " bin content for bin "
-             << bin << " is " << iasPredictionVarBinHist->GetBinContent(bin)
-             << " with binLowEdge= " << iasPredictionVarBinHist->GetBinLowEdge(bin)
-             << " to binHighEdge="
-             << iasPredictionVarBinHist->GetBinLowEdge(bin)+iasPredictionVarBinHist->GetBinWidth(bin)
-             << ". Fix the binning.  Bailing out." << std::endl;
-          return -9;
+          if(iasPredictionVarBinHist->GetBinContent(bin) <= 0)
+          {
+            std::cout << "ERROR: For this hist: " << iasPredictionVarBinHist->GetName()
+              << " bin content for bin "
+              << bin << " is " << iasPredictionVarBinHist->GetBinContent(bin)
+              << " with binLowEdge= " << iasPredictionVarBinHist->GetBinLowEdge(bin)
+              << " to binHighEdge="
+              << iasPredictionVarBinHist->GetBinLowEdge(bin)+iasPredictionVarBinHist->GetBinWidth(bin)
+              << ". Fix the binning.  Bailing out." << std::endl;
+            return -9;
+          }
         }
       }
 

@@ -7,11 +7,14 @@
 #include "DataFormats/Math/interface/deltaR.h"
 #include "DataFormats/Common/interface/MergeableCounter.h"
 #include "DataFormats/Common/interface/TriggerResults.h"
+#include "DataFormats/MuonReco/interface/MuonTimeExtraMap.h"
 
 
 // preselection -- adapted from Analysis_Step234.C
 bool passesPreselection(const susybsm::HSCParticle& hscp,  const reco::DeDxData& dedxSObj,
-    const reco::DeDxData& dedxMObj, const fwlite::Event& ev)
+    const reco::DeDxData& dedxMObj, const reco::MuonTimeExtra* tof,
+    const reco::MuonTimeExtra* dttof, const reco::MuonTimeExtra* csctof,
+    const fwlite::Event& ev, bool considerToF)
 {
   //TODO: use common py for these
   // preselections
@@ -20,16 +23,16 @@ bool passesPreselection(const susybsm::HSCParticle& hscp,  const reco::DeDxData&
   const int minValidPixelHits = 2;
   const unsigned int minIasNoM = 5;
   const unsigned int minIhNoM = 5;
-  //const int minTofNdof = 8;
-  //const int minTofNdofDt = 6;
-  //const int minTofNdofCsc = 6;
+  const int minTofNdof = 8;
+  const int minTofNdofDt = 6;
+  const int minTofNdofCsc = 6;
   const int minTrackQualityMask = 2;
   const float maxTrackChi2OverNdf = 5.0;
   //const float minTrackPt = 35.0;
   //const float minIas = 0.0;
   //const float minIh = 3.0;
-  //const float minTofInvBeta = 1.0;
-  //const float maxTofIntBetaErr = 0.07;
+  const float minTofInvBeta = 1.0;
+  const float maxTofInvBetaErr = 0.07;
   const unsigned int minNumVertices = 1;
   const float maxV3D = 0.5;
   const float maxTrackEtIso = 50;
@@ -89,6 +92,19 @@ bool passesPreselection(const susybsm::HSCParticle& hscp,  const reco::DeDxData&
   if(EoP > maxCalEOverPIso)
     return false;
 
+  // ToF
+  // ndof check
+  if(considerToF &&
+      tof->nDof() < minTofNdof &&
+      (dttof->nDof() < minTofNdofDt || csctof->nDof() < minTofNdofCsc) )
+    return false;
+  // Min ToF
+  if(considerToF && tof->inverseBeta() < minTofInvBeta)
+    return false;
+  // Max ToF err
+  if(considerToF && tof->inverseBetaErr() > maxTofInvBetaErr)
+    return false;
+
 
   return true;
 }
@@ -136,6 +152,22 @@ std::string getHistNameBeg(int lowerNom, float lowerEta)
   histName+="to";
   histName+=intToString(etaSlice+2);
   return histName;
+}
+//
+int getLowerNoMFromHistName(std::string histName, std::string histNameEnd)
+{
+  std::string histNameBeg = histName.substr(0,histName.size()-histNameEnd.size());
+  std::string nomString = histNameBeg.substr(3,histNameBeg.find("to")-3);
+  return atoi(nomString.c_str());
+}
+//
+float getLowerEtaFromHistName(std::string histName, std::string histNameEnd)
+{
+  std::string histNameBeg = histName.substr(0,histName.size()-histNameEnd.size());
+  std::string etaPart = histNameBeg.substr(histNameBeg.find("eta"));
+  std::string etaString = etaPart.substr(3,etaPart.find("to")-3);
+  int etaSlice = atof(etaString.c_str());
+  return etaSlice/10.0;
 }
 //
 std::string getHistTitleEnd(int lowerNom, float lowerEta, float massCut)
