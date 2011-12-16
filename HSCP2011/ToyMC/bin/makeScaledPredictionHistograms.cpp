@@ -369,11 +369,11 @@ int main(int argc, char ** argv)
 
     // figure out overall normalization this slice, background from ABCD
     double bgEntriesInARegionThisSlice =
-      aRegionBackgroundEntriesHist->GetBinContent(aRegionBackgroundEntriesHist->FindBin(lowerEta,lowerNoM));
+      aRegionBackgroundEntriesHist->GetBinContent(aRegionBackgroundEntriesHist->FindBin(lowerEta+0.1,lowerNoM+1));
     double bgEntriesInBRegionThisSlice = 
-      bRegionBackgroundEntriesHist->GetBinContent(bRegionBackgroundEntriesHist->FindBin(lowerEta,lowerNoM));
+      bRegionBackgroundEntriesHist->GetBinContent(bRegionBackgroundEntriesHist->FindBin(lowerEta+0.1,lowerNoM+1));
     double bgEntriesInCRegionThisSlice = 
-      cRegionBackgroundEntriesHist->GetBinContent(cRegionBackgroundEntriesHist->FindBin(lowerEta,lowerNoM));
+      cRegionBackgroundEntriesHist->GetBinContent(cRegionBackgroundEntriesHist->FindBin(lowerEta+0.1,lowerNoM+1));
     double fractionOfBGTracksPassingMassCutThisSlice =
       histItr->Integral()/bgEntriesInBRegionThisSlice;
     double bgTracksInDThisSlice =
@@ -391,12 +391,15 @@ int main(int argc, char ** argv)
       fractionOfSigTracksInDRegionPassingMassCutThisSlice*totalSignalTracksThisSlice;
 
     // output
-    //cout << "Slice: lowerNoM = " << lowerNoM << " lowerEta = " << lowerEta << endl;
-    //cout << "bg entries this slice: A = " << bgEntriesInARegionThisSlice << " B = " << 
-    //  bgEntriesInBRegionThisSlice << " C = " << bgEntriesInCRegionThisSlice << " ==> D = " <<
-    //  bgTracksInDThisSlice << " and fraction of bg tracks passing mass cut this slice = " <<
-    //  fractionOfBGTracksPassingMassCutThisSlice << " ==> norm factor = " <<
-    //  numBackgroundTracksInDRegionPassingMassCutThisSlice << endl;
+    cout << "Slice: lowerNoM = " << lowerNoM << " lowerEta = " << lowerEta << endl;
+    cout << "bg entries this slice: A = " << bgEntriesInARegionThisSlice << " B = " << 
+      bgEntriesInBRegionThisSlice << " C = " << bgEntriesInCRegionThisSlice << " ==> D = " <<
+      bgTracksInDThisSlice << " and fraction of bg tracks passing mass cut this slice = " <<
+      fractionOfBGTracksPassingMassCutThisSlice << " ==> norm factor = " <<
+      numBackgroundTracksInDRegionPassingMassCutThisSlice << 
+      " and integral = " << histItr->Integral() <<
+      " so bgNormFactor = " << numBackgroundTracksInDRegionPassingMassCutThisSlice/histItr->Integral() <<
+      endl;
 
     // normalize BG hist
     histItr->Sumw2();
