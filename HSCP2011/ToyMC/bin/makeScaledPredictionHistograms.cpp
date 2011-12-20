@@ -151,7 +151,8 @@ int main(int argc, char ** argv)
   double pSidebandThreshold (ana.getParameter<double>("PSidebandThreshold"));
   double ihSidebandThreshold (ana.getParameter<double>("IhSidebandThreshold"));
   double integratedLumi (ana.getParameter<double>("IntegratedLuminosity")); // 1/pb
-  //double signalCrossSection (ana.getParameter<double>("SignalCrossSection")); // pb
+  //double signalCrossSectionForEff (ana.getParameter<double>("SignalCrossSectionForEff")); // pb
+  double iasCutForEffAcc (ana.getParameter<double>("IasCutForEfficiency"));
 
   // TODO configurable nom/eta limits
   // NB: always use upper edge of last bin for both
@@ -232,8 +233,6 @@ int main(int argc, char ** argv)
   }
 
 
-  TH1F* iasBackgroundPredictionMassCutNoMSliceHist = 0;
-  TH1F* iasSignalMassCutNoMSliceHist = 0;
   vector<TH1F> bgHistsToUse;
 
   // for histograms already made
@@ -247,6 +246,7 @@ int main(int argc, char ** argv)
   {
     for(float lowerEta = minEta; lowerEta < maxEta; lowerEta+=0.2)
     {
+      TH1F* iasBackgroundPredictionMassCutNoMSliceHist = 0;
       // get this eta/nom hist
       string getHistName = getHistNameBeg(lowerNoM,lowerEta);
       getHistName+=bgHistNameEnd;
@@ -284,6 +284,7 @@ int main(int argc, char ** argv)
         //  fullPath << ") in file: " << backgroundPredictionRootFilename_ << ")." << 
         //  " Skipping prediction. " << endl;
       }
+      delete iasBackgroundPredictionMassCutNoMSliceHist;
     }
   }
 
@@ -294,14 +295,25 @@ int main(int argc, char ** argv)
   cout << "INFO: initializing unrolled histogram: bins=" << numGlobalBins << endl;
   TH1F* backgroundAllNoMAllEtaUnrolledHist = new TH1F("backgroundAllNoMAllEtaUnrolledHist",
       "unrolled background hist",numGlobalBins,1,numGlobalBins+1);
+  TH1F* backgroundAllNoMAllEtaUnrolledPlusOneSigmaHist = new TH1F("backgroundAllNoMAllEtaUnrolledPlusOneSigmaHist",
+      "unrolled background hist (shape +1 sigma)",numGlobalBins,1,numGlobalBins+1);
+  TH1F* backgroundAllNoMAllEtaUnrolledMinusOneSigmaHist = new TH1F("backgroundAllNoMAllEtaUnrolledMinusOneSigmaHist",
+      "unrolled background hist (shape -1 sigma)",numGlobalBins,1,numGlobalBins+1);
   TH1F* signalAllNoMAllEtaUnrolledHist = new TH1F("signalAllNoMAllEtaUnrolledHist",
       "unrolled signal hist",numGlobalBins,1,numGlobalBins+1);
+
+  double backgroundTracksOverIasCut = 0;
+  double signalTracksOverIasCut = 0;
+  double signalTracksTotal = 0;
 
   // loop over hists to use
   int iteratorPos = 0;
   for(vector<TH1F>::iterator histItr = bgHistsToUse.begin();
       histItr != bgHistsToUse.end(); ++histItr)
   {
+    TH1F* iasBackgroundPredictionMassCutNoMSliceHist = 0;
+    TH1F* iasSignalMassCutNoMSliceHist = 0;
+    TH1F* iasSignalMassCutNoMSliceForEffHist = 0;
     string bgHistName = string(histItr->GetName());
     string bgHistNameBeg = bgHistName.substr(0,bgHistName.size()-bgHistNameEnd.size());
     int lowerNoM = getLowerNoMFromHistName(bgHistName,bgHistNameEnd);
@@ -322,7 +334,6 @@ int main(int argc, char ** argv)
     iasSignalMassCutNoMSliceHist->Reset();
     iasSignalMassCutNoMSliceHist->SetName(sigHistName.c_str());
     iasSignalMassCutNoMSliceHist->SetTitle(iasSignalHistTitle.c_str());
-
 
     // construct D region for signal in this eta/nom slice
     string nomCutString = "rooVarNoMias==";
@@ -366,6 +377,7 @@ int main(int argc, char ** argv)
       iasSignalMassCutNoMSliceHist->SetBinContent(bin,binWidthRatio*binc);
       iasSignalMassCutNoMSliceHist->SetBinError(bin,binWidthRatio*bine);
     }
+    iasSignalMassCutNoMSliceForEffHist = (TH1F*) iasSignalMassCutNoMSliceHist->Clone();
 
     // figure out overall normalization this slice, background from ABCD
     double bgEntriesInARegionThisSlice =
@@ -389,6 +401,25 @@ int main(int argc, char ** argv)
       numSignalTracksInDRegionMassCutThisSlice/(double)numSignalTracksTotal;
     double numSignalTracksInDRegionPassingMassCutThisSlice =
       fractionOfSigTracksInDRegionPassingMassCutThisSlice*totalSignalTracksThisSlice;
+    signalTracksOverIasCut+=iasSignalMassCutNoMSliceHist->Integral(
+        iasSignalMassCutNoMSliceHist->FindBin(iasCutForEffAcc),
+        iasSignalMassCutNoMSliceHist->GetNbinsX());
+    signalTracksTotal+=iasSignalMassCutNoMSliceHist->Integral();
+
+    //// figure out nominal sig norm for efficiency value
+    //double totalSignalTracksThisSliceEff = integratedLumi*signalCrossSectionForEff;
+    //double fractionOfSigTracksInDRegionPassingMassCutThisSliceEff =
+    //  numSignalTracksInDRegionMassCutThisSlice/(double)numSignalTracksTotal;
+    //double numSignalTracksInDRegionPassingMassCutThisSliceEff =
+    //  fractionOfSigTracksInDRegionPassingMassCutThisSliceEff*totalSignalTracksThisSliceEff;
+    //double sigNormFactorEff =
+    //  numSignalTracksInDRegionPassingMassCutThisSliceEff/
+    //  iasSignalMassCutNoMSliceHist->Integral();
+    //iasSignalMassCutNoMSliceForEffHist->Scale(sigNormFactorEff);
+    // FIX below if wanted
+    //signalAcceptanceIasCut+=iasSignalMassCutNoMSliceForEffHist->Integral(
+    //    iasSignalMassCutNoMSliceForEffHist->FindBin(iasCutForEffAcc),
+    //    iasSignalMassCutNoMSliceForEffHist->GetNbinsX())/iasSignalMassCutNoMSliceForEffHist->Integral();
 
     // output
     cout << "Slice: lowerNoM = " << lowerNoM << " lowerEta = " << lowerEta << endl;
@@ -400,13 +431,20 @@ int main(int argc, char ** argv)
       " and integral = " << histItr->Integral() <<
       " so bgNormFactor = " << numBackgroundTracksInDRegionPassingMassCutThisSlice/histItr->Integral() <<
       endl;
+    cout << "first Ias bin this slice: " << iteratorPos*numIasBins << endl;
 
     // normalize BG hist
     histItr->Sumw2();
+    if(histItr->Integral() <= 0)
+    {
+      cout << "ERROR: This histogram (" << histItr->GetName() << ") has integral <= 0. Quitting." << endl;
+      return -15;
+    }
     double bgNormFactor =
       numBackgroundTracksInDRegionPassingMassCutThisSlice/
       histItr->Integral();
     histItr->Scale(bgNormFactor);
+    backgroundTracksOverIasCut+=histItr->Integral(histItr->FindBin(iasCutForEffAcc),histItr->GetNbinsX());
     // normalize sig hist
     iasSignalMassCutNoMSliceHist->Sumw2();
     double sigNormFactor = numSignalTracksInDRegionPassingMassCutThisSlice/
@@ -423,6 +461,12 @@ int main(int argc, char ** argv)
       double bine = histItr->GetBinError(iasBin);
       backgroundAllNoMAllEtaUnrolledHist->SetBinContent(globalBinIndex,binc);
       backgroundAllNoMAllEtaUnrolledHist->SetBinError(globalBinIndex,bine);
+      // plus one sigma
+      backgroundAllNoMAllEtaUnrolledPlusOneSigmaHist->SetBinContent(globalBinIndex,binc+bine);
+      backgroundAllNoMAllEtaUnrolledPlusOneSigmaHist->SetBinError(globalBinIndex,bine);
+      // minus one sigma
+      backgroundAllNoMAllEtaUnrolledMinusOneSigmaHist->SetBinContent(globalBinIndex,binc-bine);
+      backgroundAllNoMAllEtaUnrolledMinusOneSigmaHist->SetBinError(globalBinIndex,bine);
 
       binc = iasSignalMassCutNoMSliceHist->GetBinContent(iasBin);
       bine = iasSignalMassCutNoMSliceHist->GetBinError(iasBin);
@@ -453,13 +497,21 @@ int main(int argc, char ** argv)
     // cleanup
     delete nomCutDRegionDataSetSignal;
     delete etaCutNomCutDRegionDataSetSignal;
+    delete iasBackgroundPredictionMassCutNoMSliceHist;
+    delete iasSignalMassCutNoMSliceHist;
+    delete iasSignalMassCutNoMSliceForEffHist;
   }
 
   //xmlOutputFileStream.close();
   outputRootFile->cd();
   backgroundAllNoMAllEtaUnrolledHist->Write();
+  backgroundAllNoMAllEtaUnrolledPlusOneSigmaHist->Write();
+  backgroundAllNoMAllEtaUnrolledMinusOneSigmaHist->Write();
   signalAllNoMAllEtaUnrolledHist->Write();
   outputRootFile->Close();
 
+  cout << endl << endl << "Ias cut = " << iasCutForEffAcc << "; found " << backgroundTracksOverIasCut
+    << " background tracks over ias cut and " << signalTracksOverIasCut/signalTracksTotal
+    << " signal efficiency with this ias cut." << endl;
 }
 
