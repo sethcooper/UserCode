@@ -174,6 +174,22 @@ int main(int argc, char ** argv)
   // Ih vs Ias
   TH2F* ihVsIasHist = fs.make<TH2F>("ihVsIas","Ih vs. Ias;;MeV/cm",400,0,1,400,0,10);
   ihVsIasHist->Sumw2();
+  // p vs NoM
+  TH2F* pVsNoMHist = fs.make<TH2F>("pVsNoM","Track P vs. NoM (Ias);;GeV",50,0,50,100,0,1000);
+  // p vs NoM, central eta only
+  TH2F* pVsNoMCentralEtaHist = fs.make<TH2F>("pVsNoMCentralEta","Track P vs. NoM (Ias), |#eta| < 0.9;;GeV",50,0,50,100,0,1000);
+  // NoH vs NoM
+  TH2F* nohVsNoMHist = fs.make<TH2F>("nohVsNoM","Number of hits vs. NoM (Ias);NoM;NoH",50,0,50,50,0,50);
+  // NoH vs NoM, central eta
+  TH2F* nohVsNoMCentralEtaHist = fs.make<TH2F>("nohVsNoMCentral","Number of hits vs. NoM (Ias), |#eta| < 0.9;NoM;NoH",50,0,50,50,0,50);
+  // p vs NoH
+  TH2F* pVsNoHHist = fs.make<TH2F>("pVsNoH","Track P vs. NoH;;GeV",50,0,50,100,0,1000);
+  // p vs NoH, central eta only
+  TH2F* pVsNoHCentralEtaHist = fs.make<TH2F>("pVsNoHCentralEta","Track P vs. NoH, |#eta| < 0.9;;GeV",50,0,50,100,0,1000);
+  // p vs relPerr
+  TH2F* pVsRelPerrHist = fs.make<TH2F>("pVsRelPerr","Track P vs. #Deltap/p;;GeV",100,0,1,100,0,1000);
+  // p vs relPerr, central eta only
+  TH2F* pVsRelPerrCentralEtaHist = fs.make<TH2F>("pVsRelPerrCentralEta","Track P vs. #Deltap/p, |#eta| < 0.9;;GeV",100,0,1,100,0,1000);
 
   // RooFit observables and dataset
   RooRealVar rooVarIas("rooVarIas","ias",0,1);
@@ -307,6 +323,8 @@ int main(int argc, char ** argv)
           float trackPt = track->pt();
           int iasNoM = dedxSObj.numberOfMeasurements();
           float trackEta = track->eta();
+          int trackNoH = track->found();
+          float trackPtErr = track->ptError();
 
           // apply preselections, not considering ToF
           if(!passesPreselection(hscp,dedxSObj,dedxMObj,tof,dttof,csctof,ev,false))
@@ -346,7 +364,7 @@ int main(int argc, char ** argv)
           if(trackP <= pSidebandThreshold)
             pVsIhDistributionBRegionHist->Fill(ih,trackP);
 
-          // fill some overall hists
+          // fill some overall hists (already passed preselection)
           pDistributionHist->Fill(trackP);
           ptDistributionHist->Fill(trackPt);
           trackEtaVsPHist->Fill(trackP,fabs(trackEta));
@@ -355,6 +373,18 @@ int main(int argc, char ** argv)
           pVsIhDistributionHist->Fill(ih,trackP);
           iasNoMHist->Fill(iasNoM);
           ihVsIasHist->Fill(ias,ih);
+          pVsNoMHist->Fill(iasNoM,trackP);
+          if(fabs(trackEta) < 0.9)
+            pVsNoMCentralEtaHist->Fill(iasNoM,trackP);
+          nohVsNoMHist->Fill(iasNoM,trackNoH);
+          if(fabs(trackEta) < 0.9)
+            nohVsNoMCentralEtaHist->Fill(iasNoM,trackNoH);
+          pVsNoHHist->Fill(trackNoH,trackP);
+          if(fabs(trackEta) < 0.9)
+            pVsNoHCentralEtaHist->Fill(trackNoH,trackP);
+          pVsRelPerrHist->Fill(trackPtErr/trackPt,trackP);
+          if(fabs(trackEta) < 0.9)
+            pVsRelPerrCentralEtaHist->Fill(trackPtErr/trackP,trackP);
 
 
           // fill roodataset
