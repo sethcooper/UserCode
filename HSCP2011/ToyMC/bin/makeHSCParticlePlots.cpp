@@ -64,6 +64,24 @@ namespace edm     {class TriggerResults; class TriggerResultsByName; class Input
 
 #include "commonFunctions.h"
 
+// adapted from AnalysisStep234.C (GetGenHSCPBeta)
+int getNumGenHSCP(const std::vector<reco::GenParticle>& genColl, bool onlyCharged)
+{
+  int numGenHscp = 0;
+  for(unsigned int g=0;g<genColl.size();g++)
+  {
+    if(genColl[g].pt()<5)continue;
+    if(genColl[g].status()!=1)continue;
+    int AbsPdg=abs(genColl[g].pdgId());
+    if(AbsPdg<1000000)continue;
+    if(onlyCharged && (AbsPdg==1000993 || AbsPdg==1009313 || AbsPdg==1009113 || AbsPdg==1009223 || AbsPdg==1009333 || AbsPdg==1092114 || AbsPdg==1093214 || AbsPdg==1093324))continue; //Skip neutral gluino RHadrons
+    if(onlyCharged && (AbsPdg==1000622 || AbsPdg==1000642 || AbsPdg==1006113 || AbsPdg==1006311 || AbsPdg==1006313 || AbsPdg==1006333))continue;  //skip neutral stop RHadrons
+    //if(beta1<0){beta1=genColl[g].p()/genColl[g].energy();}else if(beta2<0){beta2=genColl[g].p()/genColl[g].energy();return;}
+    numGenHscp++;
+  }
+  return numGenHscp;
+}
+
 // ****** main
 int main(int argc, char ** argv)
 {
@@ -91,13 +109,14 @@ int main(int argc, char ** argv)
   // mass cut to use for the high-p high-Ih (search region) ias dist
   double massCutIasHighPHighIh_ (ana.getParameter<double>("MassCut"));
   // dE/dx calibration
-  double dEdx_k (ana.getParameter<double>("dEdx_k"));
-  double dEdx_c (ana.getParameter<double>("dEdx_c"));
+  double dEdx_k_ (ana.getParameter<double>("dEdx_k"));
+  double dEdx_c_ (ana.getParameter<double>("dEdx_c"));
   // definition of sidebands/search region
-  double pSidebandThreshold (ana.getParameter<double>("PSidebandThreshold"));
-  double ihSidebandThreshold (ana.getParameter<double>("IhSidebandThreshold"));
-  bool matchToHSCP (ana.getParameter<bool>("MatchToHSCP"));
-  bool isMC (ana.getParameter<bool>("IsMC"));
+  double pSidebandThreshold_ (ana.getParameter<double>("PSidebandThreshold"));
+  double ihSidebandThreshold_ (ana.getParameter<double>("IhSidebandThreshold"));
+  bool matchToHSCP_ (ana.getParameter<bool>("MatchToHSCP"));
+  bool isMC_ (ana.getParameter<bool>("IsMC"));
+  double signalEventCrossSection_ (ana.getParameter<double>("SignalEventCrossSection")); // pb
 
   // fileService initialization
   fwlite::TFileService fs = fwlite::TFileService(outputHandler_.file().c_str());
@@ -178,6 +197,15 @@ int main(int argc, char ** argv)
   TH2F* pVsNoMHist = fs.make<TH2F>("pVsNoM","Track P vs. NoM (Ias);;GeV",50,0,50,100,0,1000);
   // p vs NoM, central eta only
   TH2F* pVsNoMCentralEtaHist = fs.make<TH2F>("pVsNoMCentralEta","Track P vs. NoM (Ias), |#eta| < 0.9;;GeV",50,0,50,100,0,1000);
+  // p vs NoM, eta slices
+  TH2F* pVsNoMEtaSlice1Hist = fs.make<TH2F>("pVsNoMEtaSlice1","Track P vs. NoM (Ias), |#eta| < 0.2;;GeV",50,0,50,100,0,1000);
+  TH2F* pVsNoMEtaSlice2Hist = fs.make<TH2F>("pVsNoMEtaSlice2","Track P vs. NoM (Ias), 0.2 < |#eta| < 0.4;;GeV",50,0,50,100,0,1000);
+  TH2F* pVsNoMEtaSlice3Hist = fs.make<TH2F>("pVsNoMEtaSlice3","Track P vs. NoM (Ias), 0.4 < |#eta| < 0.6;;GeV",50,0,50,100,0,1000);
+  TH2F* pVsNoMEtaSlice4Hist = fs.make<TH2F>("pVsNoMEtaSlice4","Track P vs. NoM (Ias), 0.6 < |#eta| < 0.8;;GeV",50,0,50,100,0,1000);
+  TH2F* pVsNoMEtaSlice5Hist = fs.make<TH2F>("pVsNoMEtaSlice5","Track P vs. NoM (Ias), 0.8 < |#eta| < 1.0;;GeV",50,0,50,100,0,1000);
+  TH2F* pVsNoMEtaSlice6Hist = fs.make<TH2F>("pVsNoMEtaSlice6","Track P vs. NoM (Ias), 1.0 < |#eta| < 1.2;;GeV",50,0,50,100,0,1000);
+  TH2F* pVsNoMEtaSlice7Hist = fs.make<TH2F>("pVsNoMEtaSlice7","Track P vs. NoM (Ias), 1.2 < |#eta| < 1.4;;GeV",50,0,50,100,0,1000);
+  TH2F* pVsNoMEtaSlice8Hist = fs.make<TH2F>("pVsNoMEtaSlice8","Track P vs. NoM (Ias), 1.4 < |#eta| < 1.6;;GeV",50,0,50,100,0,1000);
   // NoH vs NoM
   TH2F* nohVsNoMHist = fs.make<TH2F>("nohVsNoM","Number of hits vs. NoM (Ias);NoM;NoH",50,0,50,50,0,50);
   // NoH vs NoM, central eta
@@ -199,8 +227,15 @@ int main(int argc, char ** argv)
   RooRealVar rooVarPt("rooVarPt","pt",0,5000);
   RooRealVar rooVarNoMias("rooVarNoMias","nom",0,30);
   RooRealVar rooVarEta("rooVarEta","eta",0,2.5);
-  RooDataSet* rooDataSetAll = fs.make<RooDataSet>("rooDataSetAll","rooDataSetAll",RooArgSet(rooVarIas,rooVarIh,rooVarP,rooVarPt,
-        rooVarNoMias,rooVarEta,rooVarIp));
+  RooDataSet* rooDataSetCandidates = fs.make<RooDataSet>("rooDataSetCandidates","rooDataSetCandidates",
+      RooArgSet(rooVarIas,rooVarIh,rooVarP,rooVarPt,rooVarNoMias,rooVarEta,rooVarIp));
+
+  // RooDataSet for number of original tracks, etc.
+  RooRealVar rooVarNumGenHSCPTracks("rooVarNumGenHSCPTracks","numGenHSCPTracks",0,5e6);
+  RooRealVar rooVarNumGenChargedHSCPTracks("rooVarNumGenChargedHSCPTracks","numGenChargedHSCPTracks",0,5e6);
+  RooRealVar rooVarSignalEventCrossSection("rooVarSignalEventCrossSection","signalEventCrossSection",0,100); // pb
+  RooDataSet* rooDataSetGenHSCPTracks = fs.make<RooDataSet>("rooDataSetGenHSCPTracks","rooDataSetGenHSCPTracks",
+      RooArgSet(rooVarNumGenHSCPTracks,rooVarNumGenChargedHSCPTracks,rooVarSignalEventCrossSection));
 
 
   int numEventsPassingTrigger = 0;
@@ -209,6 +244,8 @@ int main(int argc, char ** argv)
   int numEventsWithOneTrackOverIasCut = 0;
   int numEventsWithOneTrackOverIhAndIasCuts = 0;
 
+  int numGenHSCPTracks = 0;
+  int numGenChargedHSCPTracks = 0;
   int numTracksPassingTrigger = 0;
   int numTracksPassingPreselection = 0;
   int numTracksInSearchRegion = 0;
@@ -263,7 +300,7 @@ int main(int argc, char ** argv)
         // MC Gen Info
         fwlite::Handle< std::vector<reco::GenParticle> > genCollHandle;
         std::vector<reco::GenParticle> genColl;
-        if(isMC)
+        if(isMC_)
         {
           genCollHandle.getByLabel(ev, "genParticles");
           if(!genCollHandle.isValid()){printf("GenParticle Collection NotFound\n");continue;}
@@ -278,6 +315,16 @@ int main(int argc, char ** argv)
             return -5;
           }
         }
+
+        // Look for gen HSCP tracks if MC
+        if(isMC_)
+        {
+          int numGenHSCPThisEvent = getNumGenHSCP(genColl,false); // consider also neutrals
+          int numGenChargedHSCPThisEvent = getNumGenHSCP(genColl,true); // consider only charged HSCP
+          numGenHSCPTracks+=numGenHSCPThisEvent;
+          numGenChargedHSCPTracks+=numGenChargedHSCPThisEvent;
+        }
+
 
         if(!passesTrigger(ev))
           continue;
@@ -308,12 +355,12 @@ int main(int argc, char ** argv)
 
           // for signal MC
           int NChargedHSCP = 0;
-          if(isMC && matchToHSCP)
+          if(isMC_ && matchToHSCP_)
           {
             int ClosestGen;
             if(DistToHSCP(hscp, genColl, ClosestGen)>0.03)
               continue;
-            NChargedHSCP = HowManyChargedHSCP(genColl);
+            NChargedHSCP = getNumGenHSCP(genColl,true);
           }
 
           float ih = dedxMObj.dEdx();
@@ -340,12 +387,12 @@ int main(int argc, char ** argv)
           if(ih > 3.5 && ias > 0.35)
             numTracksPassingIhAndIasCutsThisEvent++;
 
-          if(trackP > pSidebandThreshold && ih > ihSidebandThreshold)
+          if(trackP > pSidebandThreshold_ && ih > ihSidebandThreshold_)
           {
             numTracksInSearchRegion++;
-            if(isMC)
+            if(isMC_)
             {
-              float massSqr = (ih-dEdx_c)*pow(trackP,2)/dEdx_k;
+              float massSqr = (ih-dEdx_c_)*pow(trackP,2)/dEdx_k_;
               if(massSqr < 0)
                 continue;
               else if(sqrt(massSqr) >= massCutIasHighPHighIh_)
@@ -361,7 +408,7 @@ int main(int argc, char ** argv)
           }
 
           // A/B region
-          if(trackP <= pSidebandThreshold)
+          if(trackP <= pSidebandThreshold_)
             pVsIhDistributionBRegionHist->Fill(ih,trackP);
 
           // fill some overall hists (already passed preselection)
@@ -376,6 +423,23 @@ int main(int argc, char ** argv)
           pVsNoMHist->Fill(iasNoM,trackP);
           if(fabs(trackEta) < 0.9)
             pVsNoMCentralEtaHist->Fill(iasNoM,trackP);
+          if(fabs(trackEta) < 0.2)
+            pVsNoMEtaSlice1Hist->Fill(iasNoM,trackP);
+          else if(fabs(trackEta) < 0.4)
+            pVsNoMEtaSlice2Hist->Fill(iasNoM,trackP);
+          else if(fabs(trackEta) < 0.6)
+            pVsNoMEtaSlice3Hist->Fill(iasNoM,trackP);
+          else if(fabs(trackEta) < 0.8)
+            pVsNoMEtaSlice4Hist->Fill(iasNoM,trackP);
+          else if(fabs(trackEta) < 1.0)
+            pVsNoMEtaSlice5Hist->Fill(iasNoM,trackP);
+          else if(fabs(trackEta) < 1.2)
+            pVsNoMEtaSlice6Hist->Fill(iasNoM,trackP);
+          else if(fabs(trackEta) < 1.4)
+            pVsNoMEtaSlice7Hist->Fill(iasNoM,trackP);
+          else if(fabs(trackEta) < 1.6)
+            pVsNoMEtaSlice8Hist->Fill(iasNoM,trackP);
+
           nohVsNoMHist->Fill(iasNoM,trackNoH);
           if(fabs(trackEta) < 0.9)
             nohVsNoMCentralEtaHist->Fill(iasNoM,trackNoH);
@@ -396,7 +460,7 @@ int main(int argc, char ** argv)
           rooVarPt = trackPt;
           rooVarNoMias = iasNoM;
           rooVarEta = fabs(trackEta);
-          rooDataSetAll->add(RooArgSet(rooVarIas,rooVarIh,rooVarP,rooVarPt,rooVarNoMias,rooVarEta,rooVarIp));
+          rooDataSetCandidates->add(RooArgSet(rooVarIas,rooVarIh,rooVarP,rooVarPt,rooVarNoMias,rooVarEta,rooVarIp));
 
           //// now consider the ToF
           //if(!passesPreselection(hscp,dedxSObj,dedxMObj,tof,dttof,csctof,ev,true))
@@ -441,6 +505,11 @@ int main(int argc, char ** argv)
   
   pDistributionHist->Scale(scaleFactor_);
 
+  rooVarNumGenHSCPTracks = numGenHSCPTracks;
+  rooVarNumGenChargedHSCPTracks = numGenChargedHSCPTracks;
+  rooVarSignalEventCrossSection = signalEventCrossSection_;
+  rooDataSetGenHSCPTracks->add(RooArgSet(rooVarNumGenHSCPTracks,rooVarNumGenChargedHSCPTracks,rooVarSignalEventCrossSection));
+
   std::cout << "Found: " << numEventsPassingTrigger << " events passing trigger selection." <<
     std::endl;
   std::cout << "Found: " << numEventsWithOneTrackPassingPreselection <<
@@ -457,12 +526,12 @@ int main(int argc, char ** argv)
   std::cout << "Found: " << numTracksPassingPreselection << " tracks passing preselections." <<
     std::endl;
   std::cout << "Found " << numTracksInSearchRegion << " tracks in search region ( P > " <<
-    pSidebandThreshold << ", ih > " << ihSidebandThreshold << " )." << std::endl;
-  std::cout << "Added " << rooDataSetAll->numEntries() << " tracks into the dataset." << std::endl;
+    pSidebandThreshold_ << ", ih > " << ihSidebandThreshold_ << " )." << std::endl;
+  std::cout << "Added " << rooDataSetCandidates->numEntries() << " tracks into the dataset." << std::endl;
 
 
   // testing
-  if(isMC)
+  if(isMC_)
   {
     std::cout << std::endl;
     std::cout << "Number of initial MC events: " << GetInitialNumberOfMCEvent(inputHandler_.files())

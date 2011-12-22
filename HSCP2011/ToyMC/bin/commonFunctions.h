@@ -187,20 +187,6 @@ std::string getHistTitleEnd(int lowerNom, float lowerEta, float massCut)
 }
 
 // taken from Analysis_Step234.C
-int HowManyChargedHSCP(const std::vector<reco::GenParticle>& genColl){
-  int toReturn = 0;
-  for(unsigned int g=0;g<genColl.size();g++){
-    if(genColl[g].pt()<5)continue;
-    if(genColl[g].status()!=1)continue;
-    int AbsPdg=abs(genColl[g].pdgId());
-    if(AbsPdg<1000000)continue;
-    if(AbsPdg==1000993 || AbsPdg==1009313 || AbsPdg==1009113 || AbsPdg==1009223 || AbsPdg==1009333 || AbsPdg==1092114 || AbsPdg==1093214 || AbsPdg==1093324)continue; //Skip neutral gluino RHadrons
-    if(AbsPdg==1000622 || AbsPdg==1000642 || AbsPdg==1006113 || AbsPdg==1006311 || AbsPdg==1006313 || AbsPdg==1006333)continue;  //skip neutral stop RHadrons
-    toReturn++;
-  }
-  return toReturn;
-}
-// taken from Analysis_Step234.C
 double DistToHSCP(const susybsm::HSCParticle& hscp, const std::vector<reco::GenParticle>& genColl, int& IndexOfClosest){
   reco::TrackRef   track = hscp.trackRef(); if(track.isNull())return false;
 

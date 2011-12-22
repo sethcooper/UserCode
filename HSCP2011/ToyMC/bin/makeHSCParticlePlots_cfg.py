@@ -11,15 +11,23 @@ process.fwliteInput = cms.PSet(
 )
 
 process.fwliteOutput = cms.PSet(
-    #fileName  = cms.string('nov2.withRooDataSet.makeHSCParticlePlots.EPSrunPostEPSprod.root'),
-    fileName  = cms.string('nov2.withRooDataSet.makeHSCParticlePlots.GMstau200.root'),
+    #fileName  = cms.string('dec20.p100.ih3p5.makeHSCParticlePlots.EPSrunPostEPSprod.root'),
+    #fileName  = cms.string('dec5.p100.ih3p5.makeHSCParticlePlots.GMstau200.root'),
+    #fileName  = cms.string('dec9.makeHSCParticlePlots.GMStau200.tof.root'),
+    #fileName  = cms.string('dec9.makeHSCParticlePlots.gluino1000.tof.root'),
+    fileName  = cms.string('dec22.makeHSCParticlePlots.GMStau308.root'),
 
 )
 
 process.makeHSCParticlePlots = cms.PSet(
     analysisCommonParameters,
     MatchToHSCP = cms.bool(True),
-    ScaleFactor = cms.double(1)
+    IsMC = cms.bool(True),
+    #MatchToHSCP = cms.bool(False),
+    #IsMC = cms.bool(False),
+    ScaleFactor = cms.double(1),
+    MassCut = cms.double(180.0),
+    SignalEventCrossSection = cms.double(0.00098447), #NLO, pb
 )
 
 #print 'Running with p threshold: ',
@@ -61,7 +69,13 @@ process.fwliteInput.fileNames.extend([
     # GMSB STAU 100
     #'file:/data3/scooper/data/hscp/428/Data/HSCParticles_HSCP2011_PostEPS_Sep30/GMStau100.root'
     # GMSB STAU 200
-    'file:/data3/scooper/data/hscp/428/Data/HSCParticles_HSCP2011_PostEPS_Sep30/GMStau200.root'
+    #'file:/data3/scooper/data/hscp/428/Data/HSCParticles_HSCP2011_PostEPS_Sep30/GMStau200.root'
+    # GMSB STAU 308
+    'file:/data3/scooper/data/hscp/428/Data/HSCParticles_HSCP2011_PostEPS_Sep30/GMStau308.root'
+    # Stop 200
+    #'file:/data3/scooper/data/hscp/428/Data/HSCParticles_HSCP2011_PostEPS_Sep30/Stop200.root'
+    # Gluino 1000
+    #'file:/data3/scooper/data/hscp/428/Data/HSCParticles_HSCP2011_PostEPS_Sep30/Gluino1000.root'
 
 ]);
 
