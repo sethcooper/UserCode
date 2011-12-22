@@ -71,6 +71,49 @@ std::string getHistTitleBeg(int lowerNom, float lowerEta, float pSB, float ihSB)
   return histTitle;
 }
 
+std::string getHistTitleBegPt(int lowerNom, float lowerEta, float ptSB, float ihSB)
+{
+  std::string histTitle = "NoM ";
+  histTitle+=intToString(lowerNom);
+  histTitle+="-";
+  histTitle+=intToString(lowerNom+1);
+  histTitle+=", ";
+  histTitle+=floatToString(lowerEta);
+  histTitle+=" < #eta < ";
+  histTitle+=floatToString(lowerEta+0.2);
+  histTitle+=", (pt < ";
+  histTitle+=floatToString(ptSB);
+  histTitle+=", Ih > ";
+  histTitle+=floatToString(ihSB);
+  histTitle+=")";
+  return histTitle;
+}
+
+// add the mass, p/pt, and ih SB thresholds to the output filename automatically
+std::string generateFileNameEnd(double massCut, double pSideband, double ptSideband, bool usePt, double ihSideband)
+{
+  std::string fileNameEnd = ".massCut";
+  fileNameEnd+=intToString(((int)massCut));
+  if(usePt)
+  {
+    fileNameEnd+=".pt";
+    fileNameEnd+=intToString(((int)ptSideband));
+  }
+  else
+  {
+    fileNameEnd+=".p";
+    fileNameEnd+=intToString(((int)pSideband));
+  }
+  fileNameEnd+=".ih";
+  // replace "." with "p" for the ih
+  std::string ihSBStr = floatToString(ihSideband);
+  ihSBStr.replace(ihSBStr.find("."),1,"p");
+  fileNameEnd+=ihSBStr;
+
+  fileNameEnd+=".root";
+  return fileNameEnd;
+}
+
 void setBinLabelsEntriesHist(TH2F* hist)
 {
   hist->GetXaxis()->SetBinLabel(1,"0.0-0.2");
@@ -222,10 +265,13 @@ int main(int argc, char ** argv)
   double dEdx_c (ana.getParameter<double>("dEdx_c"));
   // definition of sidebands/search region
   double pSidebandThreshold (ana.getParameter<double>("PSidebandThreshold"));
+  double ptSidebandThreshold (ana.getParameter<double>("PtSidebandThreshold"));
+  bool usePtForSideband (ana.getParameter<bool>("UsePtForSideband"));
   double ihSidebandThreshold (ana.getParameter<double>("IhSidebandThreshold"));
 
   // fileService initialization
-  fwlite::TFileService fs = fwlite::TFileService(outputHandler_.file().c_str());
+  string fileNameEnd = generateFileNameEnd(massCutIasHighPHighIh_,pSidebandThreshold,ptSidebandThreshold,usePtForSideband,ihSidebandThreshold);
+  fwlite::TFileService fs = fwlite::TFileService((outputHandler_.file()+fileNameEnd).c_str());
   TFileDirectory successRateDir = fs.mkdir("successRates");
   TFileDirectory iasPredictionFixedBinsDir = fs.mkdir("iasPredictionsFixedBins");
   TFileDirectory iasPredictionVarBinsDir = fs.mkdir("iasPredictionsVariableBins");
@@ -274,34 +320,54 @@ int main(int argc, char ** argv)
   pSBcutString+=floatToString(pSidebandThreshold);
   std::string pSearchCutString = "rooVarP>";
   pSearchCutString+=floatToString(pSidebandThreshold);
+  std::string ptSBcutString = "rooVarPt<";
+  ptSBcutString+=floatToString(ptSidebandThreshold);
+  std::string ptSearchCutString = "rooVarPt>";
+  ptSearchCutString+=floatToString(ptSidebandThreshold);
   std::string ihSBcutString = "rooVarIh<";
   ihSBcutString+=floatToString(ihSidebandThreshold);
   std::string ihSearchCutString = "rooVarIh>";
   ihSearchCutString+=floatToString(ihSidebandThreshold);
-  // A ==> low P, low Ih
-  RooDataSet* regionA1DataSet = (RooDataSet*)rooDataSetAll->reduce(Cut(pSBcutString.c_str()));
+  // A ==> low P/Pt, low Ih
+  RooDataSet* regionA1DataSet;
+  if(usePtForSideband)
+    regionA1DataSet = (RooDataSet*)rooDataSetAll->reduce(Cut(ptSBcutString.c_str()));
+  else
+    regionA1DataSet = (RooDataSet*)rooDataSetAll->reduce(Cut(pSBcutString.c_str()));
   RooDataSet* regionADataSet = (RooDataSet*)regionA1DataSet->reduce(Cut(ihSBcutString.c_str()));
-  // B ==> low P, high Ih
-  RooDataSet* regionB1DataSet = (RooDataSet*)rooDataSetAll->reduce(Cut(pSBcutString.c_str()));
+  // B ==> low P/Pt, high Ih
+  RooDataSet* regionB1DataSet;
+  if(usePtForSideband)
+    regionB1DataSet = (RooDataSet*)rooDataSetAll->reduce(Cut(ptSBcutString.c_str()));
+  else
+    regionB1DataSet = (RooDataSet*)rooDataSetAll->reduce(Cut(pSBcutString.c_str()));
   RooDataSet* regionBDataSet = (RooDataSet*)regionB1DataSet->reduce(Cut(ihSearchCutString.c_str()));
-  // C ==> high P, low Ih
-  RooDataSet* regionC1DataSet = (RooDataSet*)rooDataSetAll->reduce(Cut(pSearchCutString.c_str()));
+  // C ==> high P/Pt, low Ih
+  RooDataSet* regionC1DataSet;
+  if(usePtForSideband)
+   regionC1DataSet = (RooDataSet*)rooDataSetAll->reduce(Cut(ptSearchCutString.c_str()));
+  else
+   regionC1DataSet = (RooDataSet*)rooDataSetAll->reduce(Cut(pSearchCutString.c_str()));
   RooDataSet* regionCDataSet = (RooDataSet*)regionC1DataSet->reduce(Cut(ihSBcutString.c_str()));
-  // D ==> search region, high P, high Ih
-  RooDataSet* regionD1DataSet = (RooDataSet*)rooDataSetAll->reduce(Cut(pSearchCutString.c_str()));
+  // D ==> search region, high P/Pt, high Ih
+  RooDataSet* regionD1DataSet;
+  if(usePtForSideband)
+    regionD1DataSet = (RooDataSet*)rooDataSetAll->reduce(Cut(ptSearchCutString.c_str()));
+  else
+    regionD1DataSet = (RooDataSet*)rooDataSetAll->reduce(Cut(pSearchCutString.c_str()));
   RooDataSet* regionDDataSet = (RooDataSet*)regionD1DataSet->reduce(Cut(ihSearchCutString.c_str()));
 
   int nomSlice = 0;
   // loop over all nom/eta slices
-  for(int nom=5; nom < 22; nom+=2)
+  //for(int nom=5; nom < 22; nom+=2)
   //XXX TESTING
-  //for(int nom=7; nom < 8; nom+=2)
+  for(int nom=7; nom < 8; nom+=2)
   {
     nomSlice++;
     int etaSlice = 0;
-    for(float lowerEta = 0.0; lowerEta < 2.3; lowerEta+=0.2)
+    //for(float lowerEta = 0.0; lowerEta < 2.3; lowerEta+=0.2)
     //XXX TESTING
-    //for(float lowerEta = 0.4; lowerEta < 0.5; lowerEta+=0.2)
+    for(float lowerEta = 1.2; lowerEta < 1.3; lowerEta+=0.2)
     {
       etaSlice++;
       double successRateSumsInIasBins[100];
@@ -320,27 +386,39 @@ int main(int argc, char ** argv)
       std::string bRegionHistName = getHistNameBeg(nom,lowerEta);
       bRegionHistName+="bRegionHist";
       std::string bRegionHistTitle = "Ih for ";
-      bRegionHistTitle+=getHistTitleBeg(nom,lowerEta,pSidebandThreshold,ihSidebandThreshold);
+      if(usePtForSideband)
+        bRegionHistTitle+=getHistTitleBegPt(nom,lowerEta,ptSidebandThreshold,ihSidebandThreshold);
+      else
+        bRegionHistTitle+=getHistTitleBeg(nom,lowerEta,pSidebandThreshold,ihSidebandThreshold);
       bRegionHistTitle+="; MeV/cm";
       TH1F* bRegionHist = bRegionDir.make<TH1F>(bRegionHistName.c_str(),bRegionHistTitle.c_str(),100,0,10);
       // ias distribution from B region
       std::string iasBRegionHistName = getHistNameBeg(nom,lowerEta);
       iasBRegionHistName+="iasBRegionHist";
       std::string iasBRegionHistTitle = "Ias in B region for ";
-      iasBRegionHistTitle+=getHistTitleBeg(nom,lowerEta,pSidebandThreshold,ihSidebandThreshold);
+      if(usePtForSideband)
+        iasBRegionHistTitle+=getHistTitleBegPt(nom,lowerEta,ptSidebandThreshold,ihSidebandThreshold);
+      else
+        iasBRegionHistTitle+=getHistTitleBeg(nom,lowerEta,pSidebandThreshold,ihSidebandThreshold);
       TH1F* iasBRegionHist = bRegionDir.make<TH1F>(iasBRegionHistName.c_str(),iasBRegionHistTitle.c_str(),100,0,1);
       // c region hist
       std::string cRegionHistName = getHistNameBeg(nom,lowerEta);
       cRegionHistName+="cRegionHist";
       std::string cRegionHistTitle = "P for ";
-      cRegionHistTitle+=getHistTitleBeg(nom,lowerEta,pSidebandThreshold,ihSidebandThreshold);
+      if(usePtForSideband)
+        cRegionHistTitle+=getHistTitleBegPt(nom,lowerEta,ptSidebandThreshold,ihSidebandThreshold);
+      else
+        cRegionHistTitle+=getHistTitleBeg(nom,lowerEta,pSidebandThreshold,ihSidebandThreshold);
       cRegionHistTitle+="; GeV";
       TH1F* cRegionHist = cRegionDir.make<TH1F>(cRegionHistName.c_str(),cRegionHistTitle.c_str(),100,0,1000);
       // c region hist - cumulative
       std::string cRegionCumuHistName = getHistNameBeg(nom,lowerEta);
       cRegionCumuHistName+="cRegionCumuHist";
       std::string cRegionCumuHistTitle = "P for ";
-      cRegionCumuHistTitle+=getHistTitleBeg(nom,lowerEta,pSidebandThreshold,ihSidebandThreshold);
+      if(usePtForSideband)
+        cRegionCumuHistTitle+=getHistTitleBegPt(nom,lowerEta,ptSidebandThreshold,ihSidebandThreshold);
+      else
+        cRegionCumuHistTitle+=getHistTitleBeg(nom,lowerEta,pSidebandThreshold,ihSidebandThreshold);
       cRegionCumuHistTitle+=" cumulative; GeV";
       TH1F* cRegionCumuHist = cRegionDir.make<TH1F>(cRegionCumuHistName.c_str(),cRegionCumuHistTitle.c_str(),100,0,1000);
       // B region dataset
@@ -368,17 +446,13 @@ int main(int argc, char ** argv)
       entriesInBRegionHist->Fill(lowerEta+0.1,nom,etaCutNomCutBRegionDataSet->numEntries());
       entriesInCRegionHist->Fill(lowerEta+0.1,nom,etaCutNomCutCRegionDataSet->numEntries());
       entriesInDRegionHist->Fill(lowerEta+0.1,nom,etaCutNomCutDRegionDataSet->numEntries());
-
-      // require at least 25 entries in each dataset to do prediction
-      if(etaCutNomCutBRegionDataSet->numEntries() < 25 || etaCutNomCutCRegionDataSet->numEntries() < 25)
-      {
-        std::cout << "WARNING: too few entries-not doing prediction for this slice: eta=" <<
-          lowerEta << "-" << lowerEta+0.2 << " nom=" << nom << "-" << nom+1 << std::endl <<
-         "\t\t" << etaCutNomCutBRegionDataSet->numEntries() <<
-          " entries in B region and " << etaCutNomCutCRegionDataSet->numEntries() <<
-          " entries in C region" << std::endl;
-        continue;
-      }
+      //debug
+      //std::cout << "eta=" <<
+      //  lowerEta << "-" << lowerEta+0.2 << " nom=" << nom << "-" << nom+1 << std::endl;
+      //std::cout << "A = " << etaCutNomCutARegionDataSet->numEntries() <<
+      //  " B = " << etaCutNomCutBRegionDataSet->numEntries() <<
+      //  " C = " << etaCutNomCutCRegionDataSet->numEntries() <<
+      //  " D = " << etaCutNomCutDRegionDataSet->numEntries() << std::endl;
 
       const RooArgSet* argSet_B = etaCutNomCutBRegionDataSet->get();
       RooRealVar* ihData_B = (RooRealVar*)argSet_B->find(rooVarIh.GetName());
@@ -396,6 +470,9 @@ int main(int argc, char ** argv)
         etaCutNomCutBRegionDataSet->get(index);
         bRegionHist->Fill(ihData_B->getVal());
         iasBRegionHist->Fill(iasData_B->getVal());
+        ////debug
+        //std::cout << "Filled B region hist: " << bRegionHist->GetName()
+        //  << " index = " << index << std::endl;
 
         if(ihData_B->getVal() < ihSidebandThreshold)
           std::cout << "ERROR: (in B region) ih=" << ihData_B->getVal() << std::endl;
@@ -412,14 +489,33 @@ int main(int argc, char ** argv)
         etaCutNomCutCRegionDataSet->get(index);
         cRegionHist->Fill(pData_C->getVal());
 
-        if(pData_C->getVal() < pSidebandThreshold)
-          std::cout << "ERROR: (in C region) p=" << pData_C->getVal() << std::endl;
+        if(usePtForSideband)
+        {
+          if(ptData_C->getVal() < ptSidebandThreshold)
+            std::cout << "ERROR: (in C region) pt=" << ptData_C->getVal() << std::endl;
+        }
+        else
+        {
+          if(pData_C->getVal() < pSidebandThreshold)
+            std::cout << "ERROR: (in C region) p=" << pData_C->getVal() << std::endl;
+        }
         if(nomData_C->getVal() < nom || nomData_C->getVal() > nom+1)
           std::cout << "ERROR: nom=" << nom << "-" << nom+1 << " and (in C region) data point nom="
             << nomData_C->getVal() << std::endl;
         if(etaData_C->getVal() < lowerEta || etaData_C->getVal() > lowerEta+0.2)
           std::cout << "ERROR: eta=" << lowerEta << "-" << lowerEta+0.2 << " and (in C region) data point eta="
             << etaData_C->getVal() << std::endl;
+      }
+
+      // require at least 25 entries in each dataset to do prediction
+      if(etaCutNomCutBRegionDataSet->numEntries() < 25 || etaCutNomCutCRegionDataSet->numEntries() < 25)
+      {
+        std::cout << "WARNING: too few entries-not doing prediction for this slice: eta=" <<
+          lowerEta << "-" << lowerEta+0.2 << " nom=" << nom << "-" << nom+1 << std::endl <<
+         "\t\t" << etaCutNomCutBRegionDataSet->numEntries() <<
+          " entries in B region and " << etaCutNomCutCRegionDataSet->numEntries() <<
+          " entries in C region" << std::endl;
+        continue;
       }
 
       // c region cumu hist
@@ -523,12 +619,12 @@ int main(int argc, char ** argv)
         double successRateError = sqrt(successRate*(1-successRate)/(double)total);
         successRateSumsInIasBins[iasPredictionFixedHist->FindBin(thisIas)-1]+=successRate;
         successRateCountsInIasBins[iasPredictionFixedHist->FindBin(thisIas)-1]++;
+        //FIXME?
         successRateLastErrorInIasBins[iasPredictionFixedHist->FindBin(thisIas)-1]=successRateError;
         ihMeanProf->Fill(thisIas,thisIh);
         minPCutMeanProf->Fill(thisIas,minMomPassMass);
         
-        //debug
-        //if(thisIas >= 0.16 && thisIas < 0.17 && lowerEta==0)
+        //if(nom==11 && (int)(lowerEta*10)==4)
         //{
         //  std::cout << "numMomPassingMass: " << numMomPassingMass << " numMomFailingMass: " <<
         //    numMomFailingMass << " minMomPassMass:" << minMomPassMass << " thisIh: " << thisIh << std::endl;
@@ -544,8 +640,28 @@ int main(int argc, char ** argv)
         {
           iasSuccessRateHist->SetBinContent(i+1,successRateSumsInIasBins[i]/successRateCountsInIasBins[i]);
           iasSuccessRateHist->SetBinError(i+1,successRateLastErrorInIasBins[i]);
+          //debug
+          std::cout << "ias: " << iasSuccessRateHist->GetBinCenter(i+1) << 
+            " trials in this ias bin: " << successRateCountsInIasBins[i] <<
+            " successRate: " << successRateSumsInIasBins[i]/successRateCountsInIasBins[i] << 
+            " 28.36 (C region ratio)*successRate: " << 28.36*successRateSumsInIasBins[i]/successRateCountsInIasBins[i] <<
+            std::endl;
         }
       }
+
+      //TODO: move to scaling code
+    ////XXX test histogram for particular slice
+    //if(lowerNoM==11 && (int)(lowerEta*10)==4)
+    //{
+    //  cout << "INFO: Rescaling this slice to 0.3 of nominal. " << endl;
+    //  for(int bin=1; bin<=histItr->GetNbinsX();++bin)
+    //  {
+    //    double binc = 0.3*histItr->GetBinContent(bin);
+    //    double bine = 0.3*histItr->GetBinError(bin);
+    //    histItr->SetBinContent(bin,binc);
+    //    histItr->SetBinError(bin,bine);
+    //  }
+    //}
 
       // multiply by the original ias in this slice before mass cut
       iasPredictionFixedHist->Multiply(iasBRegionHist,iasSuccessRateHist);
