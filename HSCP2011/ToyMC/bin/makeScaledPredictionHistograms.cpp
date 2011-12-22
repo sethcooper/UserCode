@@ -115,6 +115,30 @@ int getGlobalBinMax()
 
   return multFactorNoMSlice*(numNoMBins-1) + multFactorEtaSlice*(numEtaBins-1) + numIasBins;
 }
+// add the mass, p/pt, and ih SB thresholds to the output filename automatically
+std::string generateFileNameEnd(double massCut, double pSideband, double ptSideband, bool usePt, double ihSideband)
+{
+  std::string fileNameEnd = ".massCut";
+  fileNameEnd+=intToString(((int)massCut));
+  if(usePt)
+  {
+    fileNameEnd+=".pt";
+    fileNameEnd+=intToString(((int)ptSideband));
+  }
+  else
+  {
+    fileNameEnd+=".p";
+    fileNameEnd+=intToString(((int)pSideband));
+  }
+  fileNameEnd+=".ih";
+  // replace "." with "p" for the ih
+  std::string ihSBStr = floatToString(ihSideband);
+  ihSBStr.replace(ihSBStr.find("."),1,"p");
+  fileNameEnd+=ihSBStr;
+
+  fileNameEnd+=".root";
+  return fileNameEnd;
+}
 
 
 
@@ -149,6 +173,8 @@ int main(int argc, char ** argv)
   double dEdx_c (ana.getParameter<double>("dEdx_c"));
   // definition of sidebands/search region
   double pSidebandThreshold (ana.getParameter<double>("PSidebandThreshold"));
+  double ptSidebandThreshold (ana.getParameter<double>("PtSidebandThreshold"));
+  bool usePtForSideband (ana.getParameter<bool>("UsePtForSideband"));
   double ihSidebandThreshold (ana.getParameter<double>("IhSidebandThreshold"));
   double integratedLumi (ana.getParameter<double>("IntegratedLuminosity")); // 1/pb
   //double signalCrossSectionForEff (ana.getParameter<double>("SignalCrossSectionForEff")); // pb
@@ -171,7 +197,8 @@ int main(int argc, char ** argv)
   RooRealVar rooVarEta("rooVarEta","eta",0,2.5);
   //TODO add mass in initial dataset generation?
 
-  TFile* outputRootFile = new TFile(outputRootFilename_.c_str(),"recreate");
+  string fileNameEnd = generateFileNameEnd(massCut_,pSidebandThreshold,ptSidebandThreshold,usePtForSideband,ihSidebandThreshold);
+  TFile* outputRootFile = new TFile((outputRootFilename_+fileNameEnd).c_str(),"recreate");
   TFile* backgroundPredictionRootFile = TFile::Open(backgroundPredictionRootFilename_.c_str());
   TFile* signalRootFile = TFile::Open(signalRootFilename_.c_str());
 
@@ -198,9 +225,15 @@ int main(int argc, char ** argv)
   // construct D region for signal
   string pSearchCutString = "rooVarP>";
   pSearchCutString+=floatToString(pSidebandThreshold);
+  string ptSearchCutString = "rooVarPt>";
+  ptSearchCutString+=floatToString(ptSidebandThreshold);
   string ihSearchCutString = "rooVarIh>";
   ihSearchCutString+=floatToString(ihSidebandThreshold);
-  RooDataSet* regionD1DataSetSignal = (RooDataSet*)rooDataSetAllSignal->reduce(Cut(pSearchCutString.c_str()));
+  RooDataSet* regionD1DataSetSignal;
+  if(usePtForSideband)
+    regionD1DataSetSignal = (RooDataSet*)rooDataSetAllSignal->reduce(Cut(ptSearchCutString.c_str()));
+  else
+    regionD1DataSetSignal = (RooDataSet*)rooDataSetAllSignal->reduce(Cut(pSearchCutString.c_str()));
   RooDataSet* regionDDataSetSignal = (RooDataSet*)regionD1DataSetSignal->reduce(Cut(ihSearchCutString.c_str()));
   //int numSignalTracksInDRegion = regionDDataSetSignal->numEntries();
 
@@ -301,6 +334,10 @@ int main(int argc, char ** argv)
       "unrolled background hist (shape -1 sigma)",numGlobalBins,1,numGlobalBins+1);
   TH1F* signalAllNoMAllEtaUnrolledHist = new TH1F("signalAllNoMAllEtaUnrolledHist",
       "unrolled signal hist",numGlobalBins,1,numGlobalBins+1);
+  TH2F* sigEffOverIasCutVsSliceHist = new TH2F("sigEffOverIasCutVsSlice","Sig eff. over ias cut;#eta;nom",12,0,2.4,9,5,23);
+  TH1F* sigEffOverIasCutHist = new TH1F("sigEffOverIasCut","Signal eff. over ias cut",100,0,1);
+  TH2F* backExpOverIasCutVsSliceHist = new TH2F("backExpOverIasCutVsSlice","Exp. background over ias cut;#eta;nom",12,0,2.4,9,5,23);
+  TH1F* backExpOverIasCutHist = new TH1F("backExpOverIasCut","Exp. background over ias cut",100,0,1);
 
   double backgroundTracksOverIasCut = 0;
   double signalTracksOverIasCut = 0;
@@ -431,7 +468,22 @@ int main(int argc, char ** argv)
       " and integral = " << histItr->Integral() <<
       " so bgNormFactor = " << numBackgroundTracksInDRegionPassingMassCutThisSlice/histItr->Integral() <<
       endl;
-    cout << "first Ias bin this slice: " << iteratorPos*numIasBins << endl;
+    //cout << "first Ias bin this slice: " << iteratorPos*numIasBins << endl;
+    double sigTracksOverIasCutThisSlice = 
+      iasSignalMassCutNoMSliceHist->Integral(
+          iasSignalMassCutNoMSliceHist->FindBin(iasCutForEffAcc),
+          iasSignalMassCutNoMSliceHist->GetNbinsX());
+    double sigTracksTotalThisSlice = iasSignalMassCutNoMSliceHist->Integral();
+    cout << "INFO: signal tracks total this slice: " << iasSignalMassCutNoMSliceHist->Integral() <<
+      sigTracksTotalThisSlice <<
+      " signal tracks over ias cut this slice: " <<
+      sigTracksOverIasCutThisSlice <<
+      " sigEff = " << 
+      endl;
+
+    sigEffOverIasCutVsSliceHist->Fill(lowerEta+0.1,lowerNoM,sigTracksOverIasCutThisSlice/sigTracksTotalThisSlice);
+    sigEffOverIasCutHist->Fill(sigTracksOverIasCutThisSlice/sigTracksTotalThisSlice);
+
 
     // normalize BG hist
     histItr->Sumw2();
@@ -444,7 +496,16 @@ int main(int argc, char ** argv)
       numBackgroundTracksInDRegionPassingMassCutThisSlice/
       histItr->Integral();
     histItr->Scale(bgNormFactor);
+  
+    if(lowerNoM==11 && (int)(lowerEta*10)==4)
+    {
+      cout << "backgroundTracksOverIasCut for NoM 11 eta 0.4: " << 
+        histItr->Integral(histItr->FindBin(iasCutForEffAcc),histItr->GetNbinsX()) << endl;
+    }
     backgroundTracksOverIasCut+=histItr->Integral(histItr->FindBin(iasCutForEffAcc),histItr->GetNbinsX());
+    backExpOverIasCutVsSliceHist->Fill(
+        lowerEta+0.1,lowerNoM,histItr->Integral(histItr->FindBin(iasCutForEffAcc),histItr->GetNbinsX()));
+    backExpOverIasCutHist->Fill(histItr->Integral(histItr->FindBin(iasCutForEffAcc),histItr->GetNbinsX()));
     // normalize sig hist
     iasSignalMassCutNoMSliceHist->Sumw2();
     double sigNormFactor = numSignalTracksInDRegionPassingMassCutThisSlice/
@@ -464,7 +525,9 @@ int main(int argc, char ** argv)
       // plus one sigma
       backgroundAllNoMAllEtaUnrolledPlusOneSigmaHist->SetBinContent(globalBinIndex,binc+bine);
       backgroundAllNoMAllEtaUnrolledPlusOneSigmaHist->SetBinError(globalBinIndex,bine);
-      // minus one sigma
+      //TODO minus one sigma
+      //if(binc-bine < 0)
+      //{
       backgroundAllNoMAllEtaUnrolledMinusOneSigmaHist->SetBinContent(globalBinIndex,binc-bine);
       backgroundAllNoMAllEtaUnrolledMinusOneSigmaHist->SetBinError(globalBinIndex,bine);
 
@@ -508,6 +571,10 @@ int main(int argc, char ** argv)
   backgroundAllNoMAllEtaUnrolledPlusOneSigmaHist->Write();
   backgroundAllNoMAllEtaUnrolledMinusOneSigmaHist->Write();
   signalAllNoMAllEtaUnrolledHist->Write();
+  sigEffOverIasCutVsSliceHist->Write();
+  sigEffOverIasCutHist->Write();
+  backExpOverIasCutVsSliceHist->Write();
+  backExpOverIasCutHist->Write();
   outputRootFile->Close();
 
   cout << endl << endl << "Ias cut = " << iasCutForEffAcc << "; found " << backgroundTracksOverIasCut
