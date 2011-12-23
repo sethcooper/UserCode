@@ -360,15 +360,15 @@ int main(int argc, char ** argv)
 
   int nomSlice = 0;
   // loop over all nom/eta slices
-  //for(int nom=5; nom < 22; nom+=2)
+  for(int nom=5; nom < 22; nom+=2)
   //XXX TESTING
-  for(int nom=7; nom < 8; nom+=2)
+  //for(int nom=7; nom < 8; nom+=2)
   {
     nomSlice++;
     int etaSlice = 0;
-    //for(float lowerEta = 0.0; lowerEta < 2.3; lowerEta+=0.2)
+    for(float lowerEta = 0.0; lowerEta < 2.3; lowerEta+=0.2)
     //XXX TESTING
-    for(float lowerEta = 1.2; lowerEta < 1.3; lowerEta+=0.2)
+    //for(float lowerEta = 1.2; lowerEta < 1.3; lowerEta+=0.2)
     {
       etaSlice++;
       double successRateSumsInIasBins[100];
@@ -641,12 +641,12 @@ int main(int argc, char ** argv)
         {
           iasSuccessRateHist->SetBinContent(i+1,successRateSumsInIasBins[i]/successRateCountsInIasBins[i]);
           iasSuccessRateHist->SetBinError(i+1,successRateLastErrorInIasBins[i]);
-          //debug
-          std::cout << "ias: " << iasSuccessRateHist->GetBinCenter(i+1) << 
-            " trials in this ias bin: " << successRateCountsInIasBins[i] <<
-            " successRate: " << successRateSumsInIasBins[i]/successRateCountsInIasBins[i] << 
-            " 28.36 (C region ratio)*successRate: " << 28.36*successRateSumsInIasBins[i]/successRateCountsInIasBins[i] <<
-            std::endl;
+          ////debug
+          //std::cout << "ias: " << iasSuccessRateHist->GetBinCenter(i+1) << 
+          //  " trials in this ias bin: " << successRateCountsInIasBins[i] <<
+          //  " successRate: " << successRateSumsInIasBins[i]/successRateCountsInIasBins[i] << 
+          //  " 28.36 (C region ratio)*successRate: " << 28.36*successRateSumsInIasBins[i]/successRateCountsInIasBins[i] <<
+          //  std::endl;
         }
       }
 
