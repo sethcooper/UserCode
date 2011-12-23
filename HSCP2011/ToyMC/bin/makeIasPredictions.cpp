@@ -270,7 +270,8 @@ int main(int argc, char ** argv)
   double ihSidebandThreshold (ana.getParameter<double>("IhSidebandThreshold"));
 
   // fileService initialization
-  string fileNameEnd = generateFileNameEnd(massCutIasHighPHighIh_,pSidebandThreshold,ptSidebandThreshold,usePtForSideband,ihSidebandThreshold);
+  //string fileNameEnd = generateFileNameEnd(massCutIasHighPHighIh_,pSidebandThreshold,ptSidebandThreshold,usePtForSideband,ihSidebandThreshold);
+  string fileNameEnd = "";
   fwlite::TFileService fs = fwlite::TFileService((outputHandler_.file()+fileNameEnd).c_str());
   TFileDirectory successRateDir = fs.mkdir("successRates");
   TFileDirectory iasPredictionFixedBinsDir = fs.mkdir("iasPredictionsFixedBins");
@@ -308,10 +309,10 @@ int main(int argc, char ** argv)
     return -2;
   }
 
-  RooDataSet* rooDataSetAll = (RooDataSet*)inFile->Get("rooDataSetAll");
+  RooDataSet* rooDataSetAll = (RooDataSet*)inFile->Get("rooDataSetCandidates");
   if(rooDataSetAll->numEntries() < 1)
   {
-    std::cout << "Problem with RooDataSet named rooDataSetAll in file " << inputHandler_.files()[0].c_str() << std::endl;
+    std::cout << "Problem with RooDataSet named rooDataSetCandidates in file " << inputHandler_.files()[0].c_str() << std::endl;
     return -3;
   }
 
