@@ -434,8 +434,10 @@ int main(int argc, char ** argv)
       RooDataSet* nomCutBRegionDataSet = (RooDataSet*)regionBDataSet->reduce(Cut(nomCutString.c_str()));
       RooDataSet* etaCutNomCutBRegionDataSet = (RooDataSet*)nomCutBRegionDataSet->reduce(Cut(etaCutString.c_str()));
       // C region dataset
-      RooDataSet* nomCutCRegionDataSet = (RooDataSet*)regionCDataSet->reduce(Cut(nomCutString.c_str()));
-      RooDataSet* etaCutNomCutCRegionDataSet = (RooDataSet*)nomCutCRegionDataSet->reduce(Cut(etaCutString.c_str()));
+      // SIC Dec. 23: study shows we can use all NoM slices
+      //RooDataSet* nomCutCRegionDataSet = (RooDataSet*)regionCDataSet->reduce(Cut(nomCutString.c_str()));
+      //RooDataSet* etaCutNomCutCRegionDataSet = (RooDataSet*)nomCutCRegionDataSet->reduce(Cut(etaCutString.c_str()));
+      RooDataSet* etaCutCRegionDataSet = (RooDataSet*)regionCDataSet->reduce(Cut(etaCutString.c_str()));
       // D region dataset
       RooDataSet* nomCutDRegionDataSet = (RooDataSet*)regionDDataSet->reduce(Cut(nomCutString.c_str()));
       RooDataSet* etaCutNomCutDRegionDataSet = (RooDataSet*)nomCutDRegionDataSet->reduce(Cut(etaCutString.c_str()));
@@ -445,14 +447,14 @@ int main(int argc, char ** argv)
 
       entriesInARegionHist->Fill(lowerEta+0.1,nom,etaCutNomCutARegionDataSet->numEntries());
       entriesInBRegionHist->Fill(lowerEta+0.1,nom,etaCutNomCutBRegionDataSet->numEntries());
-      entriesInCRegionHist->Fill(lowerEta+0.1,nom,etaCutNomCutCRegionDataSet->numEntries());
+      entriesInCRegionHist->Fill(lowerEta+0.1,nom,etaCutCRegionDataSet->numEntries());
       entriesInDRegionHist->Fill(lowerEta+0.1,nom,etaCutNomCutDRegionDataSet->numEntries());
       //debug
       //std::cout << "eta=" <<
       //  lowerEta << "-" << lowerEta+0.2 << " nom=" << nom << "-" << nom+1 << std::endl;
       //std::cout << "A = " << etaCutNomCutARegionDataSet->numEntries() <<
       //  " B = " << etaCutNomCutBRegionDataSet->numEntries() <<
-      //  " C = " << etaCutNomCutCRegionDataSet->numEntries() <<
+      //  " C = " << etaCutCRegionDataSet->numEntries() <<
       //  " D = " << etaCutNomCutDRegionDataSet->numEntries() << std::endl;
 
       const RooArgSet* argSet_B = etaCutNomCutBRegionDataSet->get();
@@ -460,7 +462,7 @@ int main(int argc, char ** argv)
       RooRealVar* iasData_B = (RooRealVar*)argSet_B->find(rooVarIas.GetName());
       RooRealVar* nomData_B = (RooRealVar*)argSet_B->find(rooVarNoMias.GetName());
       RooRealVar* etaData_B = (RooRealVar*)argSet_B->find(rooVarEta.GetName());
-      const RooArgSet* argSet_C = etaCutNomCutCRegionDataSet->get();
+      const RooArgSet* argSet_C = etaCutCRegionDataSet->get();
       RooRealVar* pData_C = (RooRealVar*)argSet_C->find(rooVarP.GetName());
       RooRealVar* ptData_C = (RooRealVar*)argSet_C->find(rooVarPt.GetName());
       RooRealVar* nomData_C = (RooRealVar*)argSet_C->find(rooVarNoMias.GetName());
@@ -485,9 +487,9 @@ int main(int argc, char ** argv)
             << etaData_B->getVal() << std::endl;
       }
       // fill c region hist
-      for(int index=0; index < etaCutNomCutCRegionDataSet->numEntries(); ++index)
+      for(int index=0; index < etaCutCRegionDataSet->numEntries(); ++index)
       {
-        etaCutNomCutCRegionDataSet->get(index);
+        etaCutCRegionDataSet->get(index);
         cRegionHist->Fill(pData_C->getVal());
 
         if(usePtForSideband)
@@ -509,12 +511,12 @@ int main(int argc, char ** argv)
       }
 
       // require at least 25 entries in each dataset to do prediction
-      if(etaCutNomCutBRegionDataSet->numEntries() < 25 || etaCutNomCutCRegionDataSet->numEntries() < 25)
+      if(etaCutNomCutBRegionDataSet->numEntries() < 25 || etaCutCRegionDataSet->numEntries() < 25)
       {
         std::cout << "WARNING: too few entries-not doing prediction for this slice: eta=" <<
           lowerEta << "-" << lowerEta+0.2 << " nom=" << nom << "-" << nom+1 << std::endl <<
          "\t\t" << etaCutNomCutBRegionDataSet->numEntries() <<
-          " entries in B region and " << etaCutNomCutCRegionDataSet->numEntries() <<
+          " entries in B region and " << etaCutCRegionDataSet->numEntries() <<
           " entries in C region" << std::endl;
         continue;
       }
@@ -609,8 +611,8 @@ int main(int argc, char ** argv)
           continue;
         }
         double minMomPassMass = sqrt(momSqr);
-        RooDataSet* momPassDataSet = (RooDataSet*)etaCutNomCutCRegionDataSet->reduce(Cut(("rooVarP>"+floatToString(minMomPassMass)).c_str()));
-        RooDataSet* momFailDataSet = (RooDataSet*)etaCutNomCutCRegionDataSet->reduce(Cut(("rooVarP<"+floatToString(minMomPassMass)).c_str()));
+        RooDataSet* momPassDataSet = (RooDataSet*)etaCutCRegionDataSet->reduce(Cut(("rooVarP>"+floatToString(minMomPassMass)).c_str()));
+        RooDataSet* momFailDataSet = (RooDataSet*)etaCutCRegionDataSet->reduce(Cut(("rooVarP<"+floatToString(minMomPassMass)).c_str()));
         int numMomPassingMass = momPassDataSet->numEntries();
         int numMomFailingMass = momFailDataSet->numEntries();
         delete momPassDataSet;
@@ -641,12 +643,12 @@ int main(int argc, char ** argv)
         {
           iasSuccessRateHist->SetBinContent(i+1,successRateSumsInIasBins[i]/successRateCountsInIasBins[i]);
           iasSuccessRateHist->SetBinError(i+1,successRateLastErrorInIasBins[i]);
-          ////debug
-          //std::cout << "ias: " << iasSuccessRateHist->GetBinCenter(i+1) << 
-          //  " trials in this ias bin: " << successRateCountsInIasBins[i] <<
-          //  " successRate: " << successRateSumsInIasBins[i]/successRateCountsInIasBins[i] << 
-          //  " 28.36 (C region ratio)*successRate: " << 28.36*successRateSumsInIasBins[i]/successRateCountsInIasBins[i] <<
-          //  std::endl;
+          //debug
+          std::cout << "ias: " << iasSuccessRateHist->GetBinCenter(i+1) << 
+            " trials in this ias bin: " << successRateCountsInIasBins[i] <<
+            " successRate: " << successRateSumsInIasBins[i]/successRateCountsInIasBins[i] << 
+            " 28.36 (C region ratio)*successRate: " << 28.36*successRateSumsInIasBins[i]/successRateCountsInIasBins[i] <<
+            std::endl;
         }
       }
 
@@ -738,10 +740,10 @@ int main(int argc, char ** argv)
       }
 
       delete nomCutBRegionDataSet;
-      delete nomCutCRegionDataSet;
+      //delete nomCutCRegionDataSet;
       delete nomCutDRegionDataSet;
       delete etaCutNomCutBRegionDataSet;
-      delete etaCutNomCutCRegionDataSet;
+      delete etaCutCRegionDataSet;
       delete etaCutNomCutDRegionDataSet;
 
     } // eta slices
