@@ -17,7 +17,6 @@
 #include "TRandom3.h"
 #include "TProfile.h"
 #include "TDirectory.h"
-#include "TRandom3.h"
 
 #include "RooDataSet.h"
 #include "RooRealVar.h"
@@ -229,6 +228,15 @@ int main(int argc, char ** argv)
   RooRealVar rooVarEta("rooVarEta","eta",0,2.5);
   RooDataSet* rooDataSetCandidates = fs.make<RooDataSet>("rooDataSetCandidates","rooDataSetCandidates",
       RooArgSet(rooVarIas,rooVarIh,rooVarP,rooVarPt,rooVarNoMias,rooVarEta,rooVarIp));
+  // Dataset for IasShift
+  RooDataSet* rooDataSetIasShift = fs.make<RooDataSet>("rooDataSetIasShift","rooDataSetIasShift",
+      RooArgSet(rooVarIas,rooVarIh,rooVarP,rooVarPt,rooVarNoMias,rooVarEta,rooVarIp));
+  // Dataset for IhShift
+  RooDataSet* rooDataSetIhShift = fs.make<RooDataSet>("rooDataSetIhShift","rooDataSetIhShift",
+      RooArgSet(rooVarIas,rooVarIh,rooVarP,rooVarPt,rooVarNoMias,rooVarEta,rooVarIp));
+  // Dataset for PtShift
+  RooDataSet* rooDataSetPtShift = fs.make<RooDataSet>("rooDataSetPtShift","rooDataSetPtShift",
+      RooArgSet(rooVarIas,rooVarIh,rooVarP,rooVarPt,rooVarNoMias,rooVarEta,rooVarIp));
 
   // RooDataSet for number of original tracks, etc.
   RooRealVar rooVarNumGenHSCPTracks("rooVarNumGenHSCPTracks","numGenHSCPTracks",0,5e6);
@@ -372,6 +380,37 @@ int main(int argc, char ** argv)
           float trackEta = track->eta();
           int trackNoH = track->found();
           float trackPtErr = track->ptError();
+
+          // systematics datasets for MC
+          if(isMC_)
+          {
+            TRandom3 myRandom;
+            //TODO include TOF at some point?
+            rooVarIas = ias;
+            rooVarIp = ip;
+            rooVarIh = ih;
+            rooVarP = trackP;
+            rooVarPt = trackPt;
+            rooVarNoMias = iasNoM;
+            rooVarEta = fabs(trackEta);
+            // ias shift
+            double newIas = ias + myRandom.Gaus(0,0.083) + 0.015; // from YK results Nov 21 2011 hypernews thread
+            rooVarIas = newIas;
+            rooDataSetIasShift->add(RooArgSet(rooVarIas,rooVarIh,rooVarP,rooVarPt,rooVarNoMias,rooVarEta,rooVarIp));
+            rooVarIas = ias; // reset to original value
+            // ih shift
+            double newIh = ih*1.036; // from SIC results, Nov 10 2011 HSCP meeting
+            rooVarIh = newIh;
+            rooDataSetIhShift->add(RooArgSet(rooVarIas,rooVarIh,rooVarP,rooVarPt,rooVarNoMias,rooVarEta,rooVarIp));
+            rooVarIh = ih; // reset to original value
+            // pt shift (and p shift) -- from MU-10-004-001 -- SIC report Jun 7 2011 HSCP meeting
+            double newInvPt = 1/trackPt+0.000236-0.000135*pow(trackEta,2)+track->charge()*0.000282*TMath::Sin(track->phi()-1.337);
+            rooVarPt = 1/newInvPt;
+            rooVarP = rooVarPt.getVal()/TMath::Sin(track->theta());
+            rooDataSetPtShift->add(RooArgSet(rooVarIas,rooVarIh,rooVarP,rooVarPt,rooVarNoMias,rooVarEta,rooVarIp));
+            rooVarPt = trackPt; // reset
+            rooVarP = trackP; // reset
+          }
 
           // apply preselections, not considering ToF
           if(!passesPreselection(hscp,dedxSObj,dedxMObj,tof,dttof,csctof,ev,false))
