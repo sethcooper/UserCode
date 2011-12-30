@@ -127,7 +127,7 @@ def CreateTheShellFile(bgInputFile,sigInputFile,massCut,iasCut):
     shell_file.write('cp ' + pathChXMLFile + ' config/\n')
     shell_file.write('cp ' + pathCombXMLFile + ' config/\n')
     shell_file.write('hist2workspace ' + 'config/' + combXMLFilename + '\n')
-    shell_file.write('root -b -q "'+Base_macro+'(\\"hscp_combined_hscp_model.root\\",\\"combined\\",\\"ModelConfig\\",\\"\\",\\"asimovData\\",0,3,true,25,0.001,0.05,1000,false,\\"\\")"' + '\n')
+    shell_file.write('root -b -q "'+Base_macro+'(\\"hscp_combined_hscp_model.root\\",\\"combined\\",\\"ModelConfig\\",\\"\\",\\"asimovData\\",0,3,true,20,0.001,0.05,1000,false,\\"\\")"' + '\n')
     shell_file.close()
     os.system("chmod 777 "+Path_Shell)
 
@@ -179,7 +179,7 @@ def CreateDirectoryStructure(FarmDirectory):
     if os.path.isdir(FarmDirectory+'/inputs/config/') == False:
         os.system('mkdir ' + FarmDirectory+'/inputs/config/')
 
-def SendCluster_Create(farmDirectory, jobName, queue, baseCfg,
+def SendCluster_Create(farmDirectory, jobName, queue, intLumi, baseCfg,
                        baseChXML, baseCombXML, baseMacro):
     global Jobs_Name
     global Jobs_Count
@@ -188,6 +188,7 @@ def SendCluster_Create(farmDirectory, jobName, queue, baseCfg,
     global Base_xml_channel
     global Base_xml_combined
     global Base_macro
+    global Int_Lumi
     Jobs_Name  = jobName
     Jobs_Count = 0
     Queue_Name = queue
@@ -195,6 +196,7 @@ def SendCluster_Create(farmDirectory, jobName, queue, baseCfg,
     Base_xml_channel = baseChXML
     Base_xml_combined = baseCombXML
     Base_macro = baseMacro
+    Int_Lumi=intLumi
     CreateDirectoryStructure(farmDirectory)
     CreateTheCmdFile()
     #for massCut in massCuts:

@@ -9,20 +9,22 @@ import glob
 from subprocess import call
 
 
-Date = "dec27"
-OutputIasPredictionDir = os.getcwd()+"/FARM_MakeIasPredictions_dec23/outputs/"
+Date = "dec28"
+#OutputIasPredictionDir = os.getcwd()+"/FARM_MakeIasPredictions_dec23/outputs/"
+OutputIasPredictionDir = os.getcwd()+"/FARM_MakeIasPredictions_allNoMforCRegion_dec28/outputs/"
 OutputMakeHSCParticlePlotsDir = os.getcwd()+"/MakeHSCParticlePlots_dec22/outputs/"
 
+IntLumi = 1091.0 # 1/pb
 QueueName = "8nh"
 BaseCfg = "makeScaledPredictionHistograms_template_cfg.py"
 BaseChXML = "hscp_dataDriven_ch_template.xml"
 BaseCombXML = "hscp_dataDriven_template.xml"
 BaseMacro = os.getcwd() + "/StandardHypoTestInvDemo.C"
 
-JobName = "doLimits_"
+JobName = "doLimits_allNoMforCRegion_"
 JobName+=Date
 JobName+="_"
-FarmDirectory = "FARM_doLimits_"
+FarmDirectory = "FARM_doLimits_allNoMforCRegion_"
 FarmDirectory+=Date
 
            # Gluino f10/f50         # GluinoN                # Stop                   # StopN                  # GMSTAU
@@ -32,7 +34,7 @@ Mass =     [400,600,800,1000,       400,600,800,1000,        200,400,600,800,   
 #            0   1   2   3           4   5   6   7            8   9   10  11           12  13  14  15          16  17  18  19  20  21  22  23  24
 
 HSCPDoLimitsLaunchOnLxBatch.SendCluster_Create(FarmDirectory,JobName,
-                                            QueueName, BaseCfg, BaseChXML,
+                                            QueueName, IntLumi, BaseCfg, BaseChXML,
                                                          BaseCombXML, BaseMacro)
 
 #TODO Do this more intelligently in the future
