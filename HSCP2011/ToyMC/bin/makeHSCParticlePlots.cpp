@@ -226,8 +226,14 @@ int main(int argc, char ** argv)
   RooRealVar rooVarPt("rooVarPt","pt",0,5000);
   RooRealVar rooVarNoMias("rooVarNoMias","nom",0,30);
   RooRealVar rooVarEta("rooVarEta","eta",0,2.5);
+  RooRealVar rooVarRun("rooVarRun","run",0,4294967295);
+  RooRealVar rooVarLumiSection("rooVarLumiSection","lumiSection",0,4294967295);
+  RooRealVar rooVarEvent("rooVarEvent","event",0,4294967295);
   RooDataSet* rooDataSetCandidates = fs.make<RooDataSet>("rooDataSetCandidates","rooDataSetCandidates",
-      RooArgSet(rooVarIas,rooVarIh,rooVarP,rooVarPt,rooVarNoMias,rooVarEta,rooVarIp));
+      RooArgSet(rooVarIas,rooVarIh,rooVarP,rooVarPt,rooVarNoMias,rooVarEta,rooVarRun,rooVarLumiSection,rooVarEvent));
+      //RooArgSet(rooVarIas,rooVarIh,rooVarP,rooVarPt,rooVarNoMias,rooVarEta,rooVarIp));
+  // Ip no longer included
+
   // Dataset for IasShift
   RooDataSet* rooDataSetIasShift = fs.make<RooDataSet>("rooDataSetIasShift","rooDataSetIasShift",
       RooArgSet(rooVarIas,rooVarIh,rooVarP,rooVarPt,rooVarNoMias,rooVarEta,rooVarIp));
@@ -333,6 +339,9 @@ int main(int argc, char ** argv)
           numGenChargedHSCPTracks+=numGenChargedHSCPThisEvent;
         }
 
+        double lumiSection = ev.id().luminosityBlock();
+        double runNumber = ev.id().run();
+        double eventNumber = ev.id().event();
 
         if(!passesTrigger(ev))
           continue;
@@ -499,7 +508,12 @@ int main(int argc, char ** argv)
           rooVarPt = trackPt;
           rooVarNoMias = iasNoM;
           rooVarEta = fabs(trackEta);
-          rooDataSetCandidates->add(RooArgSet(rooVarIas,rooVarIh,rooVarP,rooVarPt,rooVarNoMias,rooVarEta,rooVarIp));
+          rooVarLumiSection = lumiSection;
+          rooVarRun = runNumber;
+          rooVarEvent = eventNumber;
+          //rooDataSetCandidates->add(RooArgSet(rooVarIas,rooVarIh,rooVarP,rooVarPt,rooVarNoMias,rooVarEta,rooVarIp));
+          rooDataSetCandidates->add(RooArgSet(rooVarIas,rooVarIh,rooVarP,rooVarPt,rooVarNoMias,rooVarEta,rooVarLumiSection,
+                rooVarRun,rooVarEvent));
 
           //// now consider the ToF
           //if(!passesPreselection(hscp,dedxSObj,dedxMObj,tof,dttof,csctof,ev,true))
