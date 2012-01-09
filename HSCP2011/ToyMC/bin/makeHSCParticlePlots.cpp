@@ -245,11 +245,12 @@ int main(int argc, char ** argv)
       RooArgSet(rooVarIas,rooVarIh,rooVarP,rooVarPt,rooVarNoMias,rooVarEta,rooVarIp));
 
   // RooDataSet for number of original tracks, etc.
+  RooRealVar rooVarNumGenHSCPEvents("rooVarNumGenHSCPEvents","numGenHSCPEvents",0,5e6);
   RooRealVar rooVarNumGenHSCPTracks("rooVarNumGenHSCPTracks","numGenHSCPTracks",0,5e6);
   RooRealVar rooVarNumGenChargedHSCPTracks("rooVarNumGenChargedHSCPTracks","numGenChargedHSCPTracks",0,5e6);
   RooRealVar rooVarSignalEventCrossSection("rooVarSignalEventCrossSection","signalEventCrossSection",0,100); // pb
   RooDataSet* rooDataSetGenHSCPTracks = fs.make<RooDataSet>("rooDataSetGenHSCPTracks","rooDataSetGenHSCPTracks",
-      RooArgSet(rooVarNumGenHSCPTracks,rooVarNumGenChargedHSCPTracks,rooVarSignalEventCrossSection));
+      RooArgSet(rooVarNumGenHSCPEvents,rooVarNumGenHSCPTracks,rooVarNumGenChargedHSCPTracks,rooVarSignalEventCrossSection));
 
 
   int numEventsPassingTrigger = 0;
@@ -260,6 +261,7 @@ int main(int argc, char ** argv)
 
   int numGenHSCPTracks = 0;
   int numGenChargedHSCPTracks = 0;
+  int numGenHSCPEvents = 0;
   int numTracksPassingTrigger = 0;
   int numTracksPassingPreselection = 0;
   int numTracksInSearchRegion = 0;
@@ -342,6 +344,7 @@ int main(int argc, char ** argv)
         double lumiSection = ev.id().luminosityBlock();
         double runNumber = ev.id().run();
         double eventNumber = ev.id().event();
+        numGenHSCPEvents++;
 
         if(!passesTrigger(ev))
           continue;
@@ -558,10 +561,12 @@ int main(int argc, char ** argv)
   
   pDistributionHist->Scale(scaleFactor_);
 
+  rooVarNumGenHSCPEvents = numGenHSCPEvents;
   rooVarNumGenHSCPTracks = numGenHSCPTracks;
   rooVarNumGenChargedHSCPTracks = numGenChargedHSCPTracks;
   rooVarSignalEventCrossSection = signalEventCrossSection_;
-  rooDataSetGenHSCPTracks->add(RooArgSet(rooVarNumGenHSCPTracks,rooVarNumGenChargedHSCPTracks,rooVarSignalEventCrossSection));
+  rooDataSetGenHSCPTracks->add(
+      RooArgSet(rooVarNumGenHSCPEvents,rooVarNumGenHSCPTracks,rooVarNumGenChargedHSCPTracks,rooVarSignalEventCrossSection));
 
   std::cout << "Found: " << numEventsPassingTrigger << " events passing trigger selection." <<
     std::endl;
@@ -587,9 +592,11 @@ int main(int argc, char ** argv)
   if(isMC_)
   {
     std::cout << std::endl;
-    std::cout << "Number of initial MC events: " << GetInitialNumberOfMCEvent(inputHandler_.files())
+    std::cout << "Number of initial MC events: " << numGenHSCPEvents
       << std::endl;
-    std::cout << "fraction of events passing trigger selection: " << numEventsPassingTrigger/(float)GetInitialNumberOfMCEvent(inputHandler_.files())
+
+    std::cout << "fraction of events passing trigger selection: " << numEventsPassingTrigger/(float)numGenHSCPEvents
+      << std::endl
       << std::endl << "tracks passing preselection/track passing trigger: " <<
       numTracksPassingPreselection/(float)numTracksPassingTrigger << std::endl;
   }
