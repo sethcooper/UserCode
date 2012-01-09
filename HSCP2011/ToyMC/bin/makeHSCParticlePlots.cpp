@@ -344,6 +344,11 @@ int main(int argc, char ** argv)
         double lumiSection = ev.id().luminosityBlock();
         double runNumber = ev.id().run();
         double eventNumber = ev.id().event();
+
+        // ignore real data taken with tigher RPC trigger (355.227/pb) -- from Analysis_Samples.h
+        if(!isMC_ && runNumber < 165970)
+          continue;
+
         numGenHSCPEvents++;
 
         if(!passesTrigger(ev))
