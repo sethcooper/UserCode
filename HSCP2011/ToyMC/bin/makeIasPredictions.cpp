@@ -58,7 +58,10 @@ std::string getHistTitleBeg(int lowerNom, float lowerEta, float pSB, float ihSB)
   std::string histTitle = "NoM ";
   histTitle+=intToString(lowerNom);
   histTitle+="-";
-  histTitle+=intToString(lowerNom+1);
+  if(lowerNom==21)
+    histTitle+="end";
+  else
+    histTitle+=intToString(lowerNom+1);
   histTitle+=", ";
   histTitle+=floatToString(lowerEta);
   histTitle+=" < #eta < ";
@@ -76,7 +79,10 @@ std::string getHistTitleBegPt(int lowerNom, float lowerEta, float ptSB, float ih
   std::string histTitle = "NoM ";
   histTitle+=intToString(lowerNom);
   histTitle+="-";
-  histTitle+=intToString(lowerNom+1);
+  if(lowerNom==21)
+    histTitle+="end";
+  else
+    histTitle+=intToString(lowerNom+1);
   histTitle+=", ";
   histTitle+=floatToString(lowerEta);
   histTitle+=" < #eta < ";
@@ -268,6 +274,10 @@ int main(int argc, char ** argv)
   double ptSidebandThreshold (ana.getParameter<double>("PtSidebandThreshold"));
   bool usePtForSideband (ana.getParameter<bool>("UsePtForSideband"));
   double ihSidebandThreshold (ana.getParameter<double>("IhSidebandThreshold"));
+  double etaMin_ (ana.getParameter<double>("EtaMin"));
+  double etaMax_ (ana.getParameter<double>("EtaMax"));
+  int nomMin_ (ana.getParameter<int>("NoMMin"));
+  int nomMax_ (ana.getParameter<int>("NoMMax"));
 
   // fileService initialization
   //string fileNameEnd = generateFileNameEnd(massCutIasHighPHighIh_,pSidebandThreshold,ptSidebandThreshold,usePtForSideband,ihSidebandThreshold);
@@ -281,18 +291,22 @@ int main(int argc, char ** argv)
   TFileDirectory ihMeanDir = fs.mkdir("ihMeanInIasBins");
   TFileDirectory minPCutMeanDir = fs.mkdir("minPCutInIasBins");
   // b region hist
-  TH1F* bRegionHist = fs.make<TH1F>("bRegionHist","bRegionHist",100,0,10);
-  bRegionHist->SetName("ihLowPsb_B");
-  bRegionHist->SetTitle("Ih in low P SB (B region);MeV/cm");
+  //TH1F* bRegionHist = fs.make<TH1F>("bRegionHist","bRegionHist",100,0,10);
+  //bRegionHist->SetName("ihLowPsb_B");
+  //bRegionHist->SetTitle("Ih in low P SB (B region);MeV/cm");
   // c region hist
-  TH1F* cRegionHist = fs.make<TH1F>("cRegionHist","cRegionHist",100,0,1000);
-  cRegionHist->SetName("pLowIhSB_C");
-  cRegionHist->SetTitle("P in low Ih SB (C region);GeV");
+  //TH1F* cRegionHist = fs.make<TH1F>("cRegionHist","cRegionHist",100,0,1000);
+  //cRegionHist->SetName("pLowIhSB_C");
+  //cRegionHist->SetTitle("P in low Ih SB (C region);GeV");
   // number of entries in datasets histos
-  TH2F* entriesInARegionHist = fs.make<TH2F>("entriesInARegion","Entries in A region (low P, low Ih);#eta;nom",12,0,2.4,9,5,23);
-  TH2F* entriesInCRegionHist = fs.make<TH2F>("entriesInCRegion","Entries in C region (P in low Ih SB);#eta;nom",12,0,2.4,9,5,23);
-  TH2F* entriesInBRegionHist = fs.make<TH2F>("entriesInBRegion","Entries in B region (Ih in low P SB);#eta;nom",12,0,2.4,9,5,23);
-  TH2F* entriesInDRegionHist = fs.make<TH2F>("entriesInDRegion","Entries in D region (search--> high Ih, high P);#eta;nom",12,0,2.4,9,5,23);
+  TH2F*  entriesInARegionHist = fs.make<TH2F>("entriesInARegion","Entries in A region (low P, low Ih);#eta;nom",12,0,2.4,9,5,23);
+  entriesInARegionHist->GetYaxis()->SetNdivisions(509,false);
+  TH2F*  entriesInBRegionHist = fs.make<TH2F>("entriesInBRegion","Entries in B region (Ih in low P SB);#eta;nom",12,0,2.4,9,5,23);
+  entriesInBRegionHist->GetYaxis()->SetNdivisions(509,false);
+  TH2F*  entriesInCRegionHist = fs.make<TH2F>("entriesInCRegion","Entries in C region (P in low Ih SB);#eta;nom",12,0,2.4,9,5,23);
+  entriesInCRegionHist->GetYaxis()->SetNdivisions(509,false);
+  TH2F*  entriesInDRegionHist = fs.make<TH2F>("entriesInDRegion","Entries in D region (search--> high Ih, high P);#eta;nom",12,0,2.4,9,5,23);
+  entriesInDRegionHist->GetYaxis()->SetNdivisions(509,false);
 
 
   // RooFit observables and dataset
@@ -358,21 +372,18 @@ int main(int argc, char ** argv)
     regionD1DataSet = (RooDataSet*)rooDataSetAll->reduce(Cut(pSearchCutString.c_str()));
   RooDataSet* regionDDataSet = (RooDataSet*)regionD1DataSet->reduce(Cut(ihSearchCutString.c_str()));
 
+  int slicesToDo = (int)((etaMax_-etaMin_)/0.2)*(nomMax_-nomMin_+1)/2;
   int nomSlice = 0;
-  // loop over all nom/eta slices
-  for(int nom=5; nom < 22; nom+=2)
-  //XXX TESTING
-  //for(int nom=7; nom < 8; nom+=2)
+  // loop over given nom/eta slices
+  for(int nom = nomMin_; nom < nomMax_; nom+=2)
   {
     nomSlice++;
     int etaSlice = 0;
-    for(float lowerEta = 0.0; lowerEta < 2.3; lowerEta+=0.2)
-    //XXX TESTING
-    //for(float lowerEta = 1.2; lowerEta < 1.3; lowerEta+=0.2)
+    for(float lowerEta = etaMin_; lowerEta < etaMax_; lowerEta+=0.2)
     {
       etaSlice++;
       double successRateSumsInIasBins[100];
-      int successRateCountsInIasBins[100];
+      double successRateCountsInIasBins[100];
       double successRateLastErrorInIasBins[100];
       double ihSumsInIasBins[100];
       for(int i=0; i<100; ++i)
@@ -427,6 +438,8 @@ int main(int argc, char ** argv)
       nomCutString+=intToString(nom);
       nomCutString+="||rooVarNoMias==";
       nomCutString+=intToString(nom+1);
+      if(nom==21) // do nom 21+ in one slice
+        nomCutString = "rooVarNoMias>=21";
       std::string etaCutString = "rooVarEta>";
       etaCutString+=floatToString(lowerEta);
       etaCutString+="&&rooVarEta<";
@@ -473,7 +486,7 @@ int main(int argc, char ** argv)
       const RooArgSet* argSet_C = etaCutCRegionDataSet->get();
       RooRealVar* pData_C = (RooRealVar*)argSet_C->find(rooVarP.GetName());
       RooRealVar* ptData_C = (RooRealVar*)argSet_C->find(rooVarPt.GetName());
-      RooRealVar* nomData_C = (RooRealVar*)argSet_C->find(rooVarNoMias.GetName());
+      //RooRealVar* nomData_C = (RooRealVar*)argSet_C->find(rooVarNoMias.GetName());
       RooRealVar* etaData_C = (RooRealVar*)argSet_C->find(rooVarEta.GetName());
       // fill b region hist
       for(int index=0; index < etaCutNomCutBRegionDataSet->numEntries(); ++index)
@@ -487,7 +500,7 @@ int main(int argc, char ** argv)
 
         if(ihData_B->getVal() < ihSidebandThreshold)
           std::cout << "ERROR: (in B region) ih=" << ihData_B->getVal() << std::endl;
-        if(nomData_B->getVal() < nom || nomData_B->getVal() > nom+1)
+        if(nomData_B->getVal() < nom || (nomData_B->getVal() > nom+1 && nom<21))
           std::cout << "ERROR: nom=" << nom << "-" << nom+1 << " and (in B region) data point nom="
             << nomData_B->getVal() << std::endl;
         if(etaData_B->getVal() < lowerEta || etaData_B->getVal() > lowerEta+0.2)
@@ -523,8 +536,13 @@ int main(int argc, char ** argv)
       if(etaCutNomCutBRegionDataSet->numEntries() < 25 || etaCutCRegionDataSet->numEntries() < 25)
       {
         std::cout << "WARNING: too few entries-not doing prediction for this slice: eta=" <<
-          lowerEta << "-" << lowerEta+0.2 << " nom=" << nom << "-" << nom+1 << std::endl <<
-         "\t\t" << etaCutNomCutBRegionDataSet->numEntries() <<
+          lowerEta << "-" << lowerEta+0.2 << " nom=" << nom << "-";
+        if(nom==21)
+          std::cout << "end" << std::endl;
+        else
+          std::cout << nom+1 << std::endl;
+
+        std::cout << "\t\t" << etaCutNomCutBRegionDataSet->numEntries() <<
           " entries in B region and " << etaCutCRegionDataSet->numEntries() <<
           " entries in C region" << std::endl;
         continue;
@@ -541,7 +559,10 @@ int main(int argc, char ** argv)
       std::string iasPredictionFixedHistTitle = "Ias prediction for ";
       iasPredictionFixedHistTitle+=intToString(nom);
       iasPredictionFixedHistTitle+="-";
-      iasPredictionFixedHistTitle+=intToString(nom+1);
+      if(nom==21)
+        iasPredictionFixedHistTitle+="end";
+      else
+        iasPredictionFixedHistTitle+=intToString(nom+1);
       iasPredictionFixedHistTitle+=", ";
       iasPredictionFixedHistTitle+=floatToString(lowerEta);
       iasPredictionFixedHistTitle+=" < #eta < ";
@@ -559,7 +580,10 @@ int main(int argc, char ** argv)
       std::string iasSuccessRateHistTitle = "Ias success rate for nom ";
       iasSuccessRateHistTitle+=intToString(nom);
       iasSuccessRateHistTitle+="-";
-      iasSuccessRateHistTitle+=intToString(nom+1);
+      if(nom==21)
+        iasSuccessRateHistTitle+="end";
+      else
+        iasSuccessRateHistTitle+=intToString(nom+1);
       iasSuccessRateHistTitle+=", ";
       iasSuccessRateHistTitle+=floatToString(lowerEta);
       iasSuccessRateHistTitle+=" < #eta < ";
@@ -575,7 +599,10 @@ int main(int argc, char ** argv)
       std::string ihMeanProfTitle = "Ih mean for nom ";
       ihMeanProfTitle+=intToString(nom);
       ihMeanProfTitle+="-";
-      ihMeanProfTitle+=intToString(nom+1);
+      if(nom==21)
+        ihMeanProfTitle+="end";
+      else
+        ihMeanProfTitle+=intToString(nom+1);
       ihMeanProfTitle+=", ";
       ihMeanProfTitle+=floatToString(lowerEta);
       ihMeanProfTitle+=" < #eta < ";
@@ -590,7 +617,10 @@ int main(int argc, char ** argv)
       std::string minPCutMeanProfTitle = "Min P cut for nom ";
       minPCutMeanProfTitle+=intToString(nom);
       minPCutMeanProfTitle+="-";
-      minPCutMeanProfTitle+=intToString(nom+1);
+      if(nom==21)
+        minPCutMeanProfTitle+="end";
+      else
+        minPCutMeanProfTitle+=intToString(nom+1);
       minPCutMeanProfTitle+=", ";
       minPCutMeanProfTitle+=floatToString(lowerEta);
       minPCutMeanProfTitle+=" < #eta < ";
@@ -600,8 +630,13 @@ int main(int argc, char ** argv)
       minPCutMeanProfTitle+=" GeV";
       TProfile* minPCutMeanProf = minPCutMeanDir.make<TProfile>(minPCutMeanProfName.c_str(),minPCutMeanProfTitle.c_str(),100,0,1);
 
-      std::cout << "INFO doing slice ( " << (nomSlice-1)*12+etaSlice << " / " << "108 ): eta=" <<
-        lowerEta << "-" << lowerEta+0.2 << " nom=" << nom << "-" << nom+1 << std::endl;
+      std::cout << "INFO doing slice ( " << (nomSlice-1)*(1+(nomMax_-nomMin_)/2)+etaSlice << " / " << slicesToDo <<
+        " ): eta=" <<
+        lowerEta << "-" << lowerEta+0.2;
+      if(nom==21)
+        std::cout << " nom=" << nom << "-end" << std::endl;
+      else
+        std::cout << " nom=" << nom << "-" << nom+1 << std::endl;
 
       // loop over Ih/Ias and calculate successRate
       for(int index=0; index < etaCutNomCutBRegionDataSet->numEntries(); ++index)
@@ -638,10 +673,10 @@ int main(int argc, char ** argv)
         
         //if(nom==11 && (int)(lowerEta*10)==4)
         //{
-        //  std::cout << "numMomPassingMass: " << numMomPassingMass << " numMomFailingMass: " <<
-        //    numMomFailingMass << " minMomPassMass:" << minMomPassMass << " thisIh: " << thisIh << std::endl;
-        //  std::cout << "ias: " << thisIas << " successRate: " << successRate << " successRateError:"
-        //    << successRateError << " trials:"  << total << std::endl;
+        //std::cout << "numMomPassingMass: " << numMomPassingMass << " numMomFailingMass: " <<
+        //  numMomFailingMass << " minMomPassMass:" << minMomPassMass << " thisIh: " << thisIh << std::endl;
+        //std::cout << "ias: " << thisIas << " successRate: " << successRate << " successRateError:"
+        //  << successRateError << " trials:"  << total << std::endl;
         //}
       }
 
@@ -684,7 +719,10 @@ int main(int argc, char ** argv)
       std::string iasPredictionVarBinHistTitle = "Ias prediction for nom ";
       iasPredictionVarBinHistTitle+=intToString(nom);
       iasPredictionVarBinHistTitle+="-";
-      iasPredictionVarBinHistTitle+=intToString(nom+1);
+      if(nom==21)
+        iasPredictionVarBinHistTitle+="end";
+      else
+        iasPredictionVarBinHistTitle+=intToString(nom+1);
       iasPredictionVarBinHistTitle+=", ";
       iasPredictionVarBinHistTitle+=floatToString(lowerEta);
       iasPredictionVarBinHistTitle+=" < #eta < ";
@@ -752,6 +790,7 @@ int main(int argc, char ** argv)
       delete etaCutCRegionDataSet;
 
     } // eta slices
+    if(nom==21) break; // don't do any more after nom21, since we've done 21+ in that case
   } // nom slices
 
 }
