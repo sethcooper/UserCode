@@ -28,7 +28,7 @@ Base_Cfg = ''
 Input_File = ''
 
 
-def CreateTheConfigFile(massCut):
+def CreateTheConfigFile(massCut,etaMin,etaMax,nomMin,nomMax,ptThresh):
     global Jobs_Name
     global Jobs_Index
     global Jobs_Count
@@ -36,8 +36,8 @@ def CreateTheConfigFile(massCut):
     global CopyRights
     global Base_cfg
     global Input_File
-    Path_Cfg   = Farm_Directories[1]+Jobs_Name+'massCut'+`massCut`+'_cfg.py'
-    outputFile = 'makeIasPredictions_' + 'massCut'+`massCut`+'.root'
+    Path_Cfg = Farm_Directories[1]+Jobs_Name+'massCut'+`massCut`+'_pt'+str(ptThresh)+'_etaMin'+str(etaMin)+'_nomMin'+`nomMin`+'_cfg.py'
+    outputFile = 'makeIasPredictions_'+'massCut'+`massCut`+'_pt'+str(ptThresh)+'_etaMin'+str(etaMin)+'_nomMin'+`nomMin`+'.root'
     config_file=open(Base_Cfg,'r')
     config_txt   = '\n\n' + CopyRights + '\n\n'
     config_txt  += config_file.read()
@@ -47,20 +47,25 @@ def CreateTheConfigFile(massCut):
     config_txt = config_txt.replace("XXX_INPUTFILE_XXX", Input_File)
     config_txt = config_txt.replace("XXX_OUTPUTFILE_XXX"        , outputFile)
     config_txt = config_txt.replace("XXX_MASSCUT_XXX"        , `massCut`)
+    config_txt = config_txt.replace("XXX_ETAMIN_XXX"        , str(etaMin))
+    config_txt = config_txt.replace("XXX_ETAMAX_XXX"        , str(etaMax))
+    config_txt = config_txt.replace("XXX_NOMMIN_XXX"        , `nomMin`)
+    config_txt = config_txt.replace("XXX_NOMMAX_XXX"        , `nomMax`)
+    config_txt = config_txt.replace("XXX_PTTHRESH_XXX"        , str(ptThresh))
 
     config_file=open(Path_Cfg,'w')
     config_file.write(config_txt)
     config_file.close()
 
 
-def CreateTheShellFile(massCut):
+def CreateTheShellFile(massCut,etaMin,etaMax,nomMin,nomMax,ptThresh):
     global Path_Shell
     global CopyRights
     global Jobs_Name
     global Castor_Path
-    CreateTheConfigFile(massCut)
-    outputFile = 'makeIasPredictions_' + 'massCut'+`massCut`+'.root'
-    Path_Shell = Farm_Directories[1]+Jobs_Name+'massCut'+`massCut`+'.sh'
+    CreateTheConfigFile(massCut,etaMin,etaMax,nomMin,nomMax,ptThresh)
+    outputFile = 'makeIasPredictions_' + 'massCut'+`massCut`+'_pt'+str(ptThresh)+'_etaMin'+str(etaMin)+'_nomMin'+`nomMin`+'.root'
+    Path_Shell = Farm_Directories[1]+Jobs_Name+'massCut'+`massCut`+'_pt'+str(ptThresh)+'_etaMin'+str(etaMin)+'_nomMin'+`nomMin`+'.sh'
     shell_file=open(Path_Shell,'w')
     shell_file.write('#!/bin/sh\n')
     shell_file.write(CopyRights + '\n')
@@ -85,13 +90,13 @@ def CreateTheCmdFile():
         cmd_file.write('# File listing all bsub commands' + '\n')
         cmd_file.close()
 
-def AddJobToCmdFile(massCut):
+def AddJobToCmdFile(massCut,etaMin,etaMax,nomMin,nomMax,ptThresh):
         global Path_Shell
         global Path_Cmd
         global Queue_Name
         global Jobs_Name
-        Path_Log   = os.getcwd()+'/'+Farm_Directories[2]+Jobs_Name+'massCut'+`massCut`+'.log'
-        Path_Error   = os.getcwd()+'/'+Farm_Directories[3]+Jobs_Name+'massCut'+`massCut`+'.err'
+        Path_Log   = os.getcwd()+'/'+Farm_Directories[2]+Jobs_Name+'massCut'+`massCut`+'_pt'+str(ptThresh)+'_etaMin'+str(etaMin)+'_nomMin'+`nomMin`+'.log'
+        Path_Error   = os.getcwd()+'/'+Farm_Directories[3]+Jobs_Name+'massCut'+`massCut`+'_pt'+str(ptThresh)+'_etaMin'+str(etaMin)+'_nomMin'+`nomMin`+'.err'
         cmd_file=open(Path_Cmd,'a')
         #cmd_file.write('\n')
         cmd_file.write('bsub -q "%s" '     % Queue_Name)
@@ -110,7 +115,7 @@ def CreateDirectoryStructure(FarmDirectory):
             os.system('mkdir ' + Farm_Directories[i])
 
 def SendCluster_Create(farmDirectory, jobName, inputRootFile, queue, baseCfg,
-                       massCuts):
+                       massCuts, ptCuts):
     global Jobs_Name
     global Jobs_Count
     global Queue_Name
@@ -123,16 +128,27 @@ def SendCluster_Create(farmDirectory, jobName, inputRootFile, queue, baseCfg,
     Base_Cfg = baseCfg
     CreateDirectoryStructure(farmDirectory)
     CreateTheCmdFile()
-    for massCut in massCuts:
-        SendCluster_Push(massCut)
+    #for massCut in massCuts:
+    for index, massCut in enumerate(massCuts):
+        SendCluster_Push(massCut,0.0,1.2,5,10,ptCuts[index])
+        SendCluster_Push(massCut,1.2,2.4,5,10,ptCuts[index])
+        SendCluster_Push(massCut,0.0,0.2,11,16,ptCuts[index])
+        SendCluster_Push(massCut,0.2,0.4,11,16,ptCuts[index])
+        SendCluster_Push(massCut,0.4,0.6,11,16,ptCuts[index])
+        SendCluster_Push(massCut,0.6,0.8,11,16,ptCuts[index])
+        SendCluster_Push(massCut,0.8,1.2,11,16,ptCuts[index])
+        SendCluster_Push(massCut,1.2,1.6,11,16,ptCuts[index])
+        SendCluster_Push(massCut,1.6,2.4,11,16,ptCuts[index])
+        SendCluster_Push(massCut,0.0,1.2,17,22,ptCuts[index])
+        SendCluster_Push(massCut,1.2,2.4,17,22,ptCuts[index])
 
 
-def SendCluster_Push(massCut):
+def SendCluster_Push(massCut,etaMin,etaMax,nomMin,nomMax,ptThresh):
     global Jobs_Count
     global Jobs_Index
     Jobs_Index = "%04i" % Jobs_Count
-    CreateTheShellFile(massCut)
-    AddJobToCmdFile(massCut)
+    CreateTheShellFile(massCut,etaMin,etaMax,nomMin,nomMax,ptThresh)
+    AddJobToCmdFile(massCut,etaMin,etaMax,nomMin,nomMax,ptThresh)
     Jobs_Count = Jobs_Count+1
 
 def SendCluster_Submit():
