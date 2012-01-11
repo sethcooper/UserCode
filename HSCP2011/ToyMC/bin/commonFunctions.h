@@ -9,6 +9,7 @@
 #include "DataFormats/Common/interface/TriggerResults.h"
 #include "DataFormats/MuonReco/interface/MuonTimeExtraMap.h"
 
+#include <iostream>
 
 // preselection -- adapted from Analysis_Step234.C
 bool passesPreselection(const susybsm::HSCParticle& hscp,  const reco::DeDxData& dedxSObj,
@@ -203,10 +204,10 @@ double DistToHSCP(const susybsm::HSCParticle& hscp, const std::vector<reco::GenP
   return RMin;
 }
 
-// taken from Analysis_Step234.C
-unsigned long GetInitialNumberOfMCEvent(const vector<string>& fileNames)
+// modified from Analysis_Step234.C
+int GetInitialNumberOfMCEvent(const vector<string>& fileNames)
 {
-  unsigned long Total = 0;
+  int Total = 0;
   fwlite::ChainEvent tree(fileNames);
 
   for(unsigned int f=0;f<fileNames.size();f++){
@@ -223,15 +224,21 @@ unsigned long GetInitialNumberOfMCEvent(const vector<string>& fileNames)
 }
 
 // taken from Analysis_Step234.C
-bool passesTrigger(const fwlite::Event& ev)
+bool passesTrigger(const fwlite::Event& ev, bool considerMuon = true, bool considerMET = true)
 {
       edm::TriggerResultsByName tr = ev.triggerResultsByName("MergeHLT");
       if(!tr.isValid())return false;
 
-      if(tr.accept(tr.triggerIndex("HscpPathSingleMu")))return true;
+      if(considerMuon)
+      {
+        if(tr.accept(tr.triggerIndex("HscpPathSingleMu")))return true;
 //      if(tr.accept(tr.triggerIndex("HscpPathDoubleMu")))return true;
-      if(tr.accept(tr.triggerIndex("HscpPathPFMet")))return true;
+      }
+      if(considerMET)
+      {
+        if(tr.accept(tr.triggerIndex("HscpPathPFMet")))return true;
 //      if(tr.accept(tr.triggerIndex("HscpPathCaloMet")))return true;
+      }
       return false;
 }
 

@@ -217,6 +217,10 @@ int main(int argc, char ** argv)
   TH2F* pVsRelPerrHist = fs.make<TH2F>("pVsRelPerr","Track P vs. #Deltap/p;;GeV",100,0,1,100,0,1000);
   // p vs relPerr, central eta only
   TH2F* pVsRelPerrCentralEtaHist = fs.make<TH2F>("pVsRelPerrCentralEta","Track P vs. #Deltap/p, |#eta| < 0.9;;GeV",100,0,1,100,0,1000);
+  // num hscp gen per event
+  TH1F* numHSCPGenPerEventHist = fs.make<TH1F>("numHSCPGenPerEvent","Number of gen HSCPs per event",4,0,4);
+  // num hscp seen per event
+  TH1F* numHSCPSeenPerEventHist = fs.make<TH1F>("numHSCPSeenPerEvent","Number of seen HSCPs per event",4,0,4);
 
   // RooFit observables and dataset
   RooRealVar rooVarIas("rooVarIas","ias",0,1);
@@ -265,6 +269,13 @@ int main(int argc, char ** argv)
   int numTracksPassingTrigger = 0;
   int numTracksPassingPreselection = 0;
   int numTracksInSearchRegion = 0;
+
+  int numEventsWithOneHSCPGen = 0;
+  int numEventsWithTwoHSCPGen = 0;
+  int numEventsWithOneHSCPSeenMuonTrigger = 0;
+  int numEventsWithTwoHSCPSeenMuonTrigger = 0;
+  int numEventsWithOneHSCPSeenMetTrigger = 0;
+  int numEventsWithTwoHSCPSeenMetTrigger = 0;
 
   // loop the events
   int ievt = 0;
@@ -339,18 +350,60 @@ int main(int argc, char ** argv)
           int numGenChargedHSCPThisEvent = getNumGenHSCP(genColl,true); // consider only charged HSCP
           numGenHSCPTracks+=numGenHSCPThisEvent;
           numGenChargedHSCPTracks+=numGenChargedHSCPThisEvent;
+          if(numGenHSCPThisEvent>=1)
+            numEventsWithOneHSCPGen++;
+          if(numGenHSCPThisEvent>=2)
+            numEventsWithTwoHSCPGen++;
+          numHSCPGenPerEventHist->Fill(numGenHSCPThisEvent);
+
+          int numSeenHSCPThisEvt = 0;
+          // attempt match track to gen hscp, look at gen/detected hscps
+          for(unsigned int c=0;c<hscpColl.size();c++)
+          {
+            susybsm::HSCParticle hscp  = hscpColl[c];
+            reco::MuonRef  muon  = hscp.muonRef();
+            reco::TrackRef track = hscp.trackRef();
+            if(track.isNull())
+              continue;
+
+            int ClosestGen;
+            // match to gen hscp
+            if(DistToHSCP(hscp, genColl, ClosestGen)>0.03)
+              continue;
+            else
+              numSeenHSCPThisEvt++;
+
+          }
+          numHSCPSeenPerEventHist->Fill(numSeenHSCPThisEvt);
+
+          // check triggers
+          if(passesTrigger(ev,true,false)) // consider mu trig only
+          {
+            if(numSeenHSCPThisEvt==1)
+              numEventsWithOneHSCPSeenMuonTrigger++;
+            if(numSeenHSCPThisEvt==2)
+              numEventsWithTwoHSCPSeenMuonTrigger++;
+          }
+          if(passesTrigger(ev,false,true)) // consider MET trig only
+          {
+            if(numSeenHSCPThisEvt==1)
+              numEventsWithOneHSCPSeenMetTrigger++;
+            if(numSeenHSCPThisEvt==2)
+              numEventsWithTwoHSCPSeenMetTrigger++;
+          }
         }
+
+
+        numGenHSCPEvents++;
 
         double lumiSection = ev.id().luminosityBlock();
         double runNumber = ev.id().run();
         double eventNumber = ev.id().event();
-
         // ignore real data taken with tigher RPC trigger (355.227/pb) -- from Analysis_Samples.h
         if(!isMC_ && runNumber < 165970)
           continue;
 
-        numGenHSCPEvents++;
-
+        // check trigger
         if(!passesTrigger(ev))
           continue;
 
@@ -604,6 +657,20 @@ int main(int argc, char ** argv)
       << std::endl
       << std::endl << "tracks passing preselection/track passing trigger: " <<
       numTracksPassingPreselection/(float)numTracksPassingTrigger << std::endl;
+
+    std::cout << std::endl;
+
+    std::cout << "Num events with 1 HSCP gen: " << numEventsWithOneHSCPGen << std::endl <<
+      "\tnum events with 1 HSCP seen (Mu trigger): " << numEventsWithOneHSCPSeenMuonTrigger <<
+      " eff = " << numEventsWithOneHSCPSeenMuonTrigger/(float)numEventsWithOneHSCPGen << std::endl <<
+      "\tnum events with 1 HSCP seen (MET trigger): " << numEventsWithOneHSCPSeenMetTrigger <<
+      " eff = " << numEventsWithOneHSCPSeenMetTrigger/(float)numEventsWithOneHSCPGen <<
+      std::endl << "Num events with 2 HSCP gen: " << numEventsWithTwoHSCPGen << std::endl <<
+      "\tnum events with 2 HSCP seen (Mu Trigger) : " << numEventsWithTwoHSCPSeenMuonTrigger <<
+      " eff = " << numEventsWithTwoHSCPSeenMuonTrigger/(float)numEventsWithTwoHSCPGen << std::endl <<
+      "\tnum events with 2 HSCP seen (MET Trigger) : " << numEventsWithTwoHSCPSeenMetTrigger <<
+      " eff = " << numEventsWithTwoHSCPSeenMetTrigger/(float)numEventsWithTwoHSCPGen << std::endl;
+
   }
 
 
