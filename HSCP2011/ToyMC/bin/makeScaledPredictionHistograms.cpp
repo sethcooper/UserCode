@@ -36,6 +36,7 @@
 
 #include <vector>
 #include <fstream>
+#include <set>
 
 namespace reco    { class Vertex; class Track; class GenParticle; class DeDxData; class MuonTimeExtra;}
 namespace susybsm { class HSCParticle; class HSCPIsolation;}
@@ -80,6 +81,39 @@ int maxNoM = 0;
 float minEta = 0;
 float maxEta = 0;
 int numIasBins = 0;
+
+struct EventInfo
+{
+  double runNumber;
+  double eventNumber;
+  double lumiSection;
+
+  EventInfo()
+  {
+    runNumber = 0;
+    eventNumber = 0;
+    lumiSection = 0;
+  }
+
+  EventInfo(double runNum, double lumiNum, double eventNum) :
+    runNumber(runNum),  eventNumber(eventNum), lumiSection(lumiNum)
+  {
+  }
+
+  bool operator==(const EventInfo& comp) const
+  {
+    return (comp.runNumber==runNumber) && (comp.eventNumber==eventNumber)
+      && (comp.lumiSection==lumiSection);
+  }
+
+  bool operator<(const EventInfo& comp) const
+  {
+    // run number < ; run numbers equal but lumi < ; run, lumis equal but event <
+    return (runNumber<comp.runNumber) ||
+      (runNumber==comp.runNumber && lumiSection < comp.lumiSection) ||
+      (runNumber==comp.runNumber && lumiSection==comp.lumiSection && eventNumber < comp.eventNumber);
+  }
+};
 
 // helper functions
 int getEtaSliceFromLowerEta(float lowerEta)
@@ -183,7 +217,7 @@ int main(int argc, char ** argv)
   // TODO configurable nom/eta limits
   // NB: always use upper edge of last bin for both
   minNoM = 5;
-  maxNoM = 20;
+  maxNoM = 22;
   minEta = 0.0;
   maxEta = 1.6;
 
@@ -195,7 +229,14 @@ int main(int argc, char ** argv)
   RooRealVar rooVarP("rooVarP","p",0,5000);
   RooRealVar rooVarNoMias("rooVarNoMias","nom",0,30);
   RooRealVar rooVarEta("rooVarEta","eta",0,2.5);
+  RooRealVar rooVarRun("rooVarRun","run",0,4294967295);
+  RooRealVar rooVarLumiSection("rooVarLumiSection","lumiSection",0,4294967295);
+  RooRealVar rooVarEvent("rooVarEvent","event",0,4294967295);
   //TODO add mass in initial dataset generation?
+  RooRealVar rooVarNumGenHSCPEvents("rooVarNumGenHSCPEvents","numGenHSCPEvents",0,5e6);
+  RooRealVar rooVarNumGenHSCPTracks("rooVarNumGenHSCPTracks","numGenHSCPTracks",0,5e6);
+  RooRealVar rooVarNumGenChargedHSCPTracks("rooVarNumGenChargedHSCPTracks","numGenChargedHSCPTracks",0,5e6);
+  RooRealVar rooVarSignalEventCrossSection("rooVarSignalEventCrossSection","signalEventCrossSection",0,100); // pb
 
   //string fileNameEnd = generateFileNameEnd(massCut_,pSidebandThreshold,ptSidebandThreshold,usePtForSideband,ihSidebandThreshold);
   string fileNameEnd = "";
@@ -221,6 +262,14 @@ int main(int argc, char ** argv)
       signalRootFilename_.c_str() << endl;
     return -3;
   }
+  // get roodataset with gen information from signal file
+  RooDataSet* rooDataSetGenSignal = (RooDataSet*)signalRootFile->Get("rooDataSetGenHSCPTracks");
+  if(!rooDataSetGenSignal)
+  {
+    cout << "Problem with RooDataSet named rooDataSetGenSignal in signal file " <<
+      signalRootFilename_.c_str() << endl;
+    return -3;
+  }
 
   int numSignalTracksTotal = rooDataSetAllSignal->numEntries();
   // construct D region for signal
@@ -236,7 +285,9 @@ int main(int argc, char ** argv)
   else
     regionD1DataSetSignal = (RooDataSet*)rooDataSetAllSignal->reduce(Cut(pSearchCutString.c_str()));
   RooDataSet* regionDDataSetSignal = (RooDataSet*)regionD1DataSetSignal->reduce(Cut(ihSearchCutString.c_str()));
-  //int numSignalTracksInDRegion = regionDDataSetSignal->numEntries();
+  //DEBUG TESTING ONLY
+  //RooDataSet* regionDDataSetSignal = (RooDataSet*)regionD1DataSetSignal->Clone();
+  int numSignalTracksInDRegion = regionDDataSetSignal->numEntries();
 
   // get the background A region entries hist
   string fullPath = "entriesInARegion";
@@ -336,13 +387,25 @@ int main(int argc, char ** argv)
   TH1F* signalAllNoMAllEtaUnrolledHist = new TH1F("signalAllNoMAllEtaUnrolledHist",
       "unrolled signal hist",numGlobalBins,1,numGlobalBins+1);
   TH2F* sigEffOverIasCutVsSliceHist = new TH2F("sigEffOverIasCutVsSlice","Sig eff. over ias cut;#eta;nom",12,0,2.4,9,5,23);
+  sigEffOverIasCutVsSliceHist->GetYaxis()->SetNdivisions(509,false);
   TH1F* sigEffOverIasCutHist = new TH1F("sigEffOverIasCut","Signal eff. over ias cut",100,0,1);
   TH2F* backExpOverIasCutVsSliceHist = new TH2F("backExpOverIasCutVsSlice","Exp. background over ias cut;#eta;nom",12,0,2.4,9,5,23);
+  backExpOverIasCutVsSliceHist->GetYaxis()->SetNdivisions(509,false);
+  TH2F* backExpVsSliceHist = new TH2F("backExpVsSlice","Exp. background;#eta;nom",12,0,2.4,9,5,23);
+  backExpVsSliceHist->GetYaxis()->SetNdivisions(509,false);
   TH1F* backExpOverIasCutHist = new TH1F("backExpOverIasCut","Exp. background over ias cut",100,0,1);
 
   double backgroundTracksOverIasCut = 0;
   double signalTracksOverIasCut = 0;
   double signalTracksTotal = 0;
+  int signalEventsOverIasCut = 0;
+  int numSignalTracksInDRegionPassingMassCut = 0;
+  set<EventInfo> selectedSignalEventsSet;
+  const RooArgSet* genArgSet = rooDataSetGenSignal->get();
+  RooRealVar* numGenHSCPTracksRooVar = (RooRealVar*)genArgSet->find(rooVarNumGenHSCPTracks.GetName());
+  RooRealVar* numGenHSCPEventsRooVar = (RooRealVar*)genArgSet->find(rooVarNumGenHSCPEvents.GetName());
+  rooDataSetGenSignal->get(0);
+  signalTracksTotal = numGenHSCPTracksRooVar->getVal();
 
   // loop over hists to use
   int iteratorPos = 0;
@@ -393,6 +456,9 @@ int main(int argc, char ** argv)
     RooRealVar* iasData = (RooRealVar*)argSet->find(rooVarIas.GetName());
     RooRealVar* ihData = (RooRealVar*)argSet->find(rooVarIh.GetName());
     RooRealVar* pData = (RooRealVar*)argSet->find(rooVarP.GetName());
+    RooRealVar* eventNumData = (RooRealVar*)argSet->find(rooVarEvent.GetName());
+    RooRealVar* lumiSecData = (RooRealVar*)argSet->find(rooVarLumiSection.GetName());
+    RooRealVar* runNumData = (RooRealVar*)argSet->find(rooVarRun.GetName());
     for(int evt=0; evt < etaCutNomCutDRegionDataSetSignal->numEntries(); ++evt)
     {
       etaCutNomCutDRegionDataSetSignal->get(evt);
@@ -401,7 +467,23 @@ int main(int argc, char ** argv)
       if(massSqr < 0)
         continue;
       else if(sqrt(massSqr) >= massCut_)
+      {
         iasSignalMassCutNoMSliceHist->Fill(iasData->getVal());
+        numSignalTracksInDRegionPassingMassCut++;
+        if(iasData->getVal() > iasCutForEffAcc)
+        {
+          // if track over ias cut, put the event in the set (one track per event kept)
+          EventInfo evtInfo(runNumData->getVal(),lumiSecData->getVal(),eventNumData->getVal());
+          pair<set<EventInfo>::iterator,bool> ret;
+          ret = selectedSignalEventsSet.insert(evtInfo);
+          if(ret.second)
+          {
+            //cout << "INFO: insert event - run: " << runNumData->getVal() << " lumiSec: " << lumiSecData->getVal()
+            //  << " eventNum: " << eventNumData->getVal() << endl;
+            signalEventsOverIasCut++;
+          }
+        }
+      }
     }
     double numSignalTracksInDRegionMassCutThisSlice = iasSignalMassCutNoMSliceHist->Integral();
     // adjust for bin width ratio if variable bins used
@@ -435,14 +517,15 @@ int main(int argc, char ** argv)
     // must normalize as if sigma were 1 to measure the cross section
     double signalCrossSection = 1;
     double totalSignalTracksThisSlice = integratedLumi*signalCrossSection;
+    //double fractionOfSigTracksInDRegionPassingMassCutThisSlice =
+    //  numSignalTracksInDRegionMassCutThisSlice/(double)numSignalTracksTotal;
     double fractionOfSigTracksInDRegionPassingMassCutThisSlice =
-      numSignalTracksInDRegionMassCutThisSlice/(double)numSignalTracksTotal;
+      numSignalTracksInDRegionMassCutThisSlice/(double)numGenHSCPTracksRooVar->getVal(); // includes trigger eff.
     double numSignalTracksInDRegionPassingMassCutThisSlice =
       fractionOfSigTracksInDRegionPassingMassCutThisSlice*totalSignalTracksThisSlice;
     signalTracksOverIasCut+=iasSignalMassCutNoMSliceHist->Integral(
         iasSignalMassCutNoMSliceHist->FindBin(iasCutForEffAcc),
         iasSignalMassCutNoMSliceHist->GetNbinsX());
-    signalTracksTotal+=iasSignalMassCutNoMSliceHist->Integral();
 
     //// figure out nominal sig norm for efficiency value
     //double totalSignalTracksThisSliceEff = integratedLumi*signalCrossSectionForEff;
@@ -475,12 +558,17 @@ int main(int argc, char ** argv)
           iasSignalMassCutNoMSliceHist->FindBin(iasCutForEffAcc),
           iasSignalMassCutNoMSliceHist->GetNbinsX());
     double sigTracksTotalThisSlice = iasSignalMassCutNoMSliceHist->Integral();
-    //cout << "INFO: signal tracks total this slice: " << iasSignalMassCutNoMSliceHist->Integral() <<
-    //  sigTracksTotalThisSlice <<
-    //  " signal tracks over ias cut this slice: " <<
-    //  sigTracksOverIasCutThisSlice <<
-    //  " sigEff = " << 
-    //  endl;
+    cout << "INFO: signal tracks total this slice: " <<
+      sigTracksTotalThisSlice <<
+      " fraction passing mass cut this slice: " <<
+      fractionOfSigTracksInDRegionPassingMassCutThisSlice <<
+      " signal tracks over ias cut this slice: " <<
+      sigTracksOverIasCutThisSlice <<
+      " (normed) signal tracks passing mass cut this slice: " << 
+      numSignalTracksInDRegionPassingMassCutThisSlice <<
+      " integral: " <<
+      iasSignalMassCutNoMSliceHist->Integral() <<
+      endl;
 
     sigEffOverIasCutVsSliceHist->Fill(lowerEta+0.1,lowerNoM,sigTracksOverIasCutThisSlice/sigTracksTotalThisSlice);
     sigEffOverIasCutHist->Fill(sigTracksOverIasCutThisSlice/sigTracksTotalThisSlice);
@@ -506,6 +594,7 @@ int main(int argc, char ** argv)
     backgroundTracksOverIasCut+=histItr->Integral(histItr->FindBin(iasCutForEffAcc),histItr->GetNbinsX());
     backExpOverIasCutVsSliceHist->Fill(
         lowerEta+0.1,lowerNoM,histItr->Integral(histItr->FindBin(iasCutForEffAcc),histItr->GetNbinsX()));
+    backExpVsSliceHist->Fill(lowerEta+0.1,lowerNoM,histItr->Integral());
     backExpOverIasCutHist->Fill(histItr->Integral(histItr->FindBin(iasCutForEffAcc),histItr->GetNbinsX()));
     // normalize sig hist
     iasSignalMassCutNoMSliceHist->Sumw2();
@@ -575,11 +664,25 @@ int main(int argc, char ** argv)
   sigEffOverIasCutVsSliceHist->Write();
   sigEffOverIasCutHist->Write();
   backExpOverIasCutVsSliceHist->Write();
+  backExpVsSliceHist->Write();
   backExpOverIasCutHist->Write();
   outputRootFile->Close();
 
-  cout << endl << endl << "Ias cut = " << iasCutForEffAcc << "; found " << backgroundTracksOverIasCut
+  cout << endl << endl << "Ias cut = " << iasCutForEffAcc << endl << "\tfound " << backgroundTracksOverIasCut
     << " background tracks over ias cut and " << signalTracksOverIasCut/signalTracksTotal
-    << " signal efficiency with this ias cut." << endl;
+    << " signal efficiency (track level) or " << signalEventsOverIasCut/numGenHSCPEventsRooVar->getVal()
+    << " (event level) with this ias cut." << endl;
+  cout << "original generated events: " << numGenHSCPEventsRooVar->getVal() << " events over ias cut: " << signalEventsOverIasCut
+    << endl;
+  cout << "original generated tracks: " << numGenHSCPTracksRooVar->getVal() << " tracks over ias cut: " << signalTracksOverIasCut
+    << endl;
+  cout << "orig signal tracks passing trig/presel: " << numSignalTracksTotal << endl << " orig signal tracks in D region: "
+    << numSignalTracksInDRegion << endl << " original signal tracks in D region passing mass cut: "
+    << numSignalTracksInDRegionPassingMassCut
+    << endl;
+  cout << "(eff) signal tracks passing trig/presel: " << numSignalTracksTotal/numGenHSCPTracksRooVar->getVal() << endl
+    << " (eff) signal tracks in D region: " << numSignalTracksInDRegion/numGenHSCPTracksRooVar->getVal() << endl
+    << " (eff) signal tracks in D region passing mass cut: " << numSignalTracksInDRegionPassingMassCut/numGenHSCPTracksRooVar->getVal()
+    << endl;
 }
 
