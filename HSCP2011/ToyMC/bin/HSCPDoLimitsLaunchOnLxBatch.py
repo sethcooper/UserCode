@@ -63,7 +63,7 @@ def CreateTheXMLFiles(signalName,inputFile,massCut):
     XMLcombined_file.close()
 
 
-def CreateTheConfigFile(bgInputFile,sigInputFile,massCut,iasCut,signalName):
+def CreateTheConfigFile(bgInputFile,sigInputFile,massCut,iasCut,ptCut,signalName):
     global Jobs_Name
     global Jobs_Index
     global Jobs_Count
@@ -85,13 +85,14 @@ def CreateTheConfigFile(bgInputFile,sigInputFile,massCut,iasCut,signalName):
     config_txt = config_txt.replace("XXX_MASSCUT_XXX"        , `massCut`)
     config_txt = config_txt.replace("XXX_IASCUT_XXX"        , str(iasCut))
     config_txt = config_txt.replace("XXX_INTLUMI_XXX"        , `Int_Lumi`)
+    config_txt = config_txt.replace("XXX_PTTHRESH_XXX"       , str(ptCut))
 
     config_file=open(Path_Cfg,'w')
     config_file.write(config_txt)
     config_file.close()
 
 
-def CreateTheShellFile(bgInputFile,sigInputFile,massCut,iasCut):
+def CreateTheShellFile(bgInputFile,sigInputFile,massCut,iasCut,ptCut):
     global Path_Shell
     global CopyRights
     global Jobs_Name
@@ -100,7 +101,7 @@ def CreateTheShellFile(bgInputFile,sigInputFile,massCut,iasCut):
     posDotRoot = sigInputFile.rfind(".root")
     signalName = sigInputFile[posLastUndsc+1:posDotRoot]
     outputFile = 'makeScaledPredictionHistograms_'+signalName+'_massCut'+`massCut`+'.root'
-    CreateTheConfigFile(bgInputFile,sigInputFile,massCut,iasCut,signalName)
+    CreateTheConfigFile(bgInputFile,sigInputFile,massCut,iasCut,ptCut,signalName)
     CreateTheXMLFiles(signalName,outputFile,massCut)
     Path_Shell = Farm_Directories[1]+Jobs_Name+signalName+'_massCut'+`massCut`+'.sh'
     combXMLFilename = 'hscp_dataDriven_'+signalName+'_massCut'+`massCut`+'.xml'
@@ -203,12 +204,12 @@ def SendCluster_Create(farmDirectory, jobName, queue, intLumi, baseCfg,
     #    SendCluster_Push(massCut)
 
 
-def SendCluster_Push(bgInputFilesBase,sigInputFile,massCut,iasCut):
+def SendCluster_Push(bgInputFilesBase,sigInputFile,massCut,iasCut,ptCut):
     global Jobs_Count
     global Jobs_Index
     Jobs_Index = "%04i" % Jobs_Count
     bgInputFile = bgInputFilesBase+`massCut`+'.root'
-    CreateTheShellFile(bgInputFile,sigInputFile,massCut,iasCut)
+    CreateTheShellFile(bgInputFile,sigInputFile,massCut,iasCut,ptCut)
     AddJobToCmdFile(massCut,sigInputFile)
     Jobs_Count = Jobs_Count+1
 
