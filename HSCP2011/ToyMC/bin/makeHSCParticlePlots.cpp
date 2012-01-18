@@ -221,6 +221,15 @@ int main(int argc, char ** argv)
   TH1F* numHSCPGenPerEventHist = fs.make<TH1F>("numHSCPGenPerEvent","Number of gen HSCPs per event",4,0,4);
   // num hscp seen per event
   TH1F* numHSCPSeenPerEventHist = fs.make<TH1F>("numHSCPSeenPerEvent","Number of seen HSCPs per event",4,0,4);
+  // num tracks passing presel in A region per event
+  TH1F* numTracksPassingPreselARegionPerEventHist = fs.make<TH1F>("numTracksPassingPreselARegionPerEventHist",
+      "Tracks passing preselection in A region per event",10,0,10);
+  // num tracks passing presel in B region per event
+  TH1F* numTracksPassingPreselBRegionPerEventHist = fs.make<TH1F>("numTracksPassingPreselBRegionPerEventHist",
+      "Tracks passing preselection in B region per event",10,0,10);
+  // num tracks passing presel in C region per event
+  TH1F* numTracksPassingPreselCRegionPerEventHist = fs.make<TH1F>("numTracksPassingPreselCRegionPerEventHist",
+      "Tracks passing preselection in C region per event",10,0,10);
 
   // RooFit observables and dataset
   RooRealVar rooVarIas("rooVarIas","ias",0,1);
@@ -237,6 +246,9 @@ int main(int argc, char ** argv)
       RooArgSet(rooVarIas,rooVarIh,rooVarP,rooVarPt,rooVarNoMias,rooVarEta,rooVarRun,rooVarLumiSection,rooVarEvent));
       //RooArgSet(rooVarIas,rooVarIh,rooVarP,rooVarPt,rooVarNoMias,rooVarEta,rooVarIp));
   // Ip no longer included
+  RooDataSet* rooDataSetOneCandidatePerEvent = fs.make<RooDataSet>("rooDataSetOneCandidatePerEvent",
+      "rooDataSetOneCandidatePerEvent",
+      RooArgSet(rooVarIas,rooVarIh,rooVarP,rooVarPt,rooVarNoMias,rooVarEta,rooVarRun,rooVarLumiSection,rooVarEvent));
 
   // Dataset for IasShift
   RooDataSet* rooDataSetIasShift = fs.make<RooDataSet>("rooDataSetIasShift","rooDataSetIasShift",
@@ -288,6 +300,16 @@ int main(int argc, char ** argv)
       fwlite::Event ev(inFile);
       for(ev.toBegin(); !ev.atEnd(); ++ev, ++ievt)
       {
+        double tempIas = -1;
+        double tempIh = 0;
+        double tempP = 0;
+        double tempPt = 0;
+        int tempNoMias = 0;
+        double tempEta = 0;
+        double tempRun = 0;
+        double tempLumiSection = 0;
+        double tempEvent = 0;
+
         // break loop if maximal number of events is reached 
         if(maxEvents_>0 ? ievt+1>maxEvents_ : false) break;
         // simple event counter
@@ -413,6 +435,9 @@ int main(int argc, char ** argv)
         int numTracksPassingIhCutThisEvent = 0;
         int numTracksPassingIasCutThisEvent = 0;
         int numTracksPassingIhAndIasCutsThisEvent = 0;
+        int numTracksPassingPreselectionARegionThisEvent = 0;
+        int numTracksPassingPreselectionBRegionThisEvent = 0;
+        int numTracksPassingPreselectionCRegionThisEvent = 0;
         // loop over HSCParticles in this event
         for(unsigned int c=0;c<hscpColl.size();c++)
         {
@@ -488,6 +513,12 @@ int main(int argc, char ** argv)
 
           numTracksPassingPreselection++;
           numTracksPassingPreselectionThisEvent++;
+          if(ih < ihSidebandThreshold_ && trackP < pSidebandThreshold_)
+            numTracksPassingPreselectionARegionThisEvent++;
+          else if(trackP < pSidebandThreshold_)
+            numTracksPassingPreselectionBRegionThisEvent++;
+          else if(ih < ihSidebandThreshold_)
+            numTracksPassingPreselectionCRegionThisEvent++;
 
           if(ih > 3.5)
             numTracksPassingIhCutThisEvent++;
@@ -573,8 +604,21 @@ int main(int argc, char ** argv)
           rooVarRun = runNumber;
           rooVarEvent = eventNumber;
           //rooDataSetCandidates->add(RooArgSet(rooVarIas,rooVarIh,rooVarP,rooVarPt,rooVarNoMias,rooVarEta,rooVarIp));
-          rooDataSetCandidates->add(RooArgSet(rooVarIas,rooVarIh,rooVarP,rooVarPt,rooVarNoMias,rooVarEta,rooVarLumiSection,
-                rooVarRun,rooVarEvent));
+          //XXX TURN OFF BELOW TO MAKE ONLY ONE ENTRY PER EVENT DATASET ONLY
+          //rooDataSetCandidates->add(RooArgSet(rooVarIas,rooVarIh,rooVarP,rooVarPt,rooVarNoMias,rooVarEta,rooVarLumiSection,
+          //      rooVarRun,rooVarEvent));
+          if(ias > tempIas)
+          {
+            tempIas = ias;
+            tempIh = ih;
+            tempP = trackP;
+            tempPt = trackPt;
+            tempNoMias = iasNoM;
+            tempEta = fabs(trackEta);
+            tempLumiSection = lumiSection;
+            tempRun = runNumber;
+            tempEvent = eventNumber;
+          }
 
           //// now consider the ToF
           //if(!passesPreselection(hscp,dedxSObj,dedxMObj,tof,dttof,csctof,ev,true))
@@ -597,7 +641,19 @@ int main(int argc, char ** argv)
           pVsIasToFSBHist->Fill(ias,trackP);
           pVsIhToFSBHist->Fill(ih,trackP);
 
-        }
+        } // done looking at HSCParticle collection
+
+        rooVarIas = tempIas;
+        rooVarIh = tempIh;
+        rooVarP = tempP;
+        rooVarPt = tempPt;
+        rooVarNoMias = tempNoMias;
+        rooVarEta = tempEta;
+        rooVarLumiSection = tempLumiSection;
+        rooVarRun = tempRun;
+        rooVarEvent = tempEvent;
+        rooDataSetOneCandidatePerEvent->add(RooArgSet(rooVarIas,rooVarIh,rooVarP,rooVarPt,rooVarNoMias,rooVarEta,rooVarLumiSection,
+              rooVarRun,rooVarEvent));
 
         if(numTracksPassingPreselectionThisEvent > 0)
           numEventsWithOneTrackPassingPreselection++;
@@ -607,7 +663,13 @@ int main(int argc, char ** argv)
           numEventsWithOneTrackOverIasCut++;
         if(numTracksPassingIhAndIasCutsThisEvent > 0)
           numEventsWithOneTrackOverIhAndIasCuts++;
-      }
+
+      numTracksPassingPreselARegionPerEventHist->Fill(numTracksPassingPreselectionARegionThisEvent);
+      numTracksPassingPreselBRegionPerEventHist->Fill(numTracksPassingPreselectionBRegionThisEvent);
+      numTracksPassingPreselCRegionPerEventHist->Fill(numTracksPassingPreselectionCRegionThisEvent);
+
+      } // loop over events
+
       // close input file
       inFile->Close();
     }
@@ -641,8 +703,6 @@ int main(int argc, char ** argv)
     std::endl;
   std::cout << "Found: " << numTracksPassingPreselection << " tracks passing preselections." <<
     std::endl;
-  std::cout << "Found " << numTracksInSearchRegion << " tracks in search region ( P > " <<
-    pSidebandThreshold_ << ", ih > " << ihSidebandThreshold_ << " )." << std::endl;
   std::cout << "Added " << rooDataSetCandidates->numEntries() << " tracks into the dataset." << std::endl;
 
 
@@ -657,6 +717,9 @@ int main(int argc, char ** argv)
       << std::endl
       << std::endl << "tracks passing preselection/track passing trigger: " <<
       numTracksPassingPreselection/(float)numTracksPassingTrigger << std::endl;
+
+    std::cout << "Found " << numTracksInSearchRegion << " tracks in search region ( P > " <<
+      pSidebandThreshold_ << ", ih > " << ihSidebandThreshold_ << " )." << std::endl;
 
     std::cout << std::endl;
 
