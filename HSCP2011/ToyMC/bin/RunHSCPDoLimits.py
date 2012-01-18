@@ -9,12 +9,12 @@ import glob
 from subprocess import call
 
 
-Date = "jan6"
+Date = "jan14"
 # BG
 #OutputIasPredictionDir = os.getcwd()+"/FARM_MakeIasPredictions_dec23/outputs/"
 #OutputIasPredictionDir = os.getcwd()+"/FARM_MakeIasPredictions_allNoMforCRegion_dec28/outputs/"
 #OutputIasPredictionDir = os.getcwd()+"/FARM_MakeIasPredictions_allNoMforCRegion_dec30/outputs/"
-OutputIasPredictionDir = os.getcwd()+"/FARM_MakeIasPredictions_allNoMforCRegion_jan6/outputs/"
+OutputIasPredictionDir = os.getcwd()+"/FARM_MakeIasPredictions_oneTrackPerEvent_jan13/outputs/"
 # signal
 #OutputMakeHSCParticlePlotsDir = os.getcwd()+"/MakeHSCParticlePlots_dec22/outputs/"
 OutputMakeHSCParticlePlotsDir = os.getcwd()+"/MakeHSCParticlePlots_signal_nov11_jan5/outputs/"
@@ -42,9 +42,9 @@ FarmDirectory+=Date
 # All 2011
 #PtCuts =   [60,40,40,40,             60,40,40,40,            40,40,40,40,             40,60,40,40,             50, 50, 40, 40, 50, 120,50, 40, 40]
 # model/mass  Gluino600f50,Gluino1000f50,GMStau100,GMStau200,GMStau308,GMStau432,Stop200,Stop600
-MassCuts =   [360,         540,          20,       120,      190,      260,      130]#,    360]
-PtCuts   =   [50,          120,          65,       70,       70,       55,       60]#,     50]
-IasCuts  =   [0.325,       0.225,        0.4,      0.4,      0.4,      0.375,    0.4]#, 0.325]
+MassCuts =   [360,         540,          20,       120,      190,      260,      ]#130]#,    360]
+PtCuts   =   [50,          120,          65,       70,       70,       55,       ]#60]#,     50]
+IasCuts  =   [0.325,       0.225,        0.4,      0.4,      0.4,      0.375,    ]#0.4]#, 0.325]
 #
 Mass =     [400,600,800,1000,       400,600,800,1000,        200,400,600,800,         200,400,600,800,         100,126,156,200,247,308,370,432,494]
 #            0   1   2   3           4   5   6   7            8   9   10  11           12  13  14  15          16  17  18  19  20  21  22  23  24

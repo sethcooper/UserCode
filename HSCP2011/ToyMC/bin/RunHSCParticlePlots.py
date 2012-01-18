@@ -10,17 +10,17 @@ from subprocess import call
 
 
 BaseCfg = "makeHSCParticlePlots_template_cfg.py"
-Date = "jan9"
+Date = "jan14"
 JobsName = "makeHSCParticlePlots_"
 JobsName+=Date
 JobsName+="_"
-FarmDirBeg = "MakeHSCParticlePlots_signal_"
+FarmDirBeg = "MakeHSCParticlePlots_signals_"
 FarmDirBeg+=Date
 
 # initialize dirs and shell file
 HSCParticlePlotsLaunch.CreateDirectoryStructure(FarmDirBeg,JobsName)
 
-# EPS DATA
+## EPS DATA
 #EPSinputFiles="    'file:/data3/scooper/data/hscp/428/Data/HSCParticles_HSCP2011_PostEPS_Sep30/Data_RunA_160404_163869.root',\n"
 #EPSinputFiles+="   'file:/data3/scooper/data/hscp/428/Data/HSCParticles_HSCP2011_PostEPS_Sep30/Data_RunA_165001_166033.root',\n"
 #EPSinputFiles+="   'file:/data3/scooper/data/hscp/428/Data/HSCParticles_HSCP2011_PostEPS_Sep30/Data_RunA_166034_166500.root',\n"
@@ -34,7 +34,7 @@ HSCParticlePlotsLaunch.CreateDirectoryStructure(FarmDirBeg,JobsName)
 #HSCParticlePlotsLaunch.createJob("EPSdata", BaseCfg, EPSinputFiles, EPScrossSection,
 #                    EPSmassCut, EPSisMC, EPSisHSCP)
 
-## 2011 data
+# 2011 data
 #DataInputFiles="    'file:/data3/scooper/data/hscp/428/Data/HSCParticles_HSCP2011_PostEPS_Nov11/Data_RunA_160404_163869.root',\n"
 #DataInputFiles+="    'file:/data3/scooper/data/hscp/428/Data/HSCParticles_HSCP2011_PostEPS_Nov11/Data_RunA_160404_163869.root',\n"
 #DataInputFiles+="    'file:/data3/scooper/data/hscp/428/Data/HSCParticles_HSCP2011_PostEPS_Nov11/Data_RunA_165001_166033.root',\n"
@@ -64,7 +64,7 @@ HSCParticlePlotsLaunch.CreateDirectoryStructure(FarmDirBeg,JobsName)
 #HSCParticlePlotsLaunch.createJob("Data2011", BaseCfg, DataInputFiles, DataCrossSection,
 #                    DataMassCut, DataIsMC, DataIsHSCP)
 
-## SIGNAL MC
+# SIGNAL MC
 HSCPisMC = "True"
 HSCPisHSCP = "True"
 # GMSB STAU 100
@@ -81,20 +81,20 @@ HSCPmassCut=120.0
 HSCPName="GMStau200"
 HSCParticlePlotsLaunch.createJob(HSCPName, BaseCfg, HSCPinputFiles, HSCPCrossSection,
                     HSCPmassCut, HSCPisMC, HSCPisHSCP)
-## GMSB STAU 308
-#HSCPinputFiles="    'file:/data3/scooper/data/hscp/428/Data/HSCParticles_HSCP2011_PostEPS_Nov11/GMStau308BX1.root'\n"
-#HSCPCrossSection=0.00098447
-#HSCPmassCut=180.0
-#HSCPName="GMStau308"
-#HSCParticlePlotsLaunch.createJob(HSCPName, BaseCfg, HSCPinputFiles, HSCPCrossSection,
-#                    HSCPmassCut, HSCPisMC, HSCPisHSCP)
-## GMSB STAU 432
-#HSCPinputFiles="    'file:/data3/scooper/data/hscp/428/Data/HSCParticles_HSCP2011_PostEPS_Nov11/GMStau432BX1.root'\n"
-#HSCPCrossSection=0.000141817
-#HSCPmassCut=250.0
-#HSCPName="GMStau432"
-#HSCParticlePlotsLaunch.createJob(HSCPName, BaseCfg, HSCPinputFiles, HSCPCrossSection,
-#                    HSCPmassCut, HSCPisMC, HSCPisHSCP)
+# GMSB STAU 308
+HSCPinputFiles="    'file:/data3/scooper/data/hscp/428/Data/HSCParticles_HSCP2011_PostEPS_Nov11/GMStau308BX1.root'\n"
+HSCPCrossSection=0.00098447
+HSCPmassCut=180.0
+HSCPName="GMStau308"
+HSCParticlePlotsLaunch.createJob(HSCPName, BaseCfg, HSCPinputFiles, HSCPCrossSection,
+                    HSCPmassCut, HSCPisMC, HSCPisHSCP)
+# GMSB STAU 432
+HSCPinputFiles="    'file:/data3/scooper/data/hscp/428/Data/HSCParticles_HSCP2011_PostEPS_Nov11/GMStau432BX1.root'\n"
+HSCPCrossSection=0.000141817
+HSCPmassCut=250.0
+HSCPName="GMStau432"
+HSCParticlePlotsLaunch.createJob(HSCPName, BaseCfg, HSCPinputFiles, HSCPCrossSection,
+                    HSCPmassCut, HSCPisMC, HSCPisHSCP)
 # STOP 200
 HSCPinputFiles="    'file:/data3/scooper/data/hscp/428/Data/HSCParticles_HSCP2011_PostEPS_Nov11/Stop200BX1.root'\n"
 HSCPCrossSection=13.000000
