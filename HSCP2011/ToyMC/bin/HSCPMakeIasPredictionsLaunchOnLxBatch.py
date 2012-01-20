@@ -130,17 +130,22 @@ def SendCluster_Create(farmDirectory, jobName, inputRootFile, queue, baseCfg,
     CreateTheCmdFile()
     #for massCut in massCuts:
     for index, massCut in enumerate(massCuts):
-        SendCluster_Push(massCut,0.0,1.2,5,10,ptCuts[index])
-        SendCluster_Push(massCut,1.2,2.4,5,10,ptCuts[index])
-        SendCluster_Push(massCut,0.0,0.2,11,16,ptCuts[index])
-        SendCluster_Push(massCut,0.2,0.4,11,16,ptCuts[index])
-        SendCluster_Push(massCut,0.4,0.6,11,16,ptCuts[index])
-        SendCluster_Push(massCut,0.6,0.8,11,16,ptCuts[index])
-        SendCluster_Push(massCut,0.8,1.2,11,16,ptCuts[index])
-        SendCluster_Push(massCut,1.2,1.6,11,16,ptCuts[index])
-        SendCluster_Push(massCut,1.6,2.4,11,16,ptCuts[index])
-        SendCluster_Push(massCut,0.0,1.2,17,22,ptCuts[index])
-        SendCluster_Push(massCut,1.2,2.4,17,22,ptCuts[index])
+        for etaIndex in range(0,24,4):
+            for nomIndex in range(5,22,4):
+                SendCluster_Push(massCut,etaIndex/10.0,(etaIndex+4)/10.0,nomIndex,nomIndex+3,ptCuts[index])
+                #SendCluster_Push(massCut,0.0,1.2,5,10,ptCuts[index])
+                #SendCluster_Push(massCut,1.2,2.4,5,10,ptCuts[index])
+                #SendCluster_Push(massCut,0.0,0.2,11,16,ptCuts[index])
+                #SendCluster_Push(massCut,0.2,0.4,11,16,ptCuts[index])
+                #SendCluster_Push(massCut,0.4,0.6,11,16,ptCuts[index])
+                #SendCluster_Push(massCut,0.6,0.8,11,16,ptCuts[index])
+                #SendCluster_Push(massCut,0.8,1.2,11,16,ptCuts[index])
+                #SendCluster_Push(massCut,1.2,1.6,11,16,ptCuts[index])
+                #SendCluster_Push(massCut,1.6,2.4,11,16,ptCuts[index])
+                #SendCluster_Push(massCut,0.0,0.6,17,22,ptCuts[index])
+                #SendCluster_Push(massCut,0.6,1.2,17,22,ptCuts[index])
+                #SendCluster_Push(massCut,1.2,1.8,17,22,ptCuts[index])
+                #SendCluster_Push(massCut,1.8,2.4,17,22,ptCuts[index])
 
 
 def SendCluster_Push(massCut,etaMin,etaMax,nomMin,nomMax,ptThresh):
