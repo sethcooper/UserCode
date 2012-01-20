@@ -1,6 +1,6 @@
 #!/bin/bash
 
-usage='Usage: makeDeDxPlots.sh -f fileNamei -d directoryName'
+usage='Usage: makeDeDxPlots.sh -f fileName -d directoryName'
   
 args=`getopt fd: -- "$@"`
 if test $? != 0
