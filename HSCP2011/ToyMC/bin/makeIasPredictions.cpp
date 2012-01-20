@@ -446,18 +446,26 @@ int main(int argc, char ** argv)
       etaCutString+="&&rooVarEta<";
       etaCutString+=floatToString(lowerEta+0.2);
       RooDataSet* nomCutBRegionDataSet = (RooDataSet*)regionBDataSet->reduce(Cut(nomCutString.c_str()));
-      RooDataSet* etaCutNomCutBRegionDataSet = (RooDataSet*)nomCutBRegionDataSet->reduce(Cut(etaCutString.c_str()));
+      // keep only ih, ias
+      RooDataSet* etaCutNomCutBRegionDataSet = (RooDataSet*)nomCutBRegionDataSet->reduce(Cut(etaCutString.c_str()),
+          SelectVars(RooArgSet(rooVarIh,rooVarIas)));
       // C region dataset
       // SIC Dec. 23: study shows we can use all NoM slices
       //RooDataSet* nomCutCRegionDataSet = (RooDataSet*)regionCDataSet->reduce(Cut(nomCutString.c_str()));
       RooDataSet* etaCutCRegionDataSet = (RooDataSet*)regionCDataSet->reduce(Cut(etaCutString.c_str()));
-      RooDataSet* etaCutNomCutCRegionDataSet = (RooDataSet*)etaCutCRegionDataSet->reduce(Cut(nomCutString.c_str()));
+      // keep only p,pt
+      RooDataSet* etaCutNomCutCRegionDataSet = (RooDataSet*)etaCutCRegionDataSet->reduce(Cut(nomCutString.c_str()),
+          SelectVars(RooArgSet(rooVarP,rooVarPt)));
       // D region dataset
       RooDataSet* nomCutDRegionDataSet = (RooDataSet*)regionDDataSet->reduce(Cut(nomCutString.c_str()));
-      RooDataSet* etaCutNomCutDRegionDataSet = (RooDataSet*)nomCutDRegionDataSet->reduce(Cut(etaCutString.c_str()));
+      // just keep one var to use to count
+      RooDataSet* etaCutNomCutDRegionDataSet = (RooDataSet*)nomCutDRegionDataSet->reduce(Cut(etaCutString.c_str()),
+          SelectVars(rooVarP));
       // A region dataset
       RooDataSet* nomCutARegionDataSet = (RooDataSet*)regionADataSet->reduce(Cut(nomCutString.c_str()));
-      RooDataSet* etaCutNomCutARegionDataSet = (RooDataSet*)nomCutARegionDataSet->reduce(Cut(etaCutString.c_str()));
+      // just keep one var to use to count
+      RooDataSet* etaCutNomCutARegionDataSet = (RooDataSet*)nomCutARegionDataSet->reduce(Cut(etaCutString.c_str()),
+          SelectVars(rooVarP));
 
       entriesInARegionHist->Fill(lowerEta+0.1,nom,etaCutNomCutARegionDataSet->numEntries());
       entriesInBRegionHist->Fill(lowerEta+0.1,nom,etaCutNomCutBRegionDataSet->numEntries());
@@ -482,13 +490,14 @@ int main(int argc, char ** argv)
       const RooArgSet* argSet_B = etaCutNomCutBRegionDataSet->get();
       RooRealVar* ihData_B = (RooRealVar*)argSet_B->find(rooVarIh.GetName());
       RooRealVar* iasData_B = (RooRealVar*)argSet_B->find(rooVarIas.GetName());
-      RooRealVar* nomData_B = (RooRealVar*)argSet_B->find(rooVarNoMias.GetName());
-      RooRealVar* etaData_B = (RooRealVar*)argSet_B->find(rooVarEta.GetName());
+      //remove eta/nom double checking
+      //RooRealVar* nomData_B = (RooRealVar*)argSet_B->find(rooVarNoMias.GetName());
+      //RooRealVar* etaData_B = (RooRealVar*)argSet_B->find(rooVarEta.GetName());
       const RooArgSet* argSet_C = etaCutCRegionDataSet->get();
       RooRealVar* pData_C = (RooRealVar*)argSet_C->find(rooVarP.GetName());
       RooRealVar* ptData_C = (RooRealVar*)argSet_C->find(rooVarPt.GetName());
       //RooRealVar* nomData_C = (RooRealVar*)argSet_C->find(rooVarNoMias.GetName());
-      RooRealVar* etaData_C = (RooRealVar*)argSet_C->find(rooVarEta.GetName());
+      //RooRealVar* etaData_C = (RooRealVar*)argSet_C->find(rooVarEta.GetName());
       // fill b region hist
       for(int index=0; index < etaCutNomCutBRegionDataSet->numEntries(); ++index)
       {
@@ -501,12 +510,12 @@ int main(int argc, char ** argv)
 
         if(ihData_B->getVal() < ihSidebandThreshold)
           std::cout << "ERROR: (in B region) ih=" << ihData_B->getVal() << std::endl;
-        if(nomData_B->getVal() < nom || (nomData_B->getVal() > nom+1 && nom<21))
-          std::cout << "ERROR: nom=" << nom << "-" << nom+1 << " and (in B region) data point nom="
-            << nomData_B->getVal() << std::endl;
-        if(etaData_B->getVal() < lowerEta || etaData_B->getVal() > lowerEta+0.2)
-          std::cout << "ERROR: eta=" << lowerEta << "-" << lowerEta+0.2 << " and (in B region) data point eta="
-            << etaData_B->getVal() << std::endl;
+        //if(nomData_B->getVal() < nom || (nomData_B->getVal() > nom+1 && nom<21))
+        //  std::cout << "ERROR: nom=" << nom << "-" << nom+1 << " and (in B region) data point nom="
+        //    << nomData_B->getVal() << std::endl;
+        //if(etaData_B->getVal() < lowerEta || etaData_B->getVal() > lowerEta+0.2)
+        //  std::cout << "ERROR: eta=" << lowerEta << "-" << lowerEta+0.2 << " and (in B region) data point eta="
+        //    << etaData_B->getVal() << std::endl;
       }
       // fill c region hist
       for(int index=0; index < etaCutCRegionDataSet->numEntries(); ++index)
@@ -528,9 +537,9 @@ int main(int argc, char ** argv)
         //if(nomData_C->getVal() < nom || nomData_C->getVal() > nom+1)
         //  std::cout << "ERROR: nom=" << nom << "-" << nom+1 << " and (in C region) data point nom="
         //    << nomData_C->getVal() << std::endl;
-        if(etaData_C->getVal() < lowerEta || etaData_C->getVal() > lowerEta+0.2)
-          std::cout << "ERROR: eta=" << lowerEta << "-" << lowerEta+0.2 << " and (in C region) data point eta="
-            << etaData_C->getVal() << std::endl;
+        //if(etaData_C->getVal() < lowerEta || etaData_C->getVal() > lowerEta+0.2)
+        //  std::cout << "ERROR: eta=" << lowerEta << "-" << lowerEta+0.2 << " and (in C region) data point eta="
+        //    << etaData_C->getVal() << std::endl;
       }
 
       // require at least 25 entries in each dataset to do prediction
@@ -656,8 +665,10 @@ int main(int argc, char ** argv)
           continue;
         }
         double minMomPassMass = sqrt(momSqr);
-        RooDataSet* momPassDataSet = (RooDataSet*)etaCutCRegionDataSet->reduce(Cut(("rooVarP>"+floatToString(minMomPassMass)).c_str()));
-        RooDataSet* momFailDataSet = (RooDataSet*)etaCutCRegionDataSet->reduce(Cut(("rooVarP<"+floatToString(minMomPassMass)).c_str()));
+        RooDataSet* momPassDataSet = (RooDataSet*)etaCutCRegionDataSet->reduce(Cut(("rooVarP>"+floatToString(minMomPassMass)).c_str()),
+            SelectVars(rooVarP));
+        RooDataSet* momFailDataSet = (RooDataSet*)etaCutCRegionDataSet->reduce(Cut(("rooVarP<"+floatToString(minMomPassMass)).c_str()),
+            SelectVars(rooVarP));
         int numMomPassingMass = momPassDataSet->numEntries();
         int numMomFailingMass = momFailDataSet->numEntries();
         delete momPassDataSet;
