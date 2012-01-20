@@ -323,7 +323,8 @@ int main(int argc, char ** argv)
     return -2;
   }
 
-  RooDataSet* rooDataSetAll = (RooDataSet*)inFile->Get("rooDataSetCandidates");
+  //RooDataSet* rooDataSetAll = (RooDataSet*)inFile->Get("rooDataSetCandidates");
+  RooDataSet* rooDataSetAll = (RooDataSet*)inFile->Get("rooDataSetOneCandidatePerEvent");
   if(rooDataSetAll->numEntries() < 1)
   {
     std::cout << "Problem with RooDataSet named rooDataSetCandidates in file " << inputHandler_.files()[0].c_str() << std::endl;
