@@ -255,7 +255,9 @@ int main(int argc, char ** argv)
   //TDirectory* scaledBGPredDir = outputRootFile->mkdir("scaledBackgroundPredictions");
   //TDirectory* normedSignalPredDir = outputRootFile->mkdir("normalizedSignalPredictions");
   // get roodataset from signal file
-  RooDataSet* rooDataSetAllSignal = (RooDataSet*)signalRootFile->Get("rooDataSetCandidates");
+  //RooDataSet* rooDataSetAllSignal = (RooDataSet*)signalRootFile->Get("rooDataSetCandidates");
+  RooDataSet* rooDataSetAllSignal = (RooDataSet*)signalRootFile->Get("rooDataSetOneCandidatePerEvent");
+  bool countEvents  = true;
   if(!rooDataSetAllSignal)
   {
     cout << "Problem with RooDataSet named rooDataSetCandidates in signal file " <<
@@ -500,6 +502,7 @@ int main(int argc, char ** argv)
     iasSignalMassCutNoMSliceForEffHist = (TH1F*) iasSignalMassCutNoMSliceHist->Clone();
 
     // figure out overall normalization this slice, background from ABCD
+    // if using one track per event, this is the number of events in the slice passing mass in D region
     double bgEntriesInARegionThisSlice =
       aRegionBackgroundEntriesHist->GetBinContent(aRegionBackgroundEntriesHist->FindBin(lowerEta+0.1,lowerNoM+1));
     double bgEntriesInBRegionThisSlice = 
@@ -516,11 +519,14 @@ int main(int argc, char ** argv)
     // figure out overall normalization for signal this slice
     // must normalize as if sigma were 1 to measure the cross section
     double signalCrossSection = 1;
-    double totalSignalTracksThisSlice = integratedLumi*signalCrossSection;
+    double totalSignalTracksThisSlice = integratedLumi*signalCrossSection; //TODO rename this var...
     //double fractionOfSigTracksInDRegionPassingMassCutThisSlice =
     //  numSignalTracksInDRegionMassCutThisSlice/(double)numSignalTracksTotal;
     double fractionOfSigTracksInDRegionPassingMassCutThisSlice =
       numSignalTracksInDRegionMassCutThisSlice/(double)numGenHSCPTracksRooVar->getVal(); // includes trigger eff.
+    if(countEvents)
+      fractionOfSigTracksInDRegionPassingMassCutThisSlice =
+        numSignalTracksInDRegionMassCutThisSlice/(double)numGenHSCPEventsRooVar->getVal();
     double numSignalTracksInDRegionPassingMassCutThisSlice =
       fractionOfSigTracksInDRegionPassingMassCutThisSlice*totalSignalTracksThisSlice;
     signalTracksOverIasCut+=iasSignalMassCutNoMSliceHist->Integral(
