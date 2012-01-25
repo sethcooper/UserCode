@@ -38,6 +38,7 @@ using namespace RooStats;
 
 bool plotHypoTestResult = true;          // plot test statistic result at each point
 bool writeResult = true;                 // write HypoTestInverterResult in a file 
+TString resultFileName;
 bool optimize = true;                    // optmize evaluation of test statistic 
 bool useVectorStore = true;              // convert data to use new roofit data store 
 bool generateBinned = false;             // generate binned data sets 
@@ -45,7 +46,7 @@ bool noSystematics = false;              // force all systematics to be off (i.e
                                          // to their nominal values)
 double nToysRatio = 2;                   // ratio Ntoys S+b/ntoysB
 double maxPOI = -1;                      // max value used of POI (in case of auto scan) 
-bool useProof = true;                    // use Proof Light when using toys (for freq or hybrid)
+bool useProof = false;                    // use Proof Light when using toys (for freq or hybrid)
 int nworkers = 4;                        // number of worker for Proof
 bool rebuild = false;                    // re-do extra toys for computing expected limits and rebuild test stat
                                          // distributions (N.B this requires much more CPU (factor is equivalent to nToyToRebuild)
@@ -108,6 +109,7 @@ namespace RooStats {
       double  mMaxPoi;
       std::string mMassValue;
       std::string mMinimizerType;                  // minimizer type (default is what is in ROOT::Math::MinimizerOptions::DefaultMinimizerType()
+      TString     mResultFileName;
 
    };
 
@@ -118,7 +120,7 @@ RooStats::HypoTestInvTool::HypoTestInvTool() : mPlotHypoTestResult(true),
                                                mOptimize(true),
                                                mUseVectorStore(true),
                                                mGenerateBinned(false),
-                                               mUseProof(true),
+                                               mUseProof(false),
                                                mRebuild(false),
                                                mNWorkers(4),
                                                mNToyToRebuild(100),
@@ -195,6 +197,7 @@ RooStats::HypoTestInvTool::SetParameter(const char * name, const char * value){
 
    if (s_name.find("MassValue") != std::string::npos) mMassValue.assign(value);
    if (s_name.find("MinimizerType") != std::string::npos) mMinimizerType.assign(value);
+   if (s_name.find("ResultFileName") != std::string::npos) mResultFileName = value;
 
    return;
 }
@@ -215,7 +218,8 @@ StandardHypoTestInvDemo(const char * infile = 0,
                         double poimax = 5, 
                         int ntoys=1000,
                         bool useNumberCounting = false,
-                        const char * nuisPriorName = 0){
+                        const char * nuisPriorName = 0,
+                        const char * thisResultFileName = 0){
 /*
 
   Other Parameter to pass in tutorial
@@ -315,6 +319,8 @@ StandardHypoTestInvDemo(const char * infile = 0,
    calc.SetParameter("MassValue", massValue.c_str());
    calc.SetParameter("MinimizerType", minimizerType.c_str());
    calc.SetParameter("PrintLevel", printLevel);
+   //calc.SetParameter("ResultFileName",resultFileName);
+   TString resultFileName = thisResultFileName;
 
 
    RooWorkspace * w = dynamic_cast<RooWorkspace*>( file->Get(wsName) );
@@ -342,6 +348,31 @@ StandardHypoTestInvDemo(const char * infile = 0,
       }
    }		
   
+   if (r != NULL && writeResult) {
+      //// write to a file the results
+      //const char *  calcType = (calculatorType == 0) ? "Freq" : (calculatorType == 1) ? "Hybr" : "Asym";
+      //const char *  limitType = (useCLs) ? "CLs" : "Cls+b";
+      //const char * scanType = (npoints < 0) ? "auto" : "grid";
+      //if(mResultFileName.IsNull())
+      //{
+      //  TString resultFileName = TString::Format("%s_%s_%s_ts%d_",calcType,limitType,scanType,testStatType);      
+      //  //strip the / from the filename
+      //  if (mMassValue.size()>0) {
+      //    resultFileName += mMassValue.c_str();
+      //    resultFileName += "_";
+      //  }
+      //  TString name = fileNameBase; 
+      //  name.Replace(0, name.Last('/')+1, "");
+      //  mResultFileName += name;
+      //}
+      if(resultFileName.IsNull())
+        std::cerr << "Filename is null!";
+
+      TFile * fileOut = new TFile(resultFileName,"RECREATE");
+      r->Write();
+      fileOut->Close();                                                                     
+   }   
+
    calc.AnalyzeResult( r, calculatorType, testStatType, useCLs, npoints, infile );
   
    return;
@@ -372,28 +403,31 @@ RooStats::HypoTestInvTool::AnalyzeResult( HypoTestInverterResult * r,
    std::cout << " expected limit (+2 sig) " << r->GetExpectedUpperLimit(2) << std::endl;
   
   
-   // write result in a file 
-   if (r != NULL && mWriteResult) {
-    
-      // write to a file the results
-      const char *  calcType = (calculatorType == 0) ? "Freq" : (calculatorType == 1) ? "Hybr" : "Asym";
-      const char *  limitType = (useCLs) ? "CLs" : "Cls+b";
-      const char * scanType = (npoints < 0) ? "auto" : "grid";
-      TString resultFileName = TString::Format("%s_%s_%s_ts%d_",calcType,limitType,scanType,testStatType);      
-      //strip the / from the filename
-      if (mMassValue.size()>0) {
-         resultFileName += mMassValue.c_str();
-         resultFileName += "_";
-      }
-    
-      TString name = fileNameBase; 
-      name.Replace(0, name.Last('/')+1, "");
-      resultFileName += name;
-    
-      TFile * fileOut = new TFile(resultFileName,"RECREATE");
-      r->Write();
-      fileOut->Close();                                                                     
-   }   
+   //// write result in a file 
+   //if (r != NULL && mWriteResult) {
+   // 
+   //   // write to a file the results
+   //   const char *  calcType = (calculatorType == 0) ? "Freq" : (calculatorType == 1) ? "Hybr" : "Asym";
+   //   const char *  limitType = (useCLs) ? "CLs" : "Cls+b";
+   //   const char * scanType = (npoints < 0) ? "auto" : "grid";
+   //   if(resultFileName.IsNull())
+   //   {
+   //     TString resultFileName = TString::Format("%s_%s_%s_ts%d_",calcType,limitType,scanType,testStatType);      
+   //     //strip the / from the filename
+   //     if (mMassValue.size()>0) {
+   //       resultFileName += mMassValue.c_str();
+   //       resultFileName += "_";
+   //     }
+
+   //     TString name = fileNameBase; 
+   //     name.Replace(0, name.Last('/')+1, "");
+   //     resultFileName += name;
+   //   }
+
+   //   TFile * fileOut = new TFile(resultFileName,"RECREATE");
+   //   r->Write();
+   //   fileOut->Close();                                                                     
+   //}   
   
   
    // plot the result ( p values vs scan points) 
