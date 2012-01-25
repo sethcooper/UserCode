@@ -84,7 +84,7 @@ def CreateTheConfigFile(bgInputFile,sigInputFile,massCut,iasCut,ptCut,signalName
     config_txt = config_txt.replace("XXX_OUTPUTFILE_XXX"        , outputFile)
     config_txt = config_txt.replace("XXX_MASSCUT_XXX"        , `massCut`)
     config_txt = config_txt.replace("XXX_IASCUT_XXX"        , str(iasCut))
-    config_txt = config_txt.replace("XXX_INTLUMI_XXX"        , `Int_Lumi`)
+    config_txt = config_txt.replace("XXX_INTLUMI_XXX"        , str(Int_Lumi))
     config_txt = config_txt.replace("XXX_PTTHRESH_XXX"       , str(ptCut))
 
     config_file=open(Path_Cfg,'w')
