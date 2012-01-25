@@ -4,15 +4,15 @@ import urllib
 import string
 import os
 import sys
-import HSCPMakeIasPredictionsLaunchOnLxBatch
+import HSCPMakeIasPredictionsLaunchOnCondor
 import glob
 from subprocess import call
 
 
-Date = "jan13"
-QueueName = "8nh"
+Date = "jan21"
+DataDirBase = "/local/cms/user/cooper/data/hscp/428/makeHSCParticlePlotsOutput"
 BaseCfg = "makeIasPredictions_template_cfg.py"
-InputRootFile = os.getcwd()+'/MakeHSCParticlePlots_2011data_jan13/outputs/makeHSCParticlePlots_jan13_Data2011.root'
+InputRootFile = DataDirBase+"/MakeHSCParticlePlots_2011data_jan13/outputs/makeHSCParticlePlots_jan13_Data2011.root"
 #InputRootFile = os.getcwd()+'/MakeHSCParticlePlots_dec22/outputs/makeHSCParticlePlots_dec22_EPSdata.root'
 # MassCuts from EPS AN note
 #MassCuts = [30,50,80,110,120,150,180,210,220,220,230,240,250,270,280,290,300,330,340,350,400,410,440]
@@ -30,7 +30,7 @@ JobName+="_"
 FarmDirectory = "FARM_MakeIasPredictions_oneTrackPerEvent_"
 FarmDirectory+=Date
 
-HSCPMakeIasPredictionsLaunchOnLxBatch.SendCluster_Create(FarmDirectory,JobName,InputRootFile,
-                                            QueueName, BaseCfg, MassCuts, PtCuts)
-HSCPMakeIasPredictionsLaunchOnLxBatch.SendCluster_Submit()
+HSCPMakeIasPredictionsLaunchOnCondor.SendCluster_Create(FarmDirectory,JobName,InputRootFile,
+                                            BaseCfg, MassCuts, PtCuts)
+HSCPMakeIasPredictionsLaunchOnCondor.SendCluster_Submit()
 
