@@ -604,8 +604,8 @@ int main(int argc, char ** argv)
     backExpOverIasCutHist->Fill(histItr->Integral(histItr->FindBin(iasCutForEffAcc),histItr->GetNbinsX()));
     // normalize sig hist
     iasSignalMassCutNoMSliceHist->Sumw2();
-    double sigNormFactor = numSignalTracksInDRegionPassingMassCutThisSlice/
-      iasSignalMassCutNoMSliceHist->Integral();
+    double sigNormFactor = (iasSignalMassCutNoMSliceHist->Integral() > 0) ?
+      numSignalTracksInDRegionPassingMassCutThisSlice/iasSignalMassCutNoMSliceHist->Integral() : 0;
     iasSignalMassCutNoMSliceHist->Scale(sigNormFactor);
 
     //int thisNoMSlice = getNoMSliceFromLowerNoM(lowerNoM);
