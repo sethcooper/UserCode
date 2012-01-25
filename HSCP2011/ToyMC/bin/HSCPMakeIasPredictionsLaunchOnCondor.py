@@ -68,13 +68,13 @@ def CreateTheShellFile(massCut,etaMin,etaMax,nomMin,nomMax,ptThresh):
     shell_file=open(Path_Shell,'w')
     shell_file.write('#!/bin/sh\n')
     shell_file.write(CopyRights + '\n')
-    shell_file.write('export SCRAM_ARCH=slc5_amd64_gcc434\n')
-    shell_file.write('source /afs/cern.ch/cms/sw/cmsset_default.sh\n')
+    #shell_file.write('export SCRAM_ARCH=slc5_amd64_gcc434\n')
+    shell_file.write('source /local/cms/sw/cmsset_default.sh\n')
     shell_file.write('cd ' + os.getcwd() + '\n')
     shell_file.write('eval `scramv1 runtime -sh`\n')
     shell_file.write('cd -\n')
     shell_file.write('makeIasPredictions ' + os.getcwd() + '/'+Path_Cfg + '\n')
-    #shell_file.write('mv ' + outputFile + ' ' + os.getcwd() + '/' + Farm_Directories[4] )
+    shell_file.write('mv ' + outputFile + ' ' + os.getcwd() + '/' + Farm_Directories[4] )
     shell_file.close()
     os.system("chmod 777 "+Path_Shell)
 
@@ -101,8 +101,8 @@ def AddJobToCmdFile(massCut,etaMin,etaMax,nomMin,nomMax,ptThresh):
     global Path_Shell
     global Path_Cmd
     global Jobs_Name
-    Path_Log   = os.getcwd()+'/'+Farm_Directories[2]+Jobs_Name+'massCut'+`massCut`+'_pt'+str(ptThresh)+'_etaMin'+str(etaMin)+'_nomMin'+`nomMin`+'.log'
-    Path_Error   = os.getcwd()+'/'+Farm_Directories[3]+Jobs_Name+'massCut'+`massCut`+'_pt'+str(ptThresh)+'_etaMin'+str(etaMin)+'_nomMin'+`nomMin`+'.err'
+    Path_Log   = os.getcwd()+'/'+Farm_Directories[2]+Jobs_Name+'massCut'+`massCut`+'_pt'+str(ptThresh)+'_etaMin'+str(etaMin)+'_nomMin'+`nomMin`
+    Path_Error   = os.getcwd()+'/'+Farm_Directories[3]+Jobs_Name+'massCut'+`massCut`+'_pt'+str(ptThresh)+'_etaMin'+str(etaMin)+'_nomMin'+`nomMin`
     cmd_file=open(Path_Cmd,'a')
     cmd_file.write('\n')
     cmd_file.write('Executable              = %s\n'     % Path_Shell)
@@ -166,7 +166,7 @@ def SendCluster_Submit():
     global CopyRights
     global Jobs_Count
     global Path_Cmd
-    os.system("source " + Path_Cmd)
+    os.system("condor_submit " + Path_Cmd)
     print '\n'+CopyRights
     print '%i job(s) has/have been submitted to condor' % Jobs_Count
 
