@@ -477,6 +477,7 @@ int main(int argc, char ** argv)
           float trackPtErr = track->ptError();
 
           // systematics datasets for MC
+          //TODO: FIXME: apply shift, then preselect/choose highest ias, then add to dataset
           if(isMC_)
           {
             TRandom3 myRandom;
