@@ -244,14 +244,6 @@ int main(int argc, char ** argv)
   TFile* backgroundPredictionRootFile = TFile::Open(backgroundPredictionRootFilename_.c_str());
   TFile* signalRootFile = TFile::Open(signalRootFilename_.c_str());
 
-  //ofstream xmlOutputFileStream("xmlFragment.xml");
-  //if(!xmlOutputFileStream.is_open())
-  //{
-  //  cout << "Unable to open output file" << endl;
-  //  return -2;
-  //}
-
-
   //TDirectory* scaledBGPredDir = outputRootFile->mkdir("scaledBackgroundPredictions");
   //TDirectory* normedSignalPredDir = outputRootFile->mkdir("normalizedSignalPredictions");
   // get roodataset from signal file
@@ -475,6 +467,7 @@ int main(int argc, char ** argv)
         if(iasData->getVal() > iasCutForEffAcc)
         {
           // if track over ias cut, put the event in the set (one track per event kept)
+          // there should only be one track per event at this stage anyway
           EventInfo evtInfo(runNumData->getVal(),lumiSecData->getVal(),eventNumData->getVal());
           pair<set<EventInfo>::iterator,bool> ret;
           ret = selectedSignalEventsSet.insert(evtInfo);
@@ -640,18 +633,6 @@ int main(int argc, char ** argv)
     //normedSignalPredDir->cd();
     iasSignalMassCutNoMSliceHist->Write();
 
-    // write xml fragment
-    //string sampleName = "background_nom";
-    //sampleName+=intToString(lowerNoM);
-    //sampleName+="_eta";
-    //sampleName+=floatToString(10*lowerEta);
-    //xmlOutputFileStream <<      
-    //  "<Sample Name=\"" << sampleName << "\" HistoPath=\"\" NormalizeByTheory=\"False\" HistoName=\""
-    //  << histItr->GetName() << "\">"
-    //  << endl << 
-    //  "</Sample>" << endl;
-
-
     iteratorPos++;
     // cleanup
     delete nomCutDRegionDataSetSignal;
@@ -661,7 +642,6 @@ int main(int argc, char ** argv)
     delete iasSignalMassCutNoMSliceForEffHist;
   }
 
-  //xmlOutputFileStream.close();
   outputRootFile->cd();
   backgroundAllNoMAllEtaUnrolledHist->Write();
   backgroundAllNoMAllEtaUnrolledPlusOneSigmaHist->Write();
