@@ -13,16 +13,18 @@ process.fwliteOutput = cms.PSet(
     fileName  = cms.string('XXX_OUTPUTFILE_XXX'),
 )
 
-analysisCommonParameters.MassCut = XXX_MASSCUT_XXX
 
 process.makeIasPredictions = cms.PSet(
     analysisCommonParameters,
+    MassCut = cms.double(XXX_MASSCUT_XXX),
     EtaMax = cms.double(XXX_ETAMAX_XXX),
     EtaMin = cms.double(XXX_ETAMIN_XXX),
     NoMMax = cms.int32(XXX_NOMMAX_XXX),
     NoMMin = cms.int32(XXX_NOMMIN_XXX),
     UsePtForSideband = cms.bool(True),
     PtSidebandThreshold = cms.double(XXX_PTTHRESH_XXX),
+    UseIasForSideband = cms.bool(True),
+    IasSidebandThreshold = cms.double(XXX_IASTHRESH_XXX),
 )
 
 if process.makeIasPredictions.UsePtForSideband==cms.bool(True):
@@ -32,10 +34,15 @@ else:
     print 'Running with p threshold: ',
     print analysisCommonParameters.PSidebandThreshold
 
-print 'Running with Ih threshold:',
-print analysisCommonParameters.IhSidebandThreshold
+if process.makeIasPredictions.UseIasForSideband==cms.bool(True):
+  print 'Running with Ias threshold:',
+  print process.makeIasPredictions.IasSidebandThreshold
+else:
+  print 'Running with Ih threshold:',
+  print analysisCommonParameters.IhSidebandThreshold
+
 print 'Running with mass cut:',
-print analysisCommonParameters.MassCut
+print process.makeIasPredictions.MassCut
 print 'nom range: ',
 print process.makeIasPredictions.NoMMin,
 print '-',
