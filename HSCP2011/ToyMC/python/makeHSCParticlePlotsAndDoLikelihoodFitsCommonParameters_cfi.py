@@ -1,10 +1,10 @@
 import FWCore.ParameterSet.Config as cms
 
 analysisCommonParameters = cms.PSet(
-  MassCut = cms.double(100),
+  #MassCut = cms.double(100),
   # dE/dx calibration
-  dEdx_k = cms.double(2.468),
-  dEdx_c = cms.double(2.679),
+  dEdx_k = cms.double(2.529),
+  dEdx_c = cms.double(2.772),
   # search region
   PSidebandThreshold = cms.double(100),
   IhSidebandThreshold = cms.double(3.5),
