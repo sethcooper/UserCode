@@ -150,7 +150,8 @@ int getGlobalBinMax()
   return multFactorNoMSlice*(numNoMBins-1) + multFactorEtaSlice*(numEtaBins-1) + numIasBins;
 }
 // add the mass, p/pt, and ih SB thresholds to the output filename automatically
-std::string generateFileNameEnd(double massCut, double pSideband, double ptSideband, bool usePt, double ihSideband)
+std::string generateFileNameEnd(double massCut, double pSideband, double ptSideband, bool usePt, double ihSideband,
+    double iasSideband, bool useIas)
 {
   std::string fileNameEnd = ".massCut";
   fileNameEnd+=intToString(((int)massCut));
@@ -164,11 +165,22 @@ std::string generateFileNameEnd(double massCut, double pSideband, double ptSideb
     fileNameEnd+=".p";
     fileNameEnd+=intToString(((int)pSideband));
   }
-  fileNameEnd+=".ih";
-  // replace "." with "p" for the ih
-  std::string ihSBStr = floatToString(ihSideband);
-  ihSBStr.replace(ihSBStr.find("."),1,"p");
-  fileNameEnd+=ihSBStr;
+  if(useIas)
+  {
+    fileNameEnd+=".ias";
+    // replace "." with "p" for the ih
+    std::string iasSBStr = floatToString(iasSideband);
+    iasSBStr.replace(iasSBStr.find("."),1,"p");
+    fileNameEnd+=iasSBStr;
+  }
+  else
+  {
+    fileNameEnd+=".ih";
+    // replace "." with "p" for the ih
+    std::string ihSBStr = floatToString(ihSideband);
+    ihSBStr.replace(ihSBStr.find("."),1,"p");
+    fileNameEnd+=ihSBStr;
+  }
 
   fileNameEnd+=".root";
   return fileNameEnd;
@@ -213,6 +225,7 @@ int main(int argc, char ** argv)
   double integratedLumi (ana.getParameter<double>("IntegratedLuminosity")); // 1/pb
   //double signalCrossSectionForEff (ana.getParameter<double>("SignalCrossSectionForEff")); // pb
   double iasCutForEffAcc (ana.getParameter<double>("IasCutForEfficiency"));
+  bool useIasForSideband (ana.getParameter<bool>("UseIasForSideband"));
 
   // TODO configurable nom/eta limits
   // NB: always use upper edge of last bin for both
@@ -273,12 +286,18 @@ int main(int argc, char ** argv)
   ptSearchCutString+=floatToString(ptSidebandThreshold);
   string ihSearchCutString = "rooVarIh>";
   ihSearchCutString+=floatToString(ihSidebandThreshold);
+  string iasSearchCutString = "rooVarIas>";
+  iasSearchCutString+=floatToString(iasCutForEffAcc);
   RooDataSet* regionD1DataSetSignal;
+  RooDataSet* regionDDataSetSignal;
   if(usePtForSideband)
     regionD1DataSetSignal = (RooDataSet*)rooDataSetAllSignal->reduce(Cut(ptSearchCutString.c_str()));
   else
     regionD1DataSetSignal = (RooDataSet*)rooDataSetAllSignal->reduce(Cut(pSearchCutString.c_str()));
-  RooDataSet* regionDDataSetSignal = (RooDataSet*)regionD1DataSetSignal->reduce(Cut(ihSearchCutString.c_str()));
+  if(useIasForSideband)
+    regionDDataSetSignal = (RooDataSet*)regionD1DataSetSignal->reduce(Cut(iasSearchCutString.c_str()));
+  else
+    regionDDataSetSignal = (RooDataSet*)regionD1DataSetSignal->reduce(Cut(ihSearchCutString.c_str()));
   //DEBUG TESTING ONLY
   //RooDataSet* regionDDataSetSignal = (RooDataSet*)regionD1DataSetSignal->Clone();
   int numSignalTracksInDRegion = regionDDataSetSignal->numEntries();
@@ -440,7 +459,11 @@ int main(int argc, char ** argv)
     string etaCutString = "rooVarEta>";
     etaCutString+=floatToString(lowerEta);
     etaCutString+="&&rooVarEta<";
-    etaCutString+=floatToString(lowerEta+0.2);
+    //XXX TESTING SET MAX ETA TO 1.5 for TESTING
+    if(10*lowerEta==14)
+      etaCutString+=floatToString(1.5);
+    else
+      etaCutString+=floatToString(lowerEta+0.2);
     RooDataSet* etaCutNomCutDRegionDataSetSignal =
       (RooDataSet*)nomCutDRegionDataSetSignal->reduce(Cut(etaCutString.c_str()));
     //int numSignalTracksInDRegionThisSlice = etaCutNomCutDRegionDataSetSignal->numEntries();

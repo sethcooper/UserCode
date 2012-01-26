@@ -214,7 +214,7 @@ def SendCluster_Push(bgInputFilesBase,sigInputFile,massCut,iasCut,ptCut):
     global Jobs_Count
     global Jobs_Index
     Jobs_Index = "%04i" % Jobs_Count
-    bgInputFile = bgInputFilesBase+`massCut`+'_ptCut'+`ptCut`+'.root'
+    bgInputFile = bgInputFilesBase+`massCut`+'_ptCut'+`ptCut`+'_ias'+str(iasCut)+'.root'
     CreateTheShellFile(bgInputFile,sigInputFile,massCut,iasCut,ptCut)
     AddJobToCmdFile(massCut,ptCut,sigInputFile)
     Jobs_Count = Jobs_Count+1
