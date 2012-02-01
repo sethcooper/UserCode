@@ -606,8 +606,8 @@ int main(int argc, char ** argv)
           rooVarEvent = eventNumber;
           //rooDataSetCandidates->add(RooArgSet(rooVarIas,rooVarIh,rooVarP,rooVarPt,rooVarNoMias,rooVarEta,rooVarIp));
           //XXX TURN OFF BELOW TO MAKE ONLY ONE ENTRY PER EVENT DATASET ONLY
-          //rooDataSetCandidates->add(RooArgSet(rooVarIas,rooVarIh,rooVarP,rooVarPt,rooVarNoMias,rooVarEta,rooVarLumiSection,
-          //      rooVarRun,rooVarEvent));
+          rooDataSetCandidates->add(RooArgSet(rooVarIas,rooVarIh,rooVarP,rooVarPt,rooVarNoMias,rooVarEta,rooVarLumiSection,
+                rooVarRun,rooVarEvent));
           if(ias > tempIas)
           {
             tempIas = ias;
