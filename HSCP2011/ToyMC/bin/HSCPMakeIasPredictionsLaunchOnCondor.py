@@ -92,7 +92,7 @@ def CreateTheCmdFile():
     cmd_file.write('Universe                = vanilla\n')
     cmd_file.write('Environment             = CONDORJOBID=$(Process)\n')
     cmd_file.write('notification            = Error\n')
-    cmd_file.write('requirements            = (Memory > 512)&&(Arch=?="X86_64")\n')
+    cmd_file.write('requirements            = (Memory > 512)&&(Arch=?="X86_64")&&(Machine=!="zebra01.spa.umn.edu")&&(Machine=!="zebra02.spa.umn.edu")&&(Machine=!="zebra03.spa.umn.edu")\n')
     cmd_file.write('+CondorGroup            = "cmsfarm"\n')
     cmd_file.write('should_transfer_files   = NO\n')
     cmd_file.write('Notify_user = cooper@physics.umn.edu\n')
