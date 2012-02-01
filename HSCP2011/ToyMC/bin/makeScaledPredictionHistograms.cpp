@@ -332,6 +332,8 @@ int main(int argc, char ** argv)
 
 
   vector<TH1F> bgHistsToUse;
+  //vector<TH1F> bRegionHistsToUse;
+  //vector<TH1F> cRegionHistsToUse;
 
   // for histograms already made
   //string dirName="iasPredictionsVariableBins";
@@ -345,6 +347,8 @@ int main(int argc, char ** argv)
     for(float lowerEta = minEta; lowerEta < maxEta; lowerEta+=0.2)
     {
       TH1F* iasBackgroundPredictionMassCutNoMSliceHist = 0;
+      //TH1F* bRegionHist = 0;
+      //TH1F* cRegionHist = 0;
       // get this eta/nom hist
       string getHistName = getHistNameBeg(lowerNoM,lowerEta);
       getHistName+=bgHistNameEnd;
@@ -375,6 +379,22 @@ int main(int argc, char ** argv)
         //  << " with integral = " << iasBackgroundPredictionMassCutNoMSliceHist->Integral()
         //  << " pushing onto the vector." << endl;
         bgHistsToUse.push_back(*iasBackgroundPredictionMassCutNoMSliceHist);
+        // now get the b region hist
+        //string getHistName = dirName;
+        //getHistName+="/";
+        //getHistName+=getHistNameBeg(lowerNoM,lowerEta);
+        //getHistName+="bRegionHist";
+        //bRegionHist = (TH1F*)backgroundPredictionRootFile->Get(getHistName.c_str());
+        //if(bRegionHist && bRegionHist->Integral() > 0)
+        //  bRegionHistsToUse.push_back(*bRegionHist);
+        //// now get the c region hist
+        //getHistName = dirName;
+        //getHistName+="/";
+        //getHistName+=getHistNameBeg(lowerNoM,lowerEta);
+        //getHistName+="cRegionHist";
+        //cRegionHist = (TH1F*)backgroundPredictionRootFile->Get(getHistName.c_str());
+        //if(cRegionHist && cRegionHist->Integral() > 0)
+        //  cRegionHistsToUse.push_back(*cRegionHist);
       }
       else
       {
@@ -383,6 +403,8 @@ int main(int argc, char ** argv)
         //  " Skipping prediction. " << endl;
       }
       delete iasBackgroundPredictionMassCutNoMSliceHist;
+      //delete bRegionHist;
+      //delete cRegionHist;
     }
   }
 
@@ -425,7 +447,8 @@ int main(int argc, char ** argv)
   for(vector<TH1F>::iterator histItr = bgHistsToUse.begin();
       histItr != bgHistsToUse.end(); ++histItr)
   {
-    TH1F* iasBackgroundPredictionMassCutNoMSliceHist = 0;
+    // delete this and the matching delete at the bottom las
+    //TH1F* iasBackgroundPredictionMassCutNoMSliceHist = 0;
     TH1F* iasSignalMassCutNoMSliceHist = 0;
     TH1F* iasSignalMassCutNoMSliceForEffHist = 0;
     string bgHistName = string(histItr->GetName());
@@ -660,26 +683,93 @@ int main(int argc, char ** argv)
     // cleanup
     delete nomCutDRegionDataSetSignal;
     delete etaCutNomCutDRegionDataSetSignal;
-    delete iasBackgroundPredictionMassCutNoMSliceHist;
+    //delete iasBackgroundPredictionMassCutNoMSliceHist;
     delete iasSignalMassCutNoMSliceHist;
     delete iasSignalMassCutNoMSliceForEffHist;
   }
 
-  outputRootFile->cd();
-  backgroundAllNoMAllEtaUnrolledHist->Write();
-  backgroundAllNoMAllEtaUnrolledPlusOneSigmaHist->Write();
-  backgroundAllNoMAllEtaUnrolledMinusOneSigmaHist->Write();
-  signalAllNoMAllEtaUnrolledHist->Write();
-  sigEffOverIasCutVsSliceHist->Write();
-  sigEffOverIasCutHist->Write();
-  backExpOverIasCutVsSliceHist->Write();
-  backExpVsSliceHist->Write();
-  backExpOverIasCutHist->Write();
-  outputRootFile->Close();
+  // now do the standard analysis style prediction
+  TH1F* etaBRegionHist = (TH1F*) backgroundPredictionRootFile->Get("etaBRegionHist");
+  TH1F* etaARegionHist = (TH1F*) backgroundPredictionRootFile->Get("etaARegionHist");
+  TH2F* pEtaCRegionHist = (TH2F*) backgroundPredictionRootFile->Get("pEtaCRegionHist");
+  TH1F* ihBRegionTotalHist = (TH1F*) backgroundPredictionRootFile->Get("ihBRegionTotalHist");
+  double aRegionInt = etaARegionHist->Integral();
+  double bRegionInt = ihBRegionTotalHist->Integral();
+  double cRegionInt = pEtaCRegionHist->Integral();
+  double dPredTotal = 0;
+  if(aRegionInt <= 0)
+    std::cout << "ERROR: cannot do standard analysis prediction." << endl;
+  else
+    dPredTotal = bRegionInt*cRegionInt/aRegionInt;
+  std::cout << "dPredTotal = " << dPredTotal << std::endl;
+
+  // normalize
+  etaBRegionHist->Scale(1.0/etaBRegionHist->Integral());
+  etaARegionHist->Scale(1.0/etaARegionHist->Integral());
+
+  for(int bin=0; bin <= etaBRegionHist->GetNbinsX(); ++bin)
+  {
+    double weight = 0;
+    if(etaBRegionHist->GetBinContent(bin) > 0)
+    {
+      weight = etaARegionHist->GetBinContent(bin)/etaBRegionHist->GetBinContent(bin);
+      std::cout << "eta = " << etaARegionHist->GetBinCenter(bin) << " weight = " << weight << std::endl;
+    }
+
+    for(int y=0; y <= pEtaCRegionHist->GetYaxis()->GetNbins(); ++y)
+      pEtaCRegionHist->SetBinContent(bin,y,pEtaCRegionHist->GetBinContent(bin,y)*weight);
+  }
+  TH1D* reweightedPInCRegionHist = pEtaCRegionHist->ProjectionY("reweightedPInCRegion");
+  reweightedPInCRegionHist->Scale(1.0/reweightedPInCRegionHist->Integral());
+  ihBRegionTotalHist->Scale(1.0/ihBRegionTotalHist->Integral());
+
+  // construct mass dist
+  TH1F* massHist = new TH1F("massHist","predicted mass",200,0,2000);
+  for(int x=0; x <= reweightedPInCRegionHist->GetNbinsX(); ++x)
+  {
+    //std::cout << "DEBUG: reweightedPInCRegionHist bin = " << x << " binContent = " << reweightedPInCRegionHist->GetBinContent(x)
+    //  << std::endl;
+    if(reweightedPInCRegionHist->GetBinContent(x) <= 0.0)
+      continue;
+    double thisP = reweightedPInCRegionHist->GetBinCenter(x);
+    for(int y=0; y <= ihBRegionTotalHist->GetNbinsX(); ++y)
+    {
+      //std::cout << "DEBUG: ihBRegionTotalHist bin = " << y << " binContent = " << ihBRegionTotalHist->GetBinContent(y)
+      //  << std::endl;
+      if(ihBRegionTotalHist->GetBinContent(y) <= 0.0)
+        continue;
+      double thisIh = ihBRegionTotalHist->GetBinCenter(y);
+      double prob = reweightedPInCRegionHist->GetBinContent(x) * ihBRegionTotalHist->GetBinContent(y);
+      //std::cout << "\tDEBUG: prob = " << prob << std::endl;
+      if(prob <= 0 || isnan(prob))
+        continue;
+      double massSqr = (thisIh-dEdx_c)*pow(thisP,2)/dEdx_k;
+      //std::cout << "\tDEBUG: mass^2 = " << massSqr << std::endl;
+      if(massSqr >= 0)
+      {
+        massHist->Fill(sqrt(massSqr),prob);
+        //std::cout << "Fill mass = " << sqrt(massSqr) << " prob: " << prob << std::endl;
+      }
+    }
+  }
+
+  for(int x=0; x <= massHist->GetNbinsX(); ++x)
+  {
+    massHist->SetBinContent(x,massHist->GetBinContent(x) * dPredTotal);
+    //if(isnan(tmpH_Mass    ->GetBinContent(x) * PE_P)){printf("%f x %f\n",tmpH_Mass    ->GetBinContent(x),PE_P); fflush(stdout);exit(0);}
+  }
+
+  cout << endl << endl
+    << "Number of background tracks in mass hist over ias cut: "
+    << massHist->Integral()
+    << endl
+    << "Number of background tracks expected over ias and mass cut (std ana method): "
+    << massHist->Integral(massHist->FindBin(massCut_),massHist->GetNbinsX()) << endl << endl;
+  // end of standard analysis style prediction
 
   cout << endl << endl << "Ias cut = " << iasCutForEffAcc << endl << "\tfound " << backgroundTracksOverIasCut
-    << " background tracks over ias cut and " << signalTracksOverIasCut/signalTracksTotal
-    << " signal efficiency (track level) or " << signalEventsOverIasCut/numGenHSCPEventsRooVar->getVal()
+    << " background tracks over ias cut and " << endl << signalTracksOverIasCut/signalTracksTotal
+    << " signal efficiency (track level) or " << endl << signalEventsOverIasCut/numGenHSCPEventsRooVar->getVal()
     << " (event level) with this ias cut." << endl;
   cout << "original generated events: " << numGenHSCPEventsRooVar->getVal() << " events over ias cut: " << signalEventsOverIasCut
     << endl;
@@ -693,5 +783,27 @@ int main(int argc, char ** argv)
     << " (eff) signal tracks in D region: " << numSignalTracksInDRegion/numGenHSCPTracksRooVar->getVal() << endl
     << " (eff) signal tracks in D region passing mass cut: " << numSignalTracksInDRegionPassingMassCut/numGenHSCPTracksRooVar->getVal()
     << endl;
+
+  outputRootFile->cd();
+  etaBRegionHist->Write();
+  etaARegionHist->Write();
+  pEtaCRegionHist->Write();
+  ihBRegionTotalHist->Write();
+  reweightedPInCRegionHist->Write();
+  massHist->Write();
+  backgroundAllNoMAllEtaUnrolledHist->Write();
+  backgroundAllNoMAllEtaUnrolledPlusOneSigmaHist->Write();
+  backgroundAllNoMAllEtaUnrolledMinusOneSigmaHist->Write();
+  signalAllNoMAllEtaUnrolledHist->Write();
+  sigEffOverIasCutVsSliceHist->Write();
+  sigEffOverIasCutHist->Write();
+  backExpOverIasCutVsSliceHist->Write();
+  backExpVsSliceHist->Write();
+  backExpOverIasCutHist->Write();
+  outputRootFile->Close();
+
+  //backgroundPredictionRootFile->Close();
+  //signalRootFile->Close();
+
 }
 

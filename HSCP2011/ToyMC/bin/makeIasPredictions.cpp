@@ -285,6 +285,7 @@ int main(int argc, char ** argv)
   TFileDirectory successRateDir = fs.mkdir("successRates");
   TFileDirectory iasPredictionFixedBinsDir = fs.mkdir("iasPredictionsFixedBins");
   TFileDirectory iasPredictionVarBinsDir = fs.mkdir("iasPredictionsVariableBins");
+  TFileDirectory aRegionDir = fs.mkdir("aRegionHistograms");
   TFileDirectory bRegionDir = fs.mkdir("bRegionHistograms");
   TFileDirectory cRegionDir = fs.mkdir("cRegionHistograms");
   TFileDirectory ihMeanDir = fs.mkdir("ihMeanInIasBins");
@@ -306,7 +307,26 @@ int main(int argc, char ** argv)
   entriesInCRegionHist->GetYaxis()->SetNdivisions(509,false);
   TH2F*  entriesInDRegionHist = fs.make<TH2F>("entriesInDRegion","Entries in D region (search--> high Ih, high P);#eta;nom",12,0,2.4,9,5,23);
   entriesInDRegionHist->GetYaxis()->SetNdivisions(509,false);
-
+  // ias total distribution from B region
+  std::string iasBRegionTotalHistName ="iasBRegionTotalHist";
+  std::string iasBRegionTotalHistTitle = "Ias in B region";
+  TH1F* iasBRegionTotalHist = fs.make<TH1F>(iasBRegionTotalHistName.c_str(),iasBRegionTotalHistTitle.c_str(),100,0,1);
+  // ih total distribution from B region
+  std::string ihBRegionTotalHistName ="ihBRegionTotalHist";
+  std::string ihBRegionTotalHistTitle = "Ih in B region";
+  TH1F* ihBRegionTotalHist = fs.make<TH1F>(ihBRegionTotalHistName.c_str(),ihBRegionTotalHistTitle.c_str(),100,0,20);
+  // eta distribution from B region
+  std::string etaBRegionHistName ="etaBRegionHist";
+  std::string etaBRegionHistTitle = "Eta in B region";
+  TH1F* etaBRegionHist = fs.make<TH1F>(etaBRegionHistName.c_str(),etaBRegionHistTitle.c_str(),25,0,3);
+  // eta distribution from A region
+  std::string etaARegionHistName ="etaARegionHist";
+  std::string etaARegionHistTitle = "Eta in A region";
+  TH1F* etaARegionHist = fs.make<TH1F>(etaARegionHistName.c_str(),etaARegionHistTitle.c_str(),25,0,3);
+  // c region Pt vs. eta
+  std::string pEtaCRegionHistName = "pEtaCRegionHist";
+  std::string pEtaCRegionHistTitle = "P vs. eta in C Region";
+  TH2F* pEtaCRegionHist = fs.make<TH2F>(pEtaCRegionHistName.c_str(),pEtaCRegionHistTitle.c_str(),25,0,3,100,0,1000);
 
   // RooFit observables and dataset
   RooRealVar rooVarIas("rooVarIas","ias",0,1);
@@ -445,6 +465,7 @@ int main(int argc, char ** argv)
           iasSidebandThreshold,usePtForSideband,useIasForSideband);
       cRegionCumuHistTitle+=" cumulative; GeV";
       TH1F* cRegionCumuHist = cRegionDir.make<TH1F>(cRegionCumuHistName.c_str(),cRegionCumuHistTitle.c_str(),100,0,1000);
+
       // B region dataset
       std::string nomCutString = "rooVarNoMias==";
       nomCutString+=intToString(nom);
@@ -467,7 +488,7 @@ int main(int argc, char ** argv)
       // SIC Dec. 23: study shows we can use all NoM slices
       //RooDataSet* nomCutCRegionDataSet = (RooDataSet*)regionCDataSet->reduce(Cut(nomCutString.c_str()));
       RooDataSet* etaCutCRegionDataSet = (RooDataSet*)regionCDataSet->reduce(Cut(etaCutString.c_str()),
-          SelectVars(RooArgSet(rooVarP,rooVarPt,rooVarNoMias)));
+          SelectVars(RooArgSet(rooVarP,rooVarPt,rooVarNoMias,rooVarEta,rooVarIh)));
       RooDataSet* etaCutNomCutCRegionDataSet = (RooDataSet*)etaCutCRegionDataSet->reduce(Cut(nomCutString.c_str()));
       // D region dataset
       RooDataSet* nomCutDRegionDataSet = (RooDataSet*)regionDDataSet->reduce(Cut(nomCutString.c_str()),
@@ -475,7 +496,7 @@ int main(int argc, char ** argv)
       RooDataSet* etaCutNomCutDRegionDataSet = (RooDataSet*)nomCutDRegionDataSet->reduce(Cut(etaCutString.c_str()));
       // A region dataset
       RooDataSet* nomCutARegionDataSet = (RooDataSet*)regionADataSet->reduce(Cut(nomCutString.c_str()),
-          SelectVars(RooArgSet(rooVarP,rooVarEta)));
+          SelectVars(RooArgSet(rooVarP,rooVarEta,rooVarIh)));
       RooDataSet* etaCutNomCutARegionDataSet = (RooDataSet*)nomCutARegionDataSet->reduce(Cut(etaCutString.c_str()));
 
       entriesInARegionHist->Fill(lowerEta+0.1,nom,etaCutNomCutARegionDataSet->numEntries());
@@ -496,6 +517,30 @@ int main(int argc, char ** argv)
         " C = " << etaCutCRegionDataSet->numEntries() << std::endl;
        // " D = " << etaCutNomCutDRegionDataSet->numEntries() << std::endl;
 
+      const RooArgSet* argSet_A = etaCutNomCutARegionDataSet->get();
+      RooRealVar* iasData_A = (RooRealVar*)argSet_A->find(rooVarIas.GetName());
+      RooRealVar* ihData_A = (RooRealVar*)argSet_A->find(rooVarIh.GetName());
+      RooRealVar* etaData_A = (RooRealVar*)argSet_A->find(rooVarEta.GetName());
+      for(int index=0; index < etaCutNomCutARegionDataSet->numEntries(); ++index)
+      {
+        etaCutNomCutARegionDataSet->get(index);
+        if(ihData_A->getVal() > 3)
+          etaARegionHist->Fill(etaData_A->getVal());
+      }
+      const RooArgSet* argSet_C1 = etaCutNomCutCRegionDataSet->get();
+      RooRealVar* pData_C1 = (RooRealVar*)argSet_C1->find(rooVarP.GetName());
+      RooRealVar* ihData_C1 = (RooRealVar*)argSet_C1->find(rooVarIh.GetName());
+      RooRealVar* etaData_C1 = (RooRealVar*)argSet_C1->find(rooVarEta.GetName());
+      for(int index=0; index < etaCutNomCutCRegionDataSet->numEntries(); ++index)
+      {
+        etaCutNomCutCRegionDataSet->get(index);
+        //std::cout << "Fill hist: " << " eta = " << etaData_C1->getVal() << std::endl;
+        //std::cout << " pt = " << ptData_C1->getVal() << std::endl;
+        //std::cout << "Entries in hist: " << pEtaCRegionHist->GetEntries() << std::endl;
+        if(ihData_C1->getVal() > 3)
+          pEtaCRegionHist->Fill(etaData_C1->getVal(),pData_C1->getVal());
+      }
+
       // immediately delete no-longer-needed datasets
       delete nomCutARegionDataSet;
       delete nomCutDRegionDataSet;
@@ -507,24 +552,18 @@ int main(int argc, char ** argv)
       const RooArgSet* argSet_B = etaCutNomCutBRegionDataSet->get();
       RooRealVar* ihData_B = (RooRealVar*)argSet_B->find(rooVarIh.GetName());
       RooRealVar* iasData_B = (RooRealVar*)argSet_B->find(rooVarIas.GetName());
+      RooRealVar* etaData_B = (RooRealVar*)argSet_B->find(rooVarEta.GetName());
       //remove eta/nom double checking
       //RooRealVar* nomData_B = (RooRealVar*)argSet_B->find(rooVarNoMias.GetName());
-      //RooRealVar* etaData_B = (RooRealVar*)argSet_B->find(rooVarEta.GetName());
       const RooArgSet* argSet_C = etaCutCRegionDataSet->get();
       RooRealVar* pData_C = (RooRealVar*)argSet_C->find(rooVarP.GetName());
       RooRealVar* ptData_C = (RooRealVar*)argSet_C->find(rooVarPt.GetName());
+      RooRealVar* etaData_C = (RooRealVar*)argSet_C->find(rooVarEta.GetName());
       //RooRealVar* nomData_C = (RooRealVar*)argSet_C->find(rooVarNoMias.GetName());
-      //RooRealVar* etaData_C = (RooRealVar*)argSet_C->find(rooVarEta.GetName());
       // fill b region hist
       for(int index=0; index < etaCutNomCutBRegionDataSet->numEntries(); ++index)
       {
         etaCutNomCutBRegionDataSet->get(index);
-        bRegionHist->Fill(ihData_B->getVal());
-        iasBRegionHist->Fill(iasData_B->getVal());
-        ////debug
-        //std::cout << "Filled B region hist: " << bRegionHist->GetName()
-        //  << " index = " << index << std::endl;
-
         if(useIasForSideband)
         {
           if(iasData_B->getVal() < iasSidebandThreshold)
@@ -541,6 +580,19 @@ int main(int argc, char ** argv)
         //if(etaData_B->getVal() < lowerEta || etaData_B->getVal() > lowerEta+0.2)
         //  std::cout << "ERROR: eta=" << lowerEta << "-" << lowerEta+0.2 << " and (in B region) data point eta="
         //    << etaData_B->getVal() << std::endl;
+
+        bRegionHist->Fill(ihData_B->getVal());
+        iasBRegionHist->Fill(iasData_B->getVal());
+        if(ihData_B->getVal() > 3)
+        {
+          etaBRegionHist->Fill(etaData_B->getVal());
+          iasBRegionTotalHist->Fill(iasData_B->getVal());
+          ihBRegionTotalHist->Fill(ihData_B->getVal());
+        }
+        ////debug
+        //std::cout << "Filled B region hist: " << bRegionHist->GetName()
+        //  << " index = " << index << std::endl;
+
       }
       // fill c region hist
       for(int index=0; index < etaCutCRegionDataSet->numEntries(); ++index)
