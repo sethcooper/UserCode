@@ -644,17 +644,20 @@ int main(int argc, char ** argv)
 
         } // done looking at HSCParticle collection
 
-        rooVarIas = tempIas;
-        rooVarIh = tempIh;
-        rooVarP = tempP;
-        rooVarPt = tempPt;
-        rooVarNoMias = tempNoMias;
-        rooVarEta = tempEta;
-        rooVarLumiSection = tempLumiSection;
-        rooVarRun = tempRun;
-        rooVarEvent = tempEvent;
-        rooDataSetOneCandidatePerEvent->add(RooArgSet(rooVarIas,rooVarIh,rooVarP,rooVarPt,rooVarNoMias,rooVarEta,rooVarLumiSection,
-              rooVarRun,rooVarEvent));
+        if(numTracksPassingPreselectionThisEvent > 0)
+        {
+          rooVarIas = tempIas;
+          rooVarIh = tempIh;
+          rooVarP = tempP;
+          rooVarPt = tempPt;
+          rooVarNoMias = tempNoMias;
+          rooVarEta = tempEta;
+          rooVarLumiSection = tempLumiSection;
+          rooVarRun = tempRun;
+          rooVarEvent = tempEvent;
+          rooDataSetOneCandidatePerEvent->add(RooArgSet(rooVarIas,rooVarIh,rooVarP,rooVarPt,rooVarNoMias,rooVarEta,rooVarLumiSection,
+                rooVarRun,rooVarEvent));
+        }
 
         if(numTracksPassingPreselectionThisEvent > 0)
           numEventsWithOneTrackPassingPreselection++;
