@@ -326,7 +326,7 @@ int main(int argc, char ** argv)
   // c region Pt vs. eta
   std::string pEtaCRegionHistName = "pEtaCRegionHist";
   std::string pEtaCRegionHistTitle = "P vs. eta in C Region";
-  TH2F* pEtaCRegionHist = fs.make<TH2F>(pEtaCRegionHistName.c_str(),pEtaCRegionHistTitle.c_str(),25,0,3,100,0,1000);
+  TH2F* pEtaCRegionHist = fs.make<TH2F>(pEtaCRegionHistName.c_str(),pEtaCRegionHistTitle.c_str(),25,0,3,250,0,2500);
 
   // RooFit observables and dataset
   RooRealVar rooVarIas("rooVarIas","ias",0,1);
@@ -342,8 +342,8 @@ int main(int argc, char ** argv)
     return -2;
   }
 
-  //RooDataSet* rooDataSetAll = (RooDataSet*)inFile->Get("rooDataSetCandidates");
-  RooDataSet* rooDataSetAll = (RooDataSet*)inFile->Get("rooDataSetOneCandidatePerEvent");
+  RooDataSet* rooDataSetAll = (RooDataSet*)inFile->Get("rooDataSetCandidates");
+  //RooDataSet* rooDataSetAll = (RooDataSet*)inFile->Get("rooDataSetOneCandidatePerEvent");
   if(rooDataSetAll->numEntries() < 1)
   {
     std::cout << "Problem with RooDataSet named rooDataSetCandidates in file " << inputHandler_.files()[0].c_str() << std::endl;
