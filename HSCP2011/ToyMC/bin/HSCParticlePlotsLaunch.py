@@ -57,6 +57,8 @@ def CreateTheShellFile(jobName,baseCfg,inputFile,crossSection,massCut,isMC,isHSC
     outputFile = Jobs_Name+jobName+'_'+str(index)+'.root'
     path_Cfg   = Farm_Directories[1]+Jobs_Name+jobName+'_'+str(index)+'_cfg.py'
     Path_Shell = Farm_Directories[1]+Jobs_Name+jobName+'_'+str(index)+'.sh'
+    file = inputFile.lstrip(" 'file:")
+    file = file.strip("'")
     shell_file=open(Path_Shell,'w')
     shell_file.write('#!/bin/sh\n')
     shell_file.write(CopyRights + '\n')
