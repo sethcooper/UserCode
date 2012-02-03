@@ -97,8 +97,11 @@ def CreateTheShellFile(bgInputFile,sigInputFile,massCut,iasCut,ptCut):
     global Jobs_Name
     global Base_macro
     posLastUndsc = sigInputFile.rfind("_")
-    posDotRoot = sigInputFile.rfind(".root")
-    signalName = sigInputFile[posLastUndsc+1:posDotRoot]
+    endRemoved = sigInputFile[0:posLastUndsc]
+    posLastUndsc = endRemoved.rfind("_")
+    signalName = endRemoved[posLastUndsc+1:len(endRemoved)]
+    #posDotRoot = sigInputFile.rfind(".root")
+    #signalName = sigInputFile[posLastUndsc+1:posDotRoot]
     outputFile = 'makeScaledPredictionHistograms_'+signalName+'_massCut'+`massCut`+'_ptCut'+`ptCut`+'.root'
     CreateTheConfigFile(bgInputFile,sigInputFile,massCut,iasCut,ptCut,signalName)
     CreateTheXMLFiles(signalName,outputFile,massCut,ptCut)
@@ -163,8 +166,11 @@ def AddJobToCmdFile(massCut,ptCut,sigInputFile):
     global Path_Cmd
     global Jobs_Name
     posLastUndsc = sigInputFile.rfind("_")
-    posDotRoot = sigInputFile.rfind(".root")
-    signalName = sigInputFile[posLastUndsc+1:posDotRoot]
+    endRemoved = sigInputFile[0:posLastUndsc]
+    posLastUndsc = endRemoved.rfind("_")
+    signalName = endRemoved[posLastUndsc+1:len(endRemoved)]
+    #posDotRoot = sigInputFile.rfind(".root")
+    #signalName = sigInputFile[posLastUndsc+1:posDotRoot]
     Path_Log   = os.getcwd()+'/'+Farm_Directories[2]+Jobs_Name+signalName+'_massCut'+`massCut`+'_ptCut'+`ptCut`
     Path_Error   = os.getcwd()+'/'+Farm_Directories[3]+Jobs_Name+signalName+'_massCut'+`massCut`+'_ptCut'+`ptCut`
     cmd_file=open(Path_Cmd,'a')
