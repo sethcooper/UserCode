@@ -14,4 +14,23 @@
   HypoTestInverterPlot *plot = new HypoTestInverterPlot("HTI_Result_Plot","result",r);
   //plot->Draw("CLb 2CL");
   plot->Draw("2CL");
+
+
+//  // plot test statistics distributions for the two hypotheses 
+//  const int nEntries = r->ArraySize();
+//  TCanvas * c2 = new TCanvas();
+//  if(nEntries > 1)
+//  {
+//    int ny = TMath::CeilNint(sqrt(nEntries));
+//    int nx = TMath::CeilNint(double(nEntries)/ny);
+//    c2->Divide(nx,ny);
+//  }
+//  for (int i=0; i<nEntries; i++)
+//  {
+//    if(nEntries > 1) c2->cd(i+1);
+//    SamplingDistPlot* pl = plot->MakeTestStatPlot(i);
+//    pl->SetLogYaxis(true);
+//    pl->Draw();
+//  }
+
 }
