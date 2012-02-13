@@ -314,27 +314,28 @@ int main(int argc, char ** argv)
   // ih total distribution from B region
   std::string ihBRegionTotalHistName ="ihBRegionTotalHist";
   std::string ihBRegionTotalHistTitle = "Ih in B region";
-  TH1F* ihBRegionTotalHist = fs.make<TH1F>(ihBRegionTotalHistName.c_str(),ihBRegionTotalHistTitle.c_str(),100,0,20);
+  TH1F* ihBRegionTotalHist = fs.make<TH1F>(ihBRegionTotalHistName.c_str(),ihBRegionTotalHistTitle.c_str(),200,3,15);
   // eta distribution from B region
   std::string etaBRegionHistName ="etaBRegionHist";
   std::string etaBRegionHistTitle = "Eta in B region";
-  TH1F* etaBRegionHist = fs.make<TH1F>(etaBRegionHistName.c_str(),etaBRegionHistTitle.c_str(),25,0,3);
+  TH1F* etaBRegionHist = fs.make<TH1F>(etaBRegionHistName.c_str(),etaBRegionHistTitle.c_str(),50,-3,3);
   // eta distribution from A region
   std::string etaARegionHistName ="etaARegionHist";
   std::string etaARegionHistTitle = "Eta in A region";
-  TH1F* etaARegionHist = fs.make<TH1F>(etaARegionHistName.c_str(),etaARegionHistTitle.c_str(),25,0,3);
+  TH1F* etaARegionHist = fs.make<TH1F>(etaARegionHistName.c_str(),etaARegionHistTitle.c_str(),50,-3,3);
   // c region Pt vs. eta
   std::string pEtaCRegionHistName = "pEtaCRegionHist";
   std::string pEtaCRegionHistTitle = "P vs. eta in C Region";
-  TH2F* pEtaCRegionHist = fs.make<TH2F>(pEtaCRegionHistName.c_str(),pEtaCRegionHistTitle.c_str(),25,0,3,250,0,2500);
+  TH2F* pEtaCRegionHist = fs.make<TH2F>(pEtaCRegionHistName.c_str(),pEtaCRegionHistTitle.c_str(),50,-3,3,200,45,1200);
 
+  //TODO move to common file
   // RooFit observables and dataset
   RooRealVar rooVarIas("rooVarIas","ias",0,1);
   RooRealVar rooVarIh("rooVarIh","ih",0,15);
   RooRealVar rooVarP("rooVarP","p",0,5000);
   RooRealVar rooVarPt("rooVarPt","pt",0,5000);
   RooRealVar rooVarNoMias("rooVarNoMias","nom",0,30);
-  RooRealVar rooVarEta("rooVarEta","eta",0,2.5);
+  RooRealVar rooVarEta("rooVarEta","eta",-2.5,2.5);
   TFile* inFile = TFile::Open(inputHandler_.files()[0].c_str());
   if(!inFile)
   {
@@ -396,10 +397,17 @@ int main(int argc, char ** argv)
    regionC1DataSet = (RooDataSet*)rooDataSetAll->reduce(Cut(ptSearchCutString.c_str()));
   else
    regionC1DataSet = (RooDataSet*)rooDataSetAll->reduce(Cut(pSearchCutString.c_str()));
+  //SIC FEB 10 -- cut off p > 1200
+  RooDataSet* pCutCDataSet = (RooDataSet*)regionC1DataSet->reduce(Cut("rooVarP<1200"));
+  std::cout << "INFO: Applying max p of 1200 GeV cut in C region." << std::endl;
+  //std::cout << "INFO: NOT applying max p of 1200 GeV cut in C region." << std::endl;
   if(useIasForSideband)
-    regionCDataSet = (RooDataSet*)regionC1DataSet->reduce(Cut(iasSBcutString.c_str()));
+    //regionCDataSet = (RooDataSet*)regionC1DataSet->reduce(Cut(iasSBcutString.c_str()));
+    regionCDataSet = (RooDataSet*)pCutCDataSet->reduce(Cut(iasSBcutString.c_str()));
   else
-    regionCDataSet = (RooDataSet*)regionC1DataSet->reduce(Cut(ihSBcutString.c_str()));
+    //regionCDataSet = (RooDataSet*)regionC1DataSet->reduce(Cut(ihSBcutString.c_str()));
+    regionCDataSet = (RooDataSet*)pCutCDataSet->reduce(Cut(ihSBcutString.c_str()));
+  std::cout << "INFO: " << regionCDataSet->numEntries() << " entries in total C region." << std::endl;
   // D ==> search region, high P/Pt, high Ih
   RooDataSet* regionD1DataSet;
   RooDataSet* regionDDataSet;
@@ -473,16 +481,23 @@ int main(int argc, char ** argv)
       nomCutString+=intToString(nom+1);
       if(nom==21) // do nom 21+ in one slice
         nomCutString = "rooVarNoMias>=21";
-      std::string etaCutString = "rooVarEta>";
+      std::string etaCutString = "(rooVarEta>";
       etaCutString+=floatToString(lowerEta);
       etaCutString+="&&rooVarEta<";
+      std::string upperEtaLimit;
       //XXX TESTING eta 1.5 max
       if(10*lowerEta==14)
-        etaCutString+=floatToString(1.5);
+        upperEtaLimit=floatToString(1.5);
       else
-        etaCutString+=floatToString(lowerEta+0.2);
+        upperEtaLimit=floatToString(lowerEta+0.2);
+      etaCutString+=upperEtaLimit;
+      etaCutString+=")||(rooVarEta>-";
+      etaCutString+=upperEtaLimit;
+      etaCutString+="&&rooVarEta<-";
+      etaCutString+=floatToString(lowerEta);
+      etaCutString+=")";
       RooDataSet* nomCutBRegionDataSet = (RooDataSet*)regionBDataSet->reduce(Cut(nomCutString.c_str()),
-          SelectVars(RooArgSet(rooVarIh,rooVarIas,rooVarEta)));
+          SelectVars(RooArgSet(rooVarPt,rooVarIh,rooVarIas,rooVarEta)));
       RooDataSet* etaCutNomCutBRegionDataSet = (RooDataSet*)nomCutBRegionDataSet->reduce(Cut(etaCutString.c_str()));
       // C region dataset
       // SIC Dec. 23: study shows we can use all NoM slices
@@ -496,7 +511,7 @@ int main(int argc, char ** argv)
       RooDataSet* etaCutNomCutDRegionDataSet = (RooDataSet*)nomCutDRegionDataSet->reduce(Cut(etaCutString.c_str()));
       // A region dataset
       RooDataSet* nomCutARegionDataSet = (RooDataSet*)regionADataSet->reduce(Cut(nomCutString.c_str()),
-          SelectVars(RooArgSet(rooVarP,rooVarEta,rooVarIh)));
+          SelectVars(RooArgSet(rooVarP,rooVarPt,rooVarEta,rooVarIh)));
       RooDataSet* etaCutNomCutARegionDataSet = (RooDataSet*)nomCutARegionDataSet->reduce(Cut(etaCutString.c_str()));
 
       entriesInARegionHist->Fill(lowerEta+0.1,nom,etaCutNomCutARegionDataSet->numEntries());
@@ -521,14 +536,16 @@ int main(int argc, char ** argv)
       RooRealVar* iasData_A = (RooRealVar*)argSet_A->find(rooVarIas.GetName());
       RooRealVar* ihData_A = (RooRealVar*)argSet_A->find(rooVarIh.GetName());
       RooRealVar* etaData_A = (RooRealVar*)argSet_A->find(rooVarEta.GetName());
+      RooRealVar* ptData_A = (RooRealVar*)argSet_A->find(rooVarPt.GetName());
       for(int index=0; index < etaCutNomCutARegionDataSet->numEntries(); ++index)
       {
         etaCutNomCutARegionDataSet->get(index);
-        if(ihData_A->getVal() > 3)
+        if(ihData_A->getVal() > 3 && ptData_A->getVal() > 45)
           etaARegionHist->Fill(etaData_A->getVal());
       }
       const RooArgSet* argSet_C1 = etaCutNomCutCRegionDataSet->get();
       RooRealVar* pData_C1 = (RooRealVar*)argSet_C1->find(rooVarP.GetName());
+      RooRealVar* ptData_C1 = (RooRealVar*)argSet_C1->find(rooVarPt.GetName());
       RooRealVar* ihData_C1 = (RooRealVar*)argSet_C1->find(rooVarIh.GetName());
       RooRealVar* etaData_C1 = (RooRealVar*)argSet_C1->find(rooVarEta.GetName());
       for(int index=0; index < etaCutNomCutCRegionDataSet->numEntries(); ++index)
@@ -537,7 +554,7 @@ int main(int argc, char ** argv)
         //std::cout << "Fill hist: " << " eta = " << etaData_C1->getVal() << std::endl;
         //std::cout << " pt = " << ptData_C1->getVal() << std::endl;
         //std::cout << "Entries in hist: " << pEtaCRegionHist->GetEntries() << std::endl;
-        if(ihData_C1->getVal() > 3)
+        if(ihData_C1->getVal() > 3 && ptData_C1->getVal() > 45)
           pEtaCRegionHist->Fill(etaData_C1->getVal(),pData_C1->getVal());
       }
 
@@ -553,6 +570,7 @@ int main(int argc, char ** argv)
       RooRealVar* ihData_B = (RooRealVar*)argSet_B->find(rooVarIh.GetName());
       RooRealVar* iasData_B = (RooRealVar*)argSet_B->find(rooVarIas.GetName());
       RooRealVar* etaData_B = (RooRealVar*)argSet_B->find(rooVarEta.GetName());
+      RooRealVar* ptData_B = (RooRealVar*)argSet_B->find(rooVarPt.GetName());
       //remove eta/nom double checking
       //RooRealVar* nomData_B = (RooRealVar*)argSet_B->find(rooVarNoMias.GetName());
       const RooArgSet* argSet_C = etaCutCRegionDataSet->get();
@@ -583,7 +601,7 @@ int main(int argc, char ** argv)
 
         bRegionHist->Fill(ihData_B->getVal());
         iasBRegionHist->Fill(iasData_B->getVal());
-        if(ihData_B->getVal() > 3)
+        if(ihData_B->getVal() > 3 && ptData_B->getVal() > 45)
         {
           etaBRegionHist->Fill(etaData_B->getVal());
           iasBRegionTotalHist->Fill(iasData_B->getVal());
@@ -619,27 +637,6 @@ int main(int argc, char ** argv)
         //    << etaData_C->getVal() << std::endl;
       }
 
-      // require at least 25 entries in each dataset to do prediction
-      if(etaCutNomCutBRegionDataSet->numEntries() < 25 || etaCutCRegionDataSet->numEntries() < 25)
-      {
-        std::cout << "WARNING: too few entries-not doing prediction for this slice: eta=" << lowerEta << "-";
-        //XXX TESTING eta 1.5 max
-        if(10*lowerEta==14)
-          std::cout << "1.5";
-        else
-          std::cout << lowerEta+0.2;
-        std::cout << " nom=" << nom << "-";
-        if(nom==21)
-          std::cout << "end" << std::endl;
-        else
-          std::cout << nom+1 << std::endl;
-
-        std::cout << "\t\t" << etaCutNomCutBRegionDataSet->numEntries() <<
-          " entries in B region and " << etaCutCRegionDataSet->numEntries() <<
-          " entries in C region" << std::endl;
-        continue;
-      }
-
       // c region cumu hist
       cRegionHist->ComputeIntegral();
       Double_t *cRegionIntegral = cRegionHist->GetIntegral();
@@ -657,7 +654,7 @@ int main(int argc, char ** argv)
         iasPredictionFixedHistTitle+=intToString(nom+1);
       iasPredictionFixedHistTitle+=", ";
       iasPredictionFixedHistTitle+=floatToString(lowerEta);
-      iasPredictionFixedHistTitle+=" < #eta < ";
+      iasPredictionFixedHistTitle+=" < |#eta| < ";
       iasPredictionFixedHistTitle+=floatToString(lowerEta+0.2);
       iasPredictionFixedHistTitle+=", mass > ";
       iasPredictionFixedHistTitle+=floatToString(massCutIasHighPHighIh_);
@@ -678,13 +675,35 @@ int main(int argc, char ** argv)
         iasSuccessRateHistTitle+=intToString(nom+1);
       iasSuccessRateHistTitle+=", ";
       iasSuccessRateHistTitle+=floatToString(lowerEta);
-      iasSuccessRateHistTitle+=" < #eta < ";
+      iasSuccessRateHistTitle+=" < |#eta| < ";
       iasSuccessRateHistTitle+=floatToString(lowerEta+0.2);
       iasSuccessRateHistTitle+=", mass > ";
       iasSuccessRateHistTitle+=floatToString(massCutIasHighPHighIh_);
       iasSuccessRateHistTitle+=" GeV";
       TH1F* iasSuccessRateHist = successRateDir.make<TH1F>(iasSuccessRateHistName.c_str(),iasSuccessRateHistTitle.c_str(),100,0,1);
       //iasSuccessRateHist->Sumw2();
+
+      // require at least 1 entry in each dataset to do prediction
+      if(etaCutNomCutBRegionDataSet->numEntries() < 1 || etaCutCRegionDataSet->numEntries() < 1)
+      {
+        std::cout << "WARNING: too few entries-not doing prediction for this slice: eta=" << lowerEta << "-";
+        //XXX TESTING eta 1.5 max
+        if(10*lowerEta==14)
+          std::cout << "1.5";
+        else
+          std::cout << lowerEta+0.2;
+        std::cout << " nom=" << nom << "-";
+        if(nom==21)
+          std::cout << "end" << std::endl;
+        else
+          std::cout << nom+1 << std::endl;
+
+        std::cout << "\t\t" << etaCutNomCutBRegionDataSet->numEntries() <<
+          " entries in B region and " << etaCutCRegionDataSet->numEntries() <<
+          " entries in C region" << std::endl;
+        continue;
+      }
+
       // Ih mean in Ias bins histogram in this NoM/eta bin
       std::string ihMeanProfName = getHistNameBeg(nom,lowerEta);
       ihMeanProfName+="ihMeanProf";
@@ -697,7 +716,7 @@ int main(int argc, char ** argv)
         ihMeanProfTitle+=intToString(nom+1);
       ihMeanProfTitle+=", ";
       ihMeanProfTitle+=floatToString(lowerEta);
-      ihMeanProfTitle+=" < #eta < ";
+      ihMeanProfTitle+=" < |#eta| < ";
       ihMeanProfTitle+=floatToString(lowerEta+0.2);
       ihMeanProfTitle+=", mass > ";
       ihMeanProfTitle+=floatToString(massCutIasHighPHighIh_);
@@ -715,7 +734,7 @@ int main(int argc, char ** argv)
         minPCutMeanProfTitle+=intToString(nom+1);
       minPCutMeanProfTitle+=", ";
       minPCutMeanProfTitle+=floatToString(lowerEta);
-      minPCutMeanProfTitle+=" < #eta < ";
+      minPCutMeanProfTitle+=" < |#eta| < ";
       minPCutMeanProfTitle+=floatToString(lowerEta+0.2);
       minPCutMeanProfTitle+=", mass > ";
       minPCutMeanProfTitle+=floatToString(massCutIasHighPHighIh_);
@@ -819,7 +838,7 @@ int main(int argc, char ** argv)
         iasPredictionVarBinHistTitle+=intToString(nom+1);
       iasPredictionVarBinHistTitle+=", ";
       iasPredictionVarBinHistTitle+=floatToString(lowerEta);
-      iasPredictionVarBinHistTitle+=" < #eta < ";
+      iasPredictionVarBinHistTitle+=" < |#eta| < ";
       iasPredictionVarBinHistTitle+=floatToString(lowerEta+0.2);
       iasPredictionVarBinHistTitle+=", mass > ";
       iasPredictionVarBinHistTitle+=floatToString(massCutIasHighPHighIh_);
