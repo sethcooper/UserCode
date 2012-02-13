@@ -38,7 +38,7 @@ bool passesPreselection(const susybsm::HSCParticle& hscp,  const reco::DeDxData&
   const float maxV3D = 0.5;
   const float maxTrackEtIso = 50;
   const float maxCalEOverPIso = 0.3;
-  //const float maxTrackPtErr = 0.25;
+  const float maxTrackPtErr = 0.25;
   const float maxTrackEta = 2.5;
 
   reco::TrackRef track = hscp.trackRef();
@@ -61,6 +61,9 @@ bool passesPreselection(const susybsm::HSCParticle& hscp,  const reco::DeDxData&
   if(track->chi2()/track->ndof() > maxTrackChi2OverNdf)
     return false;
   if(fabs(track->eta()) > maxTrackEta)
+    return false;
+  // ptError
+  if(track->ptError()/track->pt() > maxTrackPtErr)
     return false;
 
   // vertex
