@@ -35,12 +35,13 @@ def CreateTheShellFile(bgInputFile,sigInputFile,massCut,iasCut,ptCut,xSecMin,xSe
     global Jobs_Name
     global Base_macro
     # variables for limit setting
-    nPoints = 4 # per job
+    nPoints = 8 # per job
     nToys = 1000 # per xSec trial point
     # end variables for limit setting
     posLastUndsc = sigInputFile.rfind("_")
-    posDotRoot = sigInputFile.rfind(".root")
-    signalName = sigInputFile[posLastUndsc+1:posDotRoot]
+    endRemoved = sigInputFile[0:posLastUndsc]
+    posLastUndsc = endRemoved.rfind("_")
+    signalName = endRemoved[posLastUndsc+1:len(endRemoved)]
     outputFile = 'doLimits_'+signalName+'_massCut'+`massCut`+'_ptCut'+`ptCut`+'_index'+str(index)+'.root'
     Path_Shell = Farm_Directories[1]+Jobs_Name+signalName+'_massCut'+`massCut`+'_ptCut'+`ptCut`+'_index'+str(index)+'.sh'
     shell_file=open(Path_Shell,'w')
@@ -85,7 +86,8 @@ def CreateTheCmdFile():
     cmd_file.write('Universe                = vanilla\n')
     cmd_file.write('Environment             = CONDORJOBID=$(Process)\n')
     cmd_file.write('notification            = Error\n')
-    cmd_file.write('requirements            = (Memory > 512)&&(Arch=?="X86_64")\n')
+    #cmd_file.write('requirements            = (Memory > 512)&&(Arch=?="X86_64")\n')
+    cmd_file.write('requirements            = (Memory > 512)&&(Arch=?="X86_64")&&(Machine=!="zebra01.spa.umn.edu")&&(Machine=!="zebra02.spa.umn.edu")&&(Machine=!="zebra03.spa.umn.edu")\n')
     cmd_file.write('+CondorGroup            = "cmsfarm"\n')
     cmd_file.write('should_transfer_files   = NO\n')
     cmd_file.write('Notify_user = cooper@physics.umn.edu\n')
@@ -98,8 +100,9 @@ def AddJobToCmdFile(massCut,ptCut,sigInputFile,index):
     global Path_Cmd
     global Jobs_Name
     posLastUndsc = sigInputFile.rfind("_")
-    posDotRoot = sigInputFile.rfind(".root")
-    signalName = sigInputFile[posLastUndsc+1:posDotRoot]
+    endRemoved = sigInputFile[0:posLastUndsc]
+    posLastUndsc = endRemoved.rfind("_")
+    signalName = endRemoved[posLastUndsc+1:len(endRemoved)]
     Path_Log   = os.getcwd()+'/'+Farm_Directories[2]+Jobs_Name+signalName+'_massCut'+`massCut`+'_ptCut'+`ptCut`+'_index'+str(index)
     Path_Error   = os.getcwd()+'/'+Farm_Directories[3]+Jobs_Name+signalName+'_massCut'+`massCut`+'_ptCut'+`ptCut`+'_index'+str(index)
     cmd_file=open(Path_Cmd,'a')
