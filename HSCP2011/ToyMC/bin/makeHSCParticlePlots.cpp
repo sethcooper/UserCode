@@ -238,7 +238,7 @@ int main(int argc, char ** argv)
   RooRealVar rooVarP("rooVarP","p",0,5000);
   RooRealVar rooVarPt("rooVarPt","pt",0,5000);
   RooRealVar rooVarNoMias("rooVarNoMias","nom",0,30);
-  RooRealVar rooVarEta("rooVarEta","eta",0,2.5);
+  RooRealVar rooVarEta("rooVarEta","eta",-2.5,2.5);
   RooRealVar rooVarRun("rooVarRun","run",0,4294967295);
   RooRealVar rooVarLumiSection("rooVarLumiSection","lumiSection",0,4294967295);
   RooRealVar rooVarEvent("rooVarEvent","event",0,4294967295);
@@ -422,8 +422,8 @@ int main(int argc, char ** argv)
         double runNumber = ev.id().run();
         double eventNumber = ev.id().event();
         // ignore real data taken with tigher RPC trigger (355.227/pb) -- from Analysis_Samples.h
-        if(!isMC_ && runNumber < 165970)
-          continue;
+        //if(!isMC_ && runNumber < 165970)
+        //  continue;
 
         // check trigger
         if(!passesTrigger(ev))
@@ -488,7 +488,7 @@ int main(int argc, char ** argv)
             rooVarP = trackP;
             rooVarPt = trackPt;
             rooVarNoMias = iasNoM;
-            rooVarEta = fabs(trackEta);
+            rooVarEta = trackEta;
             // ias shift
             double newIas = ias + myRandom.Gaus(0,0.083) + 0.015; // from YK results Nov 21 2011 hypernews thread
             rooVarIas = newIas;
@@ -600,7 +600,7 @@ int main(int argc, char ** argv)
           rooVarP = trackP;
           rooVarPt = trackPt;
           rooVarNoMias = iasNoM;
-          rooVarEta = fabs(trackEta);
+          rooVarEta = trackEta;
           rooVarLumiSection = lumiSection;
           rooVarRun = runNumber;
           rooVarEvent = eventNumber;
@@ -615,7 +615,7 @@ int main(int argc, char ** argv)
             tempP = trackP;
             tempPt = trackPt;
             tempNoMias = iasNoM;
-            tempEta = fabs(trackEta);
+            tempEta = trackEta;
             tempLumiSection = lumiSection;
             tempRun = runNumber;
             tempEvent = eventNumber;
