@@ -37,17 +37,20 @@ vector<string> getFilesInDir(string dir)
 
 int main()
 {
-  string outputDir = "FARM_makeScaledAndDoLimits_oneTrackPerEvent_jan23/outputs/";
+  //string outputDir = "FARM_makeScaledAndDoLimits_allTracks_allEvents_etaReweight_sameBinning_bugfix_ptErr_absEta_feb6/outputs/";
+  string outputDir = "FARM_makeScaledAndDoLimits_allTracks_allEvents_pt50Ias0p1_ih3_pt45_sameBins_ptPresel_absEta_feb8/outputs/";
 
   vector<string> signals;
-  signals.push_back("Gluino600");
-  signals.push_back("Gluino1000");
+  //signals.push_back("Gluino600");
+  //signals.push_back("Gluino1000");
+  //signals.push_back("Gluino1100");
+  //signals.push_back("Gluino1200");
   signals.push_back("GMStau100");
-  signals.push_back("GMStau200");
-  signals.push_back("GMStau308");
-  signals.push_back("GMStau432");
-  signals.push_back("Stop200");
-  signals.push_back("Stop600");
+  //signals.push_back("GMStau200");
+  //signals.push_back("GMStau308");
+  //signals.push_back("GMStau432");
+  //signals.push_back("Stop200");
+  //signals.push_back("Stop600");
 
   for(vector<string>::const_iterator signalItr = signals.begin();
       signalItr != signals.end(); ++signalItr)
