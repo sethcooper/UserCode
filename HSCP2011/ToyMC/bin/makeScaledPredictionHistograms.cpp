@@ -227,6 +227,8 @@ int main(int argc, char ** argv)
   double iasCutForEffAcc (ana.getParameter<double>("IasCutForEfficiency"));
   bool useIasForSideband (ana.getParameter<bool>("UseIasForSideband"));
 
+  std::cout << "Using dE/dx k: " << dEdx_k << " c: " << dEdx_c << std::endl;
+
   // TODO configurable nom/eta limits
   // NB: always use upper edge of last bin for both
   minNoM = 5;
@@ -360,8 +362,8 @@ int main(int argc, char ** argv)
         (TH1F*)backgroundPredictionRootFile->Get(fullPath.c_str());
 
       // do the rest if the hist is found and integral > 0
-      if(iasBackgroundPredictionMassCutNoMSliceHist
-          && iasBackgroundPredictionMassCutNoMSliceHist->Integral() > 0)
+      if(iasBackgroundPredictionMassCutNoMSliceHist)
+          //&& iasBackgroundPredictionMassCutNoMSliceHist->Integral() > 0)
       {
         // set ias bins or check hist consistency
         if(numIasBins < 1)
@@ -398,9 +400,9 @@ int main(int argc, char ** argv)
       }
       else
       {
-        //cout << "WARNING: no input found for this slice (histogram " <<
-        //  fullPath << ") in file: " << backgroundPredictionRootFilename_ << ")." << 
-        //  " Skipping prediction. " << endl;
+        cout << "WARNING: no input found for this slice (histogram " <<
+          fullPath << ") in file: " << backgroundPredictionRootFilename_ << ")." << 
+          " Excluded. " << endl;
       }
       delete iasBackgroundPredictionMassCutNoMSliceHist;
       //delete bRegionHist;
@@ -479,14 +481,21 @@ int main(int argc, char ** argv)
     nomCutString+=intToString(lowerNoM+1);
     RooDataSet* nomCutDRegionDataSetSignal =
       (RooDataSet*)regionDDataSetSignal->reduce(Cut(nomCutString.c_str()));
-    string etaCutString = "rooVarEta>";
+    std::string etaCutString = "(rooVarEta>";
     etaCutString+=floatToString(lowerEta);
     etaCutString+="&&rooVarEta<";
-    //XXX TESTING SET MAX ETA TO 1.5 for TESTING
+    std::string upperEtaLimit;
+    //XXX TESTING eta 1.5 max
     if(10*lowerEta==14)
-      etaCutString+=floatToString(1.5);
+      upperEtaLimit=floatToString(1.5);
     else
-      etaCutString+=floatToString(lowerEta+0.2);
+      upperEtaLimit=floatToString(lowerEta+0.2);
+    etaCutString+=upperEtaLimit;
+    etaCutString+=")||(rooVarEta>-";
+    etaCutString+=upperEtaLimit;
+    etaCutString+="&&rooVarEta<-";
+    etaCutString+=floatToString(lowerEta);
+    etaCutString+=")";
     RooDataSet* etaCutNomCutDRegionDataSetSignal =
       (RooDataSet*)nomCutDRegionDataSetSignal->reduce(Cut(etaCutString.c_str()));
     //int numSignalTracksInDRegionThisSlice = etaCutNomCutDRegionDataSetSignal->numEntries();
@@ -594,9 +603,12 @@ int main(int argc, char ** argv)
       bgTracksInDThisSlice << " and fraction of bg tracks passing mass cut this slice = " <<
       fractionOfBGTracksPassingMassCutThisSlice << " ==> norm factor = " <<
       numBackgroundTracksInDRegionPassingMassCutThisSlice << 
-      " and integral = " << histItr->Integral() <<
-      " so bgNormFactor = " << numBackgroundTracksInDRegionPassingMassCutThisSlice/histItr->Integral() <<
-      endl;
+      " and integral = " << histItr->Integral() << " so bgNormFactor = ";
+    if(histItr->Integral() > 0)
+      cout << numBackgroundTracksInDRegionPassingMassCutThisSlice/histItr->Integral();
+    else
+      cout << "0";
+    cout << endl;
     //cout << "first Ias bin this slice: " << iteratorPos*numIasBins << endl;
     double sigTracksOverIasCutThisSlice = 
       iasSignalMassCutNoMSliceHist->Integral(
@@ -621,15 +633,12 @@ int main(int argc, char ** argv)
 
     // normalize BG hist
     histItr->Sumw2();
-    if(histItr->Integral() <= 0)
-    {
-      cout << "ERROR: This histogram (" << histItr->GetName() << ") has integral <= 0. Quitting." << endl;
-      return -15;
-    }
-    double bgNormFactor =
+    double bgNormFactor = (histItr->Integral() > 0) ?
       numBackgroundTracksInDRegionPassingMassCutThisSlice/
-      histItr->Integral();
+      histItr->Integral(): 0;
     histItr->Scale(bgNormFactor);
+    //TODO: handle the hists with zero background in systematic
+    // (assume an entry in the lowest Ias bin)
   
     //if(lowerNoM==11 && (int)(lowerEta*10)==4)
     //{
@@ -692,6 +701,8 @@ int main(int argc, char ** argv)
   TH1F* etaBRegionHist = (TH1F*) backgroundPredictionRootFile->Get("etaBRegionHist");
   TH1F* etaARegionHist = (TH1F*) backgroundPredictionRootFile->Get("etaARegionHist");
   TH2F* pEtaCRegionHist = (TH2F*) backgroundPredictionRootFile->Get("pEtaCRegionHist");
+  TH2F* pEtaCRegionOrigHist = (TH2F*) pEtaCRegionHist->Clone();
+  pEtaCRegionOrigHist->SetName("pEtaCRegionOrig");
   TH1F* ihBRegionTotalHist = (TH1F*) backgroundPredictionRootFile->Get("ihBRegionTotalHist");
   double aRegionInt = etaARegionHist->Integral();
   double bRegionInt = ihBRegionTotalHist->Integral();
@@ -701,18 +712,24 @@ int main(int argc, char ** argv)
     std::cout << "ERROR: cannot do standard analysis prediction." << endl;
   else
     dPredTotal = bRegionInt*cRegionInt/aRegionInt;
-  std::cout << "dPredTotal = " << dPredTotal << std::endl;
+
+  std::cout << "A = " << aRegionInt << std::endl <<
+               "B = " << bRegionInt << std::endl <<
+               "C = " << cRegionInt << std::endl <<
+               "dPredTotal = " << dPredTotal << std::endl;
 
   // normalize
   etaBRegionHist->Scale(1.0/etaBRegionHist->Integral());
   etaARegionHist->Scale(1.0/etaARegionHist->Integral());
 
-  for(int bin=0; bin <= etaBRegionHist->GetNbinsX(); ++bin)
+  //for(int bin=0; bin <= etaBRegionHist->GetNbinsX(); ++bin)
+  for(int bin=0; bin <= pEtaCRegionHist->GetXaxis()->GetNbins(); ++bin)
   {
     double weight = 0;
-    if(etaBRegionHist->GetBinContent(bin) > 0)
+    if(etaARegionHist->GetBinContent(bin) > 0)
     {
-      weight = etaARegionHist->GetBinContent(bin)/etaBRegionHist->GetBinContent(bin);
+      //weight = etaARegionHist->GetBinContent(bin)/etaBRegionHist->GetBinContent(bin);
+      weight = etaBRegionHist->GetBinContent(bin)/etaARegionHist->GetBinContent(bin);
       std::cout << "eta = " << etaARegionHist->GetBinCenter(bin) << " weight = " << weight << std::endl;
     }
 
@@ -722,6 +739,8 @@ int main(int argc, char ** argv)
   TH1D* reweightedPInCRegionHist = pEtaCRegionHist->ProjectionY("reweightedPInCRegion");
   reweightedPInCRegionHist->Scale(1.0/reweightedPInCRegionHist->Integral());
   ihBRegionTotalHist->Scale(1.0/ihBRegionTotalHist->Integral());
+
+  std::cout << "Entries in reweightedPInCRegionHist = " << reweightedPInCRegionHist->GetEntries() << std::endl;
 
   // construct mass dist
   TH1F* massHist = new TH1F("massHist","predicted mass",200,0,2000);
@@ -788,6 +807,7 @@ int main(int argc, char ** argv)
   etaBRegionHist->Write();
   etaARegionHist->Write();
   pEtaCRegionHist->Write();
+  pEtaCRegionOrigHist->Write();
   ihBRegionTotalHist->Write();
   reweightedPInCRegionHist->Write();
   massHist->Write();
