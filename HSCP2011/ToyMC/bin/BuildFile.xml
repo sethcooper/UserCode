@@ -153,3 +153,6 @@
   <use   name="roofit"/>
   <use   name="clhep"/>
 </bin>
+<bin   name="testRooDataset" file="testRooDataset.cpp">
+  <use   name="roofit"/>
+</bin>
