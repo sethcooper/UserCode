@@ -414,7 +414,7 @@ int main(int argc, char ** argv)
   int numGlobalBins = numIasBins*bgHistsToUse.size();
   cout << "INFO: numIasBins = " << numIasBins << endl;
   cout << "INFO: numBGHistsToUse = " << bgHistsToUse.size() << endl;
-  cout << "INFO: initializing unrolled histogram: bins=" << numGlobalBins << endl;
+  cout << "INFO: initializing unrolled histogram: bins=" << numGlobalBins << endl << endl;
   TH1F* backgroundAllNoMAllEtaUnrolledHist = new TH1F("backgroundAllNoMAllEtaUnrolledHist",
       "unrolled background hist",numGlobalBins,1,numGlobalBins+1);
   TH1F* backgroundAllNoMAllEtaUnrolledPlusOneSigmaHist = new TH1F("backgroundAllNoMAllEtaUnrolledPlusOneSigmaHist",
@@ -433,6 +433,7 @@ int main(int argc, char ** argv)
   TH1F* backExpOverIasCutHist = new TH1F("backExpOverIasCut","Exp. background over ias cut",100,0,1);
 
   double backgroundTracksOverIasCut = 0;
+  double backgroundTracksOverIasCutErrorSqr = 0;
   double signalTracksOverIasCut = 0;
   double signalTracksTotal = 0;
   int signalEventsOverIasCut = 0;
@@ -462,6 +463,16 @@ int main(int argc, char ** argv)
     sigHistName+="iasSignalFixedHist";
     string iasSignalHistTitle = "Ias of signal";
     iasSignalHistTitle+=getHistTitleEnd(lowerNoM,lowerEta,massCut_);
+    // get b region ias histogram
+    string iasHistName = "bRegionHistograms/";
+    iasHistName+=getHistNameBeg(lowerNoM,lowerEta);
+    iasHistName+="iasBRegionHist";
+    TH1F* iasHist = (TH1F*)backgroundPredictionRootFile->Get(iasHistName.c_str());
+    // get c region tracks passing mass cut in ias bins
+    string cRegionTracksOverMassCutProfileName="cRegionTracksOverIasCutInIasBins/";
+    cRegionTracksOverMassCutProfileName+=getHistNameBeg(lowerNoM,lowerEta);
+    cRegionTracksOverMassCutProfileName+="tracksInCOverMassCutProfile";
+    TProfile* cRegionTracksOverMassCutProfile = (TProfile*)backgroundPredictionRootFile->Get(cRegionTracksOverMassCutProfileName.c_str());
 
     // debug
     //cout << " Looking at hist: " << bgHistName << " lowerNoM = " << lowerNoM
@@ -557,12 +568,74 @@ int main(int argc, char ** argv)
       bRegionBackgroundEntriesHist->GetBinContent(bRegionBackgroundEntriesHist->FindBin(lowerEta+0.1,lowerNoM+1));
     double bgEntriesInCRegionThisSlice = 
       cRegionBackgroundEntriesHist->GetBinContent(cRegionBackgroundEntriesHist->FindBin(lowerEta+0.1,lowerNoM+1));
-    double fractionOfBGTracksPassingMassCutThisSlice =
-      histItr->Integral()/bgEntriesInBRegionThisSlice;
-    double bgTracksInDThisSlice =
-      bgEntriesInBRegionThisSlice*bgEntriesInCRegionThisSlice/bgEntriesInARegionThisSlice;
+    double fractionOfBGTracksPassingMassCutThisSlice = (bgEntriesInBRegionThisSlice > 0) ?
+      histItr->Integral()/bgEntriesInBRegionThisSlice : 0;
+    double bgTracksInDThisSlice = (bgEntriesInARegionThisSlice > 0) ?
+      bgEntriesInBRegionThisSlice*bgEntriesInCRegionThisSlice/bgEntriesInARegionThisSlice : 0;
     double numBackgroundTracksInDRegionPassingMassCutThisSlice =
       bgTracksInDThisSlice*fractionOfBGTracksPassingMassCutThisSlice;
+    int etaBinCRegionEntriesHist = cRegionBackgroundEntriesHist->GetXaxis()->FindBin(lowerEta+0.1);
+    int cRegionNoMSummedEntries = cRegionBackgroundEntriesHist->Integral(
+        etaBinCRegionEntriesHist,etaBinCRegionEntriesHist,1,cRegionBackgroundEntriesHist->GetNbinsY());
+        
+    //errors
+    //double fractionOfBGTracksPassingMassCutThisSliceError =
+    //  fractionOfBGTracksPassingMassCutThisSlice*
+    //  sqrt(pow(sqrt(histItr->Integral())/histItr->Integral(),2)+
+    //      pow(sqrt(bgEntriesInBRegionThisSlice)/bgEntriesInBRegionThisSlice,2));
+    //double bgTracksInDThisSliceError = bgTracksInDThisSlice*
+    //  sqrt(pow(sqrt(bgEntriesInARegionThisSlice)/bgEntriesInARegionThisSlice,2)+
+    //      pow(sqrt(bgEntriesInBRegionThisSlice)/bgEntriesInBRegionThisSlice,2)+
+    //      pow(sqrt(bgEntriesInCRegionThisSlice)/bgEntriesInCRegionThisSlice,2));
+    //double numBackgroundTracksInDRegionPassingMassCutThisSliceError =
+    //  (fractionOfBGTracksPassingMassCutThisSlice > 0) ?
+    //  numBackgroundTracksInDRegionPassingMassCutThisSlice*
+    //  sqrt(pow(bgTracksInDThisSliceError/bgTracksInDThisSlice,2)+
+    //      pow(fractionOfBGTracksPassingMassCutThisSliceError/fractionOfBGTracksPassingMassCutThisSlice,2)): 1;
+    //
+    // get typical number of c region tracks above mass cut
+    double averageCTracksAboveMassCut = 0;
+    int numberOfBinsInCTracksAboveMassCutSum = 0;
+    for(int bin=1; bin < cRegionTracksOverMassCutProfile->GetNbinsX(); ++bin)
+    {
+      double binc = cRegionTracksOverMassCutProfile->GetBinContent(bin);
+      if(binc > 0)
+      {
+        averageCTracksAboveMassCut+=binc;
+        numberOfBinsInCTracksAboveMassCutSum++;
+      }
+    }
+    if(numberOfBinsInCTracksAboveMassCutSum > 0)
+      averageCTracksAboveMassCut/=numberOfBinsInCTracksAboveMassCutSum;
+    int startBin = iasHist->FindBin(iasCutForEffAcc);
+    double totalBkOverIas = 0;
+    for(int bin=startBin; bin <= iasHist->GetNbinsX(); ++bin)
+      totalBkOverIas+=iasHist->GetBinContent(bin);
+    // output
+    cout << "Slice: lowerNoM = " << lowerNoM << " lowerEta = " << lowerEta << endl;
+    cout << "bg entries this slice: A = " << bgEntriesInARegionThisSlice << " B = " << 
+      bgEntriesInBRegionThisSlice << " C = " << bgEntriesInCRegionThisSlice << " ==> D = " <<
+      bgTracksInDThisSlice << endl;
+    cout << "INFO: SumBkOverIas = " << totalBkOverIas << endl;
+    cout << "INFO: average Cj over mass cut = " << averageCTracksAboveMassCut << endl;
+    cout << "INFO: total C over NoM slices = " << cRegionNoMSummedEntries << endl;
+    // error output
+    // have to include SUM[Cj > mass cut] error here
+    //cout << "INFO: numBackgroundTracksInDRegionPassingMassCutThisSlice: " <<
+    //  numBackgroundTracksInDRegionPassingMassCutThisSlice <<
+    //  " +/- " << sqrt(relativeSliceErrorSqr)*numBackgroundTracksInDRegionPassingMassCutThisSlice <<
+    //  endl;
+    //backgroundTracksOverIasCutErrorSqr+=
+    //  pow(numBackgroundTracksInDRegionPassingMassCutThisSlice*sqrt(relativeSliceErrorSqr),2);
+    double sliceError = sqrt(totalBkOverIas);
+    if(bgEntriesInARegionThisSlice > 0)
+      backgroundTracksOverIasCutErrorSqr+=
+        pow(sliceError*averageCTracksAboveMassCut*bgEntriesInCRegionThisSlice/
+            (bgEntriesInARegionThisSlice*cRegionNoMSummedEntries),2);
+    if(bgEntriesInARegionThisSlice > 0)
+      backgroundTracksOverIasCut+=
+        totalBkOverIas*averageCTracksAboveMassCut*bgEntriesInCRegionThisSlice/
+        (bgEntriesInARegionThisSlice*cRegionNoMSummedEntries);
 
     // figure out overall normalization for signal this slice
     // must normalize as if sigma were 1 to measure the cross section
@@ -596,12 +669,9 @@ int main(int argc, char ** argv)
     //    iasSignalMassCutNoMSliceForEffHist->FindBin(iasCutForEffAcc),
     //    iasSignalMassCutNoMSliceForEffHist->GetNbinsX())/iasSignalMassCutNoMSliceForEffHist->Integral();
 
-    // output
-    cout << "Slice: lowerNoM = " << lowerNoM << " lowerEta = " << lowerEta << endl;
-    cout << "bg entries this slice: A = " << bgEntriesInARegionThisSlice << " B = " << 
-      bgEntriesInBRegionThisSlice << " C = " << bgEntriesInCRegionThisSlice << " ==> D = " <<
-      bgTracksInDThisSlice << " and fraction of bg tracks passing mass cut this slice = " <<
-      fractionOfBGTracksPassingMassCutThisSlice << " ==> norm factor = " <<
+    cout << "INFO: fraction of bg tracks passing mass cut this slice = " <<
+      fractionOfBGTracksPassingMassCutThisSlice << endl << 
+      " ==> numBackgroundTracksInDRegionPassingMassCutThisSlice = " <<
       numBackgroundTracksInDRegionPassingMassCutThisSlice << 
       " and integral = " << histItr->Integral() << " so bgNormFactor = ";
     if(histItr->Integral() > 0)
@@ -609,6 +679,11 @@ int main(int argc, char ** argv)
     else
       cout << "0";
     cout << endl;
+    cout << "INFO: sum Bk over iasCut = " <<
+      histItr->Integral(histItr->FindBin(iasCutForEffAcc),histItr->GetNbinsX()) << endl;
+    cout << "INFO: ias cut frac = " <<
+      histItr->Integral(histItr->FindBin(iasCutForEffAcc),histItr->GetNbinsX())/histItr->Integral() << endl;
+
     //cout << "first Ias bin this slice: " << iteratorPos*numIasBins << endl;
     double sigTracksOverIasCutThisSlice = 
       iasSignalMassCutNoMSliceHist->Integral(
@@ -625,13 +700,20 @@ int main(int argc, char ** argv)
       numSignalTracksInDRegionPassingMassCutThisSlice <<
       " integral: " <<
       iasSignalMassCutNoMSliceHist->Integral() <<
-      endl;
+      endl << endl;
 
     sigEffOverIasCutVsSliceHist->Fill(lowerEta+0.1,lowerNoM,sigTracksOverIasCutThisSlice/sigTracksTotalThisSlice);
     sigEffOverIasCutHist->Fill(sigTracksOverIasCutThisSlice/sigTracksTotalThisSlice);
 
 
     // normalize BG hist
+    //double iasShapeIntegral = (histItr->Integral() > 0)  ?
+    //  histItr->Integral(histItr->FindBin(iasCutForEffAcc),histItr->GetNbinsX())/histItr->Integral() : 0;
+    //double bgTracksInDThisSliceError = (bgEntriesInARegionThisSlice > 0) ?
+    //  sqrt(iasShapeIntegral*bgEntriesInBRegionThisSlice)*bgEntriesInCRegionThisSlice/bgEntriesInARegionThisSlice: 0; // ignore A,C errors
+    //double numBackgroundTracksInDRegionPassingMassCutThisSliceError =
+    //  fractionOfBGTracksPassingMassCutThisSlice*bgTracksInDThisSliceError;
+    //backgroundTracksOverIasCutErrorSqr+=pow(numBackgroundTracksInDRegionPassingMassCutThisSliceError,2);
     histItr->Sumw2();
     double bgNormFactor = (histItr->Integral() > 0) ?
       numBackgroundTracksInDRegionPassingMassCutThisSlice/
@@ -645,7 +727,8 @@ int main(int argc, char ** argv)
     //  cout << "backgroundTracksOverIasCut for NoM 11 eta 0.4: " << 
     //    histItr->Integral(histItr->FindBin(iasCutForEffAcc),histItr->GetNbinsX()) << endl;
     //}
-    backgroundTracksOverIasCut+=histItr->Integral(histItr->FindBin(iasCutForEffAcc),histItr->GetNbinsX());
+    //XXX SIC FEB 20 switching to new background prediction at least for testing
+    //backgroundTracksOverIasCut+=histItr->Integral(histItr->FindBin(iasCutForEffAcc),histItr->GetNbinsX());
     backExpOverIasCutVsSliceHist->Fill(
         lowerEta+0.1,lowerNoM,histItr->Integral(histItr->FindBin(iasCutForEffAcc),histItr->GetNbinsX()));
     backExpVsSliceHist->Fill(lowerEta+0.1,lowerNoM,histItr->Integral());
@@ -695,6 +778,7 @@ int main(int argc, char ** argv)
     //delete iasBackgroundPredictionMassCutNoMSliceHist;
     delete iasSignalMassCutNoMSliceHist;
     delete iasSignalMassCutNoMSliceForEffHist;
+    delete iasHist;
   }
 
   // now do the standard analysis style prediction
@@ -705,30 +789,36 @@ int main(int argc, char ** argv)
   pEtaCRegionOrigHist->SetName("pEtaCRegionOrig");
   TH1F* ihBRegionTotalHist = (TH1F*) backgroundPredictionRootFile->Get("ihBRegionTotalHist");
   double aRegionInt = etaARegionHist->Integral();
+  double aRegionIntError = sqrt(aRegionInt);
   double bRegionInt = ihBRegionTotalHist->Integral();
+  double bRegionIntError = sqrt(bRegionInt);
   double cRegionInt = pEtaCRegionHist->Integral();
+  double cRegionIntError = sqrt(cRegionInt);
   double dPredTotal = 0;
+  double dPredTotalError = 1;
   if(aRegionInt <= 0)
     std::cout << "ERROR: cannot do standard analysis prediction." << endl;
   else
+  {
     dPredTotal = bRegionInt*cRegionInt/aRegionInt;
+    dPredTotalError = dPredTotal*
+      sqrt(pow(aRegionIntError/aRegionInt,2)+pow(bRegionIntError/bRegionInt,2)+pow(cRegionIntError/cRegionInt,2));
+  }
 
-  std::cout << "A = " << aRegionInt << std::endl <<
-               "B = " << bRegionInt << std::endl <<
-               "C = " << cRegionInt << std::endl <<
-               "dPredTotal = " << dPredTotal << std::endl;
+  std::cout << "A = " << aRegionInt << " +/- " << aRegionIntError << std::endl <<
+               "B = " << bRegionInt << " +/- " << bRegionIntError << std::endl <<
+               "C = " << cRegionInt << " +/- " << cRegionIntError << std::endl <<
+               "dPredTotal = " << dPredTotal << " +/- " << dPredTotalError << std::endl;
 
   // normalize
   etaBRegionHist->Scale(1.0/etaBRegionHist->Integral());
   etaARegionHist->Scale(1.0/etaARegionHist->Integral());
 
-  //for(int bin=0; bin <= etaBRegionHist->GetNbinsX(); ++bin)
   for(int bin=0; bin <= pEtaCRegionHist->GetXaxis()->GetNbins(); ++bin)
   {
     double weight = 0;
     if(etaARegionHist->GetBinContent(bin) > 0)
     {
-      //weight = etaARegionHist->GetBinContent(bin)/etaBRegionHist->GetBinContent(bin);
       weight = etaBRegionHist->GetBinContent(bin)/etaARegionHist->GetBinContent(bin);
       std::cout << "eta = " << etaARegionHist->GetBinCenter(bin) << " weight = " << weight << std::endl;
     }
@@ -736,14 +826,17 @@ int main(int argc, char ** argv)
     for(int y=0; y <= pEtaCRegionHist->GetYaxis()->GetNbins(); ++y)
       pEtaCRegionHist->SetBinContent(bin,y,pEtaCRegionHist->GetBinContent(bin,y)*weight);
   }
+  //std::cout << "NOT doing eta reweighting." << std::endl;
   TH1D* reweightedPInCRegionHist = pEtaCRegionHist->ProjectionY("reweightedPInCRegion");
+  reweightedPInCRegionHist->Sumw2();
+  ihBRegionTotalHist->Sumw2();
   reweightedPInCRegionHist->Scale(1.0/reweightedPInCRegionHist->Integral());
   ihBRegionTotalHist->Scale(1.0/ihBRegionTotalHist->Integral());
-
-  std::cout << "Entries in reweightedPInCRegionHist = " << reweightedPInCRegionHist->GetEntries() << std::endl;
+  //std::cout << "Entries in reweightedPInCRegionHist = " << reweightedPInCRegionHist->GetEntries() << std::endl;
 
   // construct mass dist
   TH1F* massHist = new TH1F("massHist","predicted mass",200,0,2000);
+  TH1F* massErrorHist = new TH1F("massErrorHist","predicted mass error",200,0,2000);
   for(int x=0; x <= reweightedPInCRegionHist->GetNbinsX(); ++x)
   {
     //std::cout << "DEBUG: reweightedPInCRegionHist bin = " << x << " binContent = " << reweightedPInCRegionHist->GetBinContent(x)
@@ -759,6 +852,9 @@ int main(int argc, char ** argv)
         continue;
       double thisIh = ihBRegionTotalHist->GetBinCenter(y);
       double prob = reweightedPInCRegionHist->GetBinContent(x) * ihBRegionTotalHist->GetBinContent(y);
+      double probError = prob*sqrt(
+          pow(reweightedPInCRegionHist->GetBinError(x)/reweightedPInCRegionHist->GetBinContent(x),2)+
+          pow(ihBRegionTotalHist->GetBinError(y)/ihBRegionTotalHist->GetBinContent(y),2));
       //std::cout << "\tDEBUG: prob = " << prob << std::endl;
       if(prob <= 0 || isnan(prob))
         continue;
@@ -767,29 +863,51 @@ int main(int argc, char ** argv)
       if(massSqr >= 0)
       {
         massHist->Fill(sqrt(massSqr),prob);
+        massErrorHist->Fill(sqrt(massSqr),probError);
         //std::cout << "Fill mass = " << sqrt(massSqr) << " prob: " << prob << std::endl;
+        //std::cout << "Fill mass = " << sqrt(massSqr) << " probError: " << probError << std::endl;
       }
     }
   }
 
   for(int x=0; x <= massHist->GetNbinsX(); ++x)
   {
-    massHist->SetBinContent(x,massHist->GetBinContent(x) * dPredTotal);
+    double scaledMass = massHist->GetBinContent(x) * dPredTotal;
+    massHist->SetBinContent(x,scaledMass);
+    if(massHist->GetBinContent(x) > 0)
+      massErrorHist->SetBinContent(x,
+          scaledMass*sqrt(pow(massErrorHist->GetBinContent(x)/massHist->GetBinContent(x),2)+
+            pow(dPredTotalError/dPredTotal,2)));
+      //massErrorHist->SetBinContent(x,massHist->GetBinContent(x)*dPredTotalError);
+    else
+      massErrorHist->SetBinContent(x,0);
+    //cout << "DEBUG: massError this bin (" << x << ") = " << 
+    //    scaledMass*sqrt(pow(massErrorHist->GetBinContent(x)/massHist->GetBinContent(x),2)+
+    //      pow(dPredTotalError/dPredTotal,2)) << endl;
     //if(isnan(tmpH_Mass    ->GetBinContent(x) * PE_P)){printf("%f x %f\n",tmpH_Mass    ->GetBinContent(x),PE_P); fflush(stdout);exit(0);}
   }
 
   cout << endl << endl
-    << "Number of background tracks in mass hist over ias cut: "
+    << "Number of background tracks in mass hist over ias cut (std ana method): "
     << massHist->Integral()
     << endl
     << "Number of background tracks expected over ias and mass cut (std ana method): "
-    << massHist->Integral(massHist->FindBin(massCut_),massHist->GetNbinsX()) << endl << endl;
+    << massHist->Integral(massHist->FindBin(massCut_),massHist->GetNbinsX());
+  double errorSqrSum = 0;
+  for(int i=massHist->FindBin(massCut_); i <=massHist->GetNbinsX(); ++i)
+    errorSqrSum+=pow(massErrorHist->GetBinContent(i),2);
+  double massPredError = sqrt(errorSqrSum);
+  cout << " +/- " << massPredError
+       << endl << endl;
   // end of standard analysis style prediction
 
+
   cout << endl << endl << "Ias cut = " << iasCutForEffAcc << endl << "\tfound " << backgroundTracksOverIasCut
-    << " background tracks over ias cut and " << endl << signalTracksOverIasCut/signalTracksTotal
-    << " signal efficiency (track level) or " << endl << signalEventsOverIasCut/numGenHSCPEventsRooVar->getVal()
-    << " (event level) with this ias cut." << endl;
+    << " +/- " << sqrt(backgroundTracksOverIasCutErrorSqr)
+    << " background tracks over ias cut " << endl 
+    << signalEventsOverIasCut/numGenHSCPEventsRooVar->getVal() << " signal efficiency (event level) or" << endl 
+    << signalTracksOverIasCut/signalTracksTotal << " signal efficiency (track level) with this ias cut. " << endl << endl;
+
   cout << "original generated events: " << numGenHSCPEventsRooVar->getVal() << " events over ias cut: " << signalEventsOverIasCut
     << endl;
   cout << "original generated tracks: " << numGenHSCPTracksRooVar->getVal() << " tracks over ias cut: " << signalTracksOverIasCut
