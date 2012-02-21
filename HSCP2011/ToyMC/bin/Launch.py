@@ -40,29 +40,30 @@ def doIasPredictions():
   JobName+=Date
   JobName+="_"
   for model in modelList:
-    #HSCPMakeIasPredictionsLaunchOnCondor.SendCluster_Create(FarmDirectory,JobName,InputDataRootFile,
-    #                                            BaseCfg, model.massCut, model.ptCut, model.iasCut)
-    # Use Pt cut of 50 GeV
     HSCPMakeIasPredictionsLaunchOnCondor.SendCluster_Create(FarmDirectory,JobName,InputDataRootFile,
-                                                BaseCfg, model.massCut, 50, model.iasCut)
-    HSCPMakeIasPredictionsLaunchOnCondor.SendCluster_Submit()
+                                                BaseCfg, model.massCut, model.ptCut, model.iasCut)
+    ## Use Pt cut of 50 GeV
+    #HSCPMakeIasPredictionsLaunchOnCondor.SendCluster_Create(FarmDirectory,JobName,InputDataRootFile,
+    #                                            BaseCfg, model.massCut, 50, model.iasCut)
+
+  HSCPMakeIasPredictionsLaunchOnCondor.SendCluster_Submit()
 
 
 def doMergeIasPredictions():
-  #for model in modelList:
-  #    thisMassCutFiles = glob.glob(OutputIasPredictionDir+'*massCut'+str(model.massCut)+'_pt'+str(model.ptCut)+'_ias'+str(model.iasCut)+'_eta*')
-  #    thisMassCutFiles.insert(0,OutputIasPredictionDir+'makeIasPredictionsCombined_massCut'+str(model.massCut)+'_ptCut'+str(model.ptCut)+'_ias'+str(model.iasCut)+'.root')
-  #    thisMassCutFiles.insert(0,"hadd")
-  #    print 'Merging files for mass cut = ' + str(model.massCut) + ' pt cut = ' + str(model.ptCut) + ' ias cut = ' + str(model.iasCut)
-  #    call(thisMassCutFiles)
-  
-  # all Pt = 50
   for model in modelList:
-      thisMassCutFiles = glob.glob(OutputIasPredictionDir+'*massCut'+str(model.massCut)+'_pt50_ias'+str(model.iasCut)+'_eta*')
-      thisMassCutFiles.insert(0,OutputIasPredictionDir+'makeIasPredictionsCombined_massCut'+str(model.massCut)+'_ptCut50_ias'+str(model.iasCut)+'.root')
+      thisMassCutFiles = glob.glob(OutputIasPredictionDir+'*massCut'+str(model.massCut)+'_pt'+str(model.ptCut)+'_ias'+str(model.iasCut)+'_eta*')
+      thisMassCutFiles.insert(0,OutputIasPredictionDir+'makeIasPredictionsCombined_massCut'+str(model.massCut)+'_ptCut'+str(model.ptCut)+'_ias'+str(model.iasCut)+'.root')
       thisMassCutFiles.insert(0,"hadd")
-      print 'Merging files for mass cut = ' + str(model.massCut) + ' pt cut = 50 ias cut = ' + str(model.iasCut)
+      print 'Merging files for mass cut = ' + str(model.massCut) + ' pt cut = ' + str(model.ptCut) + ' ias cut = ' + str(model.iasCut)
       call(thisMassCutFiles)
+  
+  ## all Pt = 50
+  #for model in modelList:
+  #    thisMassCutFiles = glob.glob(OutputIasPredictionDir+'*massCut'+str(model.massCut)+'_pt50_ias'+str(model.iasCut)+'_eta*')
+  #    thisMassCutFiles.insert(0,OutputIasPredictionDir+'makeIasPredictionsCombined_massCut'+str(model.massCut)+'_ptCut50_ias'+str(model.iasCut)+'.root')
+  #    thisMassCutFiles.insert(0,"hadd")
+  #    print 'Merging files for mass cut = ' + str(model.massCut) + ' pt cut = 50 ias cut = ' + str(model.iasCut)
+  #    call(thisMassCutFiles)
 
 
 def doScaledPredictions():
@@ -80,9 +81,9 @@ def doScaledPredictions():
                                                            BaseCombXML, BaseMacro)
   for model in modelList:
     HSCPMakeScaledPredictionsLaunchOnCondor.SendCluster_Push(
-      #bgInput,sigInput+'Gluino1000_28.root',model.massCut,model.iasCut,model.ptCut)
-      # Pt = 50
-      bgInput,sigInput+model.name+'.root',model.name,model.massCut,model.iasCut,50)
+      bgInput,sigInput+model.name+'.root',model.name,model.massCut,model.iasCut,model.ptCut)
+      ## Pt = 50
+      #bgInput,sigInput+model.name+'.root',model.name,model.massCut,model.iasCut,50)
 
   HSCPMakeScaledPredictionsLaunchOnCondor.SendCluster_Submit()
 
