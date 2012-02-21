@@ -10,7 +10,7 @@ from decimal import *
 CopyRights  = '########################################\n'
 CopyRights += '#     HSCParticlePlotsLaunch script    #\n'
 CopyRights += '#        seth.cooper@cern.ch           #\n'
-CopyRights += '#             Jan 2012                 #\n'
+CopyRights += '#             Feb 2012                 #\n'
 CopyRights += '#     modified from script by Loic     #\n'
 CopyRights += '########################################\n'
 
@@ -24,13 +24,13 @@ Path_Log          = ''
 Path_Shell        = ''
 
 
-def CreateTheConfigFile(jobName, baseCfg, inputFiles, crossSection, massCut,
-                        isMC, isHSCP,index):
+def CreateTheConfigFile(jobName, baseCfg, inputFile, crossSection, massCut,
+                        isMC, isHSCP):
     global CopyRights
     global Farm_Directories
     global Jobs_Name
-    path_Cfg   = Farm_Directories[1]+Jobs_Name+jobName+'_'+str(index)+'_cfg.py'
-    outputFile = Jobs_Name+jobName+'_'+str(index)+'.root'
+    path_Cfg   = Farm_Directories[1]+Jobs_Name+jobName+'_cfg.py'
+    outputFile = Jobs_Name+jobName+'.root'
     config_file=open(baseCfg,'r')
     config_txt   = '\n\n' + CopyRights + '\n\n'
     config_txt  += config_file.read()
@@ -38,7 +38,7 @@ def CreateTheConfigFile(jobName, baseCfg, inputFiles, crossSection, massCut,
 
     #print 'inputFiles= ',inputFiles
     #Default Replacements
-    config_txt = config_txt.replace("XXX_INPUTFILES_XXX", inputFiles)
+    config_txt = config_txt.replace("XXX_INPUTFILES_XXX", "    '"+inputFile+"'")
     config_txt = config_txt.replace("XXX_OUTPUTFILE_XXX", outputFile)
     config_txt = config_txt.replace("XXX_CROSSSECTION_XXX" , str(crossSection))
     config_txt = config_txt.replace("XXX_MASSCUT_XXX", str(massCut))
@@ -49,14 +49,14 @@ def CreateTheConfigFile(jobName, baseCfg, inputFiles, crossSection, massCut,
     config_file.write(config_txt)
     config_file.close()
 
-def CreateTheShellFile(jobName,baseCfg,inputFile,crossSection,massCut,isMC,isHSCP,index):
+def CreateTheShellFile(jobName,baseCfg,inputFile,crossSection,massCut,isMC,isHSCP):
     global Path_Shell
     global CopyRights
     global Jobs_Name
-    CreateTheConfigFile(jobName,baseCfg,inputFile,crossSection,massCut,isMC,isHSCP,index)
-    outputFile = Jobs_Name+jobName+'_'+str(index)+'.root'
-    path_Cfg   = Farm_Directories[1]+Jobs_Name+jobName+'_'+str(index)+'_cfg.py'
-    Path_Shell = Farm_Directories[1]+Jobs_Name+jobName+'_'+str(index)+'.sh'
+    CreateTheConfigFile(jobName,baseCfg,inputFile,crossSection,massCut,isMC,isHSCP)
+    outputFile = Jobs_Name+jobName+'.root'
+    path_Cfg   = Farm_Directories[1]+Jobs_Name+jobName+'_cfg.py'
+    Path_Shell = Farm_Directories[1]+Jobs_Name+jobName+'.sh'
     file = inputFile.lstrip(" 'file:")
     file = file.strip("'")
     shell_file=open(Path_Shell,'w')
@@ -93,16 +93,14 @@ def CreateTheCmdFile():
     cmd_file.write('+CondorGroup            = "cmsfarm"\n')
     cmd_file.write('should_transfer_files   = NO\n')
     cmd_file.write('Notify_user = cooper@physics.umn.edu\n')
-    #cmd_file.write('should_transfer_files   = YES\n')
-    #cmd_file.write('when_to_transfer_output = ON_EXIT\n')
     cmd_file.close()
 
-def AddJobToCmdFile(jobName,index):
+def AddJobToCmdFile(jobName):
     global Path_Shell
     global Path_Cmd
     global Jobs_Name
-    Path_Log   = os.getcwd()+'/'+Farm_Directories[2]+Jobs_Name+jobName+'_'+str(index)
-    Path_Error   = os.getcwd()+'/'+Farm_Directories[3]+Jobs_Name+jobName+'_'+str(index)
+    Path_Log   = os.getcwd()+'/'+Farm_Directories[2]+Jobs_Name+jobName
+    Path_Error   = os.getcwd()+'/'+Farm_Directories[3]+Jobs_Name+jobName
     cmd_file=open(Path_Cmd,'a')
     cmd_file.write('\n')
     cmd_file.write('Executable              = %s\n'     % Path_Shell)
@@ -130,8 +128,8 @@ def SendCluster_Push(jobName,baseCfg,inputFile,crossSection,massCut,isMC,isHSCP)
     global Jobs_Count
     global Jobs_Index
     Jobs_Index = "%04i" % Jobs_Count
-    CreateTheShellFile(jobName,baseCfg,inputFile,crossSection,massCut,isMC,isHSCP,Jobs_Count)
-    AddJobToCmdFile(jobName,Jobs_Count)
+    CreateTheShellFile(jobName,baseCfg,inputFile,crossSection,massCut,isMC,isHSCP)
+    AddJobToCmdFile(jobName)
     Jobs_Count = Jobs_Count+1
 
 def SendCluster_Submit():
