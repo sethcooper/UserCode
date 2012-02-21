@@ -371,7 +371,10 @@ int main(int argc, char ** argv)
   iasSearchCutString+=floatToString(iasSidebandThreshold);
   //XXX TESTING CUT OFF PT < 50
   //RooDataSet* rooDataSetAll = (RooDataSet*) rooDataSetInput->reduce(Cut("rooVarPt>50"));
-  RooDataSet* rooDataSetAll = (RooDataSet*) rooDataSetInput->Clone();
+  //RooDataSet* rooDataSetAll = (RooDataSet*) rooDataSetInput->Clone();
+  //XXX TURN OFF ETA > 1.5
+  RooDataSet* rooDataSetAll = (RooDataSet*) rooDataSetInput->reduce(Cut("rooVarEta<1.5&&rooVarEta>-1.5"));
+  std::cout << "INFO: Applying upper eta cut of 1.5" << std::endl;
   delete rooDataSetInput;
   // A ==> low P/Pt, low Ih
   RooDataSet* regionA1DataSet;
@@ -515,11 +518,14 @@ int main(int argc, char ** argv)
       etaCutString+=floatToString(lowerEta);
       etaCutString+="&&rooVarEta<";
       std::string upperEtaLimit;
-      //XXX TESTING eta 1.5 max
-      if(10*lowerEta==14)
-        upperEtaLimit=floatToString(1.5);
-      else
-        upperEtaLimit=floatToString(lowerEta+0.2);
+      ////XXX TESTING eta 1.5 max
+      //cout << "lowerEta = " << lowerEta << " 10*lowerEta = " << ((int)10*lowerEta) << " 10*lowerEta==14? " <<
+      //  (((int)10*lowerEta)==14) << endl;
+      //if(10*lowerEta==14)
+      //  upperEtaLimit=floatToString(1.5);
+      //else
+      //  upperEtaLimit=floatToString(lowerEta+0.2);
+      upperEtaLimit=floatToString(lowerEta+0.2);
       etaCutString+=upperEtaLimit;
       etaCutString+=")||(rooVarEta>-";
       etaCutString+=upperEtaLimit;
@@ -552,10 +558,11 @@ int main(int argc, char ** argv)
       std::cout << "eta=" <<
         lowerEta << "-";
       //XXX TESTING eta 1.5 max
-      if(10*lowerEta==14)
-        std::cout << "1.5";
-      else
-        std::cout << lowerEta+0.2;
+      //if(10*lowerEta==14)
+      //  std::cout << "1.5";
+      //else
+      //  std::cout << lowerEta+0.2;
+      std::cout << lowerEta+0.2;
       std::cout << " nom=" << nom << "-" << nom+1 << std::endl;
       std::cout << "A = " << etaCutNomCutARegionDataSet->numEntries() <<
         " B = " << etaCutNomCutBRegionDataSet->numEntries() <<
