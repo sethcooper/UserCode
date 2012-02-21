@@ -290,6 +290,7 @@ int main(int argc, char ** argv)
   TFileDirectory cRegionDir = fs.mkdir("cRegionHistograms");
   TFileDirectory ihMeanDir = fs.mkdir("ihMeanInIasBins");
   TFileDirectory minPCutMeanDir = fs.mkdir("minPCutInIasBins");
+  TFileDirectory cRegionTracksOverMassCutDir = fs.mkdir("cRegionTracksOverIasCutInIasBins");
   // b region hist
   //TH1F* bRegionHist = fs.make<TH1F>("bRegionHist","bRegionHist",100,0,10);
   //bRegionHist->SetName("ihLowPsb_B");
@@ -343,9 +344,9 @@ int main(int argc, char ** argv)
     return -2;
   }
 
-  RooDataSet* rooDataSetAll = (RooDataSet*)inFile->Get("rooDataSetCandidates");
-  //RooDataSet* rooDataSetAll = (RooDataSet*)inFile->Get("rooDataSetOneCandidatePerEvent");
-  if(rooDataSetAll->numEntries() < 1)
+  RooDataSet* rooDataSetInput = (RooDataSet*)inFile->Get("rooDataSetCandidates");
+  //RooDataSet* rooDataSetInput = (RooDataSet*)inFile->Get("rooDataSetOneCandidatePerEvent");
+  if(rooDataSetInput->numEntries() < 1)
   {
     std::cout << "Problem with RooDataSet named rooDataSetCandidates in file " << inputHandler_.files()[0].c_str() << std::endl;
     return -3;
@@ -368,6 +369,10 @@ int main(int argc, char ** argv)
   iasSBcutString+=floatToString(iasSidebandThreshold);
   std::string iasSearchCutString = "rooVarIas>";
   iasSearchCutString+=floatToString(iasSidebandThreshold);
+  //XXX TESTING CUT OFF PT < 50
+  //RooDataSet* rooDataSetAll = (RooDataSet*) rooDataSetInput->reduce(Cut("rooVarPt>50"));
+  RooDataSet* rooDataSetAll = (RooDataSet*) rooDataSetInput->Clone();
+  delete rooDataSetInput;
   // A ==> low P/Pt, low Ih
   RooDataSet* regionA1DataSet;
   RooDataSet* regionADataSet;
@@ -376,9 +381,12 @@ int main(int argc, char ** argv)
   else
     regionA1DataSet = (RooDataSet*)rooDataSetAll->reduce(Cut(pSBcutString.c_str()));
   if(useIasForSideband)
-    regionADataSet = (RooDataSet*)regionA1DataSet->reduce(Cut(iasSBcutString.c_str()));
+    regionADataSet = (RooDataSet*)regionA1DataSet->reduce(Cut(iasSBcutString.c_str()),
+        SelectVars(RooArgSet(rooVarP,rooVarPt,rooVarEta,rooVarIh,rooVarNoMias)));
   else
-    regionADataSet = (RooDataSet*)regionA1DataSet->reduce(Cut(ihSBcutString.c_str()));
+    regionADataSet = (RooDataSet*)regionA1DataSet->reduce(Cut(ihSBcutString.c_str()),
+        SelectVars(RooArgSet(rooVarP,rooVarPt,rooVarEta,rooVarIh,rooVarNoMias)));
+  delete regionA1DataSet;
   // B ==> low P/Pt, high Ih
   RooDataSet* regionB1DataSet;
   RooDataSet* regionBDataSet;
@@ -387,9 +395,12 @@ int main(int argc, char ** argv)
   else
     regionB1DataSet = (RooDataSet*)rooDataSetAll->reduce(Cut(pSBcutString.c_str()));
   if(useIasForSideband)
-    regionBDataSet = (RooDataSet*)regionB1DataSet->reduce(Cut(iasSearchCutString.c_str()));
+    regionBDataSet = (RooDataSet*)regionB1DataSet->reduce(Cut(iasSearchCutString.c_str()),
+          SelectVars(RooArgSet(rooVarPt,rooVarIh,rooVarIas,rooVarEta,rooVarNoMias)));
   else
-    regionBDataSet = (RooDataSet*)regionB1DataSet->reduce(Cut(ihSearchCutString.c_str()));
+    regionBDataSet = (RooDataSet*)regionB1DataSet->reduce(Cut(ihSearchCutString.c_str()),
+          SelectVars(RooArgSet(rooVarPt,rooVarIh,rooVarIas,rooVarEta,rooVarNoMias)));
+  delete regionB1DataSet;
   // C ==> high P/Pt, low Ih
   RooDataSet* regionC1DataSet;
   RooDataSet* regionCDataSet;
@@ -398,15 +409,20 @@ int main(int argc, char ** argv)
   else
    regionC1DataSet = (RooDataSet*)rooDataSetAll->reduce(Cut(pSearchCutString.c_str()));
   //SIC FEB 10 -- cut off p > 1200
-  RooDataSet* pCutCDataSet = (RooDataSet*)regionC1DataSet->reduce(Cut("rooVarP<1200"));
-  std::cout << "INFO: Applying max p of 1200 GeV cut in C region." << std::endl;
-  //std::cout << "INFO: NOT applying max p of 1200 GeV cut in C region." << std::endl;
+  //RooDataSet* pCutCDataSet = (RooDataSet*)regionC1DataSet->reduce(Cut("rooVarP<1200"));
+  //std::cout << "INFO: Applying max p of 1200 GeV cut in C region." << std::endl;
+  std::cout << "INFO: NOT applying max p of 1200 GeV cut in C region." << std::endl;
   if(useIasForSideband)
-    //regionCDataSet = (RooDataSet*)regionC1DataSet->reduce(Cut(iasSBcutString.c_str()));
-    regionCDataSet = (RooDataSet*)pCutCDataSet->reduce(Cut(iasSBcutString.c_str()));
+    regionCDataSet = (RooDataSet*)regionC1DataSet->reduce(Cut(iasSBcutString.c_str()),
+          SelectVars(RooArgSet(rooVarP,rooVarPt,rooVarNoMias,rooVarEta,rooVarIh)));
+    //regionCDataSet = (RooDataSet*)pCutCDataSet->reduce(Cut(iasSBcutString.c_str())
+          //SelectVars(RooArgSet(rooVarP,rooVarPt,rooVarNoMias,rooVarEta,rooVarIh)));
   else
-    //regionCDataSet = (RooDataSet*)regionC1DataSet->reduce(Cut(ihSBcutString.c_str()));
-    regionCDataSet = (RooDataSet*)pCutCDataSet->reduce(Cut(ihSBcutString.c_str()));
+    regionCDataSet = (RooDataSet*)regionC1DataSet->reduce(Cut(ihSBcutString.c_str()),
+          SelectVars(RooArgSet(rooVarP,rooVarPt,rooVarNoMias,rooVarEta,rooVarIh)));
+    //regionCDataSet = (RooDataSet*)pCutCDataSet->reduce(Cut(ihSBcutString.c_str())
+          //SelectVars(RooArgSet(rooVarP,rooVarPt,rooVarNoMias,rooVarEta,rooVarIh)));
+  delete regionC1DataSet;
   std::cout << "INFO: " << regionCDataSet->numEntries() << " entries in total C region." << std::endl;
   // D ==> search region, high P/Pt, high Ih
   RooDataSet* regionD1DataSet;
@@ -416,9 +432,13 @@ int main(int argc, char ** argv)
   else
     regionD1DataSet = (RooDataSet*)rooDataSetAll->reduce(Cut(pSearchCutString.c_str()));
   if(useIasForSideband)
-    regionDDataSet = (RooDataSet*)regionD1DataSet->reduce(Cut(iasSearchCutString.c_str()));
+    regionDDataSet = (RooDataSet*)regionD1DataSet->reduce(Cut(iasSearchCutString.c_str()),
+          SelectVars(RooArgSet(rooVarP,rooVarEta,rooVarNoMias)));
   else
-    regionDDataSet = (RooDataSet*)regionD1DataSet->reduce(Cut(ihSearchCutString.c_str()));
+    regionDDataSet = (RooDataSet*)regionD1DataSet->reduce(Cut(ihSearchCutString.c_str()),
+          SelectVars(RooArgSet(rooVarP,rooVarEta,rooVarNoMias)));
+  delete regionD1DataSet;
+  delete rooDataSetAll;
 
   int slicesToDo = (int)((etaMax_-etaMin_)/0.2)*(nomMax_-nomMin_+1)/2;
   int nomSlice = 0;
@@ -473,6 +493,16 @@ int main(int argc, char ** argv)
           iasSidebandThreshold,usePtForSideband,useIasForSideband);
       cRegionCumuHistTitle+=" cumulative; GeV";
       TH1F* cRegionCumuHist = cRegionDir.make<TH1F>(cRegionCumuHistName.c_str(),cRegionCumuHistTitle.c_str(),100,0,1000);
+      // c region over mass cut in ias bins hist
+      std::string cRegionTracksOverMassCutProfileName = getHistNameBeg(nom,lowerEta);
+      cRegionTracksOverMassCutProfileName+="tracksInCOverMassCutProfile";
+      std::string cRegionTracksOverMassCutProfileTitle = "Tracks in C Over Mass Cut in Ias bins for ";
+      cRegionTracksOverMassCutProfileTitle+=getHistTitleBeg(nom,lowerEta,pSidebandThreshold,ihSidebandThreshold,ptSidebandThreshold,
+          iasSidebandThreshold,usePtForSideband,useIasForSideband);
+      cRegionTracksOverMassCutProfileTitle+="; Ias";
+      TProfile* cRegionTracksOverMassCutProfile =
+        cRegionTracksOverMassCutDir.make<TProfile>(cRegionTracksOverMassCutProfileName.c_str(),
+            cRegionTracksOverMassCutProfileTitle.c_str(),100,0,1);
 
       // B region dataset
       std::string nomCutString = "rooVarNoMias==";
@@ -543,6 +573,11 @@ int main(int argc, char ** argv)
         if(ihData_A->getVal() > 3 && ptData_A->getVal() > 45)
           etaARegionHist->Fill(etaData_A->getVal());
       }
+      //delete argSet_A;
+      //delete iasData_A;
+      //delete ihData_A;
+      //delete etaData_A;
+      //delete ptData_A;
       const RooArgSet* argSet_C1 = etaCutNomCutCRegionDataSet->get();
       RooRealVar* pData_C1 = (RooRealVar*)argSet_C1->find(rooVarP.GetName());
       RooRealVar* ptData_C1 = (RooRealVar*)argSet_C1->find(rooVarPt.GetName());
@@ -557,6 +592,11 @@ int main(int argc, char ** argv)
         if(ihData_C1->getVal() > 3 && ptData_C1->getVal() > 45)
           pEtaCRegionHist->Fill(etaData_C1->getVal(),pData_C1->getVal());
       }
+      //delete argSet_C1;
+      //delete pData_C1;
+      //delete ptData_C1;
+      //delete ihData_C1;
+      //delete etaData_C1;
 
       // immediately delete no-longer-needed datasets
       delete nomCutARegionDataSet;
@@ -779,6 +819,7 @@ int main(int argc, char ** argv)
         double successRateError = sqrt(successRate*(1-successRate)/(double)total);
         successRateSumsInIasBins[iasPredictionFixedHist->FindBin(thisIas)-1]+=successRate;
         successRateCountsInIasBins[iasPredictionFixedHist->FindBin(thisIas)-1]++;
+        cRegionTracksOverMassCutProfile->Fill(thisIas,numMomPassingMass);
         //FIXME?
         successRateLastErrorInIasBins[iasPredictionFixedHist->FindBin(thisIas)-1]=successRateError;
         ihMeanProf->Fill(thisIas,thisIh);
@@ -901,6 +942,15 @@ int main(int argc, char ** argv)
 
       delete etaCutNomCutBRegionDataSet;
       delete etaCutCRegionDataSet;
+      //delete argSet_B;
+      //delete ihData_B;
+      //delete iasData_B;
+      //delete etaData_B;
+      //delete ptData_B;
+      //delete argSet_C;
+      //delete pData_C;
+      //delete ptData_C;
+      //delete etaData_C;
 
     } // eta slices
     if(nom==21) break; // don't do any more after nom21, since we've done 21+ in that case
