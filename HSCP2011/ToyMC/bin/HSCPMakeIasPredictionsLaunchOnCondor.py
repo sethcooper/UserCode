@@ -25,6 +25,8 @@ Path_Shell        = ''
 Path_Log          = ''
 Base_Cfg = ''
 Input_File = ''
+#
+Init = True
 
 def GetSelectionString(massCut,etaMin,nomMin,ptThresh,iasThresh):
     toReturn='massCut'+`massCut`+'_pt'+str(ptThresh)+'_ias'+str(iasThresh)+'_etaMin'+str(etaMin)+'_nomMin'+`nomMin`
@@ -92,7 +94,7 @@ def CreateTheCmdFile():
     cmd_file.write('Universe                = vanilla\n')
     cmd_file.write('Environment             = CONDORJOBID=$(Process)\n')
     cmd_file.write('notification            = Error\n')
-    cmd_file.write('requirements            = (Memory > 512)&&(Arch=?="X86_64")&&(Machine=!="zebra01.spa.umn.edu")&&(Machine=!="zebra02.spa.umn.edu")&&(Machine=!="zebra03.spa.umn.edu")\n')
+    cmd_file.write('requirements            = (Memory > 1024)&&(Arch=?="X86_64")&&(Machine=!="zebra01.spa.umn.edu")&&(Machine=!="zebra02.spa.umn.edu")&&(Machine=!="zebra03.spa.umn.edu")\n')
     cmd_file.write('+CondorGroup            = "cmsfarm"\n')
     cmd_file.write('should_transfer_files   = NO\n')
     cmd_file.write('Notify_user = cooper@physics.umn.edu\n')
@@ -120,44 +122,34 @@ def AddJobToCmdFile(massCut,etaMin,etaMax,nomMin,nomMax,ptThresh,iasThresh):
 def CreateDirectoryStructure(FarmDirectory):
     global Jobs_Name
     global Farm_Directories
-    Farm_Directories = [FarmDirectory+'/', FarmDirectory+'/inputs/', FarmDirectory+'/logs/',
-                        FarmDirectory+'/errors/', FarmDirectory+'/outputs/']
+    Farm_Directories = [FarmDirectory+'/', FarmDirectory+'/inputs/makeIasPredictions/', 
+                        FarmDirectory+'/logs/makeIasPredictions/',
+                        FarmDirectory+'/errors/makeIasPredictions/',
+                        FarmDirectory+'/outputs/makeIasPredictions/']
     for i in range(0,len(Farm_Directories)):
         if os.path.isdir(Farm_Directories[i]) == False:
-            os.system('mkdir ' + Farm_Directories[i])
+            os.system('mkdir -p ' + Farm_Directories[i])
 
 def SendCluster_Create(farmDirectory, jobName, inputRootFile, baseCfg,
-                       massCuts, ptCuts, iasCuts):
+                       massCut, ptCut, iasCut):
     global Jobs_Name
     global Jobs_Count
     global Input_File
     global Base_Cfg
+    global Init
     Jobs_Name  = jobName
     Jobs_Count = 0
     Input_File = inputRootFile
     Base_Cfg = baseCfg
-    CreateDirectoryStructure(farmDirectory)
-    CreateTheCmdFile()
-    #for massCut in massCuts:
-    for index, massCut in enumerate(massCuts):
-        #for etaIndex in range(0,24,4):
-        for etaIndex in range(0,16,2):
-            for nomIndex in range(5,22,4):
-                SendCluster_Push(massCut,etaIndex/10.0,(etaIndex+2)/10.0,nomIndex,nomIndex+3,ptCuts[index],iasCuts[index])
-                #SendCluster_Push(massCut,etaIndex/10.0,(etaIndex+4)/10.0,nomIndex,nomIndex+3,ptCuts[index])
-                #SendCluster_Push(massCut,0.0,1.2,5,10,ptCuts[index])
-                #SendCluster_Push(massCut,1.2,2.4,5,10,ptCuts[index])
-                #SendCluster_Push(massCut,0.0,0.2,11,16,ptCuts[index])
-                #SendCluster_Push(massCut,0.2,0.4,11,16,ptCuts[index])
-                #SendCluster_Push(massCut,0.4,0.6,11,16,ptCuts[index])
-                #SendCluster_Push(massCut,0.6,0.8,11,16,ptCuts[index])
-                #SendCluster_Push(massCut,0.8,1.2,11,16,ptCuts[index])
-                #SendCluster_Push(massCut,1.2,1.6,11,16,ptCuts[index])
-                #SendCluster_Push(massCut,1.6,2.4,11,16,ptCuts[index])
-                #SendCluster_Push(massCut,0.0,0.6,17,22,ptCuts[index])
-                #SendCluster_Push(massCut,0.6,1.2,17,22,ptCuts[index])
-                #SendCluster_Push(massCut,1.2,1.8,17,22,ptCuts[index])
-                #SendCluster_Push(massCut,1.8,2.4,17,22,ptCuts[index])
+    if(Init):
+      CreateDirectoryStructure(farmDirectory)
+      CreateTheCmdFile()
+      Init = False
+    #for etaIndex in range(0,24,4):
+    #for etaIndex in range(0,16,2):
+    for etaIndex in range(0,16,4):
+        for nomIndex in range(5,22,4):
+            SendCluster_Push(massCut,etaIndex/10.0,(etaIndex+2)/10.0,nomIndex,nomIndex+3,ptCut,iasCut)
 
 
 def SendCluster_Push(massCut,etaMin,etaMax,nomMin,nomMax,ptThresh,iasThresh):
