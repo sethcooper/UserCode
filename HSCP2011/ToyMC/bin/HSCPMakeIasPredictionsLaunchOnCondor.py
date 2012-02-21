@@ -17,7 +17,6 @@ CopyRights += '####################################################\n'
 Path_Cfg          = ''
 Jobs_Count        = 0
 Jobs_Name         = ''
-Jobs_Index        = ''
 #
 Farm_Directories  = []
 Path_Cmd          = ''
@@ -34,7 +33,6 @@ def GetSelectionString(massCut,etaMin,nomMin,ptThresh,iasThresh):
 
 def CreateTheConfigFile(massCut,etaMin,etaMax,nomMin,nomMax,ptThresh,iasThresh):
     global Jobs_Name
-    global Jobs_Index
     global Jobs_Count
     global Path_Cfg
     global CopyRights
@@ -137,25 +135,23 @@ def SendCluster_Create(farmDirectory, jobName, inputRootFile, baseCfg,
     global Input_File
     global Base_Cfg
     global Init
-    Jobs_Name  = jobName
-    Jobs_Count = 0
-    Input_File = inputRootFile
-    Base_Cfg = baseCfg
     if(Init):
       CreateDirectoryStructure(farmDirectory)
       CreateTheCmdFile()
+      Jobs_Name  = jobName
+      Jobs_Count = 0
+      Input_File = inputRootFile
+      Base_Cfg = baseCfg
       Init = False
     #for etaIndex in range(0,24,4):
     #for etaIndex in range(0,16,2):
     for etaIndex in range(0,16,4):
         for nomIndex in range(5,22,4):
-            SendCluster_Push(massCut,etaIndex/10.0,(etaIndex+2)/10.0,nomIndex,nomIndex+3,ptCut,iasCut)
+            SendCluster_Push(massCut,etaIndex/10.0,(etaIndex+4)/10.0,nomIndex,nomIndex+3,ptCut,iasCut)
 
 
 def SendCluster_Push(massCut,etaMin,etaMax,nomMin,nomMax,ptThresh,iasThresh):
     global Jobs_Count
-    global Jobs_Index
-    Jobs_Index = "%04i" % Jobs_Count
     CreateTheShellFile(massCut,etaMin,etaMax,nomMin,nomMax,ptThresh,iasThresh)
     AddJobToCmdFile(massCut,etaMin,etaMax,nomMin,nomMax,ptThresh,iasThresh)
     Jobs_Count = Jobs_Count+1
