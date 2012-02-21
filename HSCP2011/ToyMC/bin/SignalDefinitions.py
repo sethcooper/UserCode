@@ -58,7 +58,7 @@ GMStau247 = SignalSample('GMStau247','0.00342512',60,'0.400',150,'')
 GMStau308 = SignalSample('GMStau308','0.00098447',70,'0.400',190,'')
 GMStau370 = SignalSample('GMStau370','0.000353388',60,'0.400',230,'')
 GMStau432 = SignalSample('GMStau432','0.000141817',55,'0.375',260,'')
-GMStau494 = SignalSample('GMStau494','0.00006177',65,'0.350',300
+GMStau494 = SignalSample('GMStau494','0.00006177',65,'0.350',300,'')
 # PP Stau
 PPStau100 = SignalSample('PPStau100','0.0382',70,'0.400',40,'')
 PPStau126 = SignalSample('PPStau126','0.0161',80,'0.400',60,'')
