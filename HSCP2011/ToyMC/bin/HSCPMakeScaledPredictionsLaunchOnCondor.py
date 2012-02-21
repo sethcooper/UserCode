@@ -91,17 +91,12 @@ def CreateTheConfigFile(bgInputFile,sigInputFile,massCut,iasCut,ptCut,signalName
     config_file.close()
 
 
-def CreateTheShellFile(bgInputFile,sigInputFile,massCut,iasCut,ptCut):
+def CreateTheShellFile(bgInputFile,sigInputFile,modelName,massCut,iasCut,ptCut):
     global Path_Shell
     global CopyRights
     global Jobs_Name
     global Base_macro
-    posLastUndsc = sigInputFile.rfind("_")
-    endRemoved = sigInputFile[0:posLastUndsc]
-    posLastUndsc = endRemoved.rfind("_")
-    signalName = endRemoved[posLastUndsc+1:len(endRemoved)]
-    #posDotRoot = sigInputFile.rfind(".root")
-    #signalName = sigInputFile[posLastUndsc+1:posDotRoot]
+    signalName = modelName
     outputFile = 'makeScaledPredictionHistograms_'+signalName+'_massCut'+`massCut`+'_ptCut'+`ptCut`+'.root'
     CreateTheConfigFile(bgInputFile,sigInputFile,massCut,iasCut,ptCut,signalName)
     CreateTheXMLFiles(signalName,outputFile,massCut,ptCut)
@@ -161,16 +156,11 @@ def CreateTheCmdFile():
     #cmd_file.write('when_to_transfer_output = ON_EXIT\n')
     cmd_file.close()
 
-def AddJobToCmdFile(massCut,ptCut,sigInputFile):
+def AddJobToCmdFile(massCut,ptCut,modelName,sigInputFile):
     global Path_Shell
     global Path_Cmd
     global Jobs_Name
-    posLastUndsc = sigInputFile.rfind("_")
-    endRemoved = sigInputFile[0:posLastUndsc]
-    posLastUndsc = endRemoved.rfind("_")
-    signalName = endRemoved[posLastUndsc+1:len(endRemoved)]
-    #posDotRoot = sigInputFile.rfind(".root")
-    #signalName = sigInputFile[posLastUndsc+1:posDotRoot]
+    signalName = modelName
     Path_Log   = os.getcwd()+'/'+Farm_Directories[2]+Jobs_Name+signalName+'_massCut'+`massCut`+'_ptCut'+`ptCut`
     Path_Error   = os.getcwd()+'/'+Farm_Directories[3]+Jobs_Name+signalName+'_massCut'+`massCut`+'_ptCut'+`ptCut`
     cmd_file=open(Path_Cmd,'a')
@@ -186,13 +176,15 @@ def AddJobToCmdFile(massCut,ptCut,sigInputFile):
 def CreateDirectoryStructure(FarmDirectory):
     global Jobs_Name
     global Farm_Directories
-    Farm_Directories = [FarmDirectory+'/', FarmDirectory+'/inputs/', FarmDirectory+'/logs/',
-                        FarmDirectory+'/errors/', FarmDirectory+'/outputs/']
+    Farm_Directories = [FarmDirectory+'/', FarmDirectory+'/inputs/makeScaledPredictions/',
+                        FarmDirectory+'/logs/makeScaledPredictions/',
+                        FarmDirectory+'/errors/makeScaledPredictions/',
+                        FarmDirectory+'/outputs/makeScaledPredictions/']
     for i in range(0,len(Farm_Directories)):
         if os.path.isdir(Farm_Directories[i]) == False:
-            os.system('mkdir ' + Farm_Directories[i])
-    if os.path.isdir(FarmDirectory+'/inputs/config/') == False:
-        os.system('mkdir ' + FarmDirectory+'/inputs/config/')
+            os.system('mkdir -p ' + Farm_Directories[i])
+    if os.path.isdir(FarmDirectory+'/inputs/makeScaledPredictions/config/') == False:
+        os.system('mkdir -p ' + FarmDirectory+'/inputs/makeScaledPredictions/config/')
 
 def SendCluster_Create(farmDirectory, jobName, intLumi, baseCfg,
                        baseChXML, baseCombXML, baseMacro):
@@ -216,13 +208,13 @@ def SendCluster_Create(farmDirectory, jobName, intLumi, baseCfg,
     #    SendCluster_Push(massCut)
 
 
-def SendCluster_Push(bgInputFilesBase,sigInputFile,massCut,iasCut,ptCut):
+def SendCluster_Push(bgInputFilesBase,sigInputFile,modelName,massCut,iasCut,ptCut):
     global Jobs_Count
     global Jobs_Index
     Jobs_Index = "%04i" % Jobs_Count
     bgInputFile = bgInputFilesBase+`massCut`+'_ptCut'+`ptCut`+'_ias'+str(iasCut)+'.root'
-    CreateTheShellFile(bgInputFile,sigInputFile,massCut,iasCut,ptCut)
-    AddJobToCmdFile(massCut,ptCut,sigInputFile)
+    CreateTheShellFile(bgInputFile,sigInputFile,modelName,massCut,iasCut,ptCut)
+    AddJobToCmdFile(massCut,ptCut,modelName,sigInputFile)
     Jobs_Count = Jobs_Count+1
 
 def SendCluster_Submit():
