@@ -433,6 +433,7 @@ int main(int argc, char ** argv)
   TH1F* backExpOverIasCutHist = new TH1F("backExpOverIasCut","Exp. background over ias cut",100,0,1);
 
   double backgroundTracksOverIasCut = 0;
+  double backgroundTracksOverIasCutNoApprox = 0;
   double backgroundTracksOverIasCutErrorSqr = 0;
   double signalTracksOverIasCut = 0;
   double signalTracksTotal = 0;
@@ -728,7 +729,7 @@ int main(int argc, char ** argv)
     //    histItr->Integral(histItr->FindBin(iasCutForEffAcc),histItr->GetNbinsX()) << endl;
     //}
     //XXX SIC FEB 20 switching to new background prediction at least for testing
-    //backgroundTracksOverIasCut+=histItr->Integral(histItr->FindBin(iasCutForEffAcc),histItr->GetNbinsX());
+    backgroundTracksOverIasCutNoApprox+=histItr->Integral(histItr->FindBin(iasCutForEffAcc),histItr->GetNbinsX());
     backExpOverIasCutVsSliceHist->Fill(
         lowerEta+0.1,lowerNoM,histItr->Integral(histItr->FindBin(iasCutForEffAcc),histItr->GetNbinsX()));
     backExpVsSliceHist->Fill(lowerEta+0.1,lowerNoM,histItr->Integral());
@@ -905,6 +906,7 @@ int main(int argc, char ** argv)
   cout << endl << endl << "Ias cut = " << iasCutForEffAcc << endl << "\tfound " << backgroundTracksOverIasCut
     << " +/- " << sqrt(backgroundTracksOverIasCutErrorSqr)
     << " background tracks over ias cut " << endl 
+    << backgroundTracksOverIasCutNoApprox << " tracks over ias cut without approximating" << endl
     << signalEventsOverIasCut/numGenHSCPEventsRooVar->getVal() << " signal efficiency (event level) or" << endl 
     << signalTracksOverIasCut/signalTracksTotal << " signal efficiency (track level) with this ias cut. " << endl << endl;
 
