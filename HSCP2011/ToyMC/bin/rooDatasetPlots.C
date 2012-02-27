@@ -51,7 +51,7 @@ void setHistAttributes(TH1* hist, int colorCounter, int markerStyleCounter)
 }
 
 
-rooDatasetPlots()
+rooDatasetPlots(bool doNoMplots = false)
 {
   bool usePtForSideband = true;
   float iasCut = 0.4;
@@ -126,7 +126,7 @@ rooDatasetPlots()
   //RooDataSet* etaCutDataSet = (RooDataSet*) ptCutDataSet->reduce(Cut(etaCutString.c_str()));
   RooDataSet* etaCutDataSet = (RooDataSet*) rooDataSetAllSignal->reduce(Cut(etaCutString.c_str()));
 
-  //RooDataSet* iasSidebandDataSet = (RooDataSet*) etaCutDataSet->reduce(Cut(iasSidebandCutString.c_str()));
+  RooDataSet* iasSidebandDataSet = (RooDataSet*) etaCutDataSet->reduce(Cut(iasSidebandCutString.c_str()));
   //RooDataSet* aRegionDataSet = (RooDataSet*) iasSidebandDataSet->reduce(Cut(ptSidebandCutString.c_str()));
   //RooDataSet* cRegionDataSet = (RooDataSet*) iasSidebandDataSet->reduce(Cut(ptSearchCutString.c_str()));
   RooDataSet* ptSidebandDataSet = (RooDataSet*) etaCutDataSet->reduce(Cut(ptSidebandCutString.c_str()));
@@ -157,67 +157,149 @@ rooDatasetPlots()
   //std::cout << "BC/A = " << bcOverA << " +/- " << bcOverAErr << std::endl;
 
   // plots
-  rooVarIh.setBins(140);
-  rooVarIas.setBins(100);
-  //// plot of Ih in the AB (pt sideband) region
-  float etaMin_=0.0;
-  float etaMax_=2.4;
-  int nomMin_=5;
-  int nomMax_=20;
-  // loop over NoM 
-  TH1F* ihInNoMSlices = new TH1F("ihInNoMSlices",
-      "CMS Preliminary    #sqrt{s} = 7 TeV;Ih [MeV/cm];arbitrary units",80,0,15);
-  TLegend* ihLegend = new TLegend(0.13,0.72,0.51,0.92);
-  TH1F* iasInNoMSlices = new TH1F("iasInNoMSlices",
-      "CMS Preliminary    #sqrt{s} = 7 TeV;Ias;arbitrary units",100,0,1);
-  TLegend* ihLegend = new TLegend(0.13,0.72,0.51,0.92);
-  TLegend* iasLegend = new TLegend(0.65,0.7,0.92,0.92);
   gStyle->SetOptStat(0);
   gStyle->SetErrorX(0);
   gStyle->SetTitleFontSize(0.025);
   gStyle->SetTitleX(0.6);
   gStyle->SetTitleY(0.975);
+  rooVarIh.setBins(140);
+  rooVarIas.setBins(100);
+  // plot of Ih in the AB (pt sideband) region
+  if(doNoMplots)
+  {
+    int nomMin_=5;
+    int nomMax_=20;
+    TH1F* ihInNoMSlices = new TH1F("ihInNoMSlices",
+        "CMS Preliminary    #sqrt{s} = 7 TeV;Ih [MeV/cm];arbitrary units",80,0,15);
+    TLegend* ihLegend = new TLegend(0.13,0.72,0.51,0.92);
+    TH1F* iasInNoMSlices = new TH1F("iasInNoMSlices",
+        "CMS Preliminary    #sqrt{s} = 7 TeV;Ias;arbitrary units",100,0,1);
+    TLegend* ihLegend = new TLegend(0.13,0.72,0.51,0.92);
+    TLegend* iasLegend = new TLegend(0.65,0.7,0.92,0.92);
+    TCanvas c1;
+    c1.cd();
+    ihInNoMSlices->Draw();
+    TCanvas c2;
+    c2.cd();
+    iasInNoMSlices->Draw();
+    TH1* ihInNoMSlicesHists[9];
+    TH1* iasInNoMSlicesHists[9];
+    int nomSlice = -1;
+    int colorCounter = 1;
+    int markerStyleCounter = 23;
+    // loop over NoM 
+    for(int nom = nomMin_; nom < nomMax_; nom+=2)
+    {
+      ++nomSlice;
+      if(nomSlice % 2 != 0) continue;
+      //std::cout << "Doing slice: " << nomSlice+etaSlice << std::endl;
+      std::string nomCutString = "(rooVarNoMias==";
+      nomCutString+=intToString(nom);
+      nomCutString+="||rooVarNoMias==";
+      nomCutString+=intToString(nom+1);
+      nomCutString+=")";
+      std::string thisCut = nomCutString;
+      RooDataSet* nomPtSBCutDataSet = (RooDataSet*) ptSidebandDataSet->reduce(thisCut.c_str());
+      //std::cout << "cut: " << thisCut << " entries: " << nomEtaPtSBCutDataSet->numEntries() << std::endl;
+      ihInNoMSlicesHists[nomSlice] = nomPtSBCutDataSet->createHistogram(("ihHistNoM"+intToString(nom)).c_str(),rooVarIh);
+      iasInNoMSlicesHists[nomSlice] = nomPtSBCutDataSet->createHistogram(("iasHistNoM"+intToString(nom)).c_str(),rooVarIas);
+      if(colorCounter==5)
+        colorCounter+=2;
+      setHistAttributes(ihInNoMSlicesHists[nomSlice],colorCounter,markerStyleCounter);
+      setHistAttributes(iasInNoMSlicesHists[nomSlice],colorCounter,markerStyleCounter);
+      c1.cd();
+      ihInNoMSlicesHists[nomSlice]->DrawNormalized("same");
+      c2.cd();
+      iasInNoMSlicesHists[nomSlice]->DrawNormalized("same");
+      std::string legString = "NoM ";
+      legString+=intToString(nom);
+      legString+="-";
+      legString+=intToString(nom+1);
+      ihLegend->AddEntry(ihInNoMSlicesHists[nomSlice],legString.c_str(),"p");
+      iasLegend->AddEntry(iasInNoMSlicesHists[nomSlice],legString.c_str(),"p");
+      delete nomPtSBCutDataSet;
+      ++colorCounter;
+      markerStyleCounter--;
+    }
+
+    c1.cd();
+    ihLegend->SetBorderSize(0);
+    ihLegend->Draw("same");
+    c1.SetLogy();
+    ihInNoMSlices->GetXaxis()->SetRangeUser(0.6,5.2);
+    ihInNoMSlices->GetYaxis()->SetRangeUser(1e-6,5e-1);
+    c1.Print("ihInNoMSlices.png");
+    c1.Print("ihInNoMSlices.eps");
+    c2.cd();
+    iasLegend->SetBorderSize(0);
+    iasLegend->Draw("same");
+    c2.SetLogy();
+    iasInNoMSlices->GetYaxis()->SetRangeUser(1e-6,5e-1);
+    c2.Print("iasInNoMSlices.png");
+    c2.Print("iasInNoMSlices.eps");
+
+  } // if doNoMplots
+
+
+
+  // do plots of ih/ias in eta slices
+  float etaMin_=0.0;
+  float etaMax_=1.3;
+  TH1F* ihInEtaSlices = new TH1F("ihInEtaSlices",
+      "CMS Preliminary    #sqrt{s} = 7 TeV;Ih [MeV/cm];arbitrary units",80,0,15);
+  TLegend* ihLegend = new TLegend(0.13,0.72,0.51,0.92);
+  TH1F* iasInEtaSlices = new TH1F("iasInEtaSlices",
+      "CMS Preliminary    #sqrt{s} = 7 TeV;Ias;arbitrary units",100,0,1);
+  TLegend* ihLegend = new TLegend(0.13,0.72,0.51,0.92);
+  TLegend* iasLegend = new TLegend(0.55,0.7,0.9,0.92);
   TCanvas c1;
   c1.cd();
-  ihInNoMSlices->Draw();
+  ihInEtaSlices->Draw();
   TCanvas c2;
   c2.cd();
-  iasInNoMSlices->Draw();
-  TH1* ihInNoMSlicesHists[9];
-  TH1* iasInNoMSlicesHists[9];
-  int nomSlice = -1;
+  iasInEtaSlices->Draw();
+  TH1* ihInEtaSlicesHists[9];
+  TH1* iasInEtaSlicesHists[9];
+  int etaSlice = -1;
   int colorCounter = 1;
   int markerStyleCounter = 23;
-  for(int nom = nomMin_; nom < nomMax_; nom+=2)
+  for(float lowerEta = etaMin_; lowerEta < etaMax_; lowerEta+=0.2)
   {
-    ++nomSlice;
-    if(nomSlice % 2 != 0) continue;
-    //std::cout << "Doing slice: " << nomSlice+etaSlice << std::endl;
-    std::string nomCutString = "(rooVarNoMias==";
-    nomCutString+=intToString(nom);
-    nomCutString+="||rooVarNoMias==";
-    nomCutString+=intToString(nom+1);
-    nomCutString+=")";
-    std::string thisCut = nomCutString;
-    RooDataSet* nomPtSBCutDataSet = (RooDataSet*) ptSidebandDataSet->reduce(thisCut.c_str());
+    ++etaSlice;
+    if(etaSlice % 2 != 0) continue;
+    std::string etaCutString = "(rooVarEta>";
+    etaCutString+=floatToString(lowerEta);
+    etaCutString+="&&rooVarEta<";
+    std::string upperEtaLimit;
+    upperEtaLimit=floatToString(lowerEta+0.2);
+    etaCutString+=upperEtaLimit;
+    etaCutString+=")||(rooVarEta>-";
+    etaCutString+=upperEtaLimit;
+    etaCutString+="&&rooVarEta<-";
+    etaCutString+=floatToString(lowerEta);
+    etaCutString+=")";
+
+    std::string thisCut = etaCutString;
+    RooDataSet* etaIasSBCutDataSet = (RooDataSet*) iasSidebandDataSet->reduce(thisCut.c_str());
     //std::cout << "cut: " << thisCut << " entries: " << nomEtaPtSBCutDataSet->numEntries() << std::endl;
-    ihInNoMSlicesHists[nomSlice] = nomPtSBCutDataSet->createHistogram(("ihHistNoM"+intToString(nom)).c_str(),rooVarIh);
-    iasInNoMSlicesHists[nomSlice] = nomPtSBCutDataSet->createHistogram(("iasHistNoM"+intToString(nom)).c_str(),rooVarIas);
+    ihInEtaSlicesHists[etaSlice] = etaIasSBCutDataSet->createHistogram(
+        ("ihHistEta"+floatToString(lowerEta)).c_str(),rooVarIh);
+    iasInEtaSlicesHists[etaSlice] = etaIasSBCutDataSet->createHistogram(
+        ("iasHistEta"+floatToString(lowerEta)).c_str(),rooVarIas);
     if(colorCounter==5)
       colorCounter+=2;
-    setHistAttributes(ihInNoMSlicesHists[nomSlice],colorCounter,markerStyleCounter);
-    setHistAttributes(iasInNoMSlicesHists[nomSlice],colorCounter,markerStyleCounter);
+    setHistAttributes(ihInEtaSlicesHists[etaSlice],colorCounter,markerStyleCounter);
+    setHistAttributes(iasInEtaSlicesHists[etaSlice],colorCounter,markerStyleCounter);
     c1.cd();
-    ihInNoMSlicesHists[nomSlice]->DrawNormalized("same");
+    ihInEtaSlicesHists[etaSlice]->DrawNormalized("same");
     c2.cd();
-    iasInNoMSlicesHists[nomSlice]->DrawNormalized("same");
-    std::string legString = "NoM ";
-    legString+=intToString(nom);
-    legString+="-";
-    legString+=intToString(nom+1);
-    ihLegend->AddEntry(ihInNoMSlicesHists[nomSlice],legString.c_str(),"p");
-    iasLegend->AddEntry(iasInNoMSlicesHists[nomSlice],legString.c_str(),"p");
-    delete nomPtSBCutDataSet;
+    iasInEtaSlicesHists[etaSlice]->DrawNormalized("same");
+    std::string legString = floatToString(lowerEta);
+    legString+=" < |#eta| < ";
+    legString+=floatToString(lowerEta+0.2);
+    ihLegend->AddEntry(ihInEtaSlicesHists[etaSlice],legString.c_str(),"p");
+    iasLegend->AddEntry(iasInEtaSlicesHists[etaSlice],legString.c_str(),"p");
+    delete etaIasSBCutDataSet;
     ++colorCounter;
     markerStyleCounter--;
   }
@@ -226,33 +308,17 @@ rooDatasetPlots()
   ihLegend->SetBorderSize(0);
   ihLegend->Draw("same");
   c1.SetLogy();
-  ihInNoMSlices->GetXaxis()->SetRangeUser(0.6,5.2);
-  ihInNoMSlices->GetYaxis()->SetRangeUser(1e-6,5e-1);
-  c1.Print("ihInNoMSlices.png");
-  c1.Print("ihInNoMSlices.eps");
-
+  ihInEtaSlices->GetXaxis()->SetRangeUser(0.6,5.2);
+  ihInEtaSlices->GetYaxis()->SetRangeUser(1e-6,5e-1);
+  c1.Print("ihInEtaSlices.png");
+  c1.Print("ihInEtaSlices.eps");
   c2.cd();
   iasLegend->SetBorderSize(0);
   iasLegend->Draw("same");
   c2.SetLogy();
-  iasInNoMSlices->GetYaxis()->SetRangeUser(1e-6,5e-1);
-  c2.Print("iasInNoMSlices.png");
-  c2.Print("ihInNoMSlices.eps");
+  iasInEtaSlices->GetXaxis()->SetRangeUser(0,0.6);
+  iasInEtaSlices->GetYaxis()->SetRangeUser(5e-3,5e-1);
+  c2.Print("iasInEtaSlices.png");
+  c2.Print("iasInEtaSlices.eps");
 
-    //int etaSlice = 0;
-    //for(float lowerEta = etaMin_; lowerEta < etaMax_; lowerEta+=0.2)
-    //{
-    //  etaSlice++;
-    //std::string etaCutString = "&&(rooVarEta>";
-    //etaCutString+=floatToString(lowerEta);
-    //etaCutString+="&&rooVarEta<";
-    //std::string upperEtaLimit;
-    //upperEtaLimit=floatToString(lowerEta+0.2);
-    //etaCutString+=upperEtaLimit;
-    //etaCutString+=")||(rooVarEta>-";
-    //etaCutString+=upperEtaLimit;
-    //etaCutString+="&&rooVarEta<-";
-    //etaCutString+=floatToString(lowerEta);
-    //etaCutString+=")";
-    //}
 }
