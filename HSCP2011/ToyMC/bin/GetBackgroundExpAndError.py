@@ -7,8 +7,8 @@ import glob
 import math
 from subprocess import call
 
-BaseDir1 = "FARM_moreModels_cutPt50GeV_Feb21/logs/makeScaledPredictions/"
-BaseDir2 = "FARM_moreModels_usePtOver50GeVOnly_Feb21/logs/makeScaledPredictions/"
+BaseDir2 = "FARM_moreModels_cutPt50GeV_Feb21/logs/makeScaledPredictions/"
+BaseDir1 = "FARM_moreModels_usePtOver50GeVOnly_Feb22/logs/makeScaledPredictions/"
 
 def GetModelName(fileName):
   massCutPos = fileName.find("_massCut")
@@ -34,38 +34,47 @@ def GetIasCut(filePath):
   return line[line.find("(")+1:len(line)-2]
 
 def GetBackExp(filePath):
-  for line in open(BaseDir+file):
+  for line in open(filePath):
     if "found" in line:
       break
   lineSplit = line.split(' ')
-  return float(lineSplit[1])
+  if "found" in line:
+    return float(lineSplit[1])
+  else:
+    return 0
 
 def GetBackExpError(filePath):
-  for line in open(BaseDir+file):
+  for line in open(filePath):
     if "found" in line:
       break
   lineSplit = line.split(' ')
-  return float(lineSplit[3])
+  if "found" in line:
+    return float(lineSplit[3])
+  else:
+    return 0
 
 def GetSigEff(filePath):
-  for line in open(BaseDir+file):
+  for line in open(filePath):
     if "event level" in line:
       break
   lineSplit = line.split(' ')
-  return float(lineSplit[0])
+  if "event level" in line:
+    return float(lineSplit[0])
+  else:
+    return 0
 
 
 
-fileList = os.listdir(BaseDir1)
+fileList1 = os.listdir(BaseDir1)
 print
 print 'Model         PtCut   IasCut     MassCut    BackExpOverIas    SignalEff'
 print
-for file in fileList:
+for file in fileList1:
   if ".out" in file:
-    backExp = GetBackExp(BaseDir+file)
-    backExpError = GetBackExpError(BaseDir+file)
-    iasCut  = GetIasCut(BaseDir+file)
-    sigEff = GetSigEff(BaseDir+file)
+    backExp = GetBackExp(BaseDir1+file)
+    backExpError = GetBackExpError(BaseDir1+file)
+    iasCut  = GetIasCut(BaseDir1+file)
+    sigEff = GetSigEff(BaseDir1+file)
     massCut = GetMassCut(file)
     ptCut = GetPtCut(file)
     signalName = GetModelName(file)
@@ -76,16 +85,16 @@ for file in fileList:
     print printString
 
 
-fileList = os.listdir(BaseDir2)
+fileList2 = os.listdir(BaseDir2)
 print
 print 'Model         PtCut   IasCut     MassCut    BackExpOverIas    SignalEff'
 print
-for file in fileList:
+for file in fileList2:
   if ".out" in file:
-    backExp = GetBackExp(BaseDir+file)
-    backExpError = GetBackExpError(BaseDir+file)
-    iasCut  = GetIasCut(BaseDir+file)
-    sigEff = GetSigEff(BaseDir+file)
+    backExp = GetBackExp(BaseDir2+file)
+    backExpError = GetBackExpError(BaseDir2+file)
+    iasCut  = GetIasCut(BaseDir2+file)
+    sigEff = GetSigEff(BaseDir2+file)
     massCut = GetMassCut(file)
     ptCut = GetPtCut(file)
     signalName = GetModelName(file)
@@ -96,23 +105,46 @@ for file in fileList:
     print printString
 
 # Now do ratios/error
-fileList = os.listdir(BaseDir1)
 print
-print 'Model         BackExp1/BackExp2        SigEff1/SigEff2'
+print 'Model           BackExp1/BackExp2    SigEff1/SigEff2'
 print
-for file in fileList:
+for i,file in enumerate(fileList1):
   if ".out" in file:
     backExp1 = GetBackExp(BaseDir1+file)
     backExpError1 = GetBackExpError(BaseDir1+file)
     sigEff1 = GetSigEff(BaseDir1+file)
-    backExp2 = GetBackExp(BaseDir2+file)
-    backExpError2 = GetBackExpError(BaseDir2+file)
-    sigEff2 = GetSigEff(BaseDir2+file)
-    backExpErrorComb = math.sqrt(math.pow(backExpError1/backExp1,2)+math.pow(backExpError2/backExp2,2))
-    backExpErrorComb*=(backExp1/backExp2)
-    signalName = GetModelName(file)
-    printString = string.ljust(signalName,15)
-    printString+=string.center(str(round(backExp1/backExp2,4))+' +/- '+str(round(backExpErrorComb,4)),20)
-    printString+=string.center(str(round(sigEff1/sigEff2,4)),10)
+    signalName1 = GetModelName(file)
+    for i,file2 in enumerate(fileList2):
+      if ".out" in file2:
+        signalName2 = GetModelName(BaseDir2+file2)
+        if signalName2==signalName1:
+          break
+    if signalName1 != signalName2:
+      print 'Error: signalNames do not match: '+signalName1+' '+signalName2
+      continue
+    backExp2 = GetBackExp(BaseDir2+file2)
+    backExpError2 = GetBackExpError(BaseDir2+file2)
+    sigEff2 = GetSigEff(BaseDir2+file2)
+    if backExp1==0:
+      if backExp2==0:
+        backExpErrorComb = 0
+      else:
+        backExpErrorComb = backExpError2/backExp2
+    else:
+      if backExp2==0:
+        backExpErrorComb = backExpError1/backExp1
+      else:
+        backExpErrorComb = math.sqrt(math.pow(backExpError1/backExp1,2)+math.pow(backExpError2/backExp2,2))
+    if backExp2 != 0:
+      backExpErrorComb*=(backExp1/backExp2)
+    printString = string.ljust(signalName1,15)
+    if backExp2 != 0:
+      printString+=string.center(str(round(backExp1/backExp2,4))+' +/- '+str(round(backExpErrorComb,4)),20)
+    else:
+      printString+=string.center("0",2)+' +/- '+str(0)
+    if sigEff2 != 0:
+      printString+=string.center(str(round(sigEff1/sigEff2,4)),10)
+    else:
+      printString+=string.center("0",10)
     print printString
 
