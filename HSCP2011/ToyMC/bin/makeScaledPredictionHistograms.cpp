@@ -628,11 +628,30 @@ int main(int argc, char ** argv)
     //  endl;
     //backgroundTracksOverIasCutErrorSqr+=
     //  pow(numBackgroundTracksInDRegionPassingMassCutThisSlice*sqrt(relativeSliceErrorSqr),2);
-    double sliceError = sqrt(totalBkOverIas);
+    //double sliceError = sqrt(totalBkOverIas);
+    //if(bgEntriesInARegionThisSlice > 0)
+    //  backgroundTracksOverIasCutErrorSqr+=
+    //    pow(sliceError*averageCTracksAboveMassCut*bgEntriesInCRegionThisSlice/
+    //        (bgEntriesInARegionThisSlice*cRegionNoMSummedEntries),2);
+    // include c tracks passing mass cut error
+    double sliceError = 0;
+    if(totalBkOverIas > 0)
+      sliceError+= 1/totalBkOverIas;
+    if(averageCTracksAboveMassCut > 0)
+      sliceError+= 1/averageCTracksAboveMassCut;
+    if(bgEntriesInCRegionThisSlice > 0)
+      sliceError+= 1/bgEntriesInCRegionThisSlice;
+    if(bgEntriesInARegionThisSlice > 0)
+      sliceError+= 1/bgEntriesInARegionThisSlice;
+    if(cRegionNoMSummedEntries > 0)
+      sliceError+= 1/cRegionNoMSummedEntries;
+    // take sqrt
+    sliceError = sqrt(sliceError);
     if(bgEntriesInARegionThisSlice > 0)
       backgroundTracksOverIasCutErrorSqr+=
-        pow(sliceError*averageCTracksAboveMassCut*bgEntriesInCRegionThisSlice/
+        pow(sliceError*totalBkOverIas*averageCTracksAboveMassCut*bgEntriesInCRegionThisSlice/
             (bgEntriesInARegionThisSlice*cRegionNoMSummedEntries),2);
+    // central value
     if(bgEntriesInARegionThisSlice > 0)
       backgroundTracksOverIasCut+=
         totalBkOverIas*averageCTracksAboveMassCut*bgEntriesInCRegionThisSlice/
@@ -945,5 +964,7 @@ int main(int argc, char ** argv)
   //backgroundPredictionRootFile->Close();
   //signalRootFile->Close();
 
+  if(backgroundAllNoMAllEtaUnrolledHist->Integral() <= 0)
+    return -1;
 }
 
