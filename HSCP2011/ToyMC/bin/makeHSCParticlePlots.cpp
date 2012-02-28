@@ -26,6 +26,7 @@
 #include "TSystem.h"
 #include "FWCore/FWLite/interface/AutoLibraryLoader.h"
 
+#include <iomanip>
 #include <vector>
 #include <string>
 
@@ -63,182 +64,6 @@ namespace edm     {class TriggerResults; class TriggerResultsByName; class Input
 
 #include "commonFunctions.h"
 
-// struct to hold before preselection plots
-struct PlotStruct
-{
-  TH1F* pDistributionHist;
-  TH1F* ptDistributionHist;
-  TH2F* pVsIhHist;
-  TH2F* pVsIasHist;
-  TH2F* trackEtaVsPHist;
-  TH1F* iasNoMHist;
-  TH2F* pVsIasToFSBHist;
-  TH2F* pVsIhToFSBHist;
-  TH2F* ihVsIasHist;
-  TH2F* pVsNoMHist;
-  TH2F* pVsNoMCentralEtaHist;
-  TH2F* pVsNoMEtaSlice1Hist;
-  TH2F* pVsNoMEtaSlice2Hist;
-  TH2F* pVsNoMEtaSlice3Hist;
-  TH2F* pVsNoMEtaSlice4Hist;
-  TH2F* pVsNoMEtaSlice5Hist;
-  TH2F* pVsNoMEtaSlice6Hist;
-  TH2F* pVsNoMEtaSlice7Hist;
-  TH2F* pVsNoMEtaSlice8Hist;
-  TH2F* nohVsNoMHist;
-  TH2F* nohVsNoMCentralEtaHist;
-  TH2F* pVsNoHHist;
-  TH2F* pVsNoHCentralEtaHist;
-  TH2F* pVsRelPerrHist;
-  TH2F* pVsRelPerrCentralEtaHist;
-
-  PlotStruct(fwlite::TFileService& fs, std::string nameString, std::string titleString)
-  {
-    std::string dirName = "Plots";
-    dirName+=nameString;
-    TFileDirectory plotsDir = fs.mkdir(dirName.c_str());
-    // p
-    std::string pName = "pDistribution";
-    pName+=nameString;
-    std::string pTitle = "P ";
-    pTitle+=titleString;
-    pTitle+=";GeV";
-    pDistributionHist = plotsDir.make<TH1F>(pName.c_str(),pTitle.c_str(),200,0,2000);
-    pDistributionHist->Sumw2();
-    // pt
-    std::string ptName = "ptDistribution";
-    ptName+=nameString;
-    std::string ptTitle = "Pt ";
-    ptTitle+=titleString;
-    ptTitle+=";GeV";
-    ptDistributionHist = plotsDir.make<TH1F>(ptName.c_str(),ptTitle.c_str(),200,0,2000);
-    ptDistributionHist->Sumw2();
-    // p vs Ih
-    std::string pVsIhName = "trackPvsIh";
-    pVsIhName+=nameString;
-    std::string pVsIhTitle="Track P vs ih ";
-    pVsIhTitle+=titleString;
-    pVsIhTitle+=";MeV/cm;GeV";
-    pVsIhHist = plotsDir.make<TH2F>(pVsIhName.c_str(),pVsIhTitle.c_str(),400,0,10,100,0,1000);
-    pVsIhHist->Sumw2();
-    // p vs Ias
-    std::string pVsIasName = "pVsIas";
-    pVsIasName+=nameString;
-    std::string pVsIasTitle = "P vs Ias ";
-    pVsIasTitle+=titleString;
-    pVsIasTitle+=";;GeV";
-    pVsIasHist = plotsDir.make<TH2F>(pVsIasName.c_str(),pVsIasTitle.c_str(),20,0,1,40,0,1000);
-    pVsIasHist->Sumw2();
-    // eta vs p
-    std::string etaVsPName = "trackEtaVsP";
-    etaVsPName+=nameString;
-    std::string etaVsPTitle = "Track #eta vs. p ";
-    etaVsPTitle+=titleString;
-    etaVsPTitle+=";GeV";
-    trackEtaVsPHist = plotsDir.make<TH2F>(etaVsPName.c_str(),etaVsPTitle.c_str(),4000,0,2000,24,0,2.4);
-    trackEtaVsPHist->Sumw2();
-    // ias NoM
-    std::string iasNoMName = "iasNoM";
-    iasNoMName+=nameString;
-    std::string iasNoMTitle = "NoM (ias) ";
-    iasNoMTitle+=titleString;
-    iasNoMHist = plotsDir.make<TH1F>(iasNoMName.c_str(),iasNoMTitle.c_str(),50,0,50);
-    // ToF SB - p vs Ias
-    std::string pVsIasToFSBName = "trackPvsIasToFSB";
-    pVsIasToFSBName+=nameString;
-    std::string pVsIasToFSBTitle="Track P vs ias (ToF SB: #beta>1.075) ";
-    pVsIasToFSBTitle+=titleString;
-    pVsIasToFSBTitle+=";;GeV";
-    pVsIasToFSBHist = plotsDir.make<TH2F>(pVsIasToFSBName.c_str(),pVsIasToFSBTitle.c_str(),400,0,1,100,0,1000);
-    pVsIasToFSBHist->Sumw2();
-    // ToF SB - p vs Ih
-    std::string pVsIhToFSBName = "trackPvsIhToFSB";
-    pVsIhToFSBName+=nameString;
-    std::string pVsIhToFSBTitle="Track P vs ih (ToF SB: #beta>1.075) ";
-    pVsIhToFSBTitle+=titleString;
-    pVsIhToFSBTitle+=";MeV/cm;GeV";
-    pVsIhToFSBHist = plotsDir.make<TH2F>(pVsIhToFSBName.c_str(),pVsIhToFSBTitle.c_str(),400,0,10,100,0,1000);
-    pVsIhToFSBHist->Sumw2();
-    // Ih vs Ias
-    std::string ihVsIasName = "ihVsIas";
-    ihVsIasName+=nameString;
-    std::string ihVsIasTitle = "Ih vs. Ias ";
-    ihVsIasTitle+=titleString;
-    ihVsIasTitle+=";MeV/cm";
-    ihVsIasHist = plotsDir.make<TH2F>(ihVsIasName.c_str(),ihVsIasTitle.c_str(),400,0,1,400,0,10);
-    ihVsIasHist->Sumw2();
-    // p vs NoM
-    std::string pVsNoMName = "pVsNoM";
-    pVsNoMName+=nameString;
-    std::string pVsNoMTitle = "Track P vs. NoM (Ias) ";
-    pVsNoMTitle+=titleString;
-    pVsNoMTitle+=";;GeV";
-    pVsNoMHist = plotsDir.make<TH2F>(pVsNoMName.c_str(),pVsNoMTitle.c_str(),50,0,50,100,0,1000);
-    // p vs NoM, central eta only
-    std::string pVsNoMCentralEtaName = "pVsNoMCentralEta";
-    pVsNoMCentralEtaName+=nameString;
-    std::string pVsNoMCentralEtaTitle = "Track P vs. NoM (Ias) ";
-    pVsNoMCentralEtaTitle+=titleString;
-    pVsNoMCentralEtaTitle+=";;GeV";
-    pVsNoMCentralEtaHist = plotsDir.make<TH2F>(pVsNoMCentralEtaName.c_str(),pVsNoMCentralEtaTitle.c_str(),50,0,50,100,0,1000);
-    // p vs NoM, eta slices
-    std::string pVsNoMEtaSliceBaseName = "pVsNoM";
-    pVsNoMEtaSliceBaseName+=nameString;
-    std::string pVsNoMEtaSliceBaseTitle = "Track P vs. NoM (Ias)";
-    pVsNoMEtaSliceBaseTitle+=titleString;
-
-    pVsNoMEtaSlice1Hist = plotsDir.make<TH2F>((pVsNoMEtaSliceBaseName+"EtaSlice1").c_str(),(pVsNoMEtaSliceBaseTitle+" |#eta| < 0.2;;GeV").c_str(),50,0,50,100,0,1000);
-    pVsNoMEtaSlice2Hist = plotsDir.make<TH2F>((pVsNoMEtaSliceBaseName+"EtaSlice2").c_str(),(pVsNoMEtaSliceBaseTitle+" 0.2 < |#eta| < 0.4;;GeV").c_str(),50,0,50,100,0,1000);
-    pVsNoMEtaSlice3Hist = plotsDir.make<TH2F>((pVsNoMEtaSliceBaseName+"EtaSlice3").c_str(),(pVsNoMEtaSliceBaseTitle+" 0.4 < |#eta| < 0.6;;GeV").c_str(),50,0,50,100,0,1000);
-    pVsNoMEtaSlice4Hist = plotsDir.make<TH2F>((pVsNoMEtaSliceBaseName+"EtaSlice4").c_str(),(pVsNoMEtaSliceBaseTitle+" 0.6 < |#eta| < 0.8;;GeV").c_str(),50,0,50,100,0,1000);
-    pVsNoMEtaSlice5Hist = plotsDir.make<TH2F>((pVsNoMEtaSliceBaseName+"EtaSlice5").c_str(),(pVsNoMEtaSliceBaseTitle+" 0.8 < |#eta| < 1.0;;GeV").c_str(),50,0,50,100,0,1000);
-    pVsNoMEtaSlice6Hist = plotsDir.make<TH2F>((pVsNoMEtaSliceBaseName+"EtaSlice6").c_str(),(pVsNoMEtaSliceBaseTitle+" 1.0 < |#eta| < 1.2;;GeV").c_str(),50,0,50,100,0,1000);
-    pVsNoMEtaSlice7Hist = plotsDir.make<TH2F>((pVsNoMEtaSliceBaseName+"EtaSlice7").c_str(),(pVsNoMEtaSliceBaseTitle+" 1.2 < |#eta| < 1.4;;GeV").c_str(),50,0,50,100,0,1000);
-    pVsNoMEtaSlice8Hist = plotsDir.make<TH2F>((pVsNoMEtaSliceBaseName+"EtaSlice8").c_str(),(pVsNoMEtaSliceBaseTitle+" 1.4 < |#eta| < 1.6;;GeV").c_str(),50,0,50,100,0,1000);
-    // NoH vs NoM
-    std::string nohVsNoMName = "nohVsNoM";
-    nohVsNoMName+=nameString;
-    std::string nohVsNoMTitle = "Number of hits vs. NoM (Ias) ";
-    nohVsNoMTitle+=titleString;
-    nohVsNoMTitle+=";NoM;NoH";
-    nohVsNoMHist = plotsDir.make<TH2F>(nohVsNoMName.c_str(),nohVsNoMTitle.c_str(),50,0,50,50,0,50);
-    // NoH vs NoM, central eta
-    std::string nohVsNoMCentralName = "nohVsNoMCentral";
-    nohVsNoMCentralName+=nameString;
-    std::string nohVsNoMCentralTitle = "Number of hits vs. NoM (Ias) ";
-    nohVsNoMCentralTitle+=titleString;
-    nohVsNoMCentralTitle+=", |#eta| < 0.9;NoM;NoH";
-    nohVsNoMCentralEtaHist = plotsDir.make<TH2F>(nohVsNoMCentralName.c_str(),nohVsNoMCentralTitle.c_str(),50,0,50,50,0,50);
-    // p vs NoH
-    std::string pVsNoHName = "pVsNoH";
-    pVsNoHName+=nameString;
-    std::string pVsNoHTitle = "Track P vs. NoH ";
-    pVsNoHTitle+=titleString;
-    pVsNoHTitle+=";;GeV";
-    pVsNoHHist = plotsDir.make<TH2F>(pVsNoHName.c_str(),pVsNoHTitle.c_str(),50,0,50,100,0,1000);
-    // p vs NoH, central eta only
-    std::string pVsNoHCentralEtaName = "pVsNoHCentralEta";
-    pVsNoHCentralEtaName+=nameString;
-    std::string pVsNoHCentralEtaTitle = "Track P vs. NoH ";
-    pVsNoHCentralEtaTitle+=titleString;
-    pVsNoHCentralEtaTitle+=", |#eta| < 0.9;;GeV";
-    pVsNoHCentralEtaHist = plotsDir.make<TH2F>(pVsNoHCentralEtaName.c_str(),pVsNoHCentralEtaTitle.c_str(),50,0,50,100,0,1000);
-    // p vs relPerr
-    std::string pVsRelPerrName = "pVsRelPerr";
-    pVsRelPerrName+=nameString;
-    std::string pVsRelPerrTitle = "Track P vs. #Deltap/p ";
-    pVsRelPerrTitle+=titleString;
-    pVsRelPerrTitle+=";;GeV";
-    pVsRelPerrHist = plotsDir.make<TH2F>(pVsRelPerrName.c_str(),pVsRelPerrTitle.c_str(),100,0,1,100,0,1000);
-    // p vs relPerr, central eta only
-    std::string pVsRelPerrCentralEtaName = "pVsRelPerrCentralEta";
-    pVsRelPerrCentralEtaName+=nameString;
-    std::string pVsRelPerrCentralEtaTitle = "Track P vs. #Deltap/p ";
-    pVsRelPerrCentralEtaTitle+=titleString;
-    pVsRelPerrCentralEtaTitle+=", |#eta| < 0.9;;GeV";
-    pVsRelPerrCentralEtaHist = plotsDir.make<TH2F>(pVsRelPerrCentralEtaName.c_str(),pVsRelPerrCentralEtaTitle.c_str(),100,0,1,100,0,1000);
-  }
-};
 
 // adapted from AnalysisStep234.C (GetGenHSCPBeta)
 int getNumGenHSCP(const std::vector<reco::GenParticle>& genColl, bool onlyCharged)
@@ -537,7 +362,7 @@ int main(int argc, char ** argv)
         double lumiSection = ev.id().luminosityBlock();
         double runNumber = ev.id().run();
         double eventNumber = ev.id().event();
-        // ignore real data taken with tigher RPC trigger (355.227/pb) -- from Analysis_Samples.h
+        // ignore real data taken with tighter RPC trigger (355.227/pb) -- from Analysis_Samples.h
         //if(!isMC_ && runNumber < 165970)
         //  continue;
 
@@ -625,7 +450,7 @@ int main(int argc, char ** argv)
           }
 
           // apply preselections, not considering ToF
-          if(!passesPreselection(hscp,dedxSObj,dedxMObj,tof,dttof,csctof,ev,false))
+          if(!passesPreselection(hscp,dedxSObj,dedxMObj,tof,dttof,csctof,ev,false,beforePreselectionPlots))
             continue;
 
           numTracksPassingPreselection++;
@@ -825,9 +650,11 @@ int main(int argc, char ** argv)
   std::cout << "Added " << rooDataSetCandidates->numEntries() << " tracks into the dataset." << std::endl;
 
 
-  // testing
+  double totalTracks = beforePreselectionPlots.tracksVsPreselectionsHist->GetBinContent(1);
+
   if(isMC_)
   {
+    totalTracks = numGenHSCPTracks;
     std::cout << std::endl;
     std::cout << "Number of initial MC events: " << numGenHSCPEvents
       << std::endl;
@@ -852,8 +679,43 @@ int main(int argc, char ** argv)
       " eff = " << numEventsWithTwoHSCPSeenMuonTrigger/(float)numEventsWithTwoHSCPGen << std::endl <<
       "\tnum events with 2 HSCP seen (MET Trigger) : " << numEventsWithTwoHSCPSeenMetTrigger <<
       " eff = " << numEventsWithTwoHSCPSeenMetTrigger/(float)numEventsWithTwoHSCPGen << std::endl;
-
   }
+  double triggeredTracks = beforePreselectionPlots.tracksVsPreselectionsHist->GetBinContent(1);
+  double nomIhTracks = beforePreselectionPlots.tracksVsPreselectionsHist->GetBinContent(2);
+  double nohTracks = beforePreselectionPlots.tracksVsPreselectionsHist->GetBinContent(3);
+  double validFracTracks = beforePreselectionPlots.tracksVsPreselectionsHist->GetBinContent(4);
+  double pixelHitTracks = beforePreselectionPlots.tracksVsPreselectionsHist->GetBinContent(5);
+  double nomIasTracks = beforePreselectionPlots.tracksVsPreselectionsHist->GetBinContent(6);
+  double qualityMaskTracks = beforePreselectionPlots.tracksVsPreselectionsHist->GetBinContent(7);
+  double chi2NdfTracks = beforePreselectionPlots.tracksVsPreselectionsHist->GetBinContent(8);
+  double etaTracks = beforePreselectionPlots.tracksVsPreselectionsHist->GetBinContent(9);
+  double ptErrTracks = beforePreselectionPlots.tracksVsPreselectionsHist->GetBinContent(10);
+  double v3dTracks = beforePreselectionPlots.tracksVsPreselectionsHist->GetBinContent(11);
+  double trackIsoTracks = beforePreselectionPlots.tracksVsPreselectionsHist->GetBinContent(12);
+  double caloIsoTracks = beforePreselectionPlots.tracksVsPreselectionsHist->GetBinContent(13);
+  std::cout << endl << endl;
+  // preselection table
+  std::cout << "Table of preselections" << std::endl;
+  std::cout << "-------------------------------------------" << std::endl;
+  std::cout << setw(10) << "Cut " << setw(10) << "Number" << setw(15) << "Percentage" << std::endl;
+  std::cout << "-------------------------------------------" << std::endl;
+  if(isMC_)
+    std::cout << setw(10) << "Gen " << setw(10) << totalTracks << setw(15) << "100%" << std::endl;
+  std::cout << setw(10) << "Trigger " << setw(10) << triggeredTracks << setw(15) << 100*triggeredTracks/totalTracks << std::endl;
+  std::cout << setw(10) << "NoM Ih " << setw(10) << nomIhTracks << setw(15) << 100*nomIhTracks/triggeredTracks << std::endl;
+  std::cout << setw(10) << "NoH " << setw(10) << nohTracks << setw(15) << 100*nohTracks/nomIhTracks << std::endl;
+  std::cout << setw(10) << "validFrac " << setw(10) << validFracTracks << setw(15) << 100*validFracTracks/nohTracks << std::endl;
+  std::cout << setw(10) << "pixelHit " << setw(10) << pixelHitTracks << setw(15) << 100*pixelHitTracks/validFracTracks << std::endl;
+  std::cout << setw(10) << "NoM Ias " << setw(10) << nomIasTracks << setw(15) << 100*nomIasTracks/pixelHitTracks << std::endl;
+  std::cout << setw(10) << "QualMask " << setw(10) << qualityMaskTracks << setw(15) << 100*qualityMaskTracks/nomIasTracks << std::endl;
+  std::cout << setw(10) << "Chi2Ndf " << setw(10) << chi2NdfTracks << setw(15) << 100*chi2NdfTracks/qualityMaskTracks << std::endl;
+  std::cout << setw(10) << "Eta " << setw(10) << etaTracks << setw(15) << 100*etaTracks/chi2NdfTracks << std::endl;
+  std::cout << setw(10) << "PtErr " << setw(10) << ptErrTracks << setw(15) << 100*ptErrTracks/etaTracks << std::endl;
+  std::cout << setw(10) << "v3D " << setw(10) << v3dTracks << setw(15) << 100*v3dTracks/ptErrTracks << std::endl;
+  std::cout << setw(10) << "trackIso " << setw(10) << trackIsoTracks << setw(15) << 100*trackIsoTracks/v3dTracks << std::endl;
+  std::cout << setw(10) << "caloIso " << setw(10) << caloIsoTracks << setw(15) << 100*caloIsoTracks/trackIsoTracks << std::endl;
+  std::cout << "-------------------------------------------" << std::endl;
+  std::cout << setw(10) << "All " << setw(10) << caloIsoTracks << setw(15) << 100*caloIsoTracks/totalTracks << std::endl;
 
 
 }
