@@ -55,7 +55,7 @@ void setHistAttributes(TH2F* hist, int colorCounter, int markerStyleCounter)
 }
 
 
-int rooDatasetSignalPlots()
+int rooDatasetSignalPlots(bool doIhVsP = false)
 {
 
   cout << "Run using the + option in root, and root 5.32: rooDatasetSignalPlots.C+" << endl;
@@ -224,25 +224,88 @@ int rooDatasetSignalPlots()
     //cout << "Tlegend rows: " << ihLegend->GetNRows() << endl;
   }
 
-  TCanvas t;
-  t.cd();
-  for(int i = 0; i < numModels; i++)
+  if(doIhVsP)
   {
-    if(i==0)
+    TCanvas t;
+    t.cd();
+    for(int i = 0; i < numModels; i++)
     {
-      ihVsPHists[i]->GetXaxis()->SetRangeUser(0,1500);
-      ihVsPHists[i]->Draw();
-    }
-    else
-      ihVsPHists[i]->Draw("same");
+      if(i==0)
+      {
+        ihVsPHists[i]->GetXaxis()->SetRangeUser(0,1500);
+        ihVsPHists[i]->Draw();
+      }
+      else
+        ihVsPHists[i]->Draw("same");
 
-    ihLegend.AddEntry(ihVsPHists[i],signalNames[i].c_str(),"p");
+      ihLegend.AddEntry(ihVsPHists[i],signalNames[i].c_str(),"p");
+    }
+
+    ihLegend.SetBorderSize(0);
+    ihLegend.Draw();
+    t.Print("ihVsP_gluinos.png");
+    t.Print("ihVsP_gluinos.eps");
   }
 
-  ihLegend.SetBorderSize(0);
-  ihLegend.Draw();
-  t.Print("ihVsP_gluinos.png");
+  // mass
+  TH1F* massHists[numModels];
+  TLegend massLegend(0.7,0.7,0.9,0.9);
+  const RooArgSet* argSets[numModels];
+  RooRealVar* ihData[numModels];
+  RooRealVar* pData[numModels];
+  for(int i = 0; i < numModels; i++)
+  {
+    argSets[i] = signalCandidatesEtaCutRooDataSets[i]->get();
+    ihData[i] = (RooRealVar*)argSets[i]->find(rooVarIh.GetName());
+    pData[i] = (RooRealVar*)argSets[i]->find(rooVarP.GetName());
+    massHists[i] = new TH1F(("massHist"+signalNames[i]).c_str(),";Mass [GeV];arbitrary units",200,0,2000);
+    // loop over entries
+    for(int index=0; index < signalCandidatesEtaCutRooDataSets[i]->numEntries(); ++index)
+    {
+      signalCandidatesEtaCutRooDataSets[i]->get(index);
+      float ih = ihData[i]->getVal();
+      float trackP = pData[i]->getVal();
+      float massSqr = (ih-dEdx_c)*pow(trackP,2)/dEdx_k;
+      if(massSqr >= 0)
+        massHists[i]->Fill(sqrt(massSqr));
+    }
+  }
+
+  TCanvas t;
+  t.cd();
+  colorCounter = 1;
+  markerStyleCounter = 23;
+  for(int i = 0; i < numModels; i++)
+  {
+    if(colorCounter==5)
+      colorCounter+=3;
+    if(colorCounter==3)
+      colorCounter++;
+
+    massHists[i]->SetLineColor(colorCounter);
+    //massHists[i]->SetMarkerColor(colorCounter);
+    //massHists[i]->SetMarkerStyle(markerStyleCounter);
+    //massHists[i]->SetMarkerSize(0.5);
+    if(i==0)
+    {
+      massHists[i]->GetYaxis()->SetRangeUser(5e-1,5e3);
+      massHists[i]->GetXaxis()->SetRangeUser(0,1500);
+      massHists[i]->Draw();
+    }
+    else
+      massHists[i]->Draw("same");
+
+    massLegend.AddEntry(massHists[i],signalNames[i].c_str(),"l");
+    ++colorCounter;
+    markerStyleCounter--;
+  }
+
+  massLegend.SetBorderSize(0);
+  massLegend.Draw();
+  t.SetLogy();
+  t.Print("mass_gluinos.png");
   t.Print("ihVsP_gluinos.eps");
+
 
   return 0;
 
