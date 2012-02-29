@@ -362,9 +362,9 @@ int main(int argc, char ** argv)
         double lumiSection = ev.id().luminosityBlock();
         double runNumber = ev.id().run();
         double eventNumber = ev.id().event();
-        // ignore real data taken with tighter RPC trigger (355.227/pb) -- from Analysis_Samples.h
-        //if(!isMC_ && runNumber < 165970)
-        //  continue;
+        //XXX ignore real data taken with tighter RPC trigger (355.227/pb) -- from Analysis_Samples.h
+        if(!isMC_ && runNumber < 165970)
+          continue;
 
         // check trigger
         if(!passesTrigger(ev))
@@ -502,6 +502,12 @@ int main(int argc, char ** argv)
           afterPreselectionPlots.iasNoMHist->Fill(iasNoM);
           afterPreselectionPlots.ihVsIasHist->Fill(ias,ih);
           afterPreselectionPlots.pVsNoMHist->Fill(iasNoM,trackP);
+          float massSqr = (ih-dEdx_c_)*pow(trackP,2)/dEdx_k_;
+          if(massSqr >= 0)
+            afterPreselectionPlots.massHist->Fill(sqrt(massSqr));
+          // fill pt vs ias only for ABC regions
+          if(!(ias > 0.1 && trackPt > 50))
+            afterPreselectionPlots.ptVsIasHist->Fill(ias,trackPt);
           if(fabs(trackEta) < 0.9)
             afterPreselectionPlots.pVsNoMCentralEtaHist->Fill(iasNoM,trackP);
           if(fabs(trackEta) < 0.2)
@@ -702,6 +708,7 @@ int main(int argc, char ** argv)
   if(isMC_)
     std::cout << setw(10) << "Gen " << setw(10) << totalTracks << setw(15) << "100%" << std::endl;
   std::cout << setw(10) << "Trigger " << setw(10) << triggeredTracks << setw(15) << 100*triggeredTracks/totalTracks << std::endl;
+  std::cout << "-------------------------------------------" << std::endl;
   std::cout << setw(10) << "NoM Ih " << setw(10) << nomIhTracks << setw(15) << 100*nomIhTracks/triggeredTracks << std::endl;
   std::cout << setw(10) << "NoH " << setw(10) << nohTracks << setw(15) << 100*nohTracks/nomIhTracks << std::endl;
   std::cout << setw(10) << "validFrac " << setw(10) << validFracTracks << setw(15) << 100*validFracTracks/nohTracks << std::endl;
@@ -715,7 +722,7 @@ int main(int argc, char ** argv)
   std::cout << setw(10) << "trackIso " << setw(10) << trackIsoTracks << setw(15) << 100*trackIsoTracks/v3dTracks << std::endl;
   std::cout << setw(10) << "caloIso " << setw(10) << caloIsoTracks << setw(15) << 100*caloIsoTracks/trackIsoTracks << std::endl;
   std::cout << "-------------------------------------------" << std::endl;
-  std::cout << setw(10) << "All " << setw(10) << caloIsoTracks << setw(15) << 100*caloIsoTracks/totalTracks << std::endl;
+  std::cout << setw(10) << "All " << setw(10) << caloIsoTracks << setw(15) << 100*caloIsoTracks/triggeredTracks << std::endl;
 
 
 }

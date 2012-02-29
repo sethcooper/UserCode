@@ -32,10 +32,13 @@ void setBinLabelsPreselectionPlot(TH1F* hist)
 // struct to hold before preselection plots
 struct PlotStruct
 {
+  float pUpperLimit;
+  float ihUpperLimit;
   TH1F* pDistributionHist;
   TH1F* ptDistributionHist;
   TH2F* pVsIhHist;
   TH2F* pVsIasHist;
+  TH2F* ptVsIasHist;
   TH2F* trackEtaVsPHist;
   TH1F* iasNoMHist;
   TH2F* pVsIasToFSBHist;
@@ -58,9 +61,12 @@ struct PlotStruct
   TH2F* pVsRelPerrHist;
   TH2F* pVsRelPerrCentralEtaHist;
   TH1F* tracksVsPreselectionsHist;
+  TH1F* massHist;
 
   PlotStruct(fwlite::TFileService& fs, std::string nameString, std::string titleString)
   {
+    pUpperLimit = 2000.0; // GeV
+    ihUpperLimit = 20; // MeV/cm  std::string dirName = "Plots";
     std::string dirName = "Plots";
     dirName+=nameString;
     TFileDirectory plotsDir = fs.mkdir(dirName.c_str());
@@ -70,7 +76,7 @@ struct PlotStruct
     std::string pTitle = "P ";
     pTitle+=titleString;
     pTitle+=";GeV";
-    pDistributionHist = plotsDir.make<TH1F>(pName.c_str(),pTitle.c_str(),200,0,2000);
+    pDistributionHist = plotsDir.make<TH1F>(pName.c_str(),pTitle.c_str(),200,0,pUpperLimit);
     pDistributionHist->Sumw2();
     // pt
     std::string ptName = "ptDistribution";
@@ -78,7 +84,7 @@ struct PlotStruct
     std::string ptTitle = "Pt ";
     ptTitle+=titleString;
     ptTitle+=";GeV";
-    ptDistributionHist = plotsDir.make<TH1F>(ptName.c_str(),ptTitle.c_str(),200,0,2000);
+    ptDistributionHist = plotsDir.make<TH1F>(ptName.c_str(),ptTitle.c_str(),200,0,pUpperLimit);
     ptDistributionHist->Sumw2();
     // p vs Ih
     std::string pVsIhName = "trackPvsIh";
@@ -86,7 +92,7 @@ struct PlotStruct
     std::string pVsIhTitle="Track P vs ih ";
     pVsIhTitle+=titleString;
     pVsIhTitle+=";MeV/cm;GeV";
-    pVsIhHist = plotsDir.make<TH2F>(pVsIhName.c_str(),pVsIhTitle.c_str(),400,0,10,100,0,1000);
+    pVsIhHist = plotsDir.make<TH2F>(pVsIhName.c_str(),pVsIhTitle.c_str(),400,0,ihUpperLimit,200,0,pUpperLimit);
     pVsIhHist->Sumw2();
     // p vs Ias
     std::string pVsIasName = "pVsIas";
@@ -94,15 +100,23 @@ struct PlotStruct
     std::string pVsIasTitle = "P vs Ias ";
     pVsIasTitle+=titleString;
     pVsIasTitle+=";;GeV";
-    pVsIasHist = plotsDir.make<TH2F>(pVsIasName.c_str(),pVsIasTitle.c_str(),20,0,1,40,0,1000);
+    pVsIasHist = plotsDir.make<TH2F>(pVsIasName.c_str(),pVsIasTitle.c_str(),20,0,1,200,0,pUpperLimit);
     pVsIasHist->Sumw2();
+    // pt vs Ias
+    std::string ptVsIasName = "ptVsIas";
+    ptVsIasName+=nameString;
+    std::string ptVsIasTitle = "Pt vs Ias ";
+    ptVsIasTitle+=titleString;
+    ptVsIasTitle+=";;GeV";
+    ptVsIasHist = plotsDir.make<TH2F>(ptVsIasName.c_str(),ptVsIasTitle.c_str(),20,0,1,200,0,pUpperLimit);
+    ptVsIasHist->Sumw2();
     // eta vs p
     std::string etaVsPName = "trackEtaVsP";
     etaVsPName+=nameString;
     std::string etaVsPTitle = "Track #eta vs. p ";
     etaVsPTitle+=titleString;
     etaVsPTitle+=";GeV";
-    trackEtaVsPHist = plotsDir.make<TH2F>(etaVsPName.c_str(),etaVsPTitle.c_str(),4000,0,2000,24,0,2.4);
+    trackEtaVsPHist = plotsDir.make<TH2F>(etaVsPName.c_str(),etaVsPTitle.c_str(),400,0,pUpperLimit,24,0,2.4);
     trackEtaVsPHist->Sumw2();
     // ias NoM
     std::string iasNoMName = "iasNoM";
@@ -116,7 +130,7 @@ struct PlotStruct
     std::string pVsIasToFSBTitle="Track P vs ias (ToF SB: #beta>1.075) ";
     pVsIasToFSBTitle+=titleString;
     pVsIasToFSBTitle+=";;GeV";
-    pVsIasToFSBHist = plotsDir.make<TH2F>(pVsIasToFSBName.c_str(),pVsIasToFSBTitle.c_str(),400,0,1,100,0,1000);
+    pVsIasToFSBHist = plotsDir.make<TH2F>(pVsIasToFSBName.c_str(),pVsIasToFSBTitle.c_str(),400,0,1,200,0,pUpperLimit);
     pVsIasToFSBHist->Sumw2();
     // ToF SB - p vs Ih
     std::string pVsIhToFSBName = "trackPvsIhToFSB";
@@ -124,7 +138,7 @@ struct PlotStruct
     std::string pVsIhToFSBTitle="Track P vs ih (ToF SB: #beta>1.075) ";
     pVsIhToFSBTitle+=titleString;
     pVsIhToFSBTitle+=";MeV/cm;GeV";
-    pVsIhToFSBHist = plotsDir.make<TH2F>(pVsIhToFSBName.c_str(),pVsIhToFSBTitle.c_str(),400,0,10,100,0,1000);
+    pVsIhToFSBHist = plotsDir.make<TH2F>(pVsIhToFSBName.c_str(),pVsIhToFSBTitle.c_str(),400,0,ihUpperLimit,200,0,pUpperLimit);
     pVsIhToFSBHist->Sumw2();
     // Ih vs Ias
     std::string ihVsIasName = "ihVsIas";
@@ -132,7 +146,7 @@ struct PlotStruct
     std::string ihVsIasTitle = "Ih vs. Ias ";
     ihVsIasTitle+=titleString;
     ihVsIasTitle+=";MeV/cm";
-    ihVsIasHist = plotsDir.make<TH2F>(ihVsIasName.c_str(),ihVsIasTitle.c_str(),400,0,1,400,0,10);
+    ihVsIasHist = plotsDir.make<TH2F>(ihVsIasName.c_str(),ihVsIasTitle.c_str(),400,0,1,400,0,ihUpperLimit);
     ihVsIasHist->Sumw2();
     // p vs NoM
     std::string pVsNoMName = "pVsNoM";
@@ -140,28 +154,28 @@ struct PlotStruct
     std::string pVsNoMTitle = "Track P vs. NoM (Ias) ";
     pVsNoMTitle+=titleString;
     pVsNoMTitle+=";;GeV";
-    pVsNoMHist = plotsDir.make<TH2F>(pVsNoMName.c_str(),pVsNoMTitle.c_str(),50,0,50,100,0,1000);
+    pVsNoMHist = plotsDir.make<TH2F>(pVsNoMName.c_str(),pVsNoMTitle.c_str(),50,0,50,200,0,pUpperLimit);
     // p vs NoM, central eta only
     std::string pVsNoMCentralEtaName = "pVsNoMCentralEta";
     pVsNoMCentralEtaName+=nameString;
     std::string pVsNoMCentralEtaTitle = "Track P vs. NoM (Ias) ";
     pVsNoMCentralEtaTitle+=titleString;
     pVsNoMCentralEtaTitle+=";;GeV";
-    pVsNoMCentralEtaHist = plotsDir.make<TH2F>(pVsNoMCentralEtaName.c_str(),pVsNoMCentralEtaTitle.c_str(),50,0,50,100,0,1000);
+    pVsNoMCentralEtaHist = plotsDir.make<TH2F>(pVsNoMCentralEtaName.c_str(),pVsNoMCentralEtaTitle.c_str(),50,0,50,200,0,pUpperLimit);
     // p vs NoM, eta slices
     std::string pVsNoMEtaSliceBaseName = "pVsNoM";
     pVsNoMEtaSliceBaseName+=nameString;
     std::string pVsNoMEtaSliceBaseTitle = "Track P vs. NoM (Ias)";
     pVsNoMEtaSliceBaseTitle+=titleString;
 
-    pVsNoMEtaSlice1Hist = plotsDir.make<TH2F>((pVsNoMEtaSliceBaseName+"EtaSlice1").c_str(),(pVsNoMEtaSliceBaseTitle+" |#eta| < 0.2;;GeV").c_str(),50,0,50,100,0,1000);
-    pVsNoMEtaSlice2Hist = plotsDir.make<TH2F>((pVsNoMEtaSliceBaseName+"EtaSlice2").c_str(),(pVsNoMEtaSliceBaseTitle+" 0.2 < |#eta| < 0.4;;GeV").c_str(),50,0,50,100,0,1000);
-    pVsNoMEtaSlice3Hist = plotsDir.make<TH2F>((pVsNoMEtaSliceBaseName+"EtaSlice3").c_str(),(pVsNoMEtaSliceBaseTitle+" 0.4 < |#eta| < 0.6;;GeV").c_str(),50,0,50,100,0,1000);
-    pVsNoMEtaSlice4Hist = plotsDir.make<TH2F>((pVsNoMEtaSliceBaseName+"EtaSlice4").c_str(),(pVsNoMEtaSliceBaseTitle+" 0.6 < |#eta| < 0.8;;GeV").c_str(),50,0,50,100,0,1000);
-    pVsNoMEtaSlice5Hist = plotsDir.make<TH2F>((pVsNoMEtaSliceBaseName+"EtaSlice5").c_str(),(pVsNoMEtaSliceBaseTitle+" 0.8 < |#eta| < 1.0;;GeV").c_str(),50,0,50,100,0,1000);
-    pVsNoMEtaSlice6Hist = plotsDir.make<TH2F>((pVsNoMEtaSliceBaseName+"EtaSlice6").c_str(),(pVsNoMEtaSliceBaseTitle+" 1.0 < |#eta| < 1.2;;GeV").c_str(),50,0,50,100,0,1000);
-    pVsNoMEtaSlice7Hist = plotsDir.make<TH2F>((pVsNoMEtaSliceBaseName+"EtaSlice7").c_str(),(pVsNoMEtaSliceBaseTitle+" 1.2 < |#eta| < 1.4;;GeV").c_str(),50,0,50,100,0,1000);
-    pVsNoMEtaSlice8Hist = plotsDir.make<TH2F>((pVsNoMEtaSliceBaseName+"EtaSlice8").c_str(),(pVsNoMEtaSliceBaseTitle+" 1.4 < |#eta| < 1.6;;GeV").c_str(),50,0,50,100,0,1000);
+    pVsNoMEtaSlice1Hist = plotsDir.make<TH2F>((pVsNoMEtaSliceBaseName+"EtaSlice1").c_str(),(pVsNoMEtaSliceBaseTitle+" |#eta| < 0.2;;GeV").c_str(),50,0,50,100,0,pUpperLimit);
+    pVsNoMEtaSlice2Hist = plotsDir.make<TH2F>((pVsNoMEtaSliceBaseName+"EtaSlice2").c_str(),(pVsNoMEtaSliceBaseTitle+" 0.2 < |#eta| < 0.4;;GeV").c_str(),50,0,50,100,0,pUpperLimit);
+    pVsNoMEtaSlice3Hist = plotsDir.make<TH2F>((pVsNoMEtaSliceBaseName+"EtaSlice3").c_str(),(pVsNoMEtaSliceBaseTitle+" 0.4 < |#eta| < 0.6;;GeV").c_str(),50,0,50,100,0,pUpperLimit);
+    pVsNoMEtaSlice4Hist = plotsDir.make<TH2F>((pVsNoMEtaSliceBaseName+"EtaSlice4").c_str(),(pVsNoMEtaSliceBaseTitle+" 0.6 < |#eta| < 0.8;;GeV").c_str(),50,0,50,100,0,pUpperLimit);
+    pVsNoMEtaSlice5Hist = plotsDir.make<TH2F>((pVsNoMEtaSliceBaseName+"EtaSlice5").c_str(),(pVsNoMEtaSliceBaseTitle+" 0.8 < |#eta| < 1.0;;GeV").c_str(),50,0,50,100,0,pUpperLimit);
+    pVsNoMEtaSlice6Hist = plotsDir.make<TH2F>((pVsNoMEtaSliceBaseName+"EtaSlice6").c_str(),(pVsNoMEtaSliceBaseTitle+" 1.0 < |#eta| < 1.2;;GeV").c_str(),50,0,50,100,0,pUpperLimit);
+    pVsNoMEtaSlice7Hist = plotsDir.make<TH2F>((pVsNoMEtaSliceBaseName+"EtaSlice7").c_str(),(pVsNoMEtaSliceBaseTitle+" 1.2 < |#eta| < 1.4;;GeV").c_str(),50,0,50,100,0,pUpperLimit);
+    pVsNoMEtaSlice8Hist = plotsDir.make<TH2F>((pVsNoMEtaSliceBaseName+"EtaSlice8").c_str(),(pVsNoMEtaSliceBaseTitle+" 1.4 < |#eta| < 1.6;;GeV").c_str(),50,0,50,100,0,pUpperLimit);
     // NoH vs NoM
     std::string nohVsNoMName = "nohVsNoM";
     nohVsNoMName+=nameString;
@@ -182,21 +196,21 @@ struct PlotStruct
     std::string pVsNoHTitle = "Track P vs. NoH ";
     pVsNoHTitle+=titleString;
     pVsNoHTitle+=";;GeV";
-    pVsNoHHist = plotsDir.make<TH2F>(pVsNoHName.c_str(),pVsNoHTitle.c_str(),50,0,50,100,0,1000);
+    pVsNoHHist = plotsDir.make<TH2F>(pVsNoHName.c_str(),pVsNoHTitle.c_str(),50,0,50,100,0,pUpperLimit);
     // p vs NoH, central eta only
     std::string pVsNoHCentralEtaName = "pVsNoHCentralEta";
     pVsNoHCentralEtaName+=nameString;
     std::string pVsNoHCentralEtaTitle = "Track P vs. NoH ";
     pVsNoHCentralEtaTitle+=titleString;
     pVsNoHCentralEtaTitle+=", |#eta| < 0.9;;GeV";
-    pVsNoHCentralEtaHist = plotsDir.make<TH2F>(pVsNoHCentralEtaName.c_str(),pVsNoHCentralEtaTitle.c_str(),50,0,50,100,0,1000);
+    pVsNoHCentralEtaHist = plotsDir.make<TH2F>(pVsNoHCentralEtaName.c_str(),pVsNoHCentralEtaTitle.c_str(),50,0,50,100,0,pUpperLimit);
     // p vs relPerr
     std::string pVsRelPerrName = "pVsRelPerr";
     pVsRelPerrName+=nameString;
     std::string pVsRelPerrTitle = "Track P vs. #Deltap/p ";
     pVsRelPerrTitle+=titleString;
     pVsRelPerrTitle+=";;GeV";
-    pVsRelPerrHist = plotsDir.make<TH2F>(pVsRelPerrName.c_str(),pVsRelPerrTitle.c_str(),100,0,1,100,0,1000);
+    pVsRelPerrHist = plotsDir.make<TH2F>(pVsRelPerrName.c_str(),pVsRelPerrTitle.c_str(),100,0,1,100,0,pUpperLimit);
     // p vs relPerr, central eta only
     std::string pVsRelPerrCentralEtaName = "pVsRelPerrCentralEta";
     pVsRelPerrCentralEtaName+=nameString;
@@ -204,6 +218,13 @@ struct PlotStruct
     pVsRelPerrCentralEtaTitle+=titleString;
     pVsRelPerrCentralEtaTitle+=", |#eta| < 0.9;;GeV";
     pVsRelPerrCentralEtaHist = plotsDir.make<TH2F>(pVsRelPerrCentralEtaName.c_str(),pVsRelPerrCentralEtaTitle.c_str(),100,0,1,100,0,1000);
+    // mass
+    std::string massHistName = "mass";
+    massHistName+=nameString;
+    std::string massHistTitle = "Mass ";
+    massHistTitle+=titleString;
+    massHistTitle+=";GeV";
+    massHist = plotsDir.make<TH1F>(massHistName.c_str(),massHistTitle.c_str(),2000,0,2000);
     // tracksVsPreselectionsHist
     tracksVsPreselectionsHist = plotsDir.make<TH1F>("tracksVsPreselections","Tracks at each preselection step",22,0,22);
     setBinLabelsPreselectionPlot(tracksVsPreselectionsHist);
