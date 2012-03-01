@@ -51,7 +51,7 @@ void setHistAttributes(TH1* hist, int colorCounter, int markerStyleCounter)
 }
 
 
-rooDatasetPlots(bool doNoMplots = false, bool doEtaPlots = false)
+rooDatasetPlots(bool doNoMplots = false, bool doEtaPlots = false, bool doPtPlots = true)
 {
   bool usePtForSideband = true;
   float iasCut = 0.4;
@@ -80,6 +80,7 @@ rooDatasetPlots(bool doNoMplots = false, bool doEtaPlots = false)
   RooRealVar rooVarIas("rooVarIas","ias",0,1);
   RooRealVar rooVarIh("rooVarIh","ih",0,15);
   RooRealVar rooVarP("rooVarP","p",0,5000);
+  RooRealVar rooVarPt("rooVarPt","pt",0,5000);
   RooRealVar rooVarNoMias("rooVarNoMias","nom",0,30);
   RooRealVar rooVarEta("rooVarEta","eta",-2.5,2.5);
   RooRealVar rooVarRun("rooVarRun","run",0,4294967295);
@@ -103,8 +104,8 @@ rooDatasetPlots(bool doNoMplots = false, bool doEtaPlots = false)
   //string ptSearchCutString = "rooVarPt>50&&rooVarPt<65";
   string ptSearchCutString = "rooVarPt>50";
   string ptSidebandCutString = "rooVarPt<50";
-  string iasSearchCutString = "rooVarIas>0.1";
-  string iasSidebandCutString = "rooVarIas<0.1";
+  string iasSearchCutString = "rooVarIas>0.4";
+  string iasSidebandCutString = "rooVarIas<0.4";
   string ihSearchCutString = "rooVarIh>3";
   string etaCutString = "rooVarEta<1.5&&rooVarEta>-1.5";
   string ptMinCutString = "rooVarPt>45";
@@ -164,6 +165,7 @@ rooDatasetPlots(bool doNoMplots = false, bool doEtaPlots = false)
   gStyle->SetTitleY(0.975);
   rooVarIh.setBins(140);
   rooVarIas.setBins(100);
+  rooVarPt.setBins(1000);
   // plot of Ih in the AB (pt sideband) region
   if(doNoMplots)
   {
@@ -324,6 +326,63 @@ rooDatasetPlots(bool doNoMplots = false, bool doEtaPlots = false)
     c2.Print("iasInEtaSlices.eps");
 
   } // ifdoEtaPlots
+
+  if(doPtPlots)
+  {
+    // do plots of pt in ias slices
+    float iasMin=0.0;
+    float iasMax=0.4;
+    TH1F* ptInIasSlices = new TH1F("ptInIasSlices",
+        "CMS Preliminary    #sqrt{s} = 7 TeV;Pt [GeV];arbitrary units",1000,0,5000);
+    TLegend* iasLegend = new TLegend(0.55,0.7,0.9,0.92);
+    TCanvas c1;
+    c1.cd();
+    ptInIasSlices->Draw();
+    TH1* ptInIasSlicesHists[9];
+    int iasSlice = -1;
+    int colorCounter = 1;
+    int markerStyleCounter = 23;
+    for(float lowerIas = iasMin; lowerIas < iasMax; lowerIas+=0.1)
+    {
+      ++iasSlice;
+      std::string iasCutString = "rooVarIas>";
+      iasCutString+=floatToString(lowerIas);
+      iasCutString+="&&rooVarIas<";
+      std::string upperIasLimit;
+      upperIasLimit=floatToString(lowerIas+0.1);
+      iasCutString+=upperIasLimit;
+
+      std::string thisCut = iasCutString;
+      RooDataSet* cutDataSet = (RooDataSet*) iasSidebandDataSet->reduce(thisCut.c_str());
+      //std::cout << "cut: " << thisCut << " entries: " << nomEtaPtSBCutDataSet->numEntries() << std::endl;
+      ptInIasSlicesHists[iasSlice] = cutDataSet->createHistogram(
+          ("ptHistIas"+floatToString(lowerIas)).c_str(),rooVarPt);
+      if(colorCounter==5)
+        colorCounter+=2;
+      setHistAttributes(ptInIasSlicesHists[iasSlice],colorCounter,markerStyleCounter);
+      c1.cd();
+      ptInIasSlicesHists[iasSlice]->DrawNormalized("same");
+
+      std::string legString = floatToString(lowerIas);
+      legString+=" < Ias < ";
+      legString+=floatToString(lowerIas+0.1);
+      iasLegend->AddEntry(ptInIasSlicesHists[iasSlice],legString.c_str(),"p");
+      delete cutDataSet;
+      ++colorCounter;
+      markerStyleCounter--;
+    }
+
+    c1.cd();
+    iasLegend->SetBorderSize(0);
+    iasLegend->Draw("same");
+    c1.SetLogy();
+    ptInIasSlices->GetXaxis()->SetRangeUser(0,1000);
+    ptInIasSlices->GetYaxis()->SetRangeUser(1e-8,1);
+    c1.Print("ptInIasSlices.png");
+    c1.Print("ptInIasSlices.eps");
+
+  } // ifdoPtPlots
+
 
   // overall dists?
 
