@@ -807,9 +807,9 @@ int main(int argc, char ** argv)
         double momSqr = (pow(massCutIasHighPHighIh_,2)*dEdx_k)/(thisIh-dEdx_c);
         if(momSqr<0)
         {
-          std::cout << "ERROR: nom=" << nom << "-" << nom+1 << " and eta=" <<
-            lowerEta << "-" << lowerEta+0.2 << "; momSqr for ih=" << thisIh <<
-            " mass=" << massCutIasHighPHighIh_ << " = " << momSqr << std::endl;
+          //std::cout << "ERROR: nom=" << nom << "-" << nom+1 << " and eta=" <<
+          //  lowerEta << "-" << lowerEta+0.2 << "; momSqr for ih=" << thisIh <<
+          //  " mass=" << massCutIasHighPHighIh_ << " = " << momSqr << std::endl;
           continue;
         }
         double minMomPassMass = sqrt(momSqr);
@@ -874,78 +874,107 @@ int main(int argc, char ** argv)
       // multiply by the original ias in this slice before mass cut
       iasPredictionFixedHist->Multiply(iasBRegionHist,iasSuccessRateHist);
 
-      // ias prediction histogram in this NoM/eta bin -- variable
-      std::string iasPredictionVarBinHistName = getHistNameBeg(nom,lowerEta);
-      iasPredictionVarBinHistName+="iasPredictionVarBinHist";
-      std::string iasPredictionVarBinHistTitle = "Ias prediction for nom ";
-      iasPredictionVarBinHistTitle+=intToString(nom);
-      iasPredictionVarBinHistTitle+="-";
-      if(nom==21)
-        iasPredictionVarBinHistTitle+="end";
-      else
-        iasPredictionVarBinHistTitle+=intToString(nom+1);
-      iasPredictionVarBinHistTitle+=", ";
-      iasPredictionVarBinHistTitle+=floatToString(lowerEta);
-      iasPredictionVarBinHistTitle+=" < |#eta| < ";
-      iasPredictionVarBinHistTitle+=floatToString(lowerEta+0.2);
-      iasPredictionVarBinHistTitle+=", mass > ";
-      iasPredictionVarBinHistTitle+=floatToString(massCutIasHighPHighIh_);
-      iasPredictionVarBinHistTitle+=" GeV";
-      // figure out variable bins
-      std::vector<double> binVec = computeVariableBins(iasPredictionFixedHist);
-      TH1F* iasPredictionVarBinHist = iasPredictionVarBinsDir.make<TH1F>(iasPredictionVarBinHistName.c_str(),
-          iasPredictionVarBinHistTitle.c_str(),binVec.size()-1,&(*binVec.begin()));
-      iasPredictionVarBinHist->Sumw2();
-
-      // get bin contents/errors
-      const int numVarBins = iasPredictionVarBinHist->GetNbinsX();
-      std::vector<double> binContents;
-      std::vector<double> binErrors;
-      for(int i=0; i<numVarBins; ++i)
+      // loop over bins of iasBRegionHist and find the first bin with more than 15 entries
+      int lastDecentStatsBin = 0;
+      for(int bin = iasBRegionHist->GetNbinsX(); bin > 0; --bin)
       {
-        binContents.push_back(0);
-        binErrors.push_back(0);
-      }
-      for(int bin=1; bin<=iasPredictionFixedHist->GetNbinsX();++bin)
-      {
-        double binc = iasPredictionFixedHist->GetBinContent(bin);
-        double bine = iasPredictionFixedHist->GetBinError(bin);
-        if(binc > 0)
+        if(iasBRegionHist->GetBinContent(bin) > 15)
         {
-          binContents[iasPredictionVarBinHist->FindBin(iasPredictionFixedHist->GetBinCenter(bin))-1] += binc;
-          binErrors[iasPredictionVarBinHist->FindBin(iasPredictionFixedHist->GetBinCenter(bin))-1] += (bine*bine);
+          lastDecentStatsBin = bin;
+          break;
         }
       }
-      // fill it
-      for(int i=1; i<numVarBins+1; ++i)
+      // now fit from here to the end with an exp and fill the empty bins
+      TF1* myExp = new TF1("myExp","expo(0)",iasBRegionHist->GetBinCenter(lastDecentStatsBin),1);
+      TFitResultPtr r = iasPredictionFixedHist->Fit("myExp","RL");
+      int fitStatus = r;
+      if(fitStatus != 0)
       {
-        if(binContents[i-1] > 0)
-        {
-          // make bins contain number of events per horizontal unit
-          double binWidthRatio = iasPredictionVarBinHist->GetBinWidth(1)/iasPredictionVarBinHist->GetBinWidth(i);
-          iasPredictionVarBinHist->SetBinContent(i,binWidthRatio*binContents[i-1]);
-          iasPredictionVarBinHist->SetBinError(i,binWidthRatio*sqrt(binErrors[i-1]));
-        }
+        std::cout << "ERROR: Fit status is " << fitStatus << " which is nonzero!  Not using the fit." << endl;
+        continue;
       }
 
-      // if nonzero integral, check to make sure there are no empty bins in the prediction hist
-      if(iasPredictionVarBinHist->Integral() > 0)
+      for(int bin=lastDecentStatsBin+1; bin <= iasPredictionFixedHist->GetNbinsX(); ++bin)
       {
-        for(int bin=1; bin <= iasPredictionVarBinHist->GetNbinsX(); ++bin)
-        {
-          if(iasPredictionVarBinHist->GetBinContent(bin) <= 0)
-          {
-            std::cout << "ERROR: For this hist: " << iasPredictionVarBinHist->GetName()
-              << " bin content for bin "
-              << bin << " is " << iasPredictionVarBinHist->GetBinContent(bin)
-              << " with binLowEdge= " << iasPredictionVarBinHist->GetBinLowEdge(bin)
-              << " to binHighEdge="
-              << iasPredictionVarBinHist->GetBinLowEdge(bin)+iasPredictionVarBinHist->GetBinWidth(bin)
-              << ". Fix the binning.  Bailing out." << std::endl;
-            return -9;
-          }
-        }
+        iasPredictionFixedHist->SetBinContent(bin,myExp->Eval(iasPredictionFixedHist->GetBinCenter(bin)));
+        iasPredictionFixedHist->SetBinError(bin,sqrt(myExp->Eval(iasPredictionFixedHist->GetBinCenter(bin))));
       }
+
+      delete myExp;
+
+      // remove variable bin stuff - mar 1
+      //// ias prediction histogram in this NoM/eta bin -- variable
+      //std::string iasPredictionVarBinHistName = getHistNameBeg(nom,lowerEta);
+      //iasPredictionVarBinHistName+="iasPredictionVarBinHist";
+      //std::string iasPredictionVarBinHistTitle = "Ias prediction for nom ";
+      //iasPredictionVarBinHistTitle+=intToString(nom);
+      //iasPredictionVarBinHistTitle+="-";
+      //if(nom==21)
+      //  iasPredictionVarBinHistTitle+="end";
+      //else
+      //  iasPredictionVarBinHistTitle+=intToString(nom+1);
+      //iasPredictionVarBinHistTitle+=", ";
+      //iasPredictionVarBinHistTitle+=floatToString(lowerEta);
+      //iasPredictionVarBinHistTitle+=" < |#eta| < ";
+      //iasPredictionVarBinHistTitle+=floatToString(lowerEta+0.2);
+      //iasPredictionVarBinHistTitle+=", mass > ";
+      //iasPredictionVarBinHistTitle+=floatToString(massCutIasHighPHighIh_);
+      //iasPredictionVarBinHistTitle+=" GeV";
+      //// figure out variable bins
+      //std::vector<double> binVec = computeVariableBins(iasPredictionFixedHist);
+      //TH1F* iasPredictionVarBinHist = iasPredictionVarBinsDir.make<TH1F>(iasPredictionVarBinHistName.c_str(),
+      //    iasPredictionVarBinHistTitle.c_str(),binVec.size()-1,&(*binVec.begin()));
+      //iasPredictionVarBinHist->Sumw2();
+
+      //// get bin contents/errors
+      //const int numVarBins = iasPredictionVarBinHist->GetNbinsX();
+      //std::vector<double> binContents;
+      //std::vector<double> binErrors;
+      //for(int i=0; i<numVarBins; ++i)
+      //{
+      //  binContents.push_back(0);
+      //  binErrors.push_back(0);
+      //}
+      //for(int bin=1; bin<=iasPredictionFixedHist->GetNbinsX();++bin)
+      //{
+      //  double binc = iasPredictionFixedHist->GetBinContent(bin);
+      //  double bine = iasPredictionFixedHist->GetBinError(bin);
+      //  if(binc > 0)
+      //  {
+      //    binContents[iasPredictionVarBinHist->FindBin(iasPredictionFixedHist->GetBinCenter(bin))-1] += binc;
+      //    binErrors[iasPredictionVarBinHist->FindBin(iasPredictionFixedHist->GetBinCenter(bin))-1] += (bine*bine);
+      //  }
+      //}
+      //// fill it
+      //for(int i=1; i<numVarBins+1; ++i)
+      //{
+      //  if(binContents[i-1] > 0)
+      //  {
+      //    // make bins contain number of events per horizontal unit
+      //    double binWidthRatio = iasPredictionVarBinHist->GetBinWidth(1)/iasPredictionVarBinHist->GetBinWidth(i);
+      //    iasPredictionVarBinHist->SetBinContent(i,binWidthRatio*binContents[i-1]);
+      //    iasPredictionVarBinHist->SetBinError(i,binWidthRatio*sqrt(binErrors[i-1]));
+      //  }
+      //}
+
+      //// if nonzero integral, check to make sure there are no empty bins in the prediction hist
+      //if(iasPredictionVarBinHist->Integral() > 0)
+      //{
+      //  for(int bin=1; bin <= iasPredictionVarBinHist->GetNbinsX(); ++bin)
+      //  {
+      //    if(iasPredictionVarBinHist->GetBinContent(bin) <= 0)
+      //    {
+      //      std::cout << "ERROR: For this hist: " << iasPredictionVarBinHist->GetName()
+      //        << " bin content for bin "
+      //        << bin << " is " << iasPredictionVarBinHist->GetBinContent(bin)
+      //        << " with binLowEdge= " << iasPredictionVarBinHist->GetBinLowEdge(bin)
+      //        << " to binHighEdge="
+      //        << iasPredictionVarBinHist->GetBinLowEdge(bin)+iasPredictionVarBinHist->GetBinWidth(bin)
+      //        << ". Fix the binning.  Bailing out." << std::endl;
+      //      return -9;
+      //    }
+      //  }
+      //}
 
       delete etaCutNomCutBRegionDataSet;
       delete etaCutCRegionDataSet;
