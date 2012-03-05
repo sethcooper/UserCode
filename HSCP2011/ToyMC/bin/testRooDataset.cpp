@@ -7,6 +7,8 @@
 #include "RooArgSet.h"
 
 #include "TFile.h"
+#include "TCanvas.h"
+#include "TH1F.h"
 
 #include <set>
 #include <iostream>
@@ -89,6 +91,7 @@ int main()
   RooRealVar rooVarIas("rooVarIas","ias",0,1);
   RooRealVar rooVarIh("rooVarIh","ih",0,15);
   RooRealVar rooVarP("rooVarP","p",0,5000);
+  RooRealVar rooVarPt("rooVarPt","pt",0,5000);
   RooRealVar rooVarNoMias("rooVarNoMias","nom",0,30);
   RooRealVar rooVarEta("rooVarEta","eta",0,2.5);
   RooRealVar rooVarRun("rooVarRun","run",0,4294967295);
@@ -121,18 +124,29 @@ int main()
   //  " |eta| < 1.5" << endl;
 
   //string pSearchCutString = "rooVarP>100";
-  string ptSearchCutString = "rooVarPt>50&&rooVarPt<65";
+  //string ptSearchCutString = "rooVarPt>50&&rooVarPt<65";
+  string ptSearchCutString = "rooVarPt>50";
   string ptSidebandCutString = "rooVarPt<50";
-  string iasSearchCutString = "rooVarIas>0.35";
-  string iasSidebandCutString = "rooVarIas<0.35";
+  string iasSearchCutString = "rooVarIas>0.1";
+  string iasSidebandCutString = "rooVarIas<0.1";
   string ihSearchCutString = "rooVarIh>3";
-  string etaCutString = "rooVarEta<1.5&&rooVarEta>-1.5";
+  string etaOverallCutString = "rooVarEta<1.5&&rooVarEta>-1.5";
   string ptMinCutString = "rooVarPt>45";
   
   //RooDataSet* ihDataSet = (RooDataSet*) rooDataSetAllSignal->reduce(Cut(ihSearchCutString.c_str()));
   //RooDataSet* ptCutDataSet = (RooDataSet*) ihDataSet->reduce(Cut(ptMinCutString.c_str()));
   //RooDataSet* etaCutDataSet = (RooDataSet*) ptCutDataSet->reduce(Cut(etaCutString.c_str()));
+  std::string nomCutString = "rooVarNoMias==9";
+  nomCutString+="||rooVarNoMias==10";
+  std::string etaCutString = "(rooVarEta>1.0";
+  etaCutString+="&&rooVarEta<1.2";
+  etaCutString+=")||(rooVarEta>-1.2";
+  etaCutString+="&&rooVarEta<-1.0)";
+
   RooDataSet* etaCutDataSet = (RooDataSet*) rooDataSetAllSignal->reduce(Cut(etaCutString.c_str()));
+  RooDataSet* etaCutNoMCutDataSet = (RooDataSet*) etaCutDataSet->reduce(Cut(nomCutString.c_str()));
+  //RooDataSet* etaCutDataSet = (RooDataSet*) etaCutNoMCutDataSet->reduce(Cut(etaOverallCutString.c_str()));
+  //RooDataSet* etaCutDataSet = (RooDataSet*) rooDataSetAllSignal->reduce(Cut(etaOverallCutString.c_str()));
 
   RooDataSet* iasSidebandDataSet = (RooDataSet*) etaCutDataSet->reduce(Cut(iasSidebandCutString.c_str()));
   RooDataSet* aRegionDataSet = (RooDataSet*) iasSidebandDataSet->reduce(Cut(ptSidebandCutString.c_str()));
@@ -155,26 +169,51 @@ int main()
     std::endl << "B: " << ptSidebandCutString << "(+)" << iasSearchCutString << "\t\t\t\t" << bRegionDataSet->numEntries() << 
     std::endl << "C: " << ptSearchCutString << "(+)" << iasSidebandCutString << "\t\t" << cRegionDataSet->numEntries() << 
     std::endl << "C with P < 1200 GeV\t\t\t\t\t\t" << cRegionPCutDataSet->numEntries() << 
+    std::endl << "C/A\t\t\t\t\t\t" << cRegionDataSet->numEntries()/(double)aRegionDataSet->numEntries() << 
     std::endl;
+
+  double bRegionErr = sqrt(bRegionDataSet->numEntries());
+  double cRegionErr = sqrt(cRegionDataSet->numEntries());
+  double aRegionErr = sqrt(aRegionDataSet->numEntries());
+  double bcOverA = bRegionDataSet->numEntries()*cRegionDataSet->numEntries()/(double)aRegionDataSet->numEntries();
+  double bcOverAErr = bcOverA*sqrt(pow(bRegionErr/bRegionDataSet->numEntries(),2)+pow(cRegionErr/cRegionDataSet->numEntries(),2)+pow(aRegionErr/aRegionDataSet->numEntries(),2));
+  std::cout << "BC/A = " << bcOverA << " +/- " << bcOverAErr << std::endl;
+
+  // make hists
+  TH1F* iasInARegion = (TH1F*) aRegionDataSet->createHistogram("iasInARegion",rooVarIas);
+  TCanvas t;
+  t.cd();
+  t.SetLogy();
+  iasInARegion->Draw();
+  t.Print("iasInARegion.png");
+  TH1F* iasInCRegion = (TH1F*) cRegionDataSet->createHistogram("iasInCRegion",rooVarIas);
+  iasInCRegion->Draw();
+  t.Print("iasInCRegion.png");
+  TH1F* ptInARegion = (TH1F*) aRegionDataSet->createHistogram("ptInARegion",rooVarPt);
+  ptInARegion->Draw();
+  t.Print("ptInARegion.png");
+  TH1F* ptInCRegion = (TH1F*) cRegionDataSet->createHistogram("ptInCRegion",rooVarPt);
+  ptInCRegion->Draw();
+  t.Print("ptInCRegion.png");
   
-  std::cout << "D: " << ptSearchCutString << "(+)" << iasSearchCutString << "\t\t\t" << dRegionDataSet->numEntries() << std::endl;
-  std::cout << "D with P < 1200 GeV: " << ptSearchCutString << "(+)" << iasSearchCutString << "\t\t" << dRegionDataSet->numEntries() << std::endl;
-  // do ratios and errors
-  std::cout << std::endl;
-  std::cout << "Ratios and Errors" << std::endl;
-  double dOverB = dRegionDataSet->numEntries()/(double)bRegionDataSet->numEntries();
-  double dOverBError = getRatioError(dRegionDataSet->numEntries(),bRegionDataSet->numEntries());
-  std::cout << "D/B = " << dOverB << " +/- " << dOverBError << std::endl;
-  double cOverA = cRegionDataSet->numEntries()/(double)aRegionDataSet->numEntries();
-  double cOverAError = getRatioError(cRegionDataSet->numEntries(),aRegionDataSet->numEntries());
-  std::cout << "C/A = " << cOverA << " +/- " << cOverAError << std::endl;
-  std::cout << "-->with P < 1200 GeV cut" << std::endl;
-  double dOverBPCut = dRegionPCutDataSet->numEntries()/(double)bRegionDataSet->numEntries();
-  double dOverBPCutError = getRatioError(dRegionPCutDataSet->numEntries(),bRegionDataSet->numEntries());
-  std::cout << "D/B = " << dOverBPCut << " +/- " << dOverBPCutError << std::endl;
-  double cOverAPCut = cRegionPCutDataSet->numEntries()/(double)aRegionDataSet->numEntries();
-  double cOverAPCutError = getRatioError(cRegionPCutDataSet->numEntries(),aRegionDataSet->numEntries());
-  std::cout << "C/A = " << cOverAPCut << " +/- " << cOverAPCutError << std::endl;
+  //std::cout << "D: " << ptSearchCutString << "(+)" << iasSearchCutString << "\t\t\t" << dRegionDataSet->numEntries() << std::endl;
+  //std::cout << "D with P < 1200 GeV: " << ptSearchCutString << "(+)" << iasSearchCutString << "\t\t" << dRegionDataSet->numEntries() << std::endl;
+  //// do ratios and errors
+  //std::cout << std::endl;
+  //std::cout << "Ratios and Errors" << std::endl;
+  //double dOverB = dRegionDataSet->numEntries()/(double)bRegionDataSet->numEntries();
+  //double dOverBError = getRatioError(dRegionDataSet->numEntries(),bRegionDataSet->numEntries());
+  //std::cout << "D/B = " << dOverB << " +/- " << dOverBError << std::endl;
+  //double cOverA = cRegionDataSet->numEntries()/(double)aRegionDataSet->numEntries();
+  //double cOverAError = getRatioError(cRegionDataSet->numEntries(),aRegionDataSet->numEntries());
+  //std::cout << "C/A = " << cOverA << " +/- " << cOverAError << std::endl;
+  //std::cout << "-->with P < 1200 GeV cut" << std::endl;
+  //double dOverBPCut = dRegionPCutDataSet->numEntries()/(double)bRegionDataSet->numEntries();
+  //double dOverBPCutError = getRatioError(dRegionPCutDataSet->numEntries(),bRegionDataSet->numEntries());
+  //std::cout << "D/B = " << dOverBPCut << " +/- " << dOverBPCutError << std::endl;
+  //double cOverAPCut = cRegionPCutDataSet->numEntries()/(double)aRegionDataSet->numEntries();
+  //double cOverAPCutError = getRatioError(cRegionPCutDataSet->numEntries(),aRegionDataSet->numEntries());
+  //std::cout << "C/A = " << cOverAPCut << " +/- " << cOverAPCutError << std::endl;
 
 
   //RooDataSet* regionD1DataSetSignal;
