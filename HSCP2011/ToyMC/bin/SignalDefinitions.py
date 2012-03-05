@@ -7,6 +7,7 @@ class SignalSample:
     self.massCut = massCut
 
 
+# name, crossSectionPb,ptCut,iasCut,massCut
 # Gluinos
 Gluino300 = SignalSample('Gluino300','65.8',60,'0.400',180)
 Gluino400 = SignalSample('Gluino400','11.2',80,'0.400',230)
