@@ -36,42 +36,42 @@ void plotPDistsInNoMSlices()
   if(slice==1)
   {
     fileNameBeg = "eta0to0p2_";
-    pVsNoMInEtaSlice = (TH2F*) _file0->Get("pVsNoMEtaSlice1");
+    pVsNoMInEtaSlice = (TH2F*) _file0->Get("PlotsAfterPreselection/pVsNoMAfterPreselectionEtaSlice1");
   }
   else if(slice==2)
   {
     fileNameBeg = "eta0p2to0p4_";
-    pVsNoMInEtaSlice = (TH2F*) _file0->Get("pVsNoMEtaSlice2");
+    pVsNoMInEtaSlice = (TH2F*) _file0->Get("PlotsAfterPreselection/pVsNoMAfterPreselectionEtaSlice2");
   }
   else if(slice==3)
   {
     fileNameBeg = "eta0p4to0p6_";
-    pVsNoMInEtaSlice = (TH2F*) _file0->Get("pVsNoMEtaSlice3");
+    pVsNoMInEtaSlice = (TH2F*) _file0->Get("PlotsAfterPreselection/pVsNoMAfterPreselectionEtaSlice3");
   }
   else if(slice==4)
   {
     fileNameBeg = "eta0p6to0p8_";
-    pVsNoMInEtaSlice = (TH2F*) _file0->Get("pVsNoMEtaSlice4");
+    pVsNoMInEtaSlice = (TH2F*) _file0->Get("PlotsAfterPreselection/pVsNoMAfterPreselectionEtaSlice4");
   }
   else if(slice==5)
   {
     fileNameBeg = "eta0p8to1p0_";
-    pVsNoMInEtaSlice = (TH2F*) _file0->Get("pVsNoMEtaSlice5");
+    pVsNoMInEtaSlice = (TH2F*) _file0->Get("PlotsAfterPreselection/pVsNoMAfterPreselectionEtaSlice5");
   }
   else if(slice==6)
   {
     fileNameBeg = "eta1p0to1p2_";
-    pVsNoMInEtaSlice = (TH2F*) _file0->Get("pVsNoMEtaSlice6");
+    pVsNoMInEtaSlice = (TH2F*) _file0->Get("PlotsAfterPreselection/pVsNoMAfterPreselectionEtaSlice6");
   }
   else if(slice==7)
   {
     fileNameBeg = "eta1p2to1p4_";
-    pVsNoMInEtaSlice = (TH2F*) _file0->Get("pVsNoMEtaSlice7");
+    pVsNoMInEtaSlice = (TH2F*) _file0->Get("PlotsAfterPreselection/pVsNoMAfterPreselectionEtaSlice7");
   }
   else if(slice==8)
   {
     fileNameBeg = "eta1p4to1p6_";
-    pVsNoMInEtaSlice = (TH2F*) _file0->Get("pVsNoMEtaSlice8");
+    pVsNoMInEtaSlice = (TH2F*) _file0->Get("PlotsAfterPreselection/pVsNoMAfterPreselectionEtaSlice8");
   }
 
   // 7-8
@@ -89,6 +89,7 @@ void plotPDistsInNoMSlices()
   // all
   TH1D* nomAll = pVsNoMInEtaSlice->ProjectionY("nomAll",1,pVsNoMInEtaSlice->GetNbinsX());
 
+  
   //TLegend* leg = new TLegend(0.1,0.7,0.48,0.9);
   //leg->AddEntry("nom7to8","NoM 7-8","l");
   //leg->AddEntry("nom11to12","NoM 11-12","l");
@@ -101,11 +102,44 @@ void plotPDistsInNoMSlices()
   //leg->Draw("same");
 
   double fitRangeMin = 300;
-  double fitRangeMax = 800;
+  double fitRangeMax = 1000;
   TF1* myExpo = new TF1("myExpo","expo(0)",fitRangeMin,fitRangeMax);
   nomAll->Fit("myExpo","RL");
-  t->Print((fileNameBeg+"nomAll_plot.png").c_str());
+  t->Print((fileNameBeg+"nomAll_plot.C").c_str());
   
+  TLegend* leg = new TLegend(0.65,0.7,0.9,0.9);
+  nom7to8->SetTitle("");
+  nom7to8->SetMarkerStyle(20);
+  nom7to8->GetYaxis()->SetRangeUser(1e-1,1);
+  nom7to8->GetXaxis()->SetTitle("p [GeV]");
+  nom7to8->DrawNormalized("p");
+  nom9to10->SetLineColor(2);
+  nom9to10->SetMarkerColor(2);
+  nom9to10->SetMarkerSize(1.0);
+  nom9to10->SetMarkerStyle(23);
+  nom9to10->DrawNormalized("samep");
+  nom11to12->SetLineColor(4);
+  nom11to12->SetMarkerColor(4);
+  nom11to12->SetMarkerSize(1.0);
+  nom11to12->SetMarkerStyle(22);
+  nom11to12->DrawNormalized("samep");
+  nom15to16->SetLineColor(8);
+  nom15to16->SetMarkerColor(8);
+  //nom15to16->SetMarkerSize(1.0);
+  nom15to16->SetMarkerStyle(21);
+  nom15to16->DrawNormalized("samep");
+  gStyle->SetOptStat(0);
+  //gStyle->SetErrorX(0);
+  leg->AddEntry("nom7to8","NoM 7-8","p");
+  leg->AddEntry("nom9to10","NoM 9-10","p");
+  leg->AddEntry("nom11to12","NoM 11-12","p");
+  leg->AddEntry("nom15to16","NoM 15-16","p");
+  leg->SetBorderSize(0);
+  leg->Draw("same");
+  t->SetLogy();
+  t->Print((fileNameBeg+"selectedNoM_plot.png").c_str());
+  return; // don't move on here
+
   RooRealVar rooVarP("rooVarP","p",fitRangeMin,fitRangeMax);
   RooDataHist* nom7to8DataHist = new RooDataHist("nom7to8dataHist","nom7to8dataHist",
       rooVarP, nom7to8);
@@ -171,35 +205,38 @@ void plotPDistsInNoMSlices()
   myExpPdf->plotOn(momPlot);
   //saturatedModel.plotOn(momPlot);
   momPlot->Draw();
-  t->Print((fileNameBeg+"nom7to8_plot.png").c_str());
+  t->Print((fileNameBeg+"nom7to8_plot.C").c_str());
   //
   momPlot = rooVarP.frame();
   momPlot->SetAxisRange(fitRangeMin,fitRangeMax);
   nom9to10DataHist->plotOn(momPlot);
   myExpPdf->plotOn(momPlot);
   momPlot->Draw();
-  t->Print((fileNameBeg+"nom9to10_plot.png").c_str());
+  t->Print((fileNameBeg+"nom9to10_plot.C").c_str());
   //
   momPlot = rooVarP.frame();
   momPlot->SetAxisRange(fitRangeMin,fitRangeMax);
   nom11to12DataHist->plotOn(momPlot);
   myExpPdf->plotOn(momPlot);
   momPlot->Draw();
-  t->Print((fileNameBeg+"nom11to12_plot.png").c_str());
+  //t->Print((fileNameBeg+"nom11to12_plot.png").c_str());
+  t->Print((fileNameBeg+"nom11to12_plot.C").c_str());
   //
   momPlot = rooVarP.frame();
   momPlot->SetAxisRange(fitRangeMin,fitRangeMax);
   nom13to14DataHist->plotOn(momPlot);
   myExpPdf->plotOn(momPlot);
   momPlot->Draw();
-  t->Print((fileNameBeg+"nom13to14_plot.png").c_str());
+  //t->Print((fileNameBeg+"nom13to14_plot.png").c_str());
+  t->Print((fileNameBeg+"nom13to14_plot.C").c_str());
   //
   momPlot = rooVarP.frame();
   momPlot->SetAxisRange(fitRangeMin,fitRangeMax);
   nom15to16DataHist->plotOn(momPlot);
   myExpPdf->plotOn(momPlot);
   momPlot->Draw();
-  t->Print((fileNameBeg+"nom15to16_plot.png").c_str());
+  //t->Print((fileNameBeg+"nom15to16_plot.png").c_str());
+  t->Print((fileNameBeg+"nom15to16_plot.C").c_str());
 
   double satValNoM9to10 = 2*(nllVarExpoModelNoM9to10.getVal()-nllVarSatModelNoM9to10.getVal());
   int numBinsNoM9to10 = nom9to10DataHist->numEntries();
@@ -250,6 +287,7 @@ void plotPDistsInNoMSlices()
   t->SetLogy(0);
   satValNumBinsGraph->Draw("ap");
 
-  t->Print((fileNameBeg+"satVal_plot.png").c_str());
+  //t->Print((fileNameBeg+"satVal_plot.png").c_str());
+  t->Print((fileNameBeg+"satVal_plot.C").c_str());
 
 }
