@@ -433,8 +433,10 @@ int main(int argc, char ** argv)
   TH1F* backExpOverIasCutHist = new TH1F("backExpOverIasCut","Exp. background over ias cut",100,0,1);
 
   double backgroundTracksOverIasCut = 0;
-  double backgroundTracksOverIasCutNoApprox = 0;
   double backgroundTracksOverIasCutErrorSqr = 0;
+  double backgroundTracksOverIasCutNoApprox = 0;
+  double backgroundTracksOverIasCutNoApproxErrorSqr = 0;
+  int numBkOverIasCut = 0;
   double signalTracksOverIasCut = 0;
   double signalTracksTotal = 0;
   int signalEventsOverIasCut = 0;
@@ -565,16 +567,16 @@ int main(int argc, char ** argv)
     // if using one track per event, this is the number of events in the slice passing mass in D region
     double bgEntriesInARegionThisSlice =
       aRegionBackgroundEntriesHist->GetBinContent(aRegionBackgroundEntriesHist->FindBin(lowerEta+0.1,lowerNoM+1));
-    double bgEntriesInBRegionThisSlice = 
-      bRegionBackgroundEntriesHist->GetBinContent(bRegionBackgroundEntriesHist->FindBin(lowerEta+0.1,lowerNoM+1));
+    //double bgEntriesInBRegionThisSlice = 
+    //  bRegionBackgroundEntriesHist->GetBinContent(bRegionBackgroundEntriesHist->FindBin(lowerEta+0.1,lowerNoM+1));
     double bgEntriesInCRegionThisSlice = 
       cRegionBackgroundEntriesHist->GetBinContent(cRegionBackgroundEntriesHist->FindBin(lowerEta+0.1,lowerNoM+1));
-    double fractionOfBGTracksPassingMassCutThisSlice = (bgEntriesInBRegionThisSlice > 0) ?
-      histItr->Integral()/bgEntriesInBRegionThisSlice : 0;
-    double bgTracksInDThisSlice = (bgEntriesInARegionThisSlice > 0) ?
-      bgEntriesInBRegionThisSlice*bgEntriesInCRegionThisSlice/bgEntriesInARegionThisSlice : 0;
-    double numBackgroundTracksInDRegionPassingMassCutThisSlice =
-      bgTracksInDThisSlice*fractionOfBGTracksPassingMassCutThisSlice;
+    //double fractionOfBGTracksPassingMassCutThisSlice = (bgEntriesInBRegionThisSlice > 0) ?
+    //  histItr->Integral()/bgEntriesInBRegionThisSlice : 0;
+    //double bgTracksInDThisSlice = (bgEntriesInARegionThisSlice > 0) ?
+    //  bgEntriesInBRegionThisSlice*bgEntriesInCRegionThisSlice/bgEntriesInARegionThisSlice : 0;
+    //double numBackgroundTracksInDRegionPassingMassCutThisSlice =
+    //  bgTracksInDThisSlice*fractionOfBGTracksPassingMassCutThisSlice;
     int etaBinCRegionEntriesHist = cRegionBackgroundEntriesHist->GetXaxis()->FindBin(lowerEta+0.1);
     int cRegionNoMSummedEntries = cRegionBackgroundEntriesHist->Integral(
         etaBinCRegionEntriesHist,etaBinCRegionEntriesHist,1,cRegionBackgroundEntriesHist->GetNbinsY());
@@ -614,9 +616,9 @@ int main(int argc, char ** argv)
       totalBkOverIas+=iasHist->GetBinContent(bin);
     // output
     cout << "Slice: lowerNoM = " << lowerNoM << " lowerEta = " << lowerEta << endl;
-    cout << "bg entries this slice: A = " << bgEntriesInARegionThisSlice << " B = " << 
-      bgEntriesInBRegionThisSlice << " C = " << bgEntriesInCRegionThisSlice << " ==> D = " <<
-      bgTracksInDThisSlice << endl;
+    //cout << "bg entries this slice: A = " << bgEntriesInARegionThisSlice << " B = " << 
+    //  bgEntriesInBRegionThisSlice << " C = " << bgEntriesInCRegionThisSlice << " ==> D = " <<
+    //  bgTracksInDThisSlice << endl;
     cout << "INFO: SumBkOverIas = " << totalBkOverIas << endl;
     cout << "INFO: average Cj over mass cut = " << averageCTracksAboveMassCut << endl;
     cout << "INFO: total C over NoM slices = " << cRegionNoMSummedEntries << endl;
@@ -633,6 +635,7 @@ int main(int argc, char ** argv)
     //  backgroundTracksOverIasCutErrorSqr+=
     //    pow(sliceError*averageCTracksAboveMassCut*bgEntriesInCRegionThisSlice/
     //        (bgEntriesInARegionThisSlice*cRegionNoMSummedEntries),2);
+    numBkOverIasCut+=totalBkOverIas;
     // include c tracks passing mass cut error
     double sliceError = 0;
     if(totalBkOverIas > 0)
@@ -689,16 +692,16 @@ int main(int argc, char ** argv)
     //    iasSignalMassCutNoMSliceForEffHist->FindBin(iasCutForEffAcc),
     //    iasSignalMassCutNoMSliceForEffHist->GetNbinsX())/iasSignalMassCutNoMSliceForEffHist->Integral();
 
-    cout << "INFO: fraction of bg tracks passing mass cut this slice = " <<
-      fractionOfBGTracksPassingMassCutThisSlice << endl << 
-      " ==> numBackgroundTracksInDRegionPassingMassCutThisSlice = " <<
-      numBackgroundTracksInDRegionPassingMassCutThisSlice << 
-      " and integral = " << histItr->Integral() << " so bgNormFactor = ";
-    if(histItr->Integral() > 0)
-      cout << numBackgroundTracksInDRegionPassingMassCutThisSlice/histItr->Integral();
-    else
-      cout << "0";
-    cout << endl;
+    //cout << "INFO: fraction of bg tracks passing mass cut this slice = " <<
+    //  fractionOfBGTracksPassingMassCutThisSlice << endl << 
+    //  " ==> numBackgroundTracksInDRegionPassingMassCutThisSlice = " <<
+    //  numBackgroundTracksInDRegionPassingMassCutThisSlice << 
+    //  " and integral = " << histItr->Integral() << " so bgNormFactor = ";
+    //if(histItr->Integral() > 0)
+    //  cout << numBackgroundTracksInDRegionPassingMassCutThisSlice/histItr->Integral();
+    //else
+    //  cout << "0";
+    //cout << endl;
     cout << "INFO: sum Bk over iasCut = " <<
       histItr->Integral(histItr->FindBin(iasCutForEffAcc),histItr->GetNbinsX()) << endl;
     cout << "INFO: ias cut frac = " <<
@@ -734,11 +737,15 @@ int main(int argc, char ** argv)
     //double numBackgroundTracksInDRegionPassingMassCutThisSliceError =
     //  fractionOfBGTracksPassingMassCutThisSlice*bgTracksInDThisSliceError;
     //backgroundTracksOverIasCutErrorSqr+=pow(numBackgroundTracksInDRegionPassingMassCutThisSliceError,2);
-    histItr->Sumw2();
-    double bgNormFactor = (histItr->Integral() > 0) ?
-      numBackgroundTracksInDRegionPassingMassCutThisSlice/
-      histItr->Integral(): 0;
-    histItr->Scale(bgNormFactor);
+    
+    //XXX mar 1 no longer needed
+    //histItr->Sumw2();
+    //double bgNormFactor = (histItr->Integral() > 0) ?
+    //  numBackgroundTracksInDRegionPassingMassCutThisSlice/
+    //  histItr->Integral(): 0;
+    //histItr->Scale(bgNormFactor);
+    //
+
     //TODO: handle the hists with zero background in systematic
     // (assume an entry in the lowest Ias bin)
   
@@ -749,6 +756,11 @@ int main(int argc, char ** argv)
     //}
     //XXX SIC FEB 20 switching to new background prediction at least for testing
     backgroundTracksOverIasCutNoApprox+=histItr->Integral(histItr->FindBin(iasCutForEffAcc),histItr->GetNbinsX());
+    // compute error this slice -- assuming error in each ias bin is uncorrelated (if based only on Bk then it is)
+    double errorSqrThisSlice = 0;
+    for(int bin=histItr->FindBin(iasCutForEffAcc); bin <= histItr->GetNbinsX(); ++bin)
+      errorSqrThisSlice+=pow(histItr->GetBinError(bin),2);
+    backgroundTracksOverIasCutNoApproxErrorSqr+=errorSqrThisSlice;
     backExpOverIasCutVsSliceHist->Fill(
         lowerEta+0.1,lowerNoM,histItr->Integral(histItr->FindBin(iasCutForEffAcc),histItr->GetNbinsX()));
     backExpVsSliceHist->Fill(lowerEta+0.1,lowerNoM,histItr->Integral());
@@ -922,10 +934,14 @@ int main(int argc, char ** argv)
   // end of standard analysis style prediction
 
 
-  cout << endl << endl << "Ias cut = " << iasCutForEffAcc << endl << "\tfound " << backgroundTracksOverIasCut
+  cout << endl << endl << "Ias cut = " << iasCutForEffAcc << endl << "\tfound " << backgroundTracksOverIasCutNoApprox
+    << " +/- " << sqrt(backgroundTracksOverIasCutNoApproxErrorSqr)
+    << " background tracks over ias cut from ias pred hist" << endl 
+    << backgroundTracksOverIasCut
     << " +/- " << sqrt(backgroundTracksOverIasCutErrorSqr)
-    << " background tracks over ias cut " << endl 
-    << backgroundTracksOverIasCutNoApprox << " tracks over ias cut without approximating" << endl
+    << " tracks over ias cut from approximation" << endl
+    << numBkOverIasCut << " Bk tracks over ias cut"
+    << endl << endl
     << signalEventsOverIasCut/numGenHSCPEventsRooVar->getVal() << " signal efficiency (event level) or" << endl 
     << signalTracksOverIasCut/signalTracksTotal << " signal efficiency (track level) with this ias cut. " << endl << endl;
 
