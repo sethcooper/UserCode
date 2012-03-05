@@ -12,7 +12,10 @@ from subprocess import call
 import datetime
 
 # Set things here
-FarmDirectory = 'FARM_moreModels_usePtOver50GeVOnly_'
+#FarmDirectory = 'FARM_moreModels_usePtOver50GeVOnly_'
+#FarmDirectory = 'FARM_moreModels_usePtOver50GeVOnlyNewError_'
+#FarmDirectory = 'FARM_moreModels_cutPt50GeVNewBGPred_'
+FarmDirectory = 'FARM_moreModels_cutPtOver50GeVOnlyNewBGPred_'
 InputDataRootFile = '/local/cms/user/cooper/cmssw/428/HSCPAnalysis/src/HSCP2011/ToyMC/bin/'
 InputDataRootFile+='/FARM_MakeHSCParticlePlots_dataWithTightRPCTrig_absEta_ptErrorPresel_feb6/outputs/makeHSCParticlePlots_feb1_Data2011_all.root'
 sigInput='/local/cms/user/cooper/cmssw/428/HSCPAnalysis/src/HSCP2011/ToyMC/bin/'
@@ -42,7 +45,7 @@ def doIasPredictions():
   for model in modelList:
     HSCPMakeIasPredictionsLaunchOnCondor.SendCluster_Create(FarmDirectory,JobName,InputDataRootFile,
                                                 BaseCfg, model.massCut, model.ptCut, model.iasCut)
-    ## Use Pt cut of 50 GeV
+    # Use Pt cut of 50 GeV
     #HSCPMakeIasPredictionsLaunchOnCondor.SendCluster_Create(FarmDirectory,JobName,InputDataRootFile,
     #                                            BaseCfg, model.massCut, 50, model.iasCut)
 
@@ -57,7 +60,7 @@ def doMergeIasPredictions():
       print 'Merging files for mass cut = ' + str(model.massCut) + ' pt cut = ' + str(model.ptCut) + ' ias cut = ' + str(model.iasCut)
       call(thisMassCutFiles)
   
-  ## all Pt = 50
+  # all Pt = 50
   #for model in modelList:
   #    thisMassCutFiles = glob.glob(OutputIasPredictionDir+'*massCut'+str(model.massCut)+'_pt50_ias'+str(model.iasCut)+'_eta*')
   #    thisMassCutFiles.insert(0,OutputIasPredictionDir+'makeIasPredictionsCombined_massCut'+str(model.massCut)+'_ptCut50_ias'+str(model.iasCut)+'.root')
@@ -82,22 +85,26 @@ def doScaledPredictions():
   for model in modelList:
     HSCPMakeScaledPredictionsLaunchOnCondor.SendCluster_Push(
       bgInput,sigInput+model.name+'.root',model.name,model.massCut,model.iasCut,model.ptCut)
-      ## Pt = 50
+      # Pt = 50
       #bgInput,sigInput+model.name+'.root',model.name,model.massCut,model.iasCut,50)
 
   HSCPMakeScaledPredictionsLaunchOnCondor.SendCluster_Submit()
+
+def Usage():
+  print 'Usage: Launch.py [arg] where arg can be:'
+  print '    0 --> makeHSCParticlePlots (process into RooDataSets)'
+  print '    1 --> mergeHSCParticlePlots for data'
+  print '    2 --> makeIasPredictions'
+  print '    3 --> mergeIasPredictions'
+  print '    4 --> makeScaledPredictionPlots (process input for limit-setting macro)'
+  print '    5 --> doLimits'
 
 
 
 # Running the functions
 
 if len(sys.argv)==1:
-  print 'Usage: Launch.py [arg] where arg can be:'
-  print '    0 --> makeHSCParticlePlots (process into RooDataSets)'
-  print '    1 --> makeIasPredictions'
-  print '    2 --> mergeIasPredictions'
-  print '    3 --> makeScaledPredictionPlots (process input for limit-setting macro)'
-  print '    4 --> doLimits'
+  Usage()
   sys.exit()
 
 elif sys.argv[1]=='0':
@@ -105,30 +112,29 @@ elif sys.argv[1]=='0':
   print 'TODO: Implement this'
 
 elif sys.argv[1]=='1':
-  print 'Step 1: Make Ias predictions for background'
-  doIasPredictions()
+  print 'Step 1: MergeHSCParticlePlots for data'
+  print 'TODO: Implement this'
 
 elif sys.argv[1]=='2':
-  print 'Step 2: Merge Ias predictions'
-  doMergeIasPredictions()
+  print 'Step 2: Make Ias predictions for background'
+  doIasPredictions()
 
 elif sys.argv[1]=='3':
-  print 'Step 3: Make scaled prediction plots'
-  doScaledPredictions()
+  print 'Step 3: Merge Ias predictions'
+  doMergeIasPredictions()
 
 elif sys.argv[1]=='4':
-  print 'Step 4: Compute limits'
+  print 'Step 4: Make scaled prediction plots'
+  doScaledPredictions()
+
+elif sys.argv[1]=='5':
+  print 'Step 5: Compute limits'
   print 'TODO: Implement this'
   
 
 else:
   print 'Did not understand input.'
-  print 'Usage: Launch.py [arg] where arg can be:'
-  print '    0 --> makeHSCParticlePlots (process into RooDataSets)'
-  print '    1 --> makeIasPredictions'
-  print '    2 --> mergeIasPredictions'
-  print '    3 --> makeScaledPredictionPlots (process input for limit-setting macro)'
-  print '    4 --> doLimits'
+  Usage()
   sys.exit()
 
 
