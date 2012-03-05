@@ -7,8 +7,12 @@ import glob
 import math
 from subprocess import call
 
-BaseDir2 = "FARM_moreModels_cutPt50GeV_Feb21/logs/makeScaledPredictions/"
-BaseDir1 = "FARM_moreModels_usePtOver50GeVOnly_Feb22/logs/makeScaledPredictions/"
+#BaseDir2 = "FARM_moreModels_cutPt50GeV_Feb21/logs/makeScaledPredictions/"
+#BaseDir1 = "FARM_moreModels_usePtOver50GeVOnly_Feb22/logs/makeScaledPredictions/"
+#BaseDir2 = "FARM_moreModels_cutPt50GeVNewError_Feb28/logs/makeScaledPredictions/"
+#BaseDir1 = "FARM_moreModels_usePtOver50GeVOnlyNewError_Feb28/logs/makeScaledPredictions/"
+BaseDir2 = "FARM_moreModels_cutPt50GeVNewBGPred_Mar04/logs/makeScaledPredictions/"
+BaseDir1 = "FARM_moreModels_cutPtOver50GeVOnlyNewBGPred_Mar04/logs/makeScaledPredictions/"
 
 def GetModelName(fileName):
   massCutPos = fileName.find("_massCut")
@@ -63,11 +67,24 @@ def GetSigEff(filePath):
   else:
     return 0
 
+def GetBkOverIas(filePath):
+  for line in open(filePath):
+    if "Bk" in line:
+      break
+  lineSplit = line.split(' ')
+  if "Bk" in line:
+    #print line
+    return float(lineSplit[3])
+  else:
+    return 0.0
+
 
 
 fileList1 = os.listdir(BaseDir1)
 print
-print 'Model         PtCut   IasCut     MassCut    BackExpOverIas    SignalEff'
+print '1'
+print 'Over 50 GeV Only'
+print 'Model         PtCut   IasCut     MassCut    BackExpOverIas   BkOverIas   SignalEff'
 print
 for file in fileList1:
   if ".out" in file:
@@ -75,19 +92,23 @@ for file in fileList1:
     backExpError = GetBackExpError(BaseDir1+file)
     iasCut  = GetIasCut(BaseDir1+file)
     sigEff = GetSigEff(BaseDir1+file)
+    bk = GetBkOverIas(BaseDir1+file)
     massCut = GetMassCut(file)
     ptCut = GetPtCut(file)
     signalName = GetModelName(file)
     printString = string.ljust(signalName,15)+string.ljust(ptCut,8)+string.ljust(iasCut,10)
     printString+=string.center(massCut,8)
     printString+=string.center(str(round(backExp,4))+' +/- '+str(round(backExpError,4)),20)
+    printString+=string.center(str(bk),5)
     printString+=string.center(str(round(sigEff,4)),10)
     print printString
 
 
 fileList2 = os.listdir(BaseDir2)
 print
-print 'Model         PtCut   IasCut     MassCut    BackExpOverIas    SignalEff'
+print '2'
+print 'Up to 50 GeV'
+print 'Model         PtCut   IasCut     MassCut    BackExpOverIas   BkOverIas   SignalEff'
 print
 for file in fileList2:
   if ".out" in file:
@@ -95,12 +116,14 @@ for file in fileList2:
     backExpError = GetBackExpError(BaseDir2+file)
     iasCut  = GetIasCut(BaseDir2+file)
     sigEff = GetSigEff(BaseDir2+file)
+    bk = GetBkOverIas(BaseDir2+file)
     massCut = GetMassCut(file)
     ptCut = GetPtCut(file)
     signalName = GetModelName(file)
     printString = string.ljust(signalName,15)+string.ljust(ptCut,8)+string.ljust(iasCut,10)
     printString+=string.center(massCut,8)
     printString+=string.center(str(round(backExp,4))+' +/- '+str(round(backExpError,4)),20)
+    printString+=string.center(str(bk),5)
     printString+=string.center(str(round(sigEff,4)),10)
     print printString
 
