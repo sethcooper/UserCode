@@ -51,7 +51,7 @@ void setHistAttributes(TH1* hist, int colorCounter, int markerStyleCounter)
 }
 
 
-rooDatasetPlots(bool doNoMplots = false, bool doEtaPlots = false, bool doPtPlots = true)
+rooDatasetPlots(bool doNoMplots = false, bool doEtaPlots = false, bool doPtPlots = false, bool doPtVsIasPlot = true)
 {
   bool usePtForSideband = true;
   float iasCut = 0.4;
@@ -383,6 +383,20 @@ rooDatasetPlots(bool doNoMplots = false, bool doEtaPlots = false, bool doPtPlots
 
   } // ifdoPtPlots
 
+  if(doPtVsIasPlot)
+  {
+    TCanvas c1;
+    c1.cd();
+    TH2F* ptVsIasHist = etaCutDataSet->createHistogram(rooVarIas,rooVarPt);
+    ptVsIasHist->GetYaxis()->SetRangeUser(0,500);
+    ptVsIasHist->GetXaxis()->SetRangeUser(0,0.5);
+    ptVsIasHist->SetTitle("CMS Preliminary    #sqrt{s} = 7 TeV;Ias;Pt [GeV]");
+    ptVsIasHist->Draw("colz");
+    c1.SetLogz();
+    c1.Print("ptVsIas.png");
+    c1.Print("ptVsIas.eps");
+
+  } // if doPtVsIasPlot
 
   // overall dists?
 
