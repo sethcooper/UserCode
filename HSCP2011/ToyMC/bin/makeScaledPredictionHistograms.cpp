@@ -292,16 +292,19 @@ int main(int argc, char ** argv)
   iasSearchCutString+=floatToString(iasCutForEffAcc);
   RooDataSet* regionD1DataSetSignal;
   RooDataSet* regionDDataSetSignal;
-  if(usePtForSideband)
-    regionD1DataSetSignal = (RooDataSet*)rooDataSetAllSignal->reduce(Cut(ptSearchCutString.c_str()));
-  else
-    regionD1DataSetSignal = (RooDataSet*)rooDataSetAllSignal->reduce(Cut(pSearchCutString.c_str()));
+  //if(usePtForSideband)
+  //  regionD1DataSetSignal = (RooDataSet*)rooDataSetAllSignal->reduce(Cut(ptSearchCutString.c_str()));
+  //else
+  //  regionD1DataSetSignal = (RooDataSet*)rooDataSetAllSignal->reduce(Cut(pSearchCutString.c_str()));
+  // SIC MAR 5 -- don't do P cut for signal D region -- will be taken care of by mass cut later
+  regionD1DataSetSignal = (RooDataSet*) rooDataSetAllSignal->Clone();
   if(useIasForSideband)
     regionDDataSetSignal = (RooDataSet*)regionD1DataSetSignal->reduce(Cut(iasSearchCutString.c_str()));
   else
     regionDDataSetSignal = (RooDataSet*)regionD1DataSetSignal->reduce(Cut(ihSearchCutString.c_str()));
   //DEBUG TESTING ONLY
   //RooDataSet* regionDDataSetSignal = (RooDataSet*)regionD1DataSetSignal->Clone();
+  delete regionD1DataSetSignal;
   int numSignalTracksInDRegion = regionDDataSetSignal->numEntries();
 
   // get the background A region entries hist
