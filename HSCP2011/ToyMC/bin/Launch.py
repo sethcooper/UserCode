@@ -6,18 +6,25 @@ import os
 import sys
 import HSCPMakeIasPredictionsLaunchOnCondor
 import HSCPMakeScaledPredictionsLaunchOnCondor
+import HSCPDoLimitsLaunchOnCondor
 import glob
 from SignalDefinitions import *
 from subprocess import call
 import datetime
 
+now = datetime.datetime.now()
+Date = now.strftime("%b%d")
+
 # Set things here
 #FarmDirectory = 'FARM_moreModels_usePtOver50GeVOnly_'
 #FarmDirectory = 'FARM_moreModels_usePtOver50GeVOnlyNewError_'
 #FarmDirectory = 'FARM_moreModels_cutPt50GeVNewBGPred_'
-FarmDirectory = 'FARM_moreModels_cutPtOver50GeVOnlyNewBGPred_'
+FarmDirectory = 'FARM_moreModels_cutPt50GeVIasStdAna_Mar08'
+#FarmDirectory = 'FARM_moreModels_cutPt50GeVIas0p1_includeTightRPC_Mar05'
+#FarmDirectory+=Date
 InputDataRootFile = '/local/cms/user/cooper/cmssw/428/HSCPAnalysis/src/HSCP2011/ToyMC/bin/'
 InputDataRootFile+='/FARM_MakeHSCParticlePlots_dataWithTightRPCTrig_absEta_ptErrorPresel_feb6/outputs/makeHSCParticlePlots_feb1_Data2011_all.root'
+#InputDataRootFile+='/FARM_MakeHSCParticlePlots_data_absEta_ptErrorPresel_Mar08/outputs/makeHSCParticlePlots_Data2011_all.root'
 sigInput='/local/cms/user/cooper/cmssw/428/HSCPAnalysis/src/HSCP2011/ToyMC/bin/'
 sigInput+='FARM_MakeHSCParticlePlots_Signals_absEta_ptErrorPresel_Feb21/outputs/makeHSCParticlePlots_Feb21_'
 IntLumi = 4679 # 1/pb (2011)
@@ -26,69 +33,100 @@ IntLumi = 4679 # 1/pb (2011)
 #
 
 
-now = datetime.datetime.now()
-Date = now.strftime("%b%d")
-FarmDirectory+=Date
 OutputIasPredictionDir = os.getcwd()
 OutputIasPredictionDir+="/"
 OutputIasPredictionDir+=FarmDirectory
 OutputIasPredictionDir+="/outputs/makeIasPredictions/"
+bgInput = OutputIasPredictionDir+'makeIasPredictionsCombined_massCut'
+BaseCfgMakeScaled = "makeScaledPredictionHistograms_template_cfg.py"
+BaseCfgMakePred = "makeIasPredictions_template_cfg.py"
+BaseChXML = "hscp_dataDriven_ch_template.xml"
+BaseCombXML = "hscp_dataDriven_template.xml"
+BaseMacro = os.getcwd() + "/StandardHypoTestInvDemo.C"
+BaseMacroBayesian = os.getcwd() + "/StandardBayesianNumericalDemo.C"
 
 
 def doIasPredictions():
   #TODO in the real analysis we will use the same ih/pt cuts for sidebands
   #     so make a set of the mass cuts (no duplicates)
-  BaseCfg = "makeIasPredictions_template_cfg.py"
   JobName = "makeIasPredictions_"
   JobName+=Date
   JobName+="_"
   for model in modelList:
     HSCPMakeIasPredictionsLaunchOnCondor.SendCluster_Create(FarmDirectory,JobName,InputDataRootFile,
-                                                BaseCfg, model.massCut, model.ptCut, model.iasCut)
-    # Use Pt cut of 50 GeV
-    #HSCPMakeIasPredictionsLaunchOnCondor.SendCluster_Create(FarmDirectory,JobName,InputDataRootFile,
-    #                                            BaseCfg, model.massCut, 50, model.iasCut)
+                                                #BaseCfgMakePred, model.massCut, model.ptCut, model.iasCut)
+    # Use Pt cut of 50 GeV, ias 0.1
+                                                #BaseCfgMakePred, model.massCut, 50, 0.1)
+    # Use Pt cut of 50 GeV, std ana ias
+                                                BaseCfgMakePred, model.massCut, 50, model.iasCut)
 
   HSCPMakeIasPredictionsLaunchOnCondor.SendCluster_Submit()
 
 
 def doMergeIasPredictions():
-  for model in modelList:
-      thisMassCutFiles = glob.glob(OutputIasPredictionDir+'*massCut'+str(model.massCut)+'_pt'+str(model.ptCut)+'_ias'+str(model.iasCut)+'_eta*')
-      thisMassCutFiles.insert(0,OutputIasPredictionDir+'makeIasPredictionsCombined_massCut'+str(model.massCut)+'_ptCut'+str(model.ptCut)+'_ias'+str(model.iasCut)+'.root')
-      thisMassCutFiles.insert(0,"hadd")
-      print 'Merging files for mass cut = ' + str(model.massCut) + ' pt cut = ' + str(model.ptCut) + ' ias cut = ' + str(model.iasCut)
-      call(thisMassCutFiles)
-  
-  # all Pt = 50
   #for model in modelList:
-  #    thisMassCutFiles = glob.glob(OutputIasPredictionDir+'*massCut'+str(model.massCut)+'_pt50_ias'+str(model.iasCut)+'_eta*')
-  #    thisMassCutFiles.insert(0,OutputIasPredictionDir+'makeIasPredictionsCombined_massCut'+str(model.massCut)+'_ptCut50_ias'+str(model.iasCut)+'.root')
+  #    thisMassCutFiles = glob.glob(OutputIasPredictionDir+'*massCut'+str(model.massCut)+'_pt'+str(model.ptCut)+'_ias'+model.iasCut+'_eta*')
+  #    thisMassCutFiles.insert(0,OutputIasPredictionDir+'makeIasPredictionsCombined_massCut'+str(model.massCut)+'_ptCut'+str(model.ptCut)+'_ias'+model.iasCut+'.root')
   #    thisMassCutFiles.insert(0,"hadd")
-  #    print 'Merging files for mass cut = ' + str(model.massCut) + ' pt cut = 50 ias cut = ' + str(model.iasCut)
+  #    print 'Merging files for mass cut = ' + str(model.massCut) + ' pt cut = ' + str(model.ptCut) + ' ias cut = ' + model.iasCut
   #    call(thisMassCutFiles)
+  # all Pt = 50, ias 0.1
+  #for model in modelList:
+  #    thisMassCutFiles = glob.glob(OutputIasPredictionDir+'*massCut'+str(model.massCut)+'_pt50_ias'+str(0.1)+'_eta*')
+  #    thisMassCutFiles.insert(0,OutputIasPredictionDir+'makeIasPredictionsCombined_massCut'+str(model.massCut)+'_ptCut50_ias'+str(0.1)+'.root')
+  #    thisMassCutFiles.insert(0,"hadd")
+  #    print 'Merging files for mass cut = ' + str(model.massCut) + ' pt cut = 50 ias cut = ' + str(0.1)
+  #    call(thisMassCutFiles)
+  # all Pt = 50, ias stdAnalysis
+  for model in modelList:
+      thisMassCutFiles = glob.glob(OutputIasPredictionDir+'*massCut'+str(model.massCut)+'_pt50_ias'+model.iasCut+'_eta*')
+      thisMassCutFiles.insert(0,OutputIasPredictionDir+'makeIasPredictionsCombined_massCut'+str(model.massCut)+'_ptCut50_ias'+model.iasCut+'.root')
+      thisMassCutFiles.insert(0,"hadd")
+      print 'Merging files for mass cut = ' + str(model.massCut) + ' pt cut = 50 ias cut = ' + model.iasCut
+      #print thisMassCutFiles
+      call(thisMassCutFiles)
 
 
 def doScaledPredictions():
   # BG
-  bgInput = OutputIasPredictionDir+'makeIasPredictionsCombined_massCut'
-  BaseCfg = "makeScaledPredictionHistograms_template_cfg.py"
-  BaseChXML = "hscp_dataDriven_ch_template.xml"
-  BaseCombXML = "hscp_dataDriven_template.xml"
-  BaseMacro = os.getcwd() + "/StandardHypoTestInvDemo.C"
   JobName = "makeScaledPredictions_"
   JobName+=Date
   JobName+="_"
   HSCPMakeScaledPredictionsLaunchOnCondor.SendCluster_Create(FarmDirectory,JobName,
-                                              IntLumi, BaseCfg, BaseChXML,
+                                              IntLumi, BaseCfgMakeScaled, BaseChXML,
                                                            BaseCombXML, BaseMacro)
   for model in modelList:
     HSCPMakeScaledPredictionsLaunchOnCondor.SendCluster_Push(
-      bgInput,sigInput+model.name+'.root',model.name,model.massCut,model.iasCut,model.ptCut)
-      # Pt = 50
-      #bgInput,sigInput+model.name+'.root',model.name,model.massCut,model.iasCut,50)
+      #bgInput,sigInput+model.name+'.root',model.name,model.massCut,model.iasCut,model.ptCut)
+      # Pt = 50, ias 0.1
+      #bgInput,sigInput+model.name+'.root',model.name,model.massCut,0.1,50)
+      # Pt = 50, ias stdAna
+      bgInput,sigInput+model.name+'.root',model.name,model.massCut,model.iasCut,50)
 
   HSCPMakeScaledPredictionsLaunchOnCondor.SendCluster_Submit()
+
+
+def doLimits():
+  JobName = "doLimits_"
+  JobName+=Date
+  JobName+="_"
+  HSCPDoLimitsLaunchOnCondor.SendCluster_Create(FarmDirectory, JobName, IntLumi, BaseMacro, False)
+  #HSCPDoLimitsLaunchOnCondor.SendCluster_Create(FarmDirectory, JobName, IntLumi, BaseMacroBayesian, True)
+  #TODO work for all signal models
+  HSCPDoLimitsLaunchOnCondor.SendCluster_Push(bgInput,sigInput+Stop200.name+'.root',Stop200.massCut,Stop200.iasCut,Stop200.ptCut)
+  HSCPDoLimitsLaunchOnCondor.SendCluster_Push(bgInput,sigInput+Stop400.name+'.root',Stop400.massCut,Stop400.iasCut,Stop400.ptCut)
+  HSCPDoLimitsLaunchOnCondor.SendCluster_Push(bgInput,sigInput+Stop600.name+'.root',Stop600.massCut,Stop600.iasCut,Stop600.ptCut)
+  HSCPDoLimitsLaunchOnCondor.SendCluster_Push(bgInput,sigInput+Gluino600.name+'.root',Gluino600.massCut,Gluino600.iasCut,Gluino600.ptCut)
+  HSCPDoLimitsLaunchOnCondor.SendCluster_Push(bgInput,sigInput+Gluino800.name+'.root',Gluino800.massCut,Gluino800.iasCut,Gluino800.ptCut)
+  HSCPDoLimitsLaunchOnCondor.SendCluster_Push(bgInput,sigInput+Gluino1000.name+'.root',Gluino1000.massCut,Gluino1000.iasCut,Gluino1000.ptCut)
+  HSCPDoLimitsLaunchOnCondor.SendCluster_Push(bgInput,sigInput+Gluino1100.name+'.root',Gluino1100.massCut,Gluino1100.iasCut,Gluino1100.ptCut)
+  HSCPDoLimitsLaunchOnCondor.SendCluster_Push(bgInput,sigInput+Gluino1200.name+'.root',Gluino1200.massCut,Gluino1200.iasCut,Gluino1200.ptCut)
+  HSCPDoLimitsLaunchOnCondor.SendCluster_Push(bgInput,sigInput+GMStau308.name+'.root',GMStau308.massCut,GMStau308.iasCut,GMStau308.ptCut)
+  HSCPDoLimitsLaunchOnCondor.SendCluster_Push(bgInput,sigInput+GMStau432.name+'.root',GMStau432.massCut,GMStau432.iasCut,GMStau432.ptCut)
+
+  HSCPDoLimitsLaunchOnCondor.SendCluster_Submit()
+
+
 
 def Usage():
   print 'Usage: Launch.py [arg] where arg can be:'
@@ -129,7 +167,7 @@ elif sys.argv[1]=='4':
 
 elif sys.argv[1]=='5':
   print 'Step 5: Compute limits'
-  print 'TODO: Implement this'
+  doLimits()
   
 
 else:
