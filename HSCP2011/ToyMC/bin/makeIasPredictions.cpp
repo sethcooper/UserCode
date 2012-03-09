@@ -370,9 +370,9 @@ int main(int argc, char ** argv)
   std::string iasSearchCutString = "rooVarIas>";
   iasSearchCutString+=floatToString(iasSidebandThreshold);
   //XXX TESTING CUT OFF PT < 50
-  RooDataSet* rooDataSetPtCut = (RooDataSet*) rooDataSetInput->reduce(Cut("rooVarPt>50"));
-  //RooDataSet* rooDataSetPtCut = (RooDataSet*) rooDataSetInput->Clone();
-  std::cout << "INFO: Applying minimum Pt cut of 50" << std::endl;
+  //RooDataSet* rooDataSetPtCut = (RooDataSet*) rooDataSetInput->reduce(Cut("rooVarPt>50"));
+  //std::cout << "INFO: Applying minimum Pt cut of 50" << std::endl;
+  RooDataSet* rooDataSetPtCut = (RooDataSet*) rooDataSetInput->Clone();
   //XXX TURN OFF ETA > 1.5
   RooDataSet* rooDataSetAll = (RooDataSet*) rooDataSetPtCut->reduce(Cut("rooVarEta<1.5&&rooVarEta>-1.5"));
   std::cout << "INFO: Applying upper eta cut of 1.5" << std::endl;
@@ -905,7 +905,7 @@ int main(int argc, char ** argv)
         double Bk = iasBRegionHist->GetBinContent(bin);
         // Bk * < Cj over mass > / A
         double binContent = Bk * cRegionTracksOverMassCutProfile->GetBinContent(bin) / entriesInARegionNoM;
-        //TODO FIXME run toys to get this error
+        //TODO FIXME run toys to get this error OR use SQRT(C) in first Ias bin above std ana ias cut to get overall error
         double binError = sqrt(Bk) * cRegionTracksOverMassCutProfile->GetBinContent(bin) / entriesInARegionNoM;
         iasPredictionFixedHist->SetBinContent(bin,binContent);
         iasPredictionFixedHist->SetBinError(bin,binError);
