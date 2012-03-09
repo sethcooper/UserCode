@@ -38,7 +38,8 @@ def CreateTheConfigFile(jobName, baseCfg, inputFile, crossSection, massCut,
 
     #print 'inputFiles= ',inputFiles
     #Default Replacements
-    config_txt = config_txt.replace("XXX_INPUTFILES_XXX", "    '"+inputFile+"'")
+    #config_txt = config_txt.replace("XXX_INPUTFILES_XXX", "    '"+inputFile+"'")
+    config_txt = config_txt.replace("XXX_INPUTFILES_XXX", inputFile)
     config_txt = config_txt.replace("XXX_OUTPUTFILE_XXX", outputFile)
     config_txt = config_txt.replace("XXX_CROSSSECTION_XXX" , str(crossSection))
     config_txt = config_txt.replace("XXX_MASSCUT_XXX", str(massCut))
