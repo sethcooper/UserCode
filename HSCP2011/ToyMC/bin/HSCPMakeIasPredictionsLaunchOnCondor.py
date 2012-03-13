@@ -131,7 +131,7 @@ def CreateDirectoryStructure(FarmDirectory):
             os.system('mkdir -p ' + Farm_Directories[i])
 
 def SendCluster_Create(farmDirectory, jobName, inputRootFile, baseCfg,
-                       massCut, ptCut, iasCut):
+                       massCut, ptCut, iasCut, allSlices):
     global Jobs_Name
     global Jobs_Count
     global Input_File
@@ -145,10 +145,12 @@ def SendCluster_Create(farmDirectory, jobName, inputRootFile, baseCfg,
       Input_File = inputRootFile
       Base_Cfg = baseCfg
       Init = False
-    for etaIndex in range(0,16,4):
+    if(allSlices):
+      for etaIndex in range(0,16,4):
         for nomIndex in range(5,22,4):
-            SendCluster_Push(massCut,etaIndex/10.0,(etaIndex+4)/10.0,nomIndex,nomIndex+3,ptCut,iasCut)
-    #SendCluster_Push(massCut,0.0,1.5,5,21,ptCut,iasCut)
+          SendCluster_Push(massCut,etaIndex/10.0,(etaIndex+4)/10.0,nomIndex,nomIndex+3,ptCut,iasCut)
+    else:
+      SendCluster_Push(massCut,0.0,1.5,5,21,ptCut,iasCut)
 
 
 def SendCluster_Push(massCut,etaMin,etaMax,nomMin,nomMax,ptThresh,iasThresh):
