@@ -39,7 +39,7 @@ def CreateTheConfigFile(massCut,etaMin,etaMax,nomMin,nomMax,ptThresh,iasThresh):
     global Base_cfg
     global Input_File
     Path_Cfg = Farm_Directories[1]+Jobs_Name+GetSelectionString(massCut,etaMin,nomMin,ptThresh,iasThresh)+'_cfg.py'
-    outputFile = 'makeIasPredictions_'+GetSelectionString(massCut,etaMin,nomMin,ptThresh,iasThresh)+'.root'
+    outputFile = Jobs_Name+GetSelectionString(massCut,etaMin,nomMin,ptThresh,iasThresh)+'.root'
     config_file=open(Base_Cfg,'r')
     config_txt   = '\n\n' + CopyRights + '\n\n'
     config_txt  += config_file.read()
@@ -67,7 +67,7 @@ def CreateTheShellFile(massCut,etaMin,etaMax,nomMin,nomMax,ptThresh,iasThresh):
     global Jobs_Name
     global Castor_Path
     CreateTheConfigFile(massCut,etaMin,etaMax,nomMin,nomMax,ptThresh,iasThresh)
-    outputFile = 'makeIasPredictions_'+GetSelectionString(massCut,etaMin,nomMin,ptThresh,iasThresh)+'.root'
+    outputFile = Jobs_Name+GetSelectionString(massCut,etaMin,nomMin,ptThresh,iasThresh)+'.root'
     Path_Shell = Farm_Directories[1]+Jobs_Name+GetSelectionString(massCut,etaMin,nomMin,ptThresh,iasThresh)+'.sh'
     shell_file=open(Path_Shell,'w')
     shell_file.write('#!/bin/sh\n')
@@ -76,9 +76,11 @@ def CreateTheShellFile(massCut,etaMin,etaMax,nomMin,nomMax,ptThresh,iasThresh):
     shell_file.write('source /local/cms/sw/cmsset_default.sh\n')
     shell_file.write('cd ' + os.getcwd() + '\n')
     shell_file.write('eval `scramv1 runtime -sh`\n')
-    shell_file.write('cd -\n')
+    #shell_file.write('cd -\n')
+    shell_file.write('cd ' + Farm_Directories[0] + '\n')
     shell_file.write('makeIasPredictions ' + os.getcwd() + '/'+Path_Cfg + '\n')
-    shell_file.write('mv ' + outputFile + ' ' + os.getcwd() + '/' + Farm_Directories[4] )
+    #shell_file.write('cd -\n')
+    shell_file.write('mv ' + outputFile + ' ' + os.getcwd() + '/' + Farm_Directories[4] + '\n')
     shell_file.close()
     os.system('chmod 777 '+Path_Shell)
 
@@ -135,19 +137,18 @@ def SendCluster_Create(farmDirectory, jobName, inputRootFile, baseCfg,
     global Input_File
     global Base_Cfg
     global Init
+    Jobs_Name  = jobName
     if(Init):
       CreateDirectoryStructure(farmDirectory)
       CreateTheCmdFile()
-      Jobs_Name  = jobName
       Jobs_Count = 0
       Input_File = inputRootFile
       Base_Cfg = baseCfg
       Init = False
-    #for etaIndex in range(0,24,4):
-    #for etaIndex in range(0,16,2):
     for etaIndex in range(0,16,4):
         for nomIndex in range(5,22,4):
             SendCluster_Push(massCut,etaIndex/10.0,(etaIndex+4)/10.0,nomIndex,nomIndex+3,ptCut,iasCut)
+    #SendCluster_Push(massCut,0.0,1.5,5,21,ptCut,iasCut)
 
 
 def SendCluster_Push(massCut,etaMin,etaMax,nomMin,nomMax,ptThresh,iasThresh):
