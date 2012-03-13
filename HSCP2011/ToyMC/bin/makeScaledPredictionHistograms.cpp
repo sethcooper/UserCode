@@ -434,6 +434,10 @@ int main(int argc, char ** argv)
   TH2F* backExpVsSliceHist = new TH2F("backExpVsSlice","Exp. background;#eta;nom",12,0,2.4,9,5,23);
   backExpVsSliceHist->GetYaxis()->SetNdivisions(509,false);
   TH1F* backExpOverIasCutHist = new TH1F("backExpOverIasCut","Exp. background over ias cut",100,0,1);
+  TH2F* entriesSignalHist = new TH2F("entriesSignal","Signal tracks over mass cut in slice;#eta;nom",12,0,2.4,9,5,23);
+  entriesSignalHist->GetYaxis()->SetNdivisions(509,false);
+  TH2F* entriesSignalIasHist = new TH2F("entriesSignalIas","Signal tracks over mass/ias cuts in slice;#eta;nom",12,0,2.4,9,5,23);
+  entriesSignalIasHist->GetYaxis()->SetNdivisions(509,false);
 
   double backgroundTracksOverIasCut = 0;
   double backgroundTracksOverIasCutErrorSqr = 0;
@@ -481,8 +485,8 @@ int main(int argc, char ** argv)
     TProfile* cRegionTracksOverMassCutProfile = (TProfile*)backgroundPredictionRootFile->Get(cRegionTracksOverMassCutProfileName.c_str());
 
     // debug
-    //cout << " Looking at hist: " << bgHistName << " lowerNoM = " << lowerNoM
-    //  << " lowerEta = " << lowerEta << endl;
+    cout << " Looking at hist: " << bgHistName << " lowerNoM = " << lowerNoM
+      << " lowerEta = " << lowerEta << endl;
 
     // copy binning and limits from background pred hist
     iasSignalMassCutNoMSliceHist =
@@ -515,11 +519,14 @@ int main(int argc, char ** argv)
     etaCutString+=")";
     RooDataSet* etaCutNomCutDRegionDataSetSignal =
       (RooDataSet*)nomCutDRegionDataSetSignal->reduce(Cut(etaCutString.c_str()));
-    //int numSignalTracksInDRegionThisSlice = etaCutNomCutDRegionDataSetSignal->numEntries();
+    int numSignalTracksInDRegionThisSlice = etaCutNomCutDRegionDataSetSignal->numEntries();
+    cout << "numSignalTracksInDRegionThisSlice: " << numSignalTracksInDRegionThisSlice << endl;
 
     // construct signal prediction hist (with mass cut)
     const RooArgSet* argSet = etaCutNomCutDRegionDataSetSignal->get();
     RooRealVar* iasData = (RooRealVar*)argSet->find(rooVarIas.GetName());
+    RooRealVar* nomIasData = (RooRealVar*)argSet->find(rooVarNoMias.GetName());
+    RooRealVar* etaData = (RooRealVar*)argSet->find(rooVarEta.GetName());
     RooRealVar* ihData = (RooRealVar*)argSet->find(rooVarIh.GetName());
     RooRealVar* pData = (RooRealVar*)argSet->find(rooVarP.GetName());
     RooRealVar* eventNumData = (RooRealVar*)argSet->find(rooVarEvent.GetName());
@@ -528,6 +535,7 @@ int main(int argc, char ** argv)
     for(int evt=0; evt < etaCutNomCutDRegionDataSetSignal->numEntries(); ++evt)
     {
       etaCutNomCutDRegionDataSetSignal->get(evt);
+      if(fabs(etaData->getVal()) > 1.5) continue;
       // apply mass cut
       float massSqr = (ihData->getVal()-dEdx_c)*pow(pData->getVal(),2)/dEdx_k;
       if(massSqr < 0)
@@ -536,6 +544,7 @@ int main(int argc, char ** argv)
       {
         iasSignalMassCutNoMSliceHist->Fill(iasData->getVal());
         numSignalTracksInDRegionPassingMassCut++;
+        entriesSignalHist->Fill(fabs(etaData->getVal())+0.1,nomIasData->getVal());
         if(iasData->getVal() > iasCutForEffAcc)
         {
           // if track over ias cut, put the event in the set (one track per event kept)
@@ -548,22 +557,23 @@ int main(int argc, char ** argv)
             //cout << "INFO: insert event - run: " << runNumData->getVal() << " lumiSec: " << lumiSecData->getVal()
             //  << " eventNum: " << eventNumData->getVal() << endl;
             signalEventsOverIasCut++;
+            entriesSignalIasHist->Fill(fabs(etaData->getVal())+0.1,nomIasData->getVal());
           }
         }
       }
     }
     double numSignalTracksInDRegionMassCutThisSlice = iasSignalMassCutNoMSliceHist->Integral();
     // adjust for bin width ratio if variable bins used
-    for(int bin=1; bin<=iasSignalMassCutNoMSliceHist->GetNbinsX(); ++bin)
-    {
-      double binWidthRatio =
-        iasSignalMassCutNoMSliceHist->GetBinWidth(1)/
-        iasSignalMassCutNoMSliceHist->GetBinWidth(bin);
-      double binc = iasSignalMassCutNoMSliceHist->GetBinContent(bin);
-      double bine = iasSignalMassCutNoMSliceHist->GetBinError(bin);
-      iasSignalMassCutNoMSliceHist->SetBinContent(bin,binWidthRatio*binc);
-      iasSignalMassCutNoMSliceHist->SetBinError(bin,binWidthRatio*bine);
-    }
+    //for(int bin=1; bin<=iasSignalMassCutNoMSliceHist->GetNbinsX(); ++bin)
+    //{
+    //  double binWidthRatio =
+    //    iasSignalMassCutNoMSliceHist->GetBinWidth(1)/
+    //    iasSignalMassCutNoMSliceHist->GetBinWidth(bin);
+    //  double binc = iasSignalMassCutNoMSliceHist->GetBinContent(bin);
+    //  double bine = iasSignalMassCutNoMSliceHist->GetBinError(bin);
+    //  iasSignalMassCutNoMSliceHist->SetBinContent(bin,binWidthRatio*binc);
+    //  iasSignalMassCutNoMSliceHist->SetBinError(bin,binWidthRatio*bine);
+    //}
     iasSignalMassCutNoMSliceForEffHist = (TH1F*) iasSignalMassCutNoMSliceHist->Clone();
 
     // figure out overall normalization this slice, background from ABCD
@@ -622,9 +632,9 @@ int main(int argc, char ** argv)
     //cout << "bg entries this slice: A = " << bgEntriesInARegionThisSlice << " B = " << 
     //  bgEntriesInBRegionThisSlice << " C = " << bgEntriesInCRegionThisSlice << " ==> D = " <<
     //  bgTracksInDThisSlice << endl;
-    cout << "INFO: SumBkOverIas = " << totalBkOverIas << endl;
-    cout << "INFO: average Cj over mass cut = " << averageCTracksAboveMassCut << endl;
-    cout << "INFO: total C over NoM slices = " << cRegionNoMSummedEntries << endl;
+    //cout << "INFO: SumBkOverIas = " << totalBkOverIas << endl;
+    //cout << "INFO: average Cj over mass cut = " << averageCTracksAboveMassCut << endl;
+    //cout << "INFO: total C over NoM slices = " << cRegionNoMSummedEntries << endl;
     // error output
     // have to include SUM[Cj > mass cut] error here
     //cout << "INFO: numBackgroundTracksInDRegionPassingMassCutThisSlice: " <<
@@ -705,10 +715,10 @@ int main(int argc, char ** argv)
     //else
     //  cout << "0";
     //cout << endl;
-    cout << "INFO: sum Bk over iasCut = " <<
-      histItr->Integral(histItr->FindBin(iasCutForEffAcc),histItr->GetNbinsX()) << endl;
-    cout << "INFO: ias cut frac = " <<
-      histItr->Integral(histItr->FindBin(iasCutForEffAcc),histItr->GetNbinsX())/histItr->Integral() << endl;
+    //cout << "INFO: sum Bk over iasCut = " <<
+    //  histItr->Integral(histItr->FindBin(iasCutForEffAcc),histItr->GetNbinsX()) << endl;
+    //cout << "INFO: ias cut frac = " <<
+    //  histItr->Integral(histItr->FindBin(iasCutForEffAcc),histItr->GetNbinsX())/histItr->Integral() << endl;
 
     //cout << "first Ias bin this slice: " << iteratorPos*numIasBins << endl;
     double sigTracksOverIasCutThisSlice = 
@@ -716,17 +726,18 @@ int main(int argc, char ** argv)
           iasSignalMassCutNoMSliceHist->FindBin(iasCutForEffAcc),
           iasSignalMassCutNoMSliceHist->GetNbinsX());
     double sigTracksTotalThisSlice = iasSignalMassCutNoMSliceHist->Integral();
-    cout << "INFO: signal tracks total this slice: " <<
-      sigTracksTotalThisSlice <<
-      " fraction passing mass cut this slice: " <<
-      fractionOfSigTracksInDRegionPassingMassCutThisSlice <<
-      " signal tracks over ias cut this slice: " <<
-      sigTracksOverIasCutThisSlice <<
-      " (normed) signal tracks passing mass cut this slice: " << 
-      numSignalTracksInDRegionPassingMassCutThisSlice <<
-      " integral: " <<
-      iasSignalMassCutNoMSliceHist->Integral() <<
-      endl << endl;
+    //cout << "INFO: signal tracks total this slice: " <<
+    //  sigTracksTotalThisSlice <<
+    //  " fraction passing mass cut this slice: " <<
+    //  fractionOfSigTracksInDRegionPassingMassCutThisSlice <<
+    //  " signal tracks over ias cut this slice: " <<
+    //  sigTracksOverIasCutThisSlice <<
+    //  " (normed) signal tracks passing mass cut this slice: " << 
+    //  numSignalTracksInDRegionPassingMassCutThisSlice <<
+    //  " integral: " <<
+    //  iasSignalMassCutNoMSliceHist->Integral() <<
+    //  endl << endl;
+    cout << "Signal tracks over Ias cut this slice: " << sigTracksOverIasCutThisSlice << endl;
 
     sigEffOverIasCutVsSliceHist->Fill(lowerEta+0.1,lowerNoM,sigTracksOverIasCutThisSlice/sigTracksTotalThisSlice);
     sigEffOverIasCutHist->Fill(sigTracksOverIasCutThisSlice/sigTracksTotalThisSlice);
@@ -758,6 +769,8 @@ int main(int argc, char ** argv)
     //    histItr->Integral(histItr->FindBin(iasCutForEffAcc),histItr->GetNbinsX()) << endl;
     //}
     //XXX SIC FEB 20 switching to new background prediction at least for testing
+    cout << "Background tracks over Ias/mass cuts this slice: " << 
+      histItr->Integral(histItr->FindBin(iasCutForEffAcc),histItr->GetNbinsX()) << endl;
     backgroundTracksOverIasCutNoApprox+=histItr->Integral(histItr->FindBin(iasCutForEffAcc),histItr->GetNbinsX());
     // compute error this slice -- assuming error in each ias bin is uncorrelated (if based only on Bk then it is)
     double errorSqrThisSlice = 0;
@@ -945,6 +958,7 @@ int main(int argc, char ** argv)
     << " tracks over ias cut from approximation" << endl
     << numBkOverIasCut << " Bk tracks over ias cut"
     << endl << endl
+    << signalEventsOverIasCut << " signal events over ias cut" << endl
     << signalEventsOverIasCut/numGenHSCPEventsRooVar->getVal() << " signal efficiency (event level) or" << endl 
     << signalTracksOverIasCut/signalTracksTotal << " signal efficiency (track level) with this ias cut. " << endl << endl;
 
@@ -978,6 +992,8 @@ int main(int argc, char ** argv)
   backExpOverIasCutVsSliceHist->Write();
   backExpVsSliceHist->Write();
   backExpOverIasCutHist->Write();
+  entriesSignalHist->Write();
+  entriesSignalIasHist->Write();
   outputRootFile->Close();
 
   //backgroundPredictionRootFile->Close();
