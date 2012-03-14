@@ -6,7 +6,7 @@ import os
 import sys
 import HSCPMakeIasPredictionsLaunch
 import HSCPMakeScaledPredictionsLaunch
-import HSCPDoLimitsLaunchOnCondor
+import HSCPDoLimitsLaunch
 import glob
 from SignalDefinitions import *
 from subprocess import call
@@ -79,7 +79,7 @@ def doMergeIasPredictions():
   if(CutPt=='Std'):
     for model in modelList:
       thisMassCutFiles = glob.glob(OutputIasPredictionDir+'*'+model.name+'_massCut'+str(model.massCut)+'_pt'+str(model.ptCut)+'_ias'+model.iasCut+'_eta*')
-      thisMassCutFiles.insert(0,OutputIasPredictionDir+'makeIasPredictionsCombined_massCut'+str(model.massCut)+'_ptCut'+str(model.ptCut)+'_ias'+model.iasCut+'.root')
+      thisMassCutFiles.insert(0,OutputIasPredictionDir+'makeIasPredictionsCombined_'+model.name+'_massCut'+str(model.massCut)+'_ptCut'+str(model.ptCut)+'_ias'+model.iasCut+'.root')
       thisMassCutFiles.insert(0,"hadd")
       print 'Merging files for mass cut = ' + str(model.massCut) + ' pt cut = ' + str(model.ptCut) + ' ias cut = ' + model.iasCut
       call(thisMassCutFiles)
@@ -93,7 +93,7 @@ def doMergeIasPredictions():
   else:
     for model in modelList:
       thisMassCutFiles = glob.glob(OutputIasPredictionDir+'*'+model.name+'_massCut'+str(model.massCut)+'_pt50_ias'+str(0.1)+'_eta*')
-      thisMassCutFiles.insert(0,OutputIasPredictionDir+'makeIasPredictionsCombined_massCut'+str(model.massCut)+'_ptCut50_ias'+str(0.1)+'.root')
+      thisMassCutFiles.insert(0,OutputIasPredictionDir+'makeIasPredictionsCombined_'+model.name+'_massCut'+str(model.massCut)+'_ptCut50_ias'+str(0.1)+'.root')
       thisMassCutFiles.insert(0,"hadd")
       print 'Merging files for mass cut = ' + str(model.massCut) + ' pt cut = 50 ias cut = ' + str(0.1)
       call(thisMassCutFiles)
@@ -102,40 +102,40 @@ def doMergeIasPredictions():
 def doScaledPredictions():
   # BG
   JobName = "makeScaledPredictions_"
-  HSCPMakeScaledPredictionsLaunchOnCondor.SendCluster_Create(FarmDirectory,JobName,
+  HSCPMakeScaledPredictionsLaunch.SendCluster_Create(FarmDirectory,JobName,
                                               IntLumi, BaseCfgMakeScaled, BaseChXML,
-                                                           BaseCombXML, BaseMacro, RunCondor, QueueName)
+                                                           BaseCombXML, BaseMacro, AllSlices, RunCondor, QueueName)
   for model in modelList:
     if(CutPt=='Std'):
-      HSCPMakeScaledPredictionsLaunchOnCondor.SendCluster_Push(
+      HSCPMakeScaledPredictionsLaunch.SendCluster_Push(
           bgInput+model.name+'_massCut',sigInput+model.name+'.root',model.name,model.massCut,model.iasCut,model.ptCut)
     elif(CutIas=='Std'):
-      HSCPMakeScaledPredictionsLaunchOnCondor.SendCluster_Push(
+      HSCPMakeScaledPredictionsLaunch.SendCluster_Push(
           bgInput+model.name+'_massCut',sigInput+model.name+'.root',model.name,model.massCut,model.iasCut,50)
     else:
-      HSCPMakeScaledPredictionsLaunchOnCondor.SendCluster_Push(
+      HSCPMakeScaledPredictionsLaunch.SendCluster_Push(
           bgInput+model.name+'_massCut',sigInput+model.name+'.root',model.name,model.massCut,0.1,50)
 
-  HSCPMakeScaledPredictionsLaunchOnCondor.SendCluster_Submit()
+  HSCPMakeScaledPredictionsLaunch.SendCluster_Submit()
 
 
 def doLimits():
   JobName = "doLimits_"
-  #HSCPDoLimitsLaunchOnCondor.SendCluster_Create(FarmDirectory, JobName, IntLumi, BaseMacro, False)
-  HSCPDoLimitsLaunchOnCondor.SendCluster_Create(FarmDirectory, JobName, IntLumi, BaseMacroBayesian, True)
+  #HSCPDoLimitsLaunch.SendCluster_Create(FarmDirectory, JobName, IntLumi, BaseMacro, False, RunCondor, QueueName)
+  HSCPDoLimitsLaunch.SendCluster_Create(FarmDirectory, JobName, IntLumi, BaseMacroBayesian, True, RunCondor, QueueName)
   #TODO work for all signal models
-  HSCPDoLimitsLaunchOnCondor.SendCluster_Push(bgInput,sigInput+Stop200.name+'.root',Stop200.massCut,Stop200.iasCut,Stop200.ptCut)
-  HSCPDoLimitsLaunchOnCondor.SendCluster_Push(bgInput,sigInput+Stop400.name+'.root',Stop400.massCut,Stop400.iasCut,Stop400.ptCut)
-  HSCPDoLimitsLaunchOnCondor.SendCluster_Push(bgInput,sigInput+Stop600.name+'.root',Stop600.massCut,Stop600.iasCut,Stop600.ptCut)
-  HSCPDoLimitsLaunchOnCondor.SendCluster_Push(bgInput,sigInput+Gluino600.name+'.root',Gluino600.massCut,Gluino600.iasCut,Gluino600.ptCut)
-  HSCPDoLimitsLaunchOnCondor.SendCluster_Push(bgInput,sigInput+Gluino800.name+'.root',Gluino800.massCut,Gluino800.iasCut,Gluino800.ptCut)
-  HSCPDoLimitsLaunchOnCondor.SendCluster_Push(bgInput,sigInput+Gluino1000.name+'.root',Gluino1000.massCut,Gluino1000.iasCut,Gluino1000.ptCut)
-  HSCPDoLimitsLaunchOnCondor.SendCluster_Push(bgInput,sigInput+Gluino1100.name+'.root',Gluino1100.massCut,Gluino1100.iasCut,Gluino1100.ptCut)
-  HSCPDoLimitsLaunchOnCondor.SendCluster_Push(bgInput,sigInput+Gluino1200.name+'.root',Gluino1200.massCut,Gluino1200.iasCut,Gluino1200.ptCut)
-  HSCPDoLimitsLaunchOnCondor.SendCluster_Push(bgInput,sigInput+GMStau308.name+'.root',GMStau308.massCut,GMStau308.iasCut,GMStau308.ptCut)
-  HSCPDoLimitsLaunchOnCondor.SendCluster_Push(bgInput,sigInput+GMStau432.name+'.root',GMStau432.massCut,GMStau432.iasCut,GMStau432.ptCut)
+  HSCPDoLimitsLaunch.SendCluster_Push(bgInput,sigInput+Stop200.name+'.root',Stop200.massCut,Stop200.iasCut,Stop200.ptCut)
+  HSCPDoLimitsLaunch.SendCluster_Push(bgInput,sigInput+Stop400.name+'.root',Stop400.massCut,Stop400.iasCut,Stop400.ptCut)
+  HSCPDoLimitsLaunch.SendCluster_Push(bgInput,sigInput+Stop600.name+'.root',Stop600.massCut,Stop600.iasCut,Stop600.ptCut)
+  HSCPDoLimitsLaunch.SendCluster_Push(bgInput,sigInput+Gluino600.name+'.root',Gluino600.massCut,Gluino600.iasCut,Gluino600.ptCut)
+  HSCPDoLimitsLaunch.SendCluster_Push(bgInput,sigInput+Gluino800.name+'.root',Gluino800.massCut,Gluino800.iasCut,Gluino800.ptCut)
+  HSCPDoLimitsLaunch.SendCluster_Push(bgInput,sigInput+Gluino1000.name+'.root',Gluino1000.massCut,Gluino1000.iasCut,Gluino1000.ptCut)
+  HSCPDoLimitsLaunch.SendCluster_Push(bgInput,sigInput+Gluino1100.name+'.root',Gluino1100.massCut,Gluino1100.iasCut,Gluino1100.ptCut)
+  HSCPDoLimitsLaunch.SendCluster_Push(bgInput,sigInput+Gluino1200.name+'.root',Gluino1200.massCut,Gluino1200.iasCut,Gluino1200.ptCut)
+  HSCPDoLimitsLaunch.SendCluster_Push(bgInput,sigInput+GMStau308.name+'.root',GMStau308.massCut,GMStau308.iasCut,GMStau308.ptCut)
+  HSCPDoLimitsLaunch.SendCluster_Push(bgInput,sigInput+GMStau432.name+'.root',GMStau432.massCut,GMStau432.iasCut,GMStau432.ptCut)
 
-  HSCPDoLimitsLaunchOnCondor.SendCluster_Submit()
+  HSCPDoLimitsLaunch.SendCluster_Submit()
 
 
 
