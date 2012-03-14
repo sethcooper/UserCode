@@ -30,6 +30,7 @@ Base_xml_combined = ''
 #
 Condor = True
 Queue_Name = ''
+All_Slices = True
 
 
 def CreateTheXMLFiles(signalName,inputFile,massCut,ptCut):
@@ -99,6 +100,7 @@ def CreateTheShellFile(bgInputFile,sigInputFile,modelName,massCut,iasCut,ptCut):
     global CopyRights
     global Jobs_Name
     global Base_macro
+    global All_Slices
     signalName = modelName
     outputFile = 'makeScaledPredictionHistograms_'+signalName+'_massCut'+`massCut`+'_ptCut'+`ptCut`+'.root'
     CreateTheConfigFile(bgInputFile,sigInputFile,massCut,iasCut,ptCut,signalName)
@@ -118,7 +120,10 @@ def CreateTheShellFile(bgInputFile,sigInputFile,modelName,massCut,iasCut,ptCut):
     shell_file.write('cd ' + os.getcwd() + '\n')
     shell_file.write('eval `scramv1 runtime -sh`\n')
     shell_file.write('cd -\n')
-    shell_file.write('makeScaledPredictionHistograms ' + os.getcwd() + '/'+Path_Cfg + '\n')
+    if(All_Slices):
+      shell_file.write('makeScaledPredictionHistograms ' + os.getcwd() + '/'+Path_Cfg + '\n')
+    else:
+      shell_file.write('makeScaledPredictionHistogramsOneSlice ' + os.getcwd() + '/'+Path_Cfg + '\n')
     shell_file.write('mv ' + outputFile + ' ' + os.getcwd() + '/' + Farm_Directories[4] + '\n\n')
     shell_file.write('# switch to later root\n')
     # CERN
@@ -209,7 +214,7 @@ def CreateDirectoryStructure(FarmDirectory):
         os.system('mkdir -p ' + FarmDirectory+'/inputs/makeScaledPredictions/config/')
 
 def SendCluster_Create(farmDirectory, jobName, intLumi, baseCfg,
-                       baseChXML, baseCombXML, baseMacro, doCondor, queueName):
+                       baseChXML, baseCombXML, baseMacro, allSlices, doCondor, queueName):
     global Jobs_Name
     global Jobs_Count
     global Base_Cfg
@@ -219,6 +224,7 @@ def SendCluster_Create(farmDirectory, jobName, intLumi, baseCfg,
     global Int_Lumi
     global Condor
     global Queue_Name
+    global All_Slices
     Jobs_Name  = jobName
     Jobs_Count = 0
     Base_Cfg = baseCfg
@@ -226,6 +232,7 @@ def SendCluster_Create(farmDirectory, jobName, intLumi, baseCfg,
     Base_xml_combined = baseCombXML
     Base_macro = baseMacro
     Int_Lumi = intLumi
+    All_Slices = allSlices
     Condor = doCondor
     Queue_Name = queueName
     CreateDirectoryStructure(farmDirectory)
