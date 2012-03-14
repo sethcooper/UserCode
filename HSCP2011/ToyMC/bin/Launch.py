@@ -4,8 +4,8 @@ import urllib
 import string
 import os
 import sys
-import HSCPMakeIasPredictionsLaunchOnCondor
-import HSCPMakeScaledPredictionsLaunchOnCondor
+import HSCPMakeIasPredictionsLaunch
+import HSCPMakeScaledPredictionsLaunch
 import HSCPDoLimitsLaunchOnCondor
 import glob
 from SignalDefinitions import *
@@ -17,17 +17,26 @@ Date = now.strftime("%b%d")
 
 # Set things here
 AllSlices = True
-FarmDirectory = 'FARM_moreModels_allData_cutPt50GeVIas0p1_'
+RunCondor = False
+QueueName = '8nh'
+# FOR NOW, CutPt=Std means CutIas Std also!
+CutPt = 50 # Std
+CutIas = 0.1 # Std
+FarmDirectory = 'FARM_allData_cutPt'
+#
+FarmDirectory+=str(CutPt)
+FarmDirectory+='GeVcutIas'
+FarmDirectory+=str(CutIas)
 if(AllSlices):
-  FarmDirectory+='allSlices_'
+  FarmDirectory+='_allSlices_'
 else:
-  FarmDirectory+='oneSlice_'
+  FarmDirectory+='_oneSlice_'
 FarmDirectory+=Date
-InputDataRootFile = '/local/cms/user/cooper/cmssw/428/HSCPAnalysis/src/HSCP2011/ToyMC/bin/'
-InputDataRootFile+='/FARM_MakeHSCParticlePlots_dataWithTightRPCTrig_absEta_ptErrorPresel_feb6/outputs/makeHSCParticlePlots_feb1_Data2011_all.root'
-#InputDataRootFile+='/FARM_MakeHSCParticlePlots_data_absEta_ptErrorPresel_Mar08/outputs/makeHSCParticlePlots_Data2011_all.root'
-sigInput='/local/cms/user/cooper/cmssw/428/HSCPAnalysis/src/HSCP2011/ToyMC/bin/'
-sigInput+='FARM_MakeHSCParticlePlots_Signals_absEta_ptErrorPresel_Feb21/outputs/makeHSCParticlePlots_Feb21_'
+InputDataRootFile = os.getcwd()
+InputDataRootFile+='/MakeHSCParticlePlots_dataWithTightRPCTrig_absEta_ptErrorPresel_feb6/outputs/makeHSCParticlePlots_Data2011_all.root'
+#InputDataRootFile+='/MakeHSCParticlePlots_data_absEta_ptErrorPresel_Mar08/outputs/makeHSCParticlePlots_Data2011_all.root'
+sigInput = os.getcwd()
+sigInput+='MakeHSCParticlePlots_Signals_absEta_ptErrorPresel_Feb21/outputs/makeHSCParticlePlots_Feb21_'
 IntLumi = 4679 # 1/pb (2011)
 # subtract the lumi before the RPC trigger change (runs before 165970) = 355.227 /pb
 #IntLumi = 4323.773 # 1/pb
@@ -53,37 +62,41 @@ def doIasPredictions():
   #     so make a set of the mass cuts (no duplicates)
   JobName = "makeIasPredictions_"
   for model in modelList:
-    HSCPMakeIasPredictionsLaunchOnCondor.SendCluster_Create(FarmDirectory,JobName+model.name+"_",InputDataRootFile,
-                                                #BaseCfgMakePred, model.massCut, model.ptCut, model.iasCut, AllSlices)
-    # Use Pt cut of 50 GeV, ias 0.1
-                                                BaseCfgMakePred, model.massCut, 50, 0.1, AllSlices)
-    # Use Pt cut of 50 GeV, std ana ias
-                                                #BaseCfgMakePred, model.massCut, 50, model.iasCut, AllSlices)
+    if(CutPt=='Std'):
+      HSCPMakeIasPredictionsLaunch.SendCluster_Create(FarmDirectory,JobName+model.name+"_",InputDataRootFile,
+                                                BaseCfgMakePred, model.massCut, model.ptCut, model.iasCut, AllSlices, RunCondor, QueueName)
+    elif(CutIas=='Std'):
+      HSCPMakeIasPredictionsLaunch.SendCluster_Create(FarmDirectory,JobName+model.name+"_",InputDataRootFile,
+                                                BaseCfgMakePred, model.massCut, 50, model.iasCut, AllSlices, RunCondor, QueueName)
+    else:
+      HSCPMakeIasPredictionsLaunch.SendCluster_Create(FarmDirectory,JobName+model.name+"_",InputDataRootFile,
+                                                BaseCfgMakePred, model.massCut, 50, 0.1, AllSlices, RunCondor, QueueName)
 
-  HSCPMakeIasPredictionsLaunchOnCondor.SendCluster_Submit()
+  HSCPMakeIasPredictionsLaunch.SendCluster_Submit()
 
 
 def doMergeIasPredictions():
-  #for model in modelList:
-  #    thisMassCutFiles = glob.glob(OutputIasPredictionDir+'*massCut'+str(model.massCut)+'_pt'+str(model.ptCut)+'_ias'+model.iasCut+'_eta*')
-  #    thisMassCutFiles.insert(0,OutputIasPredictionDir+'makeIasPredictionsCombined_massCut'+str(model.massCut)+'_ptCut'+str(model.ptCut)+'_ias'+model.iasCut+'.root')
-  #    thisMassCutFiles.insert(0,"hadd")
-  #    print 'Merging files for mass cut = ' + str(model.massCut) + ' pt cut = ' + str(model.ptCut) + ' ias cut = ' + model.iasCut
-  #    call(thisMassCutFiles)
-  # all Pt = 50, ias 0.1
-  for model in modelList:
-      thisMassCutFiles = glob.glob(OutputIasPredictionDir+'*massCut'+str(model.massCut)+'_pt50_ias'+str(0.1)+'_eta*')
+  if(CutPt=='Std'):
+    for model in modelList:
+      thisMassCutFiles = glob.glob(OutputIasPredictionDir+'*'+model.name+'_massCut'+str(model.massCut)+'_pt'+str(model.ptCut)+'_ias'+model.iasCut+'_eta*')
+      thisMassCutFiles.insert(0,OutputIasPredictionDir+'makeIasPredictionsCombined_massCut'+str(model.massCut)+'_ptCut'+str(model.ptCut)+'_ias'+model.iasCut+'.root')
+      thisMassCutFiles.insert(0,"hadd")
+      print 'Merging files for mass cut = ' + str(model.massCut) + ' pt cut = ' + str(model.ptCut) + ' ias cut = ' + model.iasCut
+      call(thisMassCutFiles)
+  elif(CutIas=='Std'):
+    for model in modelList:
+      thisMassCutFiles = glob.glob(OutputIasPredictionDir+'*'+model.name+'_massCut'+str(model.massCut)+'_pt50_ias'+model.iasCut+'_eta*')
+      thisMassCutFiles.insert(0,OutputIasPredictionDir+'makeIasPredictionsCombined_'+model.name+'_massCut'+str(model.massCut)+'_ptCut50_ias'+model.iasCut+'.root')
+      thisMassCutFiles.insert(0,"hadd")
+      print 'Merging files for ' + model.name + ': mass cut = ' + str(model.massCut) + ' pt cut = 50 ias cut = ' + model.iasCut
+      call(thisMassCutFiles)
+  else:
+    for model in modelList:
+      thisMassCutFiles = glob.glob(OutputIasPredictionDir+'*'+model.name+'_massCut'+str(model.massCut)+'_pt50_ias'+str(0.1)+'_eta*')
       thisMassCutFiles.insert(0,OutputIasPredictionDir+'makeIasPredictionsCombined_massCut'+str(model.massCut)+'_ptCut50_ias'+str(0.1)+'.root')
       thisMassCutFiles.insert(0,"hadd")
       print 'Merging files for mass cut = ' + str(model.massCut) + ' pt cut = 50 ias cut = ' + str(0.1)
       call(thisMassCutFiles)
-  # all Pt = 50, ias stdAnalysis
-  #for model in modelList:
-  #    thisMassCutFiles = glob.glob(OutputIasPredictionDir+'*'+model.name+'_massCut'+str(model.massCut)+'_pt50_ias'+model.iasCut+'_eta*')
-  #    thisMassCutFiles.insert(0,OutputIasPredictionDir+'makeIasPredictionsCombined_'+model.name+'_massCut'+str(model.massCut)+'_ptCut50_ias'+model.iasCut+'.root')
-  #    thisMassCutFiles.insert(0,"hadd")
-  #    print 'Merging files for ' + model.name + ': mass cut = ' + str(model.massCut) + ' pt cut = 50 ias cut = ' + model.iasCut
-  #    call(thisMassCutFiles)
 
 
 def doScaledPredictions():
@@ -91,15 +104,17 @@ def doScaledPredictions():
   JobName = "makeScaledPredictions_"
   HSCPMakeScaledPredictionsLaunchOnCondor.SendCluster_Create(FarmDirectory,JobName,
                                               IntLumi, BaseCfgMakeScaled, BaseChXML,
-                                                           BaseCombXML, BaseMacro)
+                                                           BaseCombXML, BaseMacro, RunCondor, QueueName)
   for model in modelList:
-    HSCPMakeScaledPredictionsLaunchOnCondor.SendCluster_Push(
-      #bgInput+'massCut',sigInput+model.name+'.root',model.name,model.massCut,model.iasCut,model.ptCut)
-      # Pt = 50, ias 0.1
-      bgInput+model.name+'_massCut',sigInput+model.name+'.root',model.name,model.massCut,0.1,50)
-      #bgInput+'massCut',sigInput+model.name+'.root',model.name,model.massCut,0.1,50)
-      # Pt = 50, ias stdAna
-      #bgInput+model.name+'_massCut',sigInput+model.name+'.root',model.name,model.massCut,model.iasCut,50)
+    if(CutPt=='Std'):
+      HSCPMakeScaledPredictionsLaunchOnCondor.SendCluster_Push(
+          bgInput+model.name+'_massCut',sigInput+model.name+'.root',model.name,model.massCut,model.iasCut,model.ptCut)
+    elif(CutIas=='Std'):
+      HSCPMakeScaledPredictionsLaunchOnCondor.SendCluster_Push(
+          bgInput+model.name+'_massCut',sigInput+model.name+'.root',model.name,model.massCut,model.iasCut,50)
+    else:
+      HSCPMakeScaledPredictionsLaunchOnCondor.SendCluster_Push(
+          bgInput+model.name+'_massCut',sigInput+model.name+'.root',model.name,model.massCut,0.1,50)
 
   HSCPMakeScaledPredictionsLaunchOnCondor.SendCluster_Submit()
 
