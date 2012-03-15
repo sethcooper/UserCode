@@ -16,12 +16,12 @@ now = datetime.datetime.now()
 Date = now.strftime("%b%d")
 
 # Set things here
-AllSlices = True
+AllSlices = False
 RunCondor = False
 QueueName = '8nh'
 # FOR NOW, CutPt=Std means CutIas Std also!
-CutPt = 50 # Std
-CutIas = 0.1 # Std
+CutPt = 'Std'
+CutIas = 'Std'
 FarmDirectory = 'FARM_allData_cutPt'
 #
 FarmDirectory+=str(CutPt)
@@ -57,9 +57,22 @@ BaseMacroBayesian = os.getcwd() + "/StandardBayesianNumericalDemo.C"
 #BaseMacroBayesian = os.getcwd() + "/StandardBayesianMCMCDemo.C"
 
 
+def printConfiguration():
+  if(CutPt=='Std'):
+    print 'Using standard analysis optimized Ias and Pt cuts'
+  elif(CutIas=='Std'):
+    print 'Using standard analysis optimized Ias cut only'
+  else:
+    print 'Using Pt=50 Ias=0.1'
+  if(AllSlices):
+    print 'Doing all eta/NoM slices'
+  else:
+    print 'Doing single eta/NoM slice only'
+
 def doIasPredictions():
   #TODO in the real analysis we will use the same ih/pt cuts for sidebands
   #     so make a set of the mass cuts (no duplicates)
+  printConfiguration()
   JobName = "makeIasPredictions_"
   for model in modelList:
     if(CutPt=='Std'):
@@ -76,6 +89,7 @@ def doIasPredictions():
 
 
 def doMergeIasPredictions():
+  printConfiguration()
   if(CutPt=='Std'):
     for model in modelList:
       thisMassCutFiles = glob.glob(OutputIasPredictionDir+'*'+model.name+'_massCut'+str(model.massCut)+'_pt'+str(model.ptCut)+'_ias'+model.iasCut+'_eta*')
@@ -100,6 +114,7 @@ def doMergeIasPredictions():
 
 
 def doScaledPredictions():
+  printConfiguration()
   # BG
   JobName = "makeScaledPredictions_"
   HSCPMakeScaledPredictionsLaunch.SendCluster_Create(FarmDirectory,JobName,
@@ -120,6 +135,7 @@ def doScaledPredictions():
 
 
 def doLimits():
+  printConfiguration()
   JobName = "doLimits_"
   #HSCPDoLimitsLaunch.SendCluster_Create(FarmDirectory, JobName, IntLumi, BaseMacro, False, RunCondor, QueueName)
   HSCPDoLimitsLaunch.SendCluster_Create(FarmDirectory, JobName, IntLumi, BaseMacroBayesian, True, RunCondor, QueueName)
