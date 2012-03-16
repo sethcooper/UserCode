@@ -755,6 +755,8 @@ int main(int argc, char ** argv)
       //  std::cout << " nom=" << nom << "-" << nom+1 << std::endl;
 
 // old method
+      // make histogram
+      TH1F* etaCutDeDxSBPHist = (TH1F*) etaCutDeDxSBDataSet->createHistogram("rooVarP",10000);
       // loop over Ih/Ias and calculate average Cj over mass cut in each Ias bin
       for(int index=0; index < etaCutNomCutBRegionDataSet->numEntries(); ++index)
       {
@@ -772,13 +774,14 @@ int main(int argc, char ** argv)
           continue;
         }
         double minMomPassMass = sqrt(momSqr);
+        int numMomPassingMass = etaCutDeDxSBPHist->Integral(etaCutDeDxSBPHist->FindBin(minMomPassMass),etaCutDeDxSBPHist->GetNbinsX()+1);
         //RooDataSet* momPassDataSet = (RooDataSet*)etaCutCRegionDataSet->reduce(Cut(("rooVarP>"+floatToString(minMomPassMass)).c_str()),
         //    SelectVars(rooVarP));
         // let C region go below the Pt threshold
-        RooDataSet* momPassDataSet = (RooDataSet*)etaCutDeDxSBDataSet->reduce(Cut(("rooVarP>"+floatToString(minMomPassMass)).c_str()),
-            SelectVars(rooVarP));
-        int numMomPassingMass = momPassDataSet->numEntries();
-        delete momPassDataSet;
+        //RooDataSet* momPassDataSet = (RooDataSet*)etaCutDeDxSBDataSet->reduce(Cut(("rooVarP>"+floatToString(minMomPassMass)).c_str()),
+        //    SelectVars(rooVarP));
+        //int numMomPassingMass = momPassDataSet->numEntries();
+        //delete momPassDataSet;
         //RooDataSet* momFailDataSet = (RooDataSet*)etaCutCRegionDataSet->reduce(Cut(("rooVarP<"+floatToString(minMomPassMass)).c_str()),
         //    SelectVars(rooVarP));
         //int numMomFailingMass = momFailDataSet->numEntries();
