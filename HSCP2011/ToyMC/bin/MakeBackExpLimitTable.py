@@ -80,6 +80,13 @@ def GetBkOverIas(filePath):
   else:
     return 0.0
 
+def GetExpLimit(filePath):
+  for line in open(filePath):
+    if "95%" in line:
+      break
+  #print "limitFind=",line[line.find("0,")+2:line.find("]")-1]
+  return float(line[line.find("0,")+2:line.find("]")-1])
+  
 
 makeScaledPredictionsDirPtStdIasStd = BaseDirPtStdIasStd+'/logs/makeScaledPredictions/'
 fileListPtStdIasStd = os.listdir(makeScaledPredictionsDirPtStdIasStd)
@@ -90,10 +97,20 @@ fileListPt50IasStd.sort()
 makeScaledPredictionsDirPt50Ias0p1 = BaseDirPt50Ias0p1+'/logs/makeScaledPredictions/'
 fileListPt50Ias0p1 = os.listdir(makeScaledPredictionsDirPt50Ias0p1)
 fileListPt50Ias0p1.sort()
+#
+doLimitsDirPtStdIasStd = BaseDirPtStdIasStd+'/logs/doLimits/'
+fileListLimitsPtStdIasStd = os.listdir(doLimitsDirPtStdIasStd)
+fileListLimitsPtStdIasStd.sort()
+doLimitsDirPt50IasStd = BaseDirPt50IasStd+'/logs/doLimits/'
+fileListLimitsPt50IasStd = os.listdir(doLimitsDirPt50IasStd)
+fileListLimitsPt50IasStd.sort()
+doLimitsDirPt50Ias0p1 = BaseDirPt50Ias0p1+'/logs/doLimits/'
+fileListLimitsPt50Ias0p1 = os.listdir(doLimitsDirPt50Ias0p1)
+fileListLimitsPt50Ias0p1.sort()
 print
 #print 'FarmDirectory =',BaseDir
 titleString = string.ljust('Model',15)+string.ljust('Pt',8)+string.ljust('Ias',10)+string.center('Mass',8)+string.center('BackExpOverIas',30)
-titleString+=string.center('BkOverIas',10)+string.center('SigEff',10)
+titleString+=string.center('BkOverIas',10)+string.center('SigEff',10)+string.center('ExpLim',10)
 print
 print titleString
 if(runCERN):
@@ -110,11 +127,17 @@ for index,file in enumerate(fileListPtStdIasStd):
     massCutPtStdIasStd = GetMassCut(file)
     ptCutPtStdIasStd = GetPtCut(file)
     signalNamePtStdIasStd = GetModelName(file)
+    signalNameLimPtStdIasStd = GetModelName(fileListLimitsPtStdIasStd[index])
+    if(signalNameLimPtStdIasStd != signalNamePtStdIasStd):
+      print "signal names don't match"
+      exit(1)
+    expLimitPtStdIasStd = GetExpLimit(doLimitsDirPtStdIasStd+fileListLimitsPtStdIasStd[index])
     printString = string.ljust(signalNamePtStdIasStd,15)+string.ljust(ptCutPtStdIasStd,8)+string.ljust(iasCutPtStdIasStd,10)
     printString+=string.center(massCutPtStdIasStd,8)
     printString+=string.center(str(round(backExpPtStdIasStd,30))+' +/- '+str(round(backExpErrorPtStdIasStd,4)),30)
     printString+=string.center(str(bkPtStdIasStd),10)
     printString+=string.center(str(round(sigEffPtStdIasStd,4)),10)
+    printString+=string.center(str(round(expLimitPtStdIasStd,6)),10)
     print printString
     file = fileListPt50IasStd[index]
     backExpPt50IasStd = GetBackExp(makeScaledPredictionsDirPt50IasStd+file)
@@ -125,11 +148,17 @@ for index,file in enumerate(fileListPtStdIasStd):
     massCutPt50IasStd = GetMassCut(file)
     ptCutPt50IasStd = GetPtCut(file)
     signalNamePt50IasStd = GetModelName(file)
+    signalNameLimPt50IasStd = GetModelName(fileListLimitsPt50IasStd[index])
+    if(signalNameLimPt50IasStd != signalNamePt50IasStd):
+      print "signal names don't match"
+      exit(1)
+    expLimitPt50IasStd = GetExpLimit(doLimitsDirPt50IasStd+fileListLimitsPt50IasStd[index])
     printString = string.ljust(signalNamePt50IasStd,15)+string.ljust(ptCutPt50IasStd,8)+string.ljust(iasCutPt50IasStd,10)
     printString+=string.center(massCutPt50IasStd,8)
     printString+=string.center(str(round(backExpPt50IasStd,30))+' +/- '+str(round(backExpErrorPt50IasStd,4)),30)
     printString+=string.center(str(bkPt50IasStd),10)
     printString+=string.center(str(round(sigEffPt50IasStd,4)),10)
+    printString+=string.center(str(round(expLimitPt50IasStd,6)),10)
     print printString
     file = fileListPt50Ias0p1[index]
     backExpPt50Ias0p1 = GetBackExp(makeScaledPredictionsDirPt50Ias0p1+file)
@@ -140,11 +169,17 @@ for index,file in enumerate(fileListPtStdIasStd):
     massCutPt50Ias0p1 = GetMassCut(file)
     ptCutPt50Ias0p1 = GetPtCut(file)
     signalNamePt50Ias0p1 = GetModelName(file)
+    signalNameLimPt50Ias0p1 = GetModelName(fileListLimitsPt50Ias0p1[index])
+    if(signalNameLimPt50Ias0p1 != signalNamePt50Ias0p1):
+      print "signal names don't match"
+      exit(1)
+    expLimitPt50Ias0p1 = GetExpLimit(doLimitsDirPt50Ias0p1+fileListLimitsPt50Ias0p1[index])
     printString = string.ljust(signalNamePt50Ias0p1,15)+string.ljust(ptCutPt50Ias0p1,8)+string.ljust(iasCutPt50Ias0p1,10)
     printString+=string.center(massCutPt50Ias0p1,8)
     printString+=string.center(str(round(backExpPt50Ias0p1,30))+' +/- '+str(round(backExpErrorPt50Ias0p1,4)),30)
     printString+=string.center(str(bkPt50Ias0p1),10)
     printString+=string.center(str(round(sigEffPt50Ias0p1,4)),10)
+    printString+=string.center(str(round(expLimitPt50Ias0p1,6)),10)
     print printString
 
 
