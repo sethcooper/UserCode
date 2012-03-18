@@ -18,20 +18,27 @@ Date = now.strftime("%b%d")
 # Set things here
 AllSlices = False
 RunCondor = False
+#QueueName = '1nd'
 QueueName = '8nh'
-# FOR NOW, CutPt=Std means CutIas Std also!
+## FOR NOW, CutPt=Std means CutIas Std also!
 CutPt = 'Std'
+#CutPt = 50
 CutIas = 'Std'
-FarmDirectory = 'FARM_allData_cutPt'
-#
-FarmDirectory+=str(CutPt)
-FarmDirectory+='GeVcutIas'
-FarmDirectory+=str(CutIas)
-if(AllSlices):
-  FarmDirectory+='_allSlices_'
-else:
-  FarmDirectory+='_oneSlice_'
-FarmDirectory+=Date
+#CutIas = 0.1
+#FarmDirectory='FARM_allData_validation_cutPt50GeVcutIasStd_oneSlice_Mar16'
+#FarmDirectory='FARM_allData_cutPt50GeVcutIas0.1_oneSlice_Mar16'
+FarmDirectory='FARM_allData_cutPtStdGeVcutIasStd_oneSlice_Mar16'
+
+#FarmDirectory = 'FARM_allData_cutPt'
+##
+#FarmDirectory+=str(CutPt)
+#FarmDirectory+='GeVcutIas'
+#FarmDirectory+=str(CutIas)
+#if(AllSlices):
+#  FarmDirectory+='_allSlices_'
+#else:
+#  FarmDirectory+='_oneSlice_'
+#FarmDirectory+=Date
 InputDataRootFile = os.getcwd()
 InputDataRootFile+='/MakeHSCParticlePlots_dataWithTightRPCTrig_absEta_ptErrorPresel_feb6/outputs/makeHSCParticlePlots_Data2011_all.root'
 #InputDataRootFile+='/MakeHSCParticlePlots_data_absEta_ptErrorPresel_Mar08/outputs/makeHSCParticlePlots_Data2011_all.root'
@@ -61,7 +68,7 @@ def printConfiguration():
   if(CutPt=='Std'):
     print 'Using standard analysis optimized Ias and Pt cuts'
   elif(CutIas=='Std'):
-    print 'Using standard analysis optimized Ias cut only'
+    print 'Using standard analysis optimized Ias cut only (pt=50)'
   else:
     print 'Using Pt=50 Ias=0.1'
   if(AllSlices):
@@ -140,16 +147,18 @@ def doLimits():
   #HSCPDoLimitsLaunch.SendCluster_Create(FarmDirectory, JobName, IntLumi, BaseMacro, False, RunCondor, QueueName)
   HSCPDoLimitsLaunch.SendCluster_Create(FarmDirectory, JobName, IntLumi, BaseMacroBayesian, True, RunCondor, QueueName)
   #TODO work for all signal models
-  HSCPDoLimitsLaunch.SendCluster_Push(bgInput,sigInput+Stop200.name+'.root',Stop200.massCut,Stop200.iasCut,Stop200.ptCut)
-  HSCPDoLimitsLaunch.SendCluster_Push(bgInput,sigInput+Stop400.name+'.root',Stop400.massCut,Stop400.iasCut,Stop400.ptCut)
-  HSCPDoLimitsLaunch.SendCluster_Push(bgInput,sigInput+Stop600.name+'.root',Stop600.massCut,Stop600.iasCut,Stop600.ptCut)
-  HSCPDoLimitsLaunch.SendCluster_Push(bgInput,sigInput+Gluino600.name+'.root',Gluino600.massCut,Gluino600.iasCut,Gluino600.ptCut)
-  HSCPDoLimitsLaunch.SendCluster_Push(bgInput,sigInput+Gluino800.name+'.root',Gluino800.massCut,Gluino800.iasCut,Gluino800.ptCut)
-  HSCPDoLimitsLaunch.SendCluster_Push(bgInput,sigInput+Gluino1000.name+'.root',Gluino1000.massCut,Gluino1000.iasCut,Gluino1000.ptCut)
-  HSCPDoLimitsLaunch.SendCluster_Push(bgInput,sigInput+Gluino1100.name+'.root',Gluino1100.massCut,Gluino1100.iasCut,Gluino1100.ptCut)
-  HSCPDoLimitsLaunch.SendCluster_Push(bgInput,sigInput+Gluino1200.name+'.root',Gluino1200.massCut,Gluino1200.iasCut,Gluino1200.ptCut)
-  HSCPDoLimitsLaunch.SendCluster_Push(bgInput,sigInput+GMStau308.name+'.root',GMStau308.massCut,GMStau308.iasCut,GMStau308.ptCut)
-  HSCPDoLimitsLaunch.SendCluster_Push(bgInput,sigInput+GMStau432.name+'.root',GMStau432.massCut,GMStau432.iasCut,GMStau432.ptCut)
+  #HSCPDoLimitsLaunch.SendCluster_Push(bgInput,sigInput+Stop200.name+'.root',Stop200.massCut,Stop200.iasCut,Stop200.ptCut)
+  #HSCPDoLimitsLaunch.SendCluster_Push(bgInput,sigInput+Stop400.name+'.root',Stop400.massCut,Stop400.iasCut,Stop400.ptCut)
+  #HSCPDoLimitsLaunch.SendCluster_Push(bgInput,sigInput+Stop600.name+'.root',Stop600.massCut,Stop600.iasCut,Stop600.ptCut)
+  #HSCPDoLimitsLaunch.SendCluster_Push(bgInput,sigInput+Gluino600.name+'.root',Gluino600.massCut,Gluino600.iasCut,Gluino600.ptCut)
+  #HSCPDoLimitsLaunch.SendCluster_Push(bgInput,sigInput+Gluino800.name+'.root',Gluino800.massCut,Gluino800.iasCut,Gluino800.ptCut)
+  #HSCPDoLimitsLaunch.SendCluster_Push(bgInput,sigInput+Gluino1000.name+'.root',Gluino1000.massCut,Gluino1000.iasCut,Gluino1000.ptCut)
+  #HSCPDoLimitsLaunch.SendCluster_Push(bgInput,sigInput+Gluino1100.name+'.root',Gluino1100.massCut,Gluino1100.iasCut,Gluino1100.ptCut)
+  #HSCPDoLimitsLaunch.SendCluster_Push(bgInput,sigInput+Gluino1200.name+'.root',Gluino1200.massCut,Gluino1200.iasCut,Gluino1200.ptCut)
+  #HSCPDoLimitsLaunch.SendCluster_Push(bgInput,sigInput+GMStau308.name+'.root',GMStau308.massCut,GMStau308.iasCut,GMStau308.ptCut)
+  #HSCPDoLimitsLaunch.SendCluster_Push(bgInput,sigInput+GMStau432.name+'.root',GMStau432.massCut,GMStau432.iasCut,GMStau432.ptCut)
+  for model in modelList:
+    HSCPDoLimitsLaunch.SendCluster_Push(bgInput,sigInput+model.name+'.root',model.massCut,model.iasCut,model.ptCut)
 
   HSCPDoLimitsLaunch.SendCluster_Submit()
 
