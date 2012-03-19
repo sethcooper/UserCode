@@ -187,8 +187,8 @@ for model in modelList:
     predFile = GetFile(makeScaledPredictionsFileList,model.name)
     limitFile = GetFile(doLimitsFileList,model.name)
     if predFile=='' or limitFile=='':
-      print 'Error: Found predFile ',predFile,' and limitFile ',limitFile,' one of which is empty'
-      exit(1)
+      print 'Warning: Found predFile ',predFile,' and limitFile ',limitFile,' one of which is empty'
+      continue
 
     backExp = GetBackExp(makeScaledPredictionsDir+predFile)
     backExpError = GetBackExpError(makeScaledPredictionsDir+predFile)
