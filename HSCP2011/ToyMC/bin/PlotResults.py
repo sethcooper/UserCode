@@ -17,6 +17,7 @@ PlotMinScale = 0.0005
 PlotMaxScale = 3
 GluinoXSecFile = 'gluino_XSec.txt'
 StopXSecFile = 'stop_XSec.txt'
+StauXSecFile = 'stau_XSec.txt'
 
 gROOT.Reset()
 
@@ -180,6 +181,8 @@ massesGluinos = []
 expCrossSectionsGluinos = []
 massesStops = []
 expCrossSectionsStops = []
+massesStaus = []
+expCrossSectionsStaus = []
 for model in modelList:
     predFile = GetFile(makeScaledPredictionsFileList,model.name)
     limitFile = GetFile(doLimitsFileList,model.name)
@@ -200,11 +203,15 @@ for model in modelList:
     if 'Gluino' in model.name and not 'GluinoN' in model.name:
       massesGluinos.append(float(model.mass))
       expCrossSectionsGluinos.append(float(expLimit))
-      #print 'Mass: ',model.mass,' thCrossSection: ',model.crossSection,' expLimit: ',expLimit
+      #print 'Gluino: Mass: ',model.mass,' thCrossSection: ',model.crossSection,' expLimit: ',expLimit
     if 'Stop' in model.name and not 'StopN' in model.name:
       massesStops.append(float(model.mass))
       expCrossSectionsStops.append(float(expLimit))
-      print 'Stop: Mass: ',model.mass,' thCrossSection: ',model.crossSection,' expLimit: ',expLimit
+      #print 'Stop: Mass: ',model.mass,' thCrossSection: ',model.crossSection,' expLimit: ',expLimit
+    if 'Stau' in model.name and not 'PPStau' in model.name:
+      massesStaus.append(float(model.mass))
+      expCrossSectionsStaus.append(float(expLimit))
+      #print 'Stau: Mass: ',model.mass,' thCrossSection: ',model.crossSection,' expLimit: ',expLimit
 
 gluinoThInfo = ReadXSection(GluinoXSecFile)
 gluinoXSecErr = GetErrorBand("gluinoErr",gluinoThInfo['mass'],gluinoThInfo['low'],gluinoThInfo['high'])
@@ -246,20 +253,42 @@ expLimGraphStops.SetMarkerColor(2)
 expLimGraphStops.SetLineWidth(2)
 expLimGraphStops.SetLineStyle(1)
 expLimGraphStops.SetMarkerStyle(21)
+stauThInfo = ReadXSection(StauXSecFile)
+stauXSecErr = GetErrorBand("stauErr",stauThInfo['mass'],stauThInfo['low'],stauThInfo['high'])
+theoryGraphStaus = TGraph(len(stauThInfo['mass']),array.array("f",stauThInfo['mass']),array.array("f",stauThInfo['xsec']))
+theoryGraphStaus.SetTitle('')
+theoryGraphStaus.GetYaxis().SetTitle("CrossSection ( pb )")
+theoryGraphStaus.GetYaxis().SetTitleOffset(1.70)
+theoryGraphStaus.SetLineColor(1)
+theoryGraphStaus.SetMarkerColor(1)
+theoryGraphStaus.SetLineWidth(1)
+theoryGraphStaus.SetLineStyle(1)
+theoryGraphStaus.SetMarkerStyle(1);
+expLimGraphStaus = TGraph(len(massesStaus),array.array("f",massesStaus),array.array("f",expCrossSectionsStaus))
+expLimGraphStaus.SetTitle('')
+expLimGraphStaus.GetYaxis().SetTitle("CrossSection ( pb )")
+expLimGraphStaus.GetYaxis().SetTitleOffset(1.70)
+expLimGraphStaus.SetLineColor(1)
+expLimGraphStaus.SetMarkerColor(1)
+expLimGraphStaus.SetLineWidth(2)
+expLimGraphStaus.SetLineStyle(1)
+expLimGraphStaus.SetMarkerStyle(20)
 
 c1 = TCanvas("c1", "c1",600,600)
 c1.SetLogy()
 gluinoXSecErr.Draw("f")
 stopXSecErr.Draw("f")
+stauXSecErr.Draw("f")
+#PPStauXSecErr  ->Draw("f")
+#MGTk.Draw("same")
 MGTk = TMultiGraph()
 MGTk.Add(theoryGraphGluinos      ,"L")
 MGTk.Add(theoryGraphStops      ,"L")
+MGTk.Add(theoryGraphStaus      ,"L")
 MGTk.Add(expLimGraphGluinos      ,"LP")
 MGTk.Add(expLimGraphStops      ,"LP")
+MGTk.Add(expLimGraphStaus      ,"LP")
 MGTk.Draw("A")
-#StauXSecErr  ->Draw("f")
-#PPStauXSecErr  ->Draw("f")
-#MGTk.Draw("same")
 MGTk.SetTitle("")
 MGTk.GetXaxis().SetTitle("Mass (GeV/c^{2})")
 MGTk.GetYaxis().SetTitle("#sigma (pb)")
@@ -288,6 +317,9 @@ LEGTh.AddEntry(GlThLeg, "gluino (NLO+NLL)" ,"LF")
 StThLeg = theoryGraphStops.Clone("StopThLeg")
 StThLeg.SetFillColor(stopXSecErr.GetFillColor())
 LEGTh.AddEntry(StThLeg   ,"stop   (NLO+NLL)" ,"LF")
+StauThLeg = theoryGraphStaus.Clone("StauThLeg")
+StauThLeg.SetFillColor(stauXSecErr.GetFillColor())
+LEGTh.AddEntry(StauThLeg   ,"GMSB stau   (NLO)" ,"LF")
 LEGTh.Draw()
 
 LEGTk = TLegend(0.6,0.7,0.8,0.9)
@@ -301,15 +333,17 @@ LEGTk.AddEntry(expLimGraphGluinos , "gluino; 10% #tilde{g}g"    ,"LP")
 LEGTk.AddEntry(expLimGraphStops     , "stop"            ,"LP")
 #LEGTk.AddEntry(Tk_Obs_StopN    , "stop; ch. suppr.","LP")
 #LEGTk.AddEntry(Tk_Obs_PPStau   , "Pair Prod. stau"       ,"LP")
-#LEGTk.AddEntry(Tk_Obs_GMStau   , "GMSB stau"       ,"LP")
+LEGTk.AddEntry(expLimGraphStaus   , "GMSB stau"       ,"LP")
 LEGTk.Draw()
 
 limit = FindIntersection(expLimGraphGluinos,theoryGraphGluinos,300,1200,1,0.00,False)
-print 'Found gluino (f=0.1) mass limit = ',limit
+print 'Found Gluino (f=0.1) mass limit = ',limit
 limit = FindIntersection(expLimGraphStops,theoryGraphStops,300,1200,1,0.00,False)
-print 'Found stop mass limit = ',limit
+print 'Found Stop mass limit = ',limit
+limit = FindIntersection(expLimGraphStaus,theoryGraphStaus,100,1000,1,0.00,False)
+print 'Found GMStau mass limit = ',limit
 c1.Update()
-c1.Print('gluinosStops.png')
+c1.Print('gluinosStopsStaus.png')
 
 
 
