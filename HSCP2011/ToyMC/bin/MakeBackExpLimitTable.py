@@ -7,10 +7,10 @@ import glob
 import math
 from subprocess import call
 
-BaseDirPt50Ias0p1 = 'FARM_allData_cutPt50GeVcutIas0.1_oneSlice_Mar16'
-BaseDirPt50IasStd = 'FARM_allData_validation_cutPt50GeVcutIasStd_oneSlice_Mar16'
-BaseDirPtStdIasStd = 'FARM_allData_cutPtStdGeVcutIasStd_oneSlice_Mar16'
-runCERN = True
+BaseDirPt50Ias0p1 = 'FARM_allData_cutPt50GeVcutIas0.1_allSlices_Mar16'
+BaseDirPt50IasStd = 'FARM_allData_cutPt50GeVcutIasStd_allSlices_Mar16'
+BaseDirPtStdIasStd = 'FARM_allData_cutPtStdGeVcutIasStd_allSlices_Mar16'
+runCERN = False
 
 def GetModelName(fileName):
   massCutPos = fileName.find("_massCut")
@@ -127,11 +127,19 @@ for index,file in enumerate(fileListPtStdIasStd):
     massCutPtStdIasStd = GetMassCut(file)
     ptCutPtStdIasStd = GetPtCut(file)
     signalNamePtStdIasStd = GetModelName(file)
-    signalNameLimPtStdIasStd = GetModelName(fileListLimitsPtStdIasStd[index])
+    limIndex = index
+    signalNameLimPtStdIasStd = GetModelName(fileListLimitsPtStdIasStd[limIndex])
     if(signalNameLimPtStdIasStd != signalNamePtStdIasStd):
-      print "signal names don't match"
+      #print "PtStdIasStd: signal names don't match: ",signalNameLimPtStdIasStd," for limits vs ",signalNamePtStdIasStd
+      while signalNameLimPtStdIasStd != signalNamePtStdIasStd and index < len(fileListLimitsPtStdIasStd):
+        limIndex+=1
+        while not fileEnd in fileListLimitsPtStdIasStd[limIndex]:
+          limIndex+=1
+        signalNameLimPtStdIasStd = GetModelName(fileListLimitsPtStdIasStd[limIndex])
+    if(signalNameLimPtStdIasStd != signalNamePtStdIasStd):
+      print "PtStdIasStd: signal names don't match: ",signalNameLimPtStdIasStd," for limits vs ",signalNamePtStdIasStd
       exit(1)
-    expLimitPtStdIasStd = GetExpLimit(doLimitsDirPtStdIasStd+fileListLimitsPtStdIasStd[index])
+    expLimitPtStdIasStd = GetExpLimit(doLimitsDirPtStdIasStd+fileListLimitsPtStdIasStd[limIndex])
     printString = string.ljust(signalNamePtStdIasStd,15)+string.ljust(ptCutPtStdIasStd,8)+string.ljust(iasCutPtStdIasStd,10)
     printString+=string.center(massCutPtStdIasStd,8)
     printString+=string.center(str(round(backExpPtStdIasStd,30))+' +/- '+str(round(backExpErrorPtStdIasStd,4)),30)
@@ -148,11 +156,11 @@ for index,file in enumerate(fileListPtStdIasStd):
     massCutPt50IasStd = GetMassCut(file)
     ptCutPt50IasStd = GetPtCut(file)
     signalNamePt50IasStd = GetModelName(file)
-    signalNameLimPt50IasStd = GetModelName(fileListLimitsPt50IasStd[index])
+    signalNameLimPt50IasStd = GetModelName(fileListLimitsPt50IasStd[limIndex])
     if(signalNameLimPt50IasStd != signalNamePt50IasStd):
       print "signal names don't match"
       exit(1)
-    expLimitPt50IasStd = GetExpLimit(doLimitsDirPt50IasStd+fileListLimitsPt50IasStd[index])
+    expLimitPt50IasStd = GetExpLimit(doLimitsDirPt50IasStd+fileListLimitsPt50IasStd[limIndex])
     printString = string.ljust(signalNamePt50IasStd,15)+string.ljust(ptCutPt50IasStd,8)+string.ljust(iasCutPt50IasStd,10)
     printString+=string.center(massCutPt50IasStd,8)
     printString+=string.center(str(round(backExpPt50IasStd,30))+' +/- '+str(round(backExpErrorPt50IasStd,4)),30)
@@ -169,11 +177,11 @@ for index,file in enumerate(fileListPtStdIasStd):
     massCutPt50Ias0p1 = GetMassCut(file)
     ptCutPt50Ias0p1 = GetPtCut(file)
     signalNamePt50Ias0p1 = GetModelName(file)
-    signalNameLimPt50Ias0p1 = GetModelName(fileListLimitsPt50Ias0p1[index])
+    signalNameLimPt50Ias0p1 = GetModelName(fileListLimitsPt50Ias0p1[limIndex])
     if(signalNameLimPt50Ias0p1 != signalNamePt50Ias0p1):
       print "signal names don't match"
       exit(1)
-    expLimitPt50Ias0p1 = GetExpLimit(doLimitsDirPt50Ias0p1+fileListLimitsPt50Ias0p1[index])
+    expLimitPt50Ias0p1 = GetExpLimit(doLimitsDirPt50Ias0p1+fileListLimitsPt50Ias0p1[limIndex])
     printString = string.ljust(signalNamePt50Ias0p1,15)+string.ljust(ptCutPt50Ias0p1,8)+string.ljust(iasCutPt50Ias0p1,10)
     printString+=string.center(massCutPt50Ias0p1,8)
     printString+=string.center(str(round(backExpPt50Ias0p1,30))+' +/- '+str(round(backExpErrorPt50Ias0p1,4)),30)
