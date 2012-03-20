@@ -479,9 +479,9 @@ int main(int argc, char ** argv)
     iasHistName+="iasBRegionHist";
     TH1F* iasHist = (TH1F*)backgroundPredictionRootFile->Get(iasHistName.c_str());
     // get c region tracks passing mass cut in ias bins
-    string cRegionTracksOverMassCutProfileName="cRegionTracksOverIasCutInIasBins/";
+    string cRegionTracksOverMassCutProfileName="cRegionHistograms/";
     cRegionTracksOverMassCutProfileName+=getHistNameBeg(lowerNoM,lowerEta);
-    cRegionTracksOverMassCutProfileName+="tracksInCOverMassCutProfile";
+    cRegionTracksOverMassCutProfileName+="tracksInCeffOverMassCutProfile";
     TProfile* cRegionTracksOverMassCutProfile = (TProfile*)backgroundPredictionRootFile->Get(cRegionTracksOverMassCutProfileName.c_str());
 
     // debug
