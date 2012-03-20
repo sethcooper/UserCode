@@ -909,25 +909,26 @@ int main(int argc, char ** argv)
 
 //XXX do exp fit
       // loop over bins of iasBRegionHist and find the last bin with more than 15 entries
+      std::cout << "INFO: Doing exp fit" << std::endl;
       int lastDecentStatsBin = iasBRegionHist->FindLastBinAbove(15.0);
-      if(lastDecentStatsBin > -1)
+      int firstIasBin = iasPredictionFixedHist->FindBin(iasSidebandThreshold);
+      if(lastDecentStatsBin < 1)
+        lastDecentStatsBin = firstIasBin;
+      // now fit from here to the end with an exp and fill the empty bins
+      TF1* myExp = new TF1("myExp","expo(0)",iasPredictionFixedHist->GetBinCenter(lastDecentStatsBin),1);
+      TFitResultPtr r = iasPredictionFixedHist->Fit("myExp","RL");
+      int fitStatus = r;
+      if(fitStatus != 0)
       {
-        // now fit from here to the end with an exp and fill the empty bins
-        TF1* myExp = new TF1("myExp","expo(0)",iasBRegionHist->GetBinCenter(lastDecentStatsBin),1);
-        TFitResultPtr r = iasPredictionFixedHist->Fit("myExp","RL");
-        int fitStatus = r;
-        if(fitStatus != 0)
-        {
-          std::cout << "ERROR: Fit status is " << fitStatus << " which is nonzero!  Not using the fit." << endl;
-          return -1;
-        }
-        for(int bin=lastDecentStatsBin+1; bin <= iasPredictionFixedHist->GetNbinsX(); ++bin)
-        {
-          iasPredictionFixedHist->SetBinContent(bin,myExp->Eval(iasPredictionFixedHist->GetBinCenter(bin)));
-          iasPredictionFixedHist->SetBinError(bin,sqrt(myExp->Eval(iasPredictionFixedHist->GetBinCenter(bin))));
-        }
-        delete myExp;
+        std::cout << "ERROR: Fit status is " << fitStatus << " which is nonzero!  Not using the fit." << endl;
+        return -1;
       }
+      for(int bin=lastDecentStatsBin+1; bin <= iasPredictionFixedHist->GetNbinsX(); ++bin)
+      {
+        iasPredictionFixedHist->SetBinContent(bin,myExp->Eval(iasPredictionFixedHist->GetBinCenter(bin)));
+        iasPredictionFixedHist->SetBinError(bin,sqrt(myExp->Eval(iasPredictionFixedHist->GetBinCenter(bin))));
+      }
+      delete myExp;
 
       // remove variable bin stuff - mar 1
       //// ias prediction histogram in this NoM/eta bin -- variable
