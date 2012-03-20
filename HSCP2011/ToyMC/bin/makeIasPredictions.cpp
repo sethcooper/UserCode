@@ -498,16 +498,24 @@ int main(int argc, char ** argv)
           iasSidebandThreshold,usePtForSideband,useIasForSideband);
       cRegionCumuHistTitle+=" cumulative; GeV";
       TH1F* cRegionCumuHist = cRegionDir.make<TH1F>(cRegionCumuHistName.c_str(),cRegionCumuHistTitle.c_str(),100,0,1000);
-      // c region over mass cut in ias bins hist
-      std::string cRegionTracksOverMassCutProfileName = getHistNameBeg(nom,lowerEta);
-      cRegionTracksOverMassCutProfileName+="tracksInCOverMassCutProfile";
-      std::string cRegionTracksOverMassCutProfileTitle = "Tracks in C Over Mass Cut in Ias bins for ";
-      cRegionTracksOverMassCutProfileTitle+=getHistTitleBeg(nom,lowerEta,pSidebandThreshold,ihSidebandThreshold,ptSidebandThreshold,
+      // ceff region hist
+      std::string ceffRegionHistName = getHistNameBeg(nom,lowerEta);
+      ceffRegionHistName+="ceffRegionHist";
+      std::string ceffRegionHistTitle = "P for ";
+      ceffRegionHistTitle+=getHistTitleBeg(nom,lowerEta,pSidebandThreshold,ihSidebandThreshold,ptSidebandThreshold,
           iasSidebandThreshold,usePtForSideband,useIasForSideband);
-      cRegionTracksOverMassCutProfileTitle+="; Ias";
-      TProfile* cRegionTracksOverMassCutProfile =
-        cRegionTracksOverMassCutDir.make<TProfile>(cRegionTracksOverMassCutProfileName.c_str(),
-            cRegionTracksOverMassCutProfileTitle.c_str(),100,0,1);
+      ceffRegionHistTitle+="; GeV";
+      TH1F* ceffRegionHist = cRegionDir.make<TH1F>(ceffRegionHistName.c_str(),ceffRegionHistTitle.c_str(),100,0,1000);
+      // ceff region over mass cut in ias bins hist
+      std::string ceffRegionTracksOverMassCutProfileName = getHistNameBeg(nom,lowerEta);
+      ceffRegionTracksOverMassCutProfileName+="tracksInCeffOverMassCutProfile";
+      std::string ceffRegionTracksOverMassCutProfileTitle = "Tracks in Ceff Over Mass Cut in Ias bins for ";
+      ceffRegionTracksOverMassCutProfileTitle+=getHistTitleBeg(nom,lowerEta,pSidebandThreshold,ihSidebandThreshold,ptSidebandThreshold,
+          iasSidebandThreshold,usePtForSideband,useIasForSideband);
+      ceffRegionTracksOverMassCutProfileTitle+="; Ias";
+      TProfile* ceffRegionTracksOverMassCutProfile =
+        cRegionDir.make<TProfile>(ceffRegionTracksOverMassCutProfileName.c_str(),
+            ceffRegionTracksOverMassCutProfileTitle.c_str(),100,0,1);
 
       // B region dataset
       std::string nomCutString = "rooVarNoMias==";
@@ -624,11 +632,6 @@ int main(int argc, char ** argv)
       RooRealVar* ptData_B = (RooRealVar*)argSet_B->find(rooVarPt.GetName());
       //remove eta/nom double checking
       //RooRealVar* nomData_B = (RooRealVar*)argSet_B->find(rooVarNoMias.GetName());
-      const RooArgSet* argSet_C = etaCutCRegionDataSet->get();
-      RooRealVar* pData_C = (RooRealVar*)argSet_C->find(rooVarP.GetName());
-      RooRealVar* ptData_C = (RooRealVar*)argSet_C->find(rooVarPt.GetName());
-      //RooRealVar* etaData_C = (RooRealVar*)argSet_C->find(rooVarEta.GetName());
-      //RooRealVar* nomData_C = (RooRealVar*)argSet_C->find(rooVarNoMias.GetName());
       // fill b region hist
       for(int index=0; index < etaCutNomCutBRegionDataSet->numEntries(); ++index)
       {
@@ -663,6 +666,11 @@ int main(int argc, char ** argv)
         //  << " index = " << index << std::endl;
 
       }
+      const RooArgSet* argSet_C = etaCutCRegionDataSet->get();
+      RooRealVar* pData_C = (RooRealVar*)argSet_C->find(rooVarP.GetName());
+      RooRealVar* ptData_C = (RooRealVar*)argSet_C->find(rooVarPt.GetName());
+      //RooRealVar* etaData_C = (RooRealVar*)argSet_C->find(rooVarEta.GetName());
+      //RooRealVar* nomData_C = (RooRealVar*)argSet_C->find(rooVarNoMias.GetName());
       // fill c region hist
       for(int index=0; index < etaCutCRegionDataSet->numEntries(); ++index)
       {
@@ -686,6 +694,14 @@ int main(int argc, char ** argv)
         //if(etaData_C->getVal() < lowerEta || etaData_C->getVal() > lowerEta+0.2)
         //  std::cout << "ERROR: eta=" << lowerEta << "-" << lowerEta+0.2 << " and (in C region) data point eta="
         //    << etaData_C->getVal() << std::endl;
+      }
+      // fill ceff region hist
+      const RooArgSet* argSet_Ceff = etaCutDeDxSBDataSet->get();
+      RooRealVar* pData_Ceff = (RooRealVar*)argSet_Ceff->find(rooVarP.GetName());
+      for(int index=0; index < etaCutDeDxSBDataSet->numEntries(); ++index)
+      {
+        etaCutDeDxSBDataSet->get(index);
+        ceffRegionHist->Fill(pData_Ceff->getVal());
       }
 
       // c region cumu hist
@@ -845,7 +861,7 @@ int main(int argc, char ** argv)
         //successRateCountsInIasBins[iasPredictionFixedHist->FindBin(thisIas)-1]++;
         //FIXME?
         //successRateLastErrorInIasBins[iasPredictionFixedHist->FindBin(thisIas)-1]=successRateError;
-        cRegionTracksOverMassCutProfile->Fill(thisIas,numMomPassingMass);
+        ceffRegionTracksOverMassCutProfile->Fill(thisIas,numMomPassingMass);
         ihMeanProf->Fill(thisIas,thisIh);
         minPCutMeanProf->Fill(thisIas,minMomPassMass);
         //debug output
@@ -903,13 +919,13 @@ int main(int argc, char ** argv)
       //    etaCutCRegionDataSet->numEntries()/(double)etaCutARegionDataSet->numEntries());
       //std::cout << "Scaling by C_NoM/A_NoM = " << etaCutCRegionDataSet->numEntries()/(double)etaCutARegionDataSet->numEntries() << std::endl;
       double entriesInARegionNoM = etaCutARegionDataSet->numEntries();
-      for(int bin=1; bin <= cRegionTracksOverMassCutProfile->GetNbinsX(); ++bin)
+      for(int bin=1; bin <= ceffRegionTracksOverMassCutProfile->GetNbinsX(); ++bin)
       {
         double Bk = iasBRegionHist->GetBinContent(bin);
         // Bk * < Cj over mass > / A
-        double binContent = Bk * cRegionTracksOverMassCutProfile->GetBinContent(bin) / entriesInARegionNoM;
+        double binContent = Bk * ceffRegionTracksOverMassCutProfile->GetBinContent(bin) / entriesInARegionNoM;
         //TODO FIXME run toys to get this error OR use SQRT(C) in first Ias bin above std ana ias cut to get overall error
-        double binError = sqrt(Bk) * cRegionTracksOverMassCutProfile->GetBinContent(bin) / entriesInARegionNoM;
+        double binError = sqrt(Bk) * ceffRegionTracksOverMassCutProfile->GetBinContent(bin) / entriesInARegionNoM;
         iasPredictionFixedHist->SetBinContent(bin,binContent);
         iasPredictionFixedHist->SetBinError(bin,binError);
       }
@@ -976,33 +992,26 @@ int main(int argc, char ** argv)
 //      }
 
 //XXX do exp fit
-//      // loop over bins of iasBRegionHist and find the first bin with more than 15 entries
-//      int lastDecentStatsBin = 0;
-//      for(int bin = iasBRegionHist->GetNbinsX(); bin > 0; --bin)
-//      {
-//        if(iasBRegionHist->GetBinContent(bin) > 15)
-//        {
-//          lastDecentStatsBin = bin;
-//          break;
-//        }
-//      }
-//      // now fit from here to the end with an exp and fill the empty bins
-//      TF1* myExp = new TF1("myExp","expo(0)",iasBRegionHist->GetBinCenter(lastDecentStatsBin),1);
-//      TFitResultPtr r = iasPredictionFixedHist->Fit("myExp","RL");
-//      int fitStatus = r;
-//      if(fitStatus != 0)
-//      {
-//        std::cout << "ERROR: Fit status is " << fitStatus << " which is nonzero!  Not using the fit." << endl;
-//        continue;
-//      }
-//
-//      for(int bin=lastDecentStatsBin+1; bin <= iasPredictionFixedHist->GetNbinsX(); ++bin)
-//      {
-//        iasPredictionFixedHist->SetBinContent(bin,myExp->Eval(iasPredictionFixedHist->GetBinCenter(bin)));
-//        iasPredictionFixedHist->SetBinError(bin,sqrt(myExp->Eval(iasPredictionFixedHist->GetBinCenter(bin))));
-//      }
-//
-//      delete myExp;
+      // loop over bins of iasBRegionHist and find the last bin with more than 15 entries
+      int lastDecentStatsBin = iasBRegionHist->FindLastBinAbove(15.0);
+      if(lastDecentStatsBin > -1)
+      {
+        // now fit from here to the end with an exp and fill the empty bins
+        TF1* myExp = new TF1("myExp","expo(0)",iasBRegionHist->GetBinCenter(lastDecentStatsBin),1);
+        TFitResultPtr r = iasPredictionFixedHist->Fit("myExp","RL");
+        int fitStatus = r;
+        if(fitStatus != 0)
+        {
+          std::cout << "ERROR: Fit status is " << fitStatus << " which is nonzero!  Not using the fit." << endl;
+          continue;
+        }
+        for(int bin=lastDecentStatsBin+1; bin <= iasPredictionFixedHist->GetNbinsX(); ++bin)
+        {
+          iasPredictionFixedHist->SetBinContent(bin,myExp->Eval(iasPredictionFixedHist->GetBinCenter(bin)));
+          iasPredictionFixedHist->SetBinError(bin,sqrt(myExp->Eval(iasPredictionFixedHist->GetBinCenter(bin))));
+        }
+        delete myExp;
+      }
 
       // remove variable bin stuff - mar 1
       //// ias prediction histogram in this NoM/eta bin -- variable
