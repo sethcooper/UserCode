@@ -9,84 +9,8 @@
 #include "DataFormats/Common/interface/TriggerResults.h"
 #include "DataFormats/MuonReco/interface/MuonTimeExtraMap.h"
 
-#include "TTree.h"
-
-#include "RooRealVar.h"
-
 #include <iostream>
 
-// RooRealVar observables
-RooRealVar rooVarIas("rooVarIas","ias",0,1);
-RooRealVar rooVarIp("rooVarIp","ip",0,1);
-RooRealVar rooVarIh("rooVarIh","ih",0,15);
-RooRealVar rooVarP("rooVarP","p",0,5000);
-RooRealVar rooVarPt("rooVarPt","pt",0,5000);
-RooRealVar rooVarNoMias("rooVarNoMias","nom",0,30);
-RooRealVar rooVarEta("rooVarEta","eta",-2.5,2.5);
-RooRealVar rooVarRun("rooVarRun","run",0,4294967295);
-RooRealVar rooVarLumiSection("rooVarLumiSection","lumiSection",0,4294967295);
-RooRealVar rooVarEvent("rooVarEvent","event",0,4294967295);
-// HSCP
-RooRealVar rooVarNumGenHSCPEvents("rooVarNumGenHSCPEvents","numGenHSCPEvents",0,5e6);
-RooRealVar rooVarNumGenHSCPTracks("rooVarNumGenHSCPTracks","numGenHSCPTracks",0,5e6);
-RooRealVar rooVarNumGenChargedHSCPTracks("rooVarNumGenChargedHSCPTracks","numGenChargedHSCPTracks",0,5e6);
-RooRealVar rooVarSignalEventCrossSection("rooVarSignalEventCrossSection","signalEventCrossSection",0,100); // pb
-
-// variables for tree
-struct HSCPTreeContent
-{
-  unsigned int runId;
-  unsigned int lumiSection;
-  unsigned int eventId;
-
-  double pileUpWeight;
-
-  float ias;
-  float ip;
-  float ih;
-  float p;
-  float pt;
-  float nomIas;
-  float nomIh;
-  float eta;
-
-};
-
-void setBranches(TTree* tree, HSCPTreeContent& treeVars)
-{
-  tree->Branch("runId",         &treeVars.runId,                "runId/i");
-  tree->Branch("lumiSection",   &treeVars.lumiSection,    "lumiSection/i");
-  tree->Branch("eventId",       &treeVars.eventId,            "eventId/i");
-
-  tree->Branch("pileUpWeight",  &treeVars.pileUpWeight,  "pileUpWeight/D");
-
-  tree->Branch("ias",           &treeVars.ias,          "ias/F");
-  tree->Branch("ip",            &treeVars.ip,            "ip/F");
-  tree->Branch("ih",            &treeVars.ih,            "ih/F");
-  tree->Branch("p",             &treeVars.p,              "p/F");
-  tree->Branch("pt",            &treeVars.pt,            "pt/F");
-  tree->Branch("nomIas",        &treeVars.nomIas,    "nomIas/F");
-  tree->Branch("nomIh",         &treeVars.nomIh,      "nomIh/F");
-  tree->Branch("eta",           &treeVars.eta,          "eta/F");
-}
-
-void initializeBranches(HSCPTreeContent& treeVars)
-{
-  treeVars.runId = 0;
-  treeVars.lumiSection = 0;
-  treeVars.eventId = 0;
-
-  treeVars.pileUpWeight = 0;
-  
-  treeVars.ias = 0;
-  treeVars.ip = 0;
-  treeVars.ih = 0;
-  treeVars.p = 0;
-  treeVars.pt = 0;
-  treeVars.nomIas = 0;
-  treeVars.nomIh = 0;
-  treeVars.eta = -999;
-}
 
 void setBinLabelsPreselectionPlot(TH1F* hist)
 {
