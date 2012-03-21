@@ -94,7 +94,7 @@ RooRealVar numberOfTrialsRooVar("numberOfTrialsRooVar","number of trials",0,1e8)
 RooRealVar actualEventsInLastBinRooVar("actualEventsInLastBinRooVar","actual events in last bin",0,20000);
 RooRealVar signalEventsInLastBinRooVar("signalEventsInLastBinRooVar","signal events in last bin",0,0,20000);
 //TODO move to something like common functions
-//RooRealVar rooVarIas("rooVarIas","ias",0,1);
+RooRealVar rooVarIas("rooVarIas","ias",0,1);
 
 
 struct SampleHistos
