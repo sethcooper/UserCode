@@ -194,27 +194,42 @@ int main(int argc, char ** argv)
   PlotStruct afterPreselectionPlots(fs,"AfterPreselection","after preselection");
   PlotStruct beforePreselectionPlots(fs,"BeforePreselection","before preselection");
 
-  // Trees for keeping track of the data
-  HSCPTreeContent treeContent;
-  TTree* allCandidatesTree = fs.make<TTree>("allCandidatesTree","allCandidatesTree");
-  setBranches(allCandidatesTree,treeContent);
+  // RooFit observables and dataset
+  RooRealVar rooVarIas("rooVarIas","ias",0,1);
+  RooRealVar rooVarIp("rooVarIp","ip",0,1);
+  RooRealVar rooVarIh("rooVarIh","ih",0,15);
+  RooRealVar rooVarP("rooVarP","p",0,5000);
+  RooRealVar rooVarPt("rooVarPt","pt",0,5000);
+  RooRealVar rooVarNoMias("rooVarNoMias","nom",0,30);
+  RooRealVar rooVarEta("rooVarEta","eta",-2.5,2.5);
+  RooRealVar rooVarRun("rooVarRun","run",0,4294967295);
+  RooRealVar rooVarLumiSection("rooVarLumiSection","lumiSection",0,4294967295);
+  RooRealVar rooVarEvent("rooVarEvent","event",0,4294967295);
+  RooDataSet* rooDataSetCandidates = fs.make<RooDataSet>("rooDataSetCandidates","rooDataSetCandidates",
+      RooArgSet(rooVarIas,rooVarIh,rooVarP,rooVarPt,rooVarNoMias,rooVarEta,rooVarRun,rooVarLumiSection,rooVarEvent));
+      //RooArgSet(rooVarIas,rooVarIh,rooVarP,rooVarPt,rooVarNoMias,rooVarEta,rooVarIp));
+  // Ip no longer included
+  RooDataSet* rooDataSetOneCandidatePerEvent = fs.make<RooDataSet>("rooDataSetOneCandidatePerEvent",
+      "rooDataSetOneCandidatePerEvent",
+      RooArgSet(rooVarIas,rooVarIh,rooVarP,rooVarPt,rooVarNoMias,rooVarEta,rooVarRun,rooVarLumiSection,rooVarEvent));
 
-  TTree* oneCandidateTree = fs.make<TTree>("oneCandidatesTree","oneCandidatesTree");
-  setBranches(oneCandidateTree,treeContent);
+  // Dataset for IasShift
+  RooDataSet* rooDataSetIasShift = fs.make<RooDataSet>("rooDataSetIasShift","rooDataSetIasShift",
+      RooArgSet(rooVarIas,rooVarIh,rooVarP,rooVarPt,rooVarNoMias,rooVarEta,rooVarIp));
+  // Dataset for IhShift
+  RooDataSet* rooDataSetIhShift = fs.make<RooDataSet>("rooDataSetIhShift","rooDataSetIhShift",
+      RooArgSet(rooVarIas,rooVarIh,rooVarP,rooVarPt,rooVarNoMias,rooVarEta,rooVarIp));
+  // Dataset for PtShift
+  RooDataSet* rooDataSetPtShift = fs.make<RooDataSet>("rooDataSetPtShift","rooDataSetPtShift",
+      RooArgSet(rooVarIas,rooVarIh,rooVarP,rooVarPt,rooVarNoMias,rooVarEta,rooVarIp));
 
-  TTree* iasShiftTree = fs.make<TTree>("iasShiftTree","iasShiftTree");
-  setBranches(iasShiftTree,treeContent);
-
-  TTree* ihShiftTree = fs.make<TTree>("ihShiftTree","ihShiftTree");
-  setBranches(ihShiftTree,treeContent);
-
-  TTree* ptShiftTree = fs.make<TTree>("ptShiftTree","ptShiftTree");
-  setBranches(ptShiftTree,treeContent);
-  // HSCP only
-  TH1F* numGenHSCPEventsHist = fs.make<TH1F>("numGenHSCPEvents","num gen hscp events",1,0,1);
-  TH1F* numGenHSCPTracksHist = fs.make<TH1F>("numGenHSCPTracks","num gen hscp tracks",1,0,1);
-  TH1F* numGenChargedHSCPTracksHist = fs.make<TH1F>("numGenChargedHSCPTracks","num gen charged hscp tracks",1,0,1);
-  TH1F* signalEventCrossSectionHist = fs.make<TH1F>("signalEventCrossSection","signal event cross section",1,0,1);
+  // RooDataSet for number of original tracks, etc.
+  RooRealVar rooVarNumGenHSCPEvents("rooVarNumGenHSCPEvents","numGenHSCPEvents",0,5e6);
+  RooRealVar rooVarNumGenHSCPTracks("rooVarNumGenHSCPTracks","numGenHSCPTracks",0,5e6);
+  RooRealVar rooVarNumGenChargedHSCPTracks("rooVarNumGenChargedHSCPTracks","numGenChargedHSCPTracks",0,5e6);
+  RooRealVar rooVarSignalEventCrossSection("rooVarSignalEventCrossSection","signalEventCrossSection",0,100); // pb
+  RooDataSet* rooDataSetGenHSCPTracks = fs.make<RooDataSet>("rooDataSetGenHSCPTracks","rooDataSetGenHSCPTracks",
+      RooArgSet(rooVarNumGenHSCPEvents,rooVarNumGenHSCPTracks,rooVarNumGenChargedHSCPTracks,rooVarSignalEventCrossSection));
 
 
   int numEventsPassingTrigger = 0;
@@ -253,7 +268,6 @@ int main(int argc, char ** argv)
         double tempP = 0;
         double tempPt = 0;
         int tempNoMias = 0;
-        int tempNoMih = 0;
         double tempEta = 0;
         double tempRun = 0;
         double tempLumiSection = 0;
@@ -388,9 +402,6 @@ int main(int argc, char ** argv)
         double lumiSection = ev.id().luminosityBlock();
         double runNumber = ev.id().run();
         double eventNumber = ev.id().event();
-        treeContent.lumiSection = lumiSection;
-        treeContent.runId = runNumber;
-        treeContent.eventId = eventNumber;
         //XXX ignore real data taken with tighter RPC trigger (355.227/pb) -- from Analysis_Samples.h
         if(!isMC_ && runNumber < 165970)
           continue;
@@ -442,18 +453,9 @@ int main(int argc, char ** argv)
           float trackP = track->p();
           float trackPt = track->pt();
           int iasNoM = dedxSObj.numberOfMeasurements();
-          int ihNoM = dedxMObj.numberOfMeasurements();
           float trackEta = track->eta();
           int trackNoH = track->found();
           float trackPtErr = track->ptError();
-          treeContent.ias = ias;
-          treeContent.ih = ih;
-          treeContent.ip = ip;
-          treeContent.p = trackP;
-          treeContent.pt = trackPt;
-          treeContent.nomIas = iasNoM;
-          treeContent.nomIh = ihNoM;
-          treeContent.eta = trackEta;
 
           // systematics datasets for MC
           //TODO: FIXME: apply shift, then preselect/choose highest ias, then add to dataset
@@ -461,23 +463,30 @@ int main(int argc, char ** argv)
           {
             TRandom3 myRandom;
             //TODO include TOF at some point?
+            rooVarIas = ias;
+            rooVarIp = ip;
+            rooVarIh = ih;
+            rooVarP = trackP;
+            rooVarPt = trackPt;
+            rooVarNoMias = iasNoM;
+            rooVarEta = trackEta;
             // ias shift
             double newIas = ias + myRandom.Gaus(0,0.083) + 0.015; // from YK results Nov 21 2011 hypernews thread
-            treeContent.ias = newIas;
-            iasShiftTree->Fill();
-            treeContent.ias = ias; // reset to original value
+            rooVarIas = newIas;
+            rooDataSetIasShift->add(RooArgSet(rooVarIas,rooVarIh,rooVarP,rooVarPt,rooVarNoMias,rooVarEta,rooVarIp));
+            rooVarIas = ias; // reset to original value
             // ih shift
             double newIh = ih*1.036; // from SIC results, Nov 10 2011 HSCP meeting
-            treeContent.ih = newIh;
-            ihShiftTree->Fill();
-            treeContent.ih = ih; // reset to original value
+            rooVarIh = newIh;
+            rooDataSetIhShift->add(RooArgSet(rooVarIas,rooVarIh,rooVarP,rooVarPt,rooVarNoMias,rooVarEta,rooVarIp));
+            rooVarIh = ih; // reset to original value
             // pt shift (and p shift) -- from MU-10-004-001 -- SIC report Jun 7 2011 HSCP meeting
             double newInvPt = 1/trackPt+0.000236-0.000135*pow(trackEta,2)+track->charge()*0.000282*TMath::Sin(track->phi()-1.337);
-            treeContent.pt = 1/newInvPt;
-            treeContent.p = rooVarPt.getVal()/TMath::Sin(track->theta());
-            ptShiftTree->Fill();
-            treeContent.p = trackPt; // reset
-            treeContent.pt = trackP; // reset
+            rooVarPt = 1/newInvPt;
+            rooVarP = rooVarPt.getVal()/TMath::Sin(track->theta());
+            rooDataSetPtShift->add(RooArgSet(rooVarIas,rooVarIh,rooVarP,rooVarPt,rooVarNoMias,rooVarEta,rooVarIp));
+            rooVarPt = trackPt; // reset
+            rooVarP = trackP; // reset
           }
 
           if(isMC_)
@@ -578,7 +587,22 @@ int main(int argc, char ** argv)
             afterPreselectionPlots.pVsRelPerrCentralEtaHist->Fill(trackPtErr/trackP,trackP);
 
 
-          allCandidatesTree->Fill();
+          // fill roodataset
+          //TODO include TOF at some point?
+          rooVarIas = ias;
+          rooVarIp = ip;
+          rooVarIh = ih;
+          rooVarP = trackP;
+          rooVarPt = trackPt;
+          rooVarNoMias = iasNoM;
+          rooVarEta = trackEta;
+          rooVarLumiSection = lumiSection;
+          rooVarRun = runNumber;
+          rooVarEvent = eventNumber;
+          //rooDataSetCandidates->add(RooArgSet(rooVarIas,rooVarIh,rooVarP,rooVarPt,rooVarNoMias,rooVarEta,rooVarIp));
+          //XXX TURN OFF BELOW TO MAKE ONLY ONE ENTRY PER EVENT DATASET ONLY
+          rooDataSetCandidates->add(RooArgSet(rooVarIas,rooVarIh,rooVarP,rooVarPt,rooVarNoMias,rooVarEta,rooVarLumiSection,
+                rooVarRun,rooVarEvent));
           if(ias > tempIas)
           {
             tempIas = ias;
@@ -586,7 +610,6 @@ int main(int argc, char ** argv)
             tempP = trackP;
             tempPt = trackPt;
             tempNoMias = iasNoM;
-            tempNoMih = ihNoM;
             tempEta = trackEta;
             tempLumiSection = lumiSection;
             tempRun = runNumber;
@@ -618,17 +641,17 @@ int main(int argc, char ** argv)
 
         if(numTracksPassingPreselectionThisEvent > 0)
         {
-          treeContent.ias = tempIas;
-          treeContent.ih = tempIh;
-          treeContent.p = tempP;
-          treeContent.pt = tempPt;
-          treeContent.nomIas = tempNoMias;
-          treeContent.nomIh = tempNoMih;
-          treeContent.eta = tempEta;
-          treeContent.lumiSection = tempLumiSection;
-          treeContent.runId = tempRun;
-          treeContent.eventId = tempEvent;
-          oneCandidateTree->Fill();
+          rooVarIas = tempIas;
+          rooVarIh = tempIh;
+          rooVarP = tempP;
+          rooVarPt = tempPt;
+          rooVarNoMias = tempNoMias;
+          rooVarEta = tempEta;
+          rooVarLumiSection = tempLumiSection;
+          rooVarRun = tempRun;
+          rooVarEvent = tempEvent;
+          rooDataSetOneCandidatePerEvent->add(RooArgSet(rooVarIas,rooVarIh,rooVarP,rooVarPt,rooVarNoMias,rooVarEta,rooVarLumiSection,
+                rooVarRun,rooVarEvent));
         }
 
         if(numTracksPassingPreselectionThisEvent > 0)
@@ -657,10 +680,12 @@ int main(int argc, char ** argv)
   
   afterPreselectionPlots.pDistributionHist->Scale(scaleFactor_);
 
-  numGenHSCPEventsHist->Fill(0.5,numGenHSCPEvents);
-  numGenHSCPTracksHist->Fill(0.5,numGenHSCPTracks);
-  numGenChargedHSCPTracksHist->Fill(0.5,numGenChargedHSCPTracks);
-  signalEventCrossSectionHist->Fill(0.5,signalEventCrossSection_);
+  rooVarNumGenHSCPEvents = numGenHSCPEvents;
+  rooVarNumGenHSCPTracks = numGenHSCPTracks;
+  rooVarNumGenChargedHSCPTracks = numGenChargedHSCPTracks;
+  rooVarSignalEventCrossSection = signalEventCrossSection_;
+  rooDataSetGenHSCPTracks->add(
+      RooArgSet(rooVarNumGenHSCPEvents,rooVarNumGenHSCPTracks,rooVarNumGenChargedHSCPTracks,rooVarSignalEventCrossSection));
 
   std::cout << "Found: " << numEventsPassingTrigger << " events passing trigger selection." <<
     std::endl;
@@ -677,7 +702,7 @@ int main(int argc, char ** argv)
     std::endl;
   std::cout << "Found: " << numTracksPassingPreselection << " tracks passing preselections." <<
     std::endl;
-  std::cout << "Added " << allCandidatesTree->GetEntries() << " tracks into the dataset." << std::endl;
+  std::cout << "Added " << rooDataSetCandidates->numEntries() << " tracks into the dataset." << std::endl;
 
 
   double totalTracks = beforePreselectionPlots.tracksVsPreselectionsHist->GetBinContent(1);
