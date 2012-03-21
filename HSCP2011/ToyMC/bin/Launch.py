@@ -21,32 +21,29 @@ RunCondor = False
 #QueueName = '1nd'
 QueueName = '8nh'
 ## FOR NOW, CutPt=Std means CutIas Std also!
-CutPt = 'Std'
-#CutPt = 50
-CutIas = 'Std'
-#CutIas = 0.1
-#FarmDirectory='FARM_allData_validation_cutPt50GeVcutIasStd_oneSlice_Mar16'
-#FarmDirectory='FARM_allData_cutPt50GeVcutIas0.1_oneSlice_Mar16'
-FarmDirectory='FARM_allData_cutPtStdGeVcutIasStd_oneSlice_Mar16'
+#CutPt = 'Std'
+CutPt = 50
+#CutIas = 'Std'
+CutIas = 0.1
 
-#FarmDirectory = 'FARM_allData_cutPt'
-##
-#FarmDirectory+=str(CutPt)
-#FarmDirectory+='GeVcutIas'
-#FarmDirectory+=str(CutIas)
-#if(AllSlices):
-#  FarmDirectory+='_allSlices_'
-#else:
-#  FarmDirectory+='_oneSlice_'
-#FarmDirectory+=Date
+FarmDirectory = 'FARM_noTightRPCData_expFit_cutPt'
+#
+FarmDirectory+=str(CutPt)
+FarmDirectory+='GeVcutIas'
+FarmDirectory+=str(CutIas)
+if(AllSlices):
+  FarmDirectory+='_allSlices_'
+else:
+  FarmDirectory+='_oneSlice_'
+FarmDirectory+=Date
 InputDataRootFile = os.getcwd()
-InputDataRootFile+='/MakeHSCParticlePlots_dataWithTightRPCTrig_absEta_ptErrorPresel_feb6/outputs/makeHSCParticlePlots_Data2011_all.root'
-#InputDataRootFile+='/MakeHSCParticlePlots_data_absEta_ptErrorPresel_Mar08/outputs/makeHSCParticlePlots_Data2011_all.root'
+#InputDataRootFile+='/MakeHSCParticlePlots_dataWithTightRPCTrig_absEta_ptErrorPresel_feb6/outputs/makeHSCParticlePlots_Data2011_all.root'
+InputDataRootFile+='/MakeHSCParticlePlots_data_absEta_ptErrorPresel_Mar08/outputs/makeHSCParticlePlots_Data2011_all.root'
 sigInput = os.getcwd()
 sigInput+='/MakeHSCParticlePlots_Signals_absEta_ptErrorPresel_Feb21/outputs/makeHSCParticlePlots_Feb21_'
-IntLumi = 4679 # 1/pb (2011)
+#IntLumi = 4679 # 1/pb (2011)
 # subtract the lumi before the RPC trigger change (runs before 165970) = 355.227 /pb
-#IntLumi = 4323.773 # 1/pb
+IntLumi = 4323.773 # 1/pb
 #
 
 
@@ -75,6 +72,17 @@ def printConfiguration():
     print 'Doing all eta/NoM slices'
   else:
     print 'Doing single eta/NoM slice only'
+
+def checkForScaledPredictions(modelName):
+  fileName = os.getcwd()+'/'+FarmDirectory+'/outputs/makeScaledPredictions/'+modelName+'/hscp_combined_hscp_model.root'
+  #print 'Checking for ',fileName
+  try:
+    open(fileName)
+  except IOError as e:
+    print 'File: ',fileName,' does not exist.'
+    return False
+  return True
+
 
 def doIasPredictions():
   #TODO in the real analysis we will use the same ih/pt cuts for sidebands
@@ -146,19 +154,12 @@ def doLimits():
   JobName = "doLimits_"
   #HSCPDoLimitsLaunch.SendCluster_Create(FarmDirectory, JobName, IntLumi, BaseMacro, False, RunCondor, QueueName)
   HSCPDoLimitsLaunch.SendCluster_Create(FarmDirectory, JobName, IntLumi, BaseMacroBayesian, True, RunCondor, QueueName)
-  #TODO work for all signal models
-  #HSCPDoLimitsLaunch.SendCluster_Push(bgInput,sigInput+Stop200.name+'.root',Stop200.massCut,Stop200.iasCut,Stop200.ptCut)
-  #HSCPDoLimitsLaunch.SendCluster_Push(bgInput,sigInput+Stop400.name+'.root',Stop400.massCut,Stop400.iasCut,Stop400.ptCut)
-  #HSCPDoLimitsLaunch.SendCluster_Push(bgInput,sigInput+Stop600.name+'.root',Stop600.massCut,Stop600.iasCut,Stop600.ptCut)
-  #HSCPDoLimitsLaunch.SendCluster_Push(bgInput,sigInput+Gluino600.name+'.root',Gluino600.massCut,Gluino600.iasCut,Gluino600.ptCut)
-  #HSCPDoLimitsLaunch.SendCluster_Push(bgInput,sigInput+Gluino800.name+'.root',Gluino800.massCut,Gluino800.iasCut,Gluino800.ptCut)
-  #HSCPDoLimitsLaunch.SendCluster_Push(bgInput,sigInput+Gluino1000.name+'.root',Gluino1000.massCut,Gluino1000.iasCut,Gluino1000.ptCut)
-  #HSCPDoLimitsLaunch.SendCluster_Push(bgInput,sigInput+Gluino1100.name+'.root',Gluino1100.massCut,Gluino1100.iasCut,Gluino1100.ptCut)
-  #HSCPDoLimitsLaunch.SendCluster_Push(bgInput,sigInput+Gluino1200.name+'.root',Gluino1200.massCut,Gluino1200.iasCut,Gluino1200.ptCut)
-  #HSCPDoLimitsLaunch.SendCluster_Push(bgInput,sigInput+GMStau308.name+'.root',GMStau308.massCut,GMStau308.iasCut,GMStau308.ptCut)
-  #HSCPDoLimitsLaunch.SendCluster_Push(bgInput,sigInput+GMStau432.name+'.root',GMStau432.massCut,GMStau432.iasCut,GMStau432.ptCut)
   for model in modelList:
-    HSCPDoLimitsLaunch.SendCluster_Push(bgInput,sigInput+model.name+'.root',model.massCut,model.iasCut,model.ptCut)
+    fileExists = checkForScaledPredictions(model.name)
+    if not fileExists:
+      return
+    else:
+      HSCPDoLimitsLaunch.SendCluster_Push(bgInput,sigInput+model.name+'.root',model.massCut,model.iasCut,model.ptCut)
 
   HSCPDoLimitsLaunch.SendCluster_Submit()
 
