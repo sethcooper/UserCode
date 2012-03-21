@@ -161,6 +161,14 @@ int main(int argc, char ** argv)
   pDistributionSearchRegionHist->Sumw2();
   TH1F* ptDistributionSearchRegionHist = fs.make<TH1F>("ptDistributionSearchRegion","SearchRegion+MassCutPt;GeV",200,0,2000);
   ptDistributionSearchRegionHist->Sumw2();
+  // beta
+  TH1F* hscpBetaDistribution = fs.make<TH1F>("hscpBetaDistribution","HSCP Gen #beta",20,0,1);
+  // eta
+  TH1F* hscpEtaDistribution = fs.make<TH1F>("hscpEtaDistribution","HSCP Gen #eta",300,-3,3);
+  // pt
+  TH1F* hscpPtDistribution = fs.make<TH1F>("hscpPtDistribution","HSCP Gen Pt",100,0,2000);
+  // p
+  TH1F* hscpPDistribution = fs.make<TH1F>("hscpPDistribution","HSCP Gen P",100,0,2000);
   // p vs Ias
   TH2F* pVsIasDistributionSearchRegionHist;
   std::string pVsIasSearchRegionName = "trackPvsIasSearchRegion";
@@ -168,6 +176,20 @@ int main(int argc, char ** argv)
   pVsIasSearchRegionTitle+=";;GeV";
   pVsIasDistributionSearchRegionHist = fs.make<TH2F>(pVsIasSearchRegionName.c_str(),pVsIasSearchRegionTitle.c_str(),400,0,1,100,0,1000);
   pVsIasDistributionSearchRegionHist->Sumw2();
+  // pt vs Ias
+  TH2F* ptVsIasHist;
+  std::string ptVsIasName = "trackPtvsIasSignal";
+  std::string ptVsIasTitle="Track Pt vs Ias (signal, trig, no presel)";
+  ptVsIasTitle+=";;GeV";
+  ptVsIasHist = fs.make<TH2F>(ptVsIasName.c_str(),ptVsIasTitle.c_str(),400,0,1,200,0,1000);
+  ptVsIasHist->Sumw2();
+  // pt vs Ias -- mass cut
+  TH2F* ptVsIasMassCutHist;
+  std::string ptVsIasMassCutName = "trackPtvsIasMassCutSignal";
+  std::string ptVsIasMassCutTitle="Track Pt vs Ias after mass cut (signal, trig, no presel)";
+  ptVsIasMassCutTitle+=";;GeV";
+  ptVsIasMassCutHist = fs.make<TH2F>(ptVsIasMassCutName.c_str(),ptVsIasMassCutTitle.c_str(),400,0,1,200,0,1000);
+  ptVsIasMassCutHist->Sumw2();
 
   PlotStruct afterPreselectionPlots(fs,"AfterPreselection","after preselection");
   PlotStruct beforePreselectionPlots(fs,"BeforePreselection","before preselection");
@@ -319,6 +341,7 @@ int main(int argc, char ** argv)
             numEventsWithTwoHSCPGen++;
           numHSCPGenPerEventHist->Fill(numGenHSCPThisEvent);
 
+          int ClosestGen = -1;
           int numSeenHSCPThisEvt = 0;
           // attempt match track to gen hscp, look at gen/detected hscps
           for(unsigned int c=0;c<hscpColl.size();c++)
@@ -329,7 +352,6 @@ int main(int argc, char ** argv)
             if(track.isNull())
               continue;
 
-            int ClosestGen;
             // match to gen hscp
             if(DistToHSCP(hscp, genColl, ClosestGen)>0.03)
               continue;
@@ -338,6 +360,24 @@ int main(int argc, char ** argv)
 
           }
           numHSCPSeenPerEventHist->Fill(numSeenHSCPThisEvt);
+          // loop over gen particles
+          for(unsigned int g=0;g<genColl.size();g++)
+          {
+            if(genColl[g].pt()<5)continue;
+            if(genColl[g].status()!=1)continue;
+            int AbsPdg=abs(genColl[g].pdgId());
+            if(AbsPdg<1000000)continue;
+            //if(onlyCharged && (AbsPdg==1000993 || AbsPdg==1009313 || AbsPdg==1009113 || AbsPdg==1009223 || AbsPdg==1009333 || AbsPdg==1092114 || AbsPdg==1093214 || AbsPdg==1093324))continue; //Skip neutral gluino RHadrons
+            //if(onlyCharged && (AbsPdg==1000622 || AbsPdg==1000642 || AbsPdg==1006113 || AbsPdg==1006311 || AbsPdg==1006313 || AbsPdg==1006333))continue;  //skip neutral stop RHadrons
+            //if(beta1<0){beta1=genColl[g].p()/genColl[g].energy();}else if(beta2<0){beta2=genColl[g].p()/genColl[g].energy();return;}
+            //XXX FIXME
+            //float genMass = genColl[g].generated_mass();
+            //double genP = sqrt(pow(genColl[g].momentum().px(),2) + pow(genColl[g].momentum().py(),2) + pow(genColl[g].momentum().pz(),2) );
+            //hscpBetaDistribution->Fill(genP/sqrt(pow(genP,2)+pow(genMass,2)));
+            //hscpEtaDistribution->Fill(genColl[g].eta());
+            //hscpPtDistribution->Fill(genColl[g].pt());
+            //hscpPDistribution->Fill(genP);
+          }
 
           // check triggers
           if(passesTrigger(ev,true,false)) // consider mu trig only
@@ -448,6 +488,15 @@ int main(int argc, char ** argv)
             rooVarPt = trackPt; // reset
             rooVarP = trackP; // reset
           }
+
+          if(isMC_)
+          {
+            ptVsIasHist->Fill(ias,trackPt);
+            float massSqr = (ih-dEdx_c_)*pow(trackP,2)/dEdx_k_;
+            if(sqrt(massSqr) >= massCutIasHighPHighIh_)
+              ptVsIasMassCutHist->Fill(ias,trackPt);
+          }
+
 
           // apply preselections, not considering ToF
           if(!passesPreselection(hscp,dedxSObj,dedxMObj,tof,dttof,csctof,ev,false,beforePreselectionPlots))
