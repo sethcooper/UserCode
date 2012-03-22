@@ -29,6 +29,7 @@
 #include <iomanip>
 #include <vector>
 #include <string>
+#include <limits>
 
 namespace reco    { class Vertex; class Track; class GenParticle; class DeDxData; class MuonTimeExtra;}
 namespace susybsm { class HSCParticle; class HSCPIsolation;}
@@ -61,6 +62,9 @@ namespace edm     {class TriggerResults; class TriggerResultsByName; class Input
 #include "DataFormats/HLTReco/interface/TriggerObject.h"
 #include "DataFormats/Common/interface/TriggerResults.h"
 #include "DataFormats/Math/interface/deltaR.h"
+
+#include "PhysicsTools/Utilities/interface/LumiReWeighting.h"
+#include "SimDataFormats/PileupSummaryInfo/interface/PileupSummaryInfo.h"
 
 #include "commonFunctions.h"
 
@@ -205,6 +209,8 @@ int main(int argc, char ** argv)
   RooRealVar rooVarRun("rooVarRun","run",0,4294967295);
   RooRealVar rooVarLumiSection("rooVarLumiSection","lumiSection",0,4294967295);
   RooRealVar rooVarEvent("rooVarEvent","event",0,4294967295);
+  RooRealVar rooVarPUWeight("rooVarPUWeight","puWeight",-std::numeric_limits<double>::max(),std::numeric_limits<double>::max());
+  RooRealVar rooVarPUSystFactor("rooVarPUSystFactor","puSystFactor",-std::numeric_limits<double>::max(),std::numeric_limits<double>::max());
   RooDataSet* rooDataSetCandidates = fs.make<RooDataSet>("rooDataSetCandidates","rooDataSetCandidates",
       RooArgSet(rooVarIas,rooVarIh,rooVarP,rooVarPt,rooVarNoMias,rooVarEta,rooVarRun,rooVarLumiSection,rooVarEvent));
       //RooArgSet(rooVarIas,rooVarIh,rooVarP,rooVarPt,rooVarNoMias,rooVarEta,rooVarIp));
@@ -212,6 +218,9 @@ int main(int argc, char ** argv)
   RooDataSet* rooDataSetOneCandidatePerEvent = fs.make<RooDataSet>("rooDataSetOneCandidatePerEvent",
       "rooDataSetOneCandidatePerEvent",
       RooArgSet(rooVarIas,rooVarIh,rooVarP,rooVarPt,rooVarNoMias,rooVarEta,rooVarRun,rooVarLumiSection,rooVarEvent));
+  // keep track of pileup weights
+  RooDataSet* rooDataSetPileupWeights = fs.make<RooDataSet>("rooDataSetPileupWeights","rooDataSetPileupWeights",
+      RooArgSet(rooVarRun,rooVarLumiSection,rooVarEvent,rooVarPUWeight,rooVarPUSystFactor));
 
   // Dataset for IasShift
   RooDataSet* rooDataSetIasShift = fs.make<RooDataSet>("rooDataSetIasShift","rooDataSetIasShift",
@@ -230,6 +239,21 @@ int main(int argc, char ** argv)
   RooRealVar rooVarSignalEventCrossSection("rooVarSignalEventCrossSection","signalEventCrossSection",0,100); // pb
   RooDataSet* rooDataSetGenHSCPTracks = fs.make<RooDataSet>("rooDataSetGenHSCPTracks","rooDataSetGenHSCPTracks",
       RooArgSet(rooVarNumGenHSCPEvents,rooVarNumGenHSCPTracks,rooVarNumGenChargedHSCPTracks,rooVarSignalEventCrossSection));
+
+  //for initializing PileUpReweighting utility.
+  const float TrueDist2011_f[35] = {0.00285942, 0.0125603, 0.0299631, 0.051313, 0.0709713, 0.0847864, 0.0914627, 0.0919255, 0.0879994, 0.0814127, 0.0733995, 0.0647191, 0.0558327, 0.0470663, 0.0386988, 0.0309811, 0.0241175, 0.018241, 0.0133997, 0.00956071, 0.00662814, 0.00446735, 0.00292946, 0.00187057, 0.00116414, 0.000706805, 0.000419059, 0.000242856, 0.0001377, 7.64582e-05, 4.16101e-05, 2.22135e-05, 1.16416e-05, 5.9937e-06, 5.95542e-06};//from 2011 Full dataset
+  const float Pileup_MC[35]= {1.45346E-01, 6.42802E-02, 6.95255E-02, 6.96747E-02, 6.92955E-02, 6.84997E-02, 6.69528E-02, 6.45515E-02, 6.09865E-02, 5.63323E-02, 5.07322E-02, 4.44681E-02, 3.79205E-02, 3.15131E-02, 2.54220E-02, 2.00184E-02, 1.53776E-02, 1.15387E-02, 8.47608E-03, 6.08715E-03, 4.28255E-03, 2.97185E-03, 2.01918E-03, 1.34490E-03, 8.81587E-04, 5.69954E-04, 3.61493E-04, 2.28692E-04, 1.40791E-04, 8.44606E-05, 5.10204E-05, 3.07802E-05, 1.81401E-05, 1.00201E-05, 5.80004E-06};
+  edm::LumiReWeighting LumiWeightsMC_;
+  std::vector<float> BgLumiMC; //MC                                           
+  std::vector<float> TrueDist2011;  
+  //initialize LumiReWeighting
+  for(int i=0; i<35; ++i)
+    BgLumiMC.push_back(Pileup_MC[i]);
+  for(int i=0; i<35; ++i)
+    TrueDist2011.push_back(TrueDist2011_f[i]);
+  LumiWeightsMC_ = edm::LumiReWeighting(BgLumiMC, TrueDist2011);
+  bool Iss4pileup = true; // seems to be true for all signal MC
+  reweight::PoissonMeanShifter PShift_(0.6);//0.6 for upshift, -0.6 for downshift
 
 
   int numEventsPassingTrigger = 0;
@@ -652,6 +676,51 @@ int main(int argc, char ** argv)
           rooVarEvent = tempEvent;
           rooDataSetOneCandidatePerEvent->add(RooArgSet(rooVarIas,rooVarIh,rooVarP,rooVarPt,rooVarNoMias,rooVarEta,rooVarLumiSection,
                 rooVarRun,rooVarEvent));
+          if(isMC_)
+          {
+            // Get PU Weight
+            fwlite::Handle<std::vector<PileupSummaryInfo> > PupInfo;
+            PupInfo.getByLabel(ev, "addPileupInfo");
+            if(!PupInfo.isValid())
+            {
+              std::cout << "PileupSummaryInfo Collection NotFound" << std::endl;
+              return 1.0;
+            }
+            double PUWeight_thisevent = 1;
+            double PUSystFactor = 1;
+            std::vector<PileupSummaryInfo>::const_iterator PVI;
+            int npv = -1;
+            if(Iss4pileup)
+            {
+              float sum_nvtx = 0;
+              for(PVI = PupInfo->begin(); PVI != PupInfo->end(); ++PVI)
+              {
+                npv = PVI->getPU_NumInteractions();
+                sum_nvtx += float(npv);
+              }
+              float ave_nvtx = sum_nvtx/3.;
+              PUWeight_thisevent = LumiWeightsMC_.weight3BX( ave_nvtx );
+              PUSystFactor = PShift_.ShiftWeight( ave_nvtx );
+            }
+            else
+            {
+              for(PVI = PupInfo->begin(); PVI != PupInfo->end(); ++PVI)
+              {
+                int BX = PVI->getBunchCrossing();
+                if(BX == 0)
+                {
+                  npv = PVI->getPU_NumInteractions();
+                  continue;
+                }
+              }
+              PUWeight_thisevent = LumiWeightsMC_.weight( npv );
+              PUSystFactor = PShift_.ShiftWeight( npv );
+            }
+            rooVarPUWeight = PUWeight_thisevent;
+            rooVarPUSystFactor = PUSystFactor;
+            rooDataSetPileupWeights->add(RooArgSet(rooVarEvent,rooVarLumiSection,rooVarRun,rooVarPUWeight,rooVarPUSystFactor));
+          }
+
         }
 
         if(numTracksPassingPreselectionThisEvent > 0)
