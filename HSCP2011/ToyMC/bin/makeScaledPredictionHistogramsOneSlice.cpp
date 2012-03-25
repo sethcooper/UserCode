@@ -37,6 +37,7 @@
 #include <vector>
 #include <fstream>
 #include <set>
+#include <limits>
 
 namespace reco    { class Vertex; class Track; class GenParticle; class DeDxData; class MuonTimeExtra;}
 namespace susybsm { class HSCParticle; class HSCPIsolation;}
@@ -114,6 +115,7 @@ struct EventInfo
       (runNumber==comp.runNumber && lumiSection==comp.lumiSection && eventNumber < comp.eventNumber);
   }
 };
+
 
 // helper functions
 int getEtaSliceFromLowerEta(float lowerEta)
@@ -212,7 +214,8 @@ int main(int argc, char ** argv)
   // mass cut to use for the high-p high-Ih (search region) ias dist
   double massCut_ (ana.getParameter<double>("MassCut"));
   string backgroundPredictionRootFilename_ (ana.getParameter<string>("BackgroundPredictionInputRootFile"));
-  string signalRootFilename_ (ana.getParameter<string>("SignalInputRootFile"));
+  string signalTightRPCRootFilename_ (ana.getParameter<string>("SignalTightRPCInputRootFile"));
+  string signalLooseRPCRootFilename_ (ana.getParameter<string>("SignalLooseRPCInputRootFile"));
   string outputRootFilename_ (ana.getParameter<string>("OutputRootFile"));
   // dE/dx calibration
   double dEdx_k (ana.getParameter<double>("dEdx_k"));
@@ -220,7 +223,7 @@ int main(int argc, char ** argv)
   // definition of sidebands/search region
   double pSidebandThreshold (ana.getParameter<double>("PSidebandThreshold"));
   double ptSidebandThreshold (ana.getParameter<double>("PtSidebandThreshold"));
-  bool usePtForSideband (ana.getParameter<bool>("UsePtForSideband"));
+  //bool usePtForSideband (ana.getParameter<bool>("UsePtForSideband"));
   double ihSidebandThreshold (ana.getParameter<double>("IhSidebandThreshold"));
   double integratedLumi (ana.getParameter<double>("IntegratedLuminosity")); // 1/pb
   //double signalCrossSectionForEff (ana.getParameter<double>("SignalCrossSectionForEff")); // pb
@@ -242,46 +245,84 @@ int main(int argc, char ** argv)
   RooRealVar rooVarIas("rooVarIas","ias",0,1);
   RooRealVar rooVarIh("rooVarIh","ih",0,15);
   RooRealVar rooVarP("rooVarP","p",0,5000);
+  RooRealVar rooVarPt("rooVarPt","pt",0,5000);
   RooRealVar rooVarNoMias("rooVarNoMias","nom",0,30);
   RooRealVar rooVarEta("rooVarEta","eta",0,2.5);
   RooRealVar rooVarRun("rooVarRun","run",0,4294967295);
   RooRealVar rooVarLumiSection("rooVarLumiSection","lumiSection",0,4294967295);
   RooRealVar rooVarEvent("rooVarEvent","event",0,4294967295);
   //TODO add mass in initial dataset generation?
-  RooRealVar rooVarNumGenHSCPEvents("rooVarNumGenHSCPEvents","numGenHSCPEvents",0,5e6);
-  RooRealVar rooVarNumGenHSCPTracks("rooVarNumGenHSCPTracks","numGenHSCPTracks",0,5e6);
-  RooRealVar rooVarNumGenChargedHSCPTracks("rooVarNumGenChargedHSCPTracks","numGenChargedHSCPTracks",0,5e6);
+  RooRealVar rooVarNumGenHSCPEvents("rooVarNumGenHSCPEvents","numGenHSCPEvents",0,1e10);
+  RooRealVar rooVarNumGenHSCPTracks("rooVarNumGenHSCPTracks","numGenHSCPTracks",0,1e10);
+  RooRealVar rooVarNumGenChargedHSCPTracks("rooVarNumGenChargedHSCPTracks","numGenChargedHSCPTracks",0,1e10);
   RooRealVar rooVarSignalEventCrossSection("rooVarSignalEventCrossSection","signalEventCrossSection",0,100); // pb
+  RooRealVar rooVarNumGenHSCPEventsPUReweighted("rooVarNumGenHSCPEventsPUReweighted","numGenHSCPEventsPUReweighted",0,1e10);
+  RooRealVar rooVarEventWeightSum("rooVarEventWeightSum","eventWeightSum",0,1e10);
+  RooRealVar rooVarSampleWeight("rooVarSampleWeight","sampleWeight",0,1e10);
+  //
+  RooRealVar rooVarPUWeight("rooVarPUWeight","puWeight",-std::numeric_limits<double>::max(),std::numeric_limits<double>::max());
+  RooRealVar rooVarPUSystFactor("rooVarPUSystFactor","puSystFactor",-std::numeric_limits<double>::max(),std::numeric_limits<double>::max());
 
   //string fileNameEnd = generateFileNameEnd(massCut_,pSidebandThreshold,ptSidebandThreshold,usePtForSideband,ihSidebandThreshold);
   string fileNameEnd = "";
   TFile* outputRootFile = new TFile((outputRootFilename_+fileNameEnd).c_str(),"recreate");
   TFile* backgroundPredictionRootFile = TFile::Open(backgroundPredictionRootFilename_.c_str());
-  TFile* signalRootFile = TFile::Open(signalRootFilename_.c_str());
+  TFile* signalTightRPCRootFile = TFile::Open(signalTightRPCRootFilename_.c_str());
+  TFile* signalLooseRPCRootFile = TFile::Open(signalLooseRPCRootFilename_.c_str());
 
-  //TDirectory* scaledBGPredDir = outputRootFile->mkdir("scaledBackgroundPredictions");
-  //TDirectory* normedSignalPredDir = outputRootFile->mkdir("normalizedSignalPredictions");
-  // get roodataset from signal file
+  // get roodataset from signal file -- tight RPC (period 0)
   //RooDataSet* rooDataSetAllSignal = (RooDataSet*)signalRootFile->Get("rooDataSetCandidates");
-  RooDataSet* rooDataSetAllSignal = (RooDataSet*)signalRootFile->Get("rooDataSetOneCandidatePerEvent");
+  RooDataSet* rooDataSetAllSignalTightRPC = (RooDataSet*)signalTightRPCRootFile->Get("rooDataSetOneCandidatePerEvent");
   bool countEvents  = true;
-  if(!rooDataSetAllSignal)
+  if(!rooDataSetAllSignalTightRPC)
   {
     cout << "Problem with RooDataSet named rooDataSetCandidates in signal file " <<
-      signalRootFilename_.c_str() << endl;
+      signalTightRPCRootFilename_.c_str() << endl;
     return -3;
   }
   // get roodataset with gen information from signal file
-  RooDataSet* rooDataSetGenSignal = (RooDataSet*)signalRootFile->Get("rooDataSetGenHSCPTracks");
-  if(!rooDataSetGenSignal)
+  RooDataSet* rooDataSetGenSignalTightRPC = (RooDataSet*)signalTightRPCRootFile->Get("rooDataSetGenHSCPTracks");
+  if(!rooDataSetGenSignalTightRPC)
   {
     cout << "Problem with RooDataSet named rooDataSetGenSignal in signal file " <<
-      signalRootFilename_.c_str() << endl;
+      signalTightRPCRootFilename_.c_str() << endl;
+    return -3;
+  }
+  // get roodataset with pileup weight info
+  RooDataSet* rooDataSetSignalPileupWeightsTightRPC = (RooDataSet*)signalTightRPCRootFile->Get("rooDataSetPileupWeights");
+  if(!rooDataSetSignalPileupWeightsTightRPC)
+  {
+    cout << "Problem with RooDataSet named rooDataSetPileupWeights in signal file " <<
+      signalTightRPCRootFilename_.c_str() << endl;
+    return -3;
+  }
+  // get roodataset from signal file -- loose RPC (period 1)
+  RooDataSet* rooDataSetAllSignalLooseRPC = (RooDataSet*)signalLooseRPCRootFile->Get("rooDataSetOneCandidatePerEvent");
+  if(!rooDataSetAllSignalLooseRPC)
+  {
+    cout << "Problem with RooDataSet named rooDataSetCandidates in signal file " <<
+      signalLooseRPCRootFilename_.c_str() << endl;
+    return -3;
+  }
+  // get roodataset with gen information from signal file
+  RooDataSet* rooDataSetGenSignalLooseRPC = (RooDataSet*)signalLooseRPCRootFile->Get("rooDataSetGenHSCPTracks");
+  if(!rooDataSetGenSignalLooseRPC)
+  {
+    cout << "Problem with RooDataSet named rooDataSetGenSignal in signal file " <<
+      signalLooseRPCRootFilename_.c_str() << endl;
+    return -3;
+  }
+  // get roodataset with pileup weight info
+  RooDataSet* rooDataSetSignalPileupWeightsLooseRPC = (RooDataSet*)signalLooseRPCRootFile->Get("rooDataSetPileupWeights");
+  if(!rooDataSetSignalPileupWeightsLooseRPC)
+  {
+    cout << "Problem with RooDataSet named rooDataSetPileupWeights in signal file " <<
+      signalLooseRPCRootFilename_.c_str() << endl;
     return -3;
   }
 
-  int numSignalTracksTotal = rooDataSetAllSignal->numEntries();
-  // construct D region for signal
+  //int numSignalTracksTotal = rooDataSetAllSignalLooseRPC->numEntries()+rooDataSetAllSignalTightRPC->numEntries();
+  // construct D regions for signal
   string pSearchCutString = "rooVarP>";
   pSearchCutString+=floatToString(pSidebandThreshold);
   string ptSearchCutString = "rooVarPt>";
@@ -290,22 +331,18 @@ int main(int argc, char ** argv)
   ihSearchCutString+=floatToString(ihSidebandThreshold);
   string iasSearchCutString = "rooVarIas>";
   iasSearchCutString+=floatToString(iasCutForEffAcc);
-  RooDataSet* regionD1DataSetSignal;
-  RooDataSet* regionDDataSetSignal;
-  //if(usePtForSideband)
-  //  regionD1DataSetSignal = (RooDataSet*)rooDataSetAllSignal->reduce(Cut(ptSearchCutString.c_str()));
-  //else
-  //  regionD1DataSetSignal = (RooDataSet*)rooDataSetAllSignal->reduce(Cut(pSearchCutString.c_str()));
+  RooDataSet* regionDDataSetSignalLooseRPC;
+  RooDataSet* regionDDataSetSignalTightRPC;
   // SIC MAR 5 -- don't do P cut for signal D region -- will be taken care of by mass cut later
-  regionD1DataSetSignal = (RooDataSet*) rooDataSetAllSignal->Clone();
   if(useIasForSideband)
-    regionDDataSetSignal = (RooDataSet*)regionD1DataSetSignal->reduce(Cut(iasSearchCutString.c_str()));
+    regionDDataSetSignalLooseRPC = (RooDataSet*)rooDataSetAllSignalLooseRPC->reduce(Cut(iasSearchCutString.c_str()));
   else
-    regionDDataSetSignal = (RooDataSet*)regionD1DataSetSignal->reduce(Cut(ihSearchCutString.c_str()));
-  //DEBUG TESTING ONLY
-  //RooDataSet* regionDDataSetSignal = (RooDataSet*)regionD1DataSetSignal->Clone();
-  delete regionD1DataSetSignal;
-  int numSignalTracksInDRegion = regionDDataSetSignal->numEntries();
+    regionDDataSetSignalLooseRPC = (RooDataSet*)rooDataSetAllSignalLooseRPC->reduce(Cut(ihSearchCutString.c_str()));
+  if(useIasForSideband)
+    regionDDataSetSignalTightRPC = (RooDataSet*)rooDataSetAllSignalTightRPC->reduce(Cut(iasSearchCutString.c_str()));
+  else
+    regionDDataSetSignalTightRPC = (RooDataSet*)rooDataSetAllSignalTightRPC->reduce(Cut(ihSearchCutString.c_str()));
+  //int numSignalTracksInDRegion = regionDDataSetSignalTightRPC->numEntries()+regionDDataSetSignalLooseRPC->numEntries();
 
   // get the background A region entries hist
   string fullPath = "entriesInARegion";
@@ -334,7 +371,6 @@ int main(int argc, char ** argv)
       fullPath << ") in file: " << backgroundPredictionRootFilename_ << ")." << endl;
     return -3;
   }
-
 
   vector<TH1F> bgHistsToUse;
   //vector<TH1F> bRegionHistsToUse;
@@ -445,15 +481,37 @@ int main(int argc, char ** argv)
   double backgroundTracksOverIasCutNoApproxErrorSqr = 0;
   int numBkOverIasCut = 0;
   double signalTracksOverIasCut = 0;
-  double signalTracksTotal = 0;
-  int signalEventsOverIasCut = 0;
-  int numSignalTracksInDRegionPassingMassCut = 0;
-  set<EventInfo> selectedSignalEventsSet;
-  const RooArgSet* genArgSet = rooDataSetGenSignal->get();
-  RooRealVar* numGenHSCPTracksRooVar = (RooRealVar*)genArgSet->find(rooVarNumGenHSCPTracks.GetName());
-  RooRealVar* numGenHSCPEventsRooVar = (RooRealVar*)genArgSet->find(rooVarNumGenHSCPEvents.GetName());
-  rooDataSetGenSignal->get(0);
-  signalTracksTotal = numGenHSCPTracksRooVar->getVal();
+  double signalTracksLooseRPCTotal = 0;
+  double signalTracksTightRPCTotal = 0;
+  double signalEventsOverIasCutLooseRPC = 0;
+  double signalEventsOverIasCutTightRPC = 0;
+  double numSignalTracksInDRegionPassingMassCut = 0;
+  set<EventInfo> selectedSignalEventsTightRPCSet;
+  set<EventInfo> selectedSignalEventsLooseRPCSet;
+  const RooArgSet* genArgSetLooseRPC = rooDataSetGenSignalLooseRPC->get();
+  RooRealVar* numGenHSCPTracksLooseRPCRooVar = (RooRealVar*)genArgSetLooseRPC->find(rooVarNumGenHSCPTracks.GetName());
+  //RooRealVar* numGenHSCPEventsLooseRPCRooVar = (RooRealVar*)genArgSetLooseRPC->find(rooVarNumGenHSCPEvents.GetName());
+  //RooRealVar* signalCrossSectionLooseRPCRooVar = (RooRealVar*)genArgSetLooseRPC->find(rooVarSignalEventCrossSection.GetName());
+  //RooRealVar* numGenHSCPEventsPUReweightedLooseRPCRooVar = (RooRealVar*)genArgSetLooseRPC->find(rooVarNumGenHSCPEventsPUReweighted.GetName());
+  RooRealVar* eventWeightSumLooseRPCRooVar = (RooRealVar*)genArgSetLooseRPC->find(rooVarEventWeightSum.GetName());
+  RooRealVar* sampleWeightLooseRPCRooVar = (RooRealVar*)genArgSetLooseRPC->find(rooVarSampleWeight.GetName());
+  rooDataSetGenSignalLooseRPC->get(0);
+  signalTracksLooseRPCTotal = numGenHSCPTracksLooseRPCRooVar->getVal();
+
+  const RooArgSet* genArgSetTightRPC = rooDataSetGenSignalTightRPC->get();
+  RooRealVar* numGenHSCPTracksTightRPCRooVar = (RooRealVar*)genArgSetTightRPC->find(rooVarNumGenHSCPTracks.GetName());
+  //RooRealVar* numGenHSCPEventsTightRPCRooVar = (RooRealVar*)genArgSetTightRPC->find(rooVarNumGenHSCPEvents.GetName());
+  //RooRealVar* signalCrossSectionTightRPCRooVar = (RooRealVar*)genArgSetTightRPC->find(rooVarSignalEventCrossSection.GetName());
+  //RooRealVar* numGenHSCPEventsPUReweightedTightRPCRooVar = (RooRealVar*)genArgSetTightRPC->find(rooVarNumGenHSCPEventsPUReweighted.GetName());
+  RooRealVar* eventWeightSumTightRPCRooVar = (RooRealVar*)genArgSetTightRPC->find(rooVarEventWeightSum.GetName());
+  RooRealVar* sampleWeightTightRPCRooVar = (RooRealVar*)genArgSetTightRPC->find(rooVarSampleWeight.GetName());
+  rooDataSetGenSignalTightRPC->get(0);
+  signalTracksTightRPCTotal = numGenHSCPTracksTightRPCRooVar->getVal();
+  //double totalGenHSCPTracks = signalTracksLooseRPCTotal+signalTracksTightRPCTotal;
+  //double totalGenHSCPEvents = numGenHSCPEventsLooseRPCRooVar->getVal()+numGenHSCPEventsTightRPCRooVar->getVal();
+  double totalGenHSCPEvents = eventWeightSumLooseRPCRooVar->getVal()+eventWeightSumTightRPCRooVar->getVal();
+  cout << "event weight sum: " << totalGenHSCPEvents << endl;
+  cout << "event weight sum loose: " << eventWeightSumLooseRPCRooVar->getVal() << " tight: " << eventWeightSumTightRPCRooVar->getVal() << endl;
 
   // loop over hists to use
   int iteratorPos = 0;
@@ -517,51 +575,156 @@ int main(int argc, char ** argv)
     //etaCutString+="&&rooVarEta<-";
     //etaCutString+=floatToString(lowerEta);
     //etaCutString+=")";
-    RooDataSet* etaCutNomCutDRegionDataSetSignal =
+    RooDataSet* etaCutNomCutDRegionDataSetSignalTightRPC =
       //(RooDataSet*)nomCutDRegionDataSetSignal->reduce(Cut(etaCutString.c_str()));
-      (RooDataSet*)regionDDataSetSignal->Clone();
+      (RooDataSet*)regionDDataSetSignalTightRPC->Clone();
+    RooDataSet* etaCutNomCutDRegionDataSetSignalLooseRPC =
+      //(RooDataSet*)nomCutDRegionDataSetSignal->reduce(Cut(etaCutString.c_str()));
+      (RooDataSet*)regionDDataSetSignalLooseRPC->Clone();
     //int numSignalTracksInDRegionThisSlice = etaCutNomCutDRegionDataSetSignal->numEntries();
 
-    // construct signal prediction hist (with mass cut)
-    const RooArgSet* argSet = etaCutNomCutDRegionDataSetSignal->get();
-    RooRealVar* iasData = (RooRealVar*)argSet->find(rooVarIas.GetName());
-    RooRealVar* nomIasData = (RooRealVar*)argSet->find(rooVarNoMias.GetName());
-    RooRealVar* etaData = (RooRealVar*)argSet->find(rooVarEta.GetName());
-    RooRealVar* ihData = (RooRealVar*)argSet->find(rooVarIh.GetName());
-    RooRealVar* pData = (RooRealVar*)argSet->find(rooVarP.GetName());
-    RooRealVar* eventNumData = (RooRealVar*)argSet->find(rooVarEvent.GetName());
-    RooRealVar* lumiSecData = (RooRealVar*)argSet->find(rooVarLumiSection.GetName());
-    RooRealVar* runNumData = (RooRealVar*)argSet->find(rooVarRun.GetName());
-    for(int evt=0; evt < etaCutNomCutDRegionDataSetSignal->numEntries(); ++evt)
+    // get pileup-reweighted number of MC events -- loose RPC
+    const RooArgSet* argSetPileupWeightsLooseRPC = rooDataSetSignalPileupWeightsLooseRPC->get();
+    RooRealVar* eventNumPUDataLooseRPC = (RooRealVar*)argSetPileupWeightsLooseRPC->find(rooVarEvent.GetName());
+    RooRealVar* lumiSecPUDataLooseRPC = (RooRealVar*)argSetPileupWeightsLooseRPC->find(rooVarLumiSection.GetName());
+    RooRealVar* runNumPUDataLooseRPC = (RooRealVar*)argSetPileupWeightsLooseRPC->find(rooVarRun.GetName());
+    RooRealVar* pileupWeightPUDataLooseRPC = (RooRealVar*)argSetPileupWeightsLooseRPC->find(rooVarPUWeight.GetName());
+    //RooRealVar* pileupSystFactorPUDataLooseRPC = (RooRealVar*)argSetPileupWeightsLooseRPC->find(rooVarPUSystFactor.GetName());
+    double sampleWeightLooseRPC = sampleWeightLooseRPCRooVar->getVal();
+    // make map of pileup weights
+    std::map<EventInfo,double> pileupWeightLooseRPCMap;
+    std::map<EventInfo,double>::iterator pileupWeightLooseRPCMapItr;
+    for(int idx=0; idx < rooDataSetSignalPileupWeightsLooseRPC->numEntries(); ++idx)
     {
-      etaCutNomCutDRegionDataSetSignal->get(evt);
-      if(fabs(etaData->getVal()) > 1.5) continue;
+      rooDataSetSignalPileupWeightsLooseRPC->get(idx);
+      EventInfo evtInfo(runNumPUDataLooseRPC->getVal(),lumiSecPUDataLooseRPC->getVal(),eventNumPUDataLooseRPC->getVal());
+      pileupWeightLooseRPCMap[evtInfo] = pileupWeightPUDataLooseRPC->getVal();
+    }
+
+    // construct signal prediction hist (with mass cut) -- loose RPC
+    const RooArgSet* argSetLooseRPC = etaCutNomCutDRegionDataSetSignalLooseRPC->get();
+    RooRealVar* iasDataLooseRPC = (RooRealVar*)argSetLooseRPC->find(rooVarIas.GetName());
+    RooRealVar* nomIasDataLooseRPC = (RooRealVar*)argSetLooseRPC->find(rooVarNoMias.GetName());
+    RooRealVar* etaDataLooseRPC = (RooRealVar*)argSetLooseRPC->find(rooVarEta.GetName());
+    RooRealVar* ihDataLooseRPC = (RooRealVar*)argSetLooseRPC->find(rooVarIh.GetName());
+    RooRealVar* pDataLooseRPC = (RooRealVar*)argSetLooseRPC->find(rooVarP.GetName());
+    //RooRealVar* ptDataLooseRPC = (RooRealVar*)argSetLooseRPC->find(rooVarPt.GetName());
+    RooRealVar* eventNumDataLooseRPC = (RooRealVar*)argSetLooseRPC->find(rooVarEvent.GetName());
+    RooRealVar* lumiSecDataLooseRPC = (RooRealVar*)argSetLooseRPC->find(rooVarLumiSection.GetName());
+    RooRealVar* runNumDataLooseRPC = (RooRealVar*)argSetLooseRPC->find(rooVarRun.GetName());
+    for(int evt=0; evt < etaCutNomCutDRegionDataSetSignalLooseRPC->numEntries(); ++evt)
+    {
+      etaCutNomCutDRegionDataSetSignalLooseRPC->get(evt);
+      if(fabs(etaDataLooseRPC->getVal()) > 1.5) continue;
+      // find pileupWeight
+      EventInfo evtInfo(runNumDataLooseRPC->getVal(),lumiSecDataLooseRPC->getVal(),eventNumDataLooseRPC->getVal());
+      pileupWeightLooseRPCMapItr = pileupWeightLooseRPCMap.find(evtInfo);
+      if(pileupWeightLooseRPCMapItr == pileupWeightLooseRPCMap.end())
+      {
+        std::cout << "ERROR: Could not find pileup weight for this event! Quitting." << std::endl;
+        return -5;
+      }
+      double pileupWeight = pileupWeightLooseRPCMapItr->second;
+      double eventWeight = sampleWeightLooseRPC*pileupWeight;
+
       // apply mass cut
-      float massSqr = (ihData->getVal()-dEdx_c)*pow(pData->getVal(),2)/dEdx_k;
+      float massSqr = (ihDataLooseRPC->getVal()-dEdx_c)*pow(pDataLooseRPC->getVal(),2)/dEdx_k;
       if(massSqr < 0)
         continue;
       else if(sqrt(massSqr) >= massCut_)
       {
-        iasSignalMassCutNoMSliceHist->Fill(iasData->getVal());
-        numSignalTracksInDRegionPassingMassCut++;
-        entriesSignalHist->Fill(fabs(etaData->getVal())+0.1,nomIasData->getVal());
-        if(iasData->getVal() > iasCutForEffAcc)
+        iasSignalMassCutNoMSliceHist->Fill(iasDataLooseRPC->getVal(),eventWeight);
+        numSignalTracksInDRegionPassingMassCut+=eventWeight;
+        entriesSignalHist->Fill(fabs(etaDataLooseRPC->getVal())+0.1,nomIasDataLooseRPC->getVal(),eventWeight);
+        if(iasDataLooseRPC->getVal() > iasCutForEffAcc)
         {
           // if track over ias cut, put the event in the set (one track per event kept)
           // there should only be one track per event at this stage anyway
-          EventInfo evtInfo(runNumData->getVal(),lumiSecData->getVal(),eventNumData->getVal());
           pair<set<EventInfo>::iterator,bool> ret;
-          ret = selectedSignalEventsSet.insert(evtInfo);
+          ret = selectedSignalEventsLooseRPCSet.insert(evtInfo);
           if(ret.second)
           {
-            //cout << "INFO: insert event - run: " << runNumData->getVal() << " lumiSec: " << lumiSecData->getVal()
-            //  << " eventNum: " << eventNumData->getVal() << endl;
-            signalEventsOverIasCut++;
-            entriesSignalIasHist->Fill(fabs(etaData->getVal())+0.1,nomIasData->getVal());
+            //cout << "INFO: insert event - run: " << runNumDataLooseRPC->getVal() << " lumiSec: " << lumiSecDataLooseRPC->getVal()
+            //  << " eventNum: " << eventNumDataLooseRPC->getVal() << endl;
+            //cout << "add puweight=" << pileupWeight << "eventWeight=" << eventWeight << " to signalEventsOverIasCutLooseRPC; total=" << signalEventsOverIasCutLooseRPC << endl;
+            signalEventsOverIasCutLooseRPC+=eventWeight;
+            entriesSignalIasHist->Fill(fabs(etaDataLooseRPC->getVal())+0.1,nomIasDataLooseRPC->getVal(),eventWeight);
           }
         }
       }
     }
+    // get pileup-reweighted number of MC events -- tight RPC
+    const RooArgSet* argSetPileupWeightsTightRPC = rooDataSetSignalPileupWeightsTightRPC->get();
+    RooRealVar* eventNumPUDataTightRPC = (RooRealVar*)argSetPileupWeightsTightRPC->find(rooVarEvent.GetName());
+    RooRealVar* lumiSecPUDataTightRPC = (RooRealVar*)argSetPileupWeightsTightRPC->find(rooVarLumiSection.GetName());
+    RooRealVar* runNumPUDataTightRPC = (RooRealVar*)argSetPileupWeightsTightRPC->find(rooVarRun.GetName());
+    RooRealVar* pileupWeightPUDataTightRPC = (RooRealVar*)argSetPileupWeightsTightRPC->find(rooVarPUWeight.GetName());
+    //RooRealVar* pileupSystFactorPUDataTightRPC = (RooRealVar*)argSetPileupWeightsTightRPC->find(rooVarPUSystFactor.GetName());
+    double sampleWeightTightRPC = sampleWeightTightRPCRooVar->getVal();
+    // make map of pileup weights
+    std::map<EventInfo,double> pileupWeightTightRPCMap;
+    std::map<EventInfo,double>::iterator pileupWeightTightRPCMapItr;
+    for(int idx=0; idx < rooDataSetSignalPileupWeightsTightRPC->numEntries(); ++idx)
+    {
+      rooDataSetSignalPileupWeightsTightRPC->get(idx);
+      EventInfo evtInfo(runNumPUDataTightRPC->getVal(),lumiSecPUDataTightRPC->getVal(),eventNumPUDataTightRPC->getVal());
+      pileupWeightTightRPCMap[evtInfo] = pileupWeightPUDataTightRPC->getVal();
+    }
+
+    // construct signal prediction hist (with mass cut) -- tight RPC
+    const RooArgSet* argSetTightRPC = etaCutNomCutDRegionDataSetSignalTightRPC->get();
+    RooRealVar* iasDataTightRPC = (RooRealVar*)argSetTightRPC->find(rooVarIas.GetName());
+    RooRealVar* nomIasDataTightRPC = (RooRealVar*)argSetTightRPC->find(rooVarNoMias.GetName());
+    RooRealVar* etaDataTightRPC = (RooRealVar*)argSetTightRPC->find(rooVarEta.GetName());
+    RooRealVar* ihDataTightRPC = (RooRealVar*)argSetTightRPC->find(rooVarIh.GetName());
+    RooRealVar* pDataTightRPC = (RooRealVar*)argSetTightRPC->find(rooVarP.GetName());
+    //RooRealVar* ptDataTightRPC = (RooRealVar*)argSetTightRPC->find(rooVarPt.GetName());
+    RooRealVar* eventNumDataTightRPC = (RooRealVar*)argSetTightRPC->find(rooVarEvent.GetName());
+    RooRealVar* lumiSecDataTightRPC = (RooRealVar*)argSetTightRPC->find(rooVarLumiSection.GetName());
+    RooRealVar* runNumDataTightRPC = (RooRealVar*)argSetTightRPC->find(rooVarRun.GetName());
+    for(int evt=0; evt < etaCutNomCutDRegionDataSetSignalTightRPC->numEntries(); ++evt)
+    {
+      etaCutNomCutDRegionDataSetSignalTightRPC->get(evt);
+      if(fabs(etaDataTightRPC->getVal()) > 1.5) continue;
+      // find pileupWeight
+      EventInfo evtInfo(runNumDataTightRPC->getVal(),lumiSecDataTightRPC->getVal(),eventNumDataTightRPC->getVal());
+      pileupWeightTightRPCMapItr = pileupWeightTightRPCMap.find(evtInfo);
+      if(pileupWeightTightRPCMapItr == pileupWeightTightRPCMap.end())
+      {
+        std::cout << "ERROR: Could not find pileup weight for this event! Quitting." << std::endl;
+        return -5;
+      }
+      double pileupWeight = pileupWeightTightRPCMapItr->second;
+      double eventWeight = sampleWeightTightRPC*pileupWeight;
+
+      // apply mass cut
+      float massSqr = (ihDataTightRPC->getVal()-dEdx_c)*pow(pDataTightRPC->getVal(),2)/dEdx_k;
+      if(massSqr < 0)
+        continue;
+      else if(sqrt(massSqr) >= massCut_)
+      {
+        iasSignalMassCutNoMSliceHist->Fill(iasDataTightRPC->getVal(),eventWeight);
+        numSignalTracksInDRegionPassingMassCut+=eventWeight;
+        entriesSignalHist->Fill(fabs(etaDataTightRPC->getVal())+0.1,nomIasDataTightRPC->getVal(),eventWeight);
+        if(iasDataTightRPC->getVal() > iasCutForEffAcc)
+        {
+          // if track over ias cut, put the event in the set (one track per event kept)
+          // there should only be one track per event at this stage anyway
+          EventInfo evtInfo(runNumDataTightRPC->getVal(),lumiSecDataTightRPC->getVal(),eventNumDataTightRPC->getVal());
+          pair<set<EventInfo>::iterator,bool> ret;
+          ret = selectedSignalEventsTightRPCSet.insert(evtInfo);
+          if(ret.second)
+          {
+            //cout << "INFO: insert event - run: " << runNumDataTightRPC->getVal() << " lumiSec: " << lumiSecDataTightRPC->getVal()
+            //  << " eventNum: " << eventNumDataTightRPC->getVal() << endl;
+            //cout << "add puweight =" << pileupWeight << " eventWeight=" << eventWeight << " to signalEventsOverIasCutTightRPC; total=" << signalEventsOverIasCutTightRPC << endl;
+            signalEventsOverIasCutTightRPC+=eventWeight;
+            entriesSignalIasHist->Fill(fabs(etaDataTightRPC->getVal())+0.1,nomIasDataTightRPC->getVal(),eventWeight);
+          }
+        }
+      }
+    }
+
     double numSignalTracksInDRegionMassCutThisSlice = iasSignalMassCutNoMSliceHist->Integral();
     // adjust for bin width ratio if variable bins used
     //for(int bin=1; bin<=iasSignalMassCutNoMSliceHist->GetNbinsX(); ++bin)
@@ -676,16 +839,19 @@ int main(int argc, char ** argv)
     // figure out overall normalization for signal this slice
     // must normalize as if sigma were 1 to measure the cross section
     double signalCrossSection = 1;
-    double totalSignalTracksThisSlice = integratedLumi*signalCrossSection; //TODO rename this var...
+    double totalSignalEvents = integratedLumi*signalCrossSection;
+    //FIXME track count is sort of wrong since it has to be weighted event-wise
+    //double totalGenHSCPTracks = numGenHSCPTracksLooseRPCRooVar->getVal()+numGenHSCPTracksTightRPCRooVar->getVal();
+    double totalGenHSCPEvents = eventWeightSumLooseRPCRooVar->getVal()+eventWeightSumTightRPCRooVar->getVal();
     //double fractionOfSigTracksInDRegionPassingMassCutThisSlice =
-    //  numSignalTracksInDRegionMassCutThisSlice/(double)numSignalTracksTotal;
-    double fractionOfSigTracksInDRegionPassingMassCutThisSlice =
-      numSignalTracksInDRegionMassCutThisSlice/(double)numGenHSCPTracksRooVar->getVal(); // includes trigger eff.
+    //  numSignalTracksInDRegionMassCutThisSlice/totalGenHSCPTracks; // includes trigger eff.
+    double fractionOfSigTracksInDRegionPassingMassCutThisSlice = 0;
     if(countEvents)
       fractionOfSigTracksInDRegionPassingMassCutThisSlice =
-        numSignalTracksInDRegionMassCutThisSlice/(double)numGenHSCPEventsRooVar->getVal();
+        numSignalTracksInDRegionMassCutThisSlice/totalGenHSCPEvents;
     double numSignalTracksInDRegionPassingMassCutThisSlice =
-      fractionOfSigTracksInDRegionPassingMassCutThisSlice*totalSignalTracksThisSlice;
+      fractionOfSigTracksInDRegionPassingMassCutThisSlice*totalSignalEvents;
+
     signalTracksOverIasCut+=iasSignalMassCutNoMSliceHist->Integral(
         iasSignalMassCutNoMSliceHist->FindBin(iasCutForEffAcc),
         iasSignalMassCutNoMSliceHist->GetNbinsX());
@@ -825,7 +991,8 @@ int main(int argc, char ** argv)
     iteratorPos++;
     // cleanup
     //delete nomCutDRegionDataSetSignal;
-    delete etaCutNomCutDRegionDataSetSignal;
+    delete etaCutNomCutDRegionDataSetSignalLooseRPC;
+    delete etaCutNomCutDRegionDataSetSignalTightRPC;
     //delete iasBackgroundPredictionMassCutNoMSliceHist;
     delete iasSignalMassCutNoMSliceHist;
     delete iasSignalMassCutNoMSliceForEffHist;
@@ -952,6 +1119,9 @@ int main(int argc, char ** argv)
        << endl << endl;
   // end of standard analysis style prediction
 
+  double signalEventsOverIasCut = signalEventsOverIasCutLooseRPC+signalEventsOverIasCutTightRPC;
+  cout << "Signal events > ias cut loose RPC: " << signalEventsOverIasCutLooseRPC <<
+    " tight RPC: " << signalEventsOverIasCutTightRPC << endl;
 
   cout << endl << endl << "Ias cut = " << iasCutForEffAcc << endl << "\tfound " << backgroundTracksOverIasCutNoApprox
     << " +/- " << sqrt(backgroundTracksOverIasCutNoApproxErrorSqr)
@@ -962,21 +1132,23 @@ int main(int argc, char ** argv)
     << numBkOverIasCut << " Bk tracks over ias cut"
     << endl << endl
     << signalEventsOverIasCut << " signal events over ias cut" << endl
-    << signalEventsOverIasCut/numGenHSCPEventsRooVar->getVal() << " signal efficiency (event level) or" << endl 
-    << signalTracksOverIasCut/signalTracksTotal << " signal efficiency (track level) with this ias cut. " << endl << endl;
+    << signalEventsOverIasCut/totalGenHSCPEvents << " signal efficiency (event level) or" << endl  << endl;
+    //<< signalTracksOverIasCut/totalGenHSCPTracks << " signal efficiency (track level) with this ias cut. " << endl << endl;
 
-  cout << "original generated events: " << numGenHSCPEventsRooVar->getVal() << " events over ias cut: " << signalEventsOverIasCut
-    << endl;
-  cout << "original generated tracks: " << numGenHSCPTracksRooVar->getVal() << " tracks over ias cut: " << signalTracksOverIasCut
-    << endl;
-  cout << "orig signal tracks passing trig/presel: " << numSignalTracksTotal << endl << " orig signal tracks in D region: "
-    << numSignalTracksInDRegion << endl << " original signal tracks in D region passing mass cut: "
-    << numSignalTracksInDRegionPassingMassCut
-    << endl;
-  cout << "(eff) signal tracks passing trig/presel: " << numSignalTracksTotal/numGenHSCPTracksRooVar->getVal() << endl
-    << " (eff) signal tracks in D region: " << numSignalTracksInDRegion/numGenHSCPTracksRooVar->getVal() << endl
-    << " (eff) signal tracks in D region passing mass cut: " << numSignalTracksInDRegionPassingMassCut/numGenHSCPTracksRooVar->getVal()
-    << endl;
+  cout << "event weight sum: " << totalGenHSCPEvents << endl;
+  cout << "event weight sum loose: " << eventWeightSumLooseRPCRooVar->getVal() << " tight: " << eventWeightSumTightRPCRooVar->getVal() << endl;
+  //cout << "original generated events: " << totalGenHSCPEvents << " events over ias cut: " << signalEventsOverIasCut
+  //  << endl;
+  //cout << "original generated tracks: " << totalGenHSCPTracks << " tracks over ias cut: " << signalTracksOverIasCut
+  //  << endl;
+  //cout << "orig signal tracks passing trig/presel: " << numSignalTracksTotal << endl << " orig signal tracks in D region: "
+  //  << numSignalTracksInDRegion << endl << " original signal tracks in D region passing mass cut: "
+  //  << numSignalTracksInDRegionPassingMassCut
+  //  << endl;
+  //cout << "(eff) signal tracks passing trig/presel: " << numSignalTracksTotal/totalGenHSCPTracks << endl
+  //  << " (eff) signal tracks in D region: " << numSignalTracksInDRegion/totalGenHSCPTracks << endl
+  //  << " (eff) signal tracks in D region passing mass cut: " << numSignalTracksInDRegionPassingMassCut/totalGenHSCPTracks
+  //  << endl;
 
   outputRootFile->cd();
   etaBRegionHist->Write();

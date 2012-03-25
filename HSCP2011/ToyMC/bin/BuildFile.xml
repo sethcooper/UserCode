@@ -60,6 +60,7 @@
   <use   name="DataFormats/Math"/>
   <use   name="DataFormats/HepMCCandidate"/>
   <use   name="PhysicsTools/FWLite"/>
+  <use   name="PhysicsTools/Utilities"/>
   <use   name="root"/>
   <use   name="rootgraphics"/>
   <use   name="roofit"/>

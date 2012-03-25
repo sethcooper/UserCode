@@ -87,6 +87,23 @@ int getNumGenHSCP(const std::vector<reco::GenParticle>& genColl, bool onlyCharge
   return numGenHscp;
 }
 
+double GetSampleWeight(const double& IntegratedLuminosityInPb, const double& IntegratedLuminosityInPbBeforeTriggerChange,
+    const double& CrossSection, const double& MCEvents, int period)
+{
+  double Weight = 1.0;
+  if(IntegratedLuminosityInPb>=IntegratedLuminosityInPbBeforeTriggerChange && IntegratedLuminosityInPb>0)
+  {
+    double NMCEvents = MCEvents;
+    //if(MaxEntry>0)NMCEvents=std::min(MCEvents,(double)MaxEntry);
+    if(period==0)
+      Weight = (CrossSection * IntegratedLuminosityInPbBeforeTriggerChange) / NMCEvents;
+    else if(period==1)
+      Weight = (CrossSection * (IntegratedLuminosityInPb-IntegratedLuminosityInPbBeforeTriggerChange)) / NMCEvents;
+  }
+  return Weight;
+}
+
+
 
 
 
@@ -125,6 +142,8 @@ int main(int argc, char ** argv)
   bool matchToHSCP_ (ana.getParameter<bool>("MatchToHSCP"));
   bool isMC_ (ana.getParameter<bool>("IsMC"));
   double signalEventCrossSection_ (ana.getParameter<double>("SignalEventCrossSection")); // pb
+  double integratedLumi_ (ana.getParameter<double>("IntegratedLumi"));
+  double integratedLumiBeforeTriggerChange_ (ana.getParameter<double>("IntegratedLumiBeforeTriggerChange"));
 
   // fileService initialization
   fwlite::TFileService fs = fwlite::TFileService(outputHandler_.file().c_str());
@@ -233,12 +252,17 @@ int main(int argc, char ** argv)
       RooArgSet(rooVarIas,rooVarIh,rooVarP,rooVarPt,rooVarNoMias,rooVarEta,rooVarIp));
 
   // RooDataSet for number of original tracks, etc.
-  RooRealVar rooVarNumGenHSCPEvents("rooVarNumGenHSCPEvents","numGenHSCPEvents",0,5e6);
-  RooRealVar rooVarNumGenHSCPTracks("rooVarNumGenHSCPTracks","numGenHSCPTracks",0,5e6);
-  RooRealVar rooVarNumGenChargedHSCPTracks("rooVarNumGenChargedHSCPTracks","numGenChargedHSCPTracks",0,5e6);
+  RooRealVar rooVarNumGenHSCPEvents("rooVarNumGenHSCPEvents","numGenHSCPEvents",0,1e10);
+  RooRealVar rooVarNumGenHSCPTracks("rooVarNumGenHSCPTracks","numGenHSCPTracks",0,1e10);
+  RooRealVar rooVarNumGenChargedHSCPTracks("rooVarNumGenChargedHSCPTracks","numGenChargedHSCPTracks",0,1e10);
   RooRealVar rooVarSignalEventCrossSection("rooVarSignalEventCrossSection","signalEventCrossSection",0,100); // pb
+  RooRealVar rooVarNumGenHSCPEventsPUReweighted("rooVarNumGenHSCPEventsPUReweighted","numGenHSCPEventsPUReweighted",0,1e10);
+  RooRealVar rooVarEventWeightSum("rooVarEventWeightSum","eventWeightSum",0,1e10);
+  RooRealVar rooVarSampleWeight("rooVarSampleWeight","sampleWeight",0,1e10);
   RooDataSet* rooDataSetGenHSCPTracks = fs.make<RooDataSet>("rooDataSetGenHSCPTracks","rooDataSetGenHSCPTracks",
-      RooArgSet(rooVarNumGenHSCPEvents,rooVarNumGenHSCPTracks,rooVarNumGenChargedHSCPTracks,rooVarSignalEventCrossSection));
+      RooArgSet(rooVarNumGenHSCPEvents,rooVarNumGenHSCPTracks,rooVarNumGenChargedHSCPTracks,
+        rooVarSignalEventCrossSection,rooVarNumGenHSCPEventsPUReweighted,rooVarEventWeightSum,
+        rooVarSampleWeight));
 
   //for initializing PileUpReweighting utility.
   const float TrueDist2011_f[35] = {0.00285942, 0.0125603, 0.0299631, 0.051313, 0.0709713, 0.0847864, 0.0914627, 0.0919255, 0.0879994, 0.0814127, 0.0733995, 0.0647191, 0.0558327, 0.0470663, 0.0386988, 0.0309811, 0.0241175, 0.018241, 0.0133997, 0.00956071, 0.00662814, 0.00446735, 0.00292946, 0.00187057, 0.00116414, 0.000706805, 0.000419059, 0.000242856, 0.0001377, 7.64582e-05, 4.16101e-05, 2.22135e-05, 1.16416e-05, 5.9937e-06, 5.95542e-06};//from 2011 Full dataset
@@ -254,6 +278,102 @@ int main(int argc, char ** argv)
   LumiWeightsMC_ = edm::LumiReWeighting(BgLumiMC, TrueDist2011);
   bool Iss4pileup = true; // seems to be true for all signal MC
   reweight::PoissonMeanShifter PShift_(0.6);//0.6 for upshift, -0.6 for downshift
+
+  double sampleWeight = 1;
+  int period = 0;
+
+  // get PU-reweighted total events
+  double numPUReweightedMCEvents = 0;
+  int ievt = 0;
+  if(isMC_)
+  {
+    for(unsigned int iFile=0; iFile<inputHandler_.files().size(); ++iFile)
+    {
+      // open input file (can be located on castor)
+      TFile* inFile = TFile::Open(inputHandler_.files()[iFile].c_str());
+      if( inFile )
+      {
+        if(inputHandler_.files()[iFile].find("BX1") != string::npos)
+        {
+          std::cout << "Found BX1-->period = 1" << std::endl;
+          period = 1;
+        }
+        else
+          std::cout << "Did not find BX1-->period = 0" << std::endl;
+        fwlite::Event ev(inFile);
+        for(ev.toBegin(); !ev.atEnd(); ++ev, ++ievt)
+        {
+          // break loop if maximal number of events is reached 
+          if(maxEvents_>0 ? ievt+1>maxEvents_ : false) break;
+
+          // Get PU Weight
+          fwlite::Handle<std::vector<PileupSummaryInfo> > PupInfo;
+          PupInfo.getByLabel(ev, "addPileupInfo");
+          if(!PupInfo.isValid())
+          {
+            std::cout << "PileupSummaryInfo Collection NotFound" << std::endl;
+            return 1.0;
+          }
+          double PUWeight_thisevent = 1;
+          double PUSystFactor = 1;
+          std::vector<PileupSummaryInfo>::const_iterator PVI;
+          int npv = -1;
+          if(Iss4pileup)
+          {
+            float sum_nvtx = 0;
+            for(PVI = PupInfo->begin(); PVI != PupInfo->end(); ++PVI)
+            {
+              npv = PVI->getPU_NumInteractions();
+              sum_nvtx += float(npv);
+            }
+            float ave_nvtx = sum_nvtx/3.;
+            PUWeight_thisevent = LumiWeightsMC_.weight3BX( ave_nvtx );
+            PUSystFactor = PShift_.ShiftWeight( ave_nvtx );
+          }
+          else
+          {
+            for(PVI = PupInfo->begin(); PVI != PupInfo->end(); ++PVI)
+            {
+              int BX = PVI->getBunchCrossing();
+              if(BX == 0)
+              {
+                npv = PVI->getPU_NumInteractions();
+                continue;
+              }
+            }
+            PUWeight_thisevent = LumiWeightsMC_.weight( npv );
+            PUSystFactor = PShift_.ShiftWeight( npv );
+          }
+          if(ievt % 100 == 0)
+            std::cout << "ientry=" << ievt << ", puwt=" << PUWeight_thisevent << ", NMCevents="
+              << numPUReweightedMCEvents << std::endl;
+          if(ievt < 100)
+            std::cout << "ientry=" << ievt << ", puwt=" << PUWeight_thisevent << ", NMCevents="
+              << numPUReweightedMCEvents << std::endl;
+          numPUReweightedMCEvents+=PUWeight_thisevent;
+        } // loop over events
+        // close input file
+        inFile->Close();
+      }
+      // break loop if maximal number of events is reached:
+      // this has to be done twice to stop the file loop as well
+      if(maxEvents_>0 ? ievt+1>maxEvents_ : false) break;
+    } // end file loop
+    sampleWeight = GetSampleWeight(integratedLumi_,integratedLumiBeforeTriggerChange_,
+        signalEventCrossSection_,numPUReweightedMCEvents,period);
+    rooVarSampleWeight = sampleWeight;
+
+  } // is mc
+  std::cout << "NumPUReweightedMCEvents: " << numPUReweightedMCEvents << std::endl;
+
+  std::cout << "numTreeEntries: " << ievt << std::endl;
+  std::cout << "Iss4pileup: " << Iss4pileup << std::endl;
+  std::cout << "Int lumi = " << integratedLumi_ << " int lumi bef. trig. change = " << 
+    integratedLumiBeforeTriggerChange_ << std::endl;
+  std::cout << "Cross section = " << signalEventCrossSection_ << std::endl;
+  std::cout << "NumPUReweightedMCEvents: " << numPUReweightedMCEvents << std::endl;
+  std::cout << "Period = " << period << std::endl;
+  std::cout << "SampleWeight: " << sampleWeight << std::endl;
 
 
   int numEventsPassingTrigger = 0;
@@ -275,9 +395,10 @@ int main(int argc, char ** argv)
   int numEventsWithTwoHSCPSeenMuonTrigger = 0;
   int numEventsWithOneHSCPSeenMetTrigger = 0;
   int numEventsWithTwoHSCPSeenMetTrigger = 0;
-
+  double eventWeightSum = 0;
+  // main event loop
   // loop the events
-  int ievt = 0;
+  ievt = 0;
   for(unsigned int iFile=0; iFile<inputHandler_.files().size(); ++iFile)
   {
     // open input file (can be located on castor)
@@ -296,12 +417,77 @@ int main(int argc, char ** argv)
         double tempRun = 0;
         double tempLumiSection = 0;
         double tempEvent = 0;
+        double eventWeight = 1;
 
         // break loop if maximal number of events is reached 
         if(maxEvents_>0 ? ievt+1>maxEvents_ : false) break;
         // simple event counter
         if(inputHandler_.reportAfter()!=0 ? (ievt>0 && ievt%inputHandler_.reportAfter()==0) : false) 
           std::cout << "  processing event: " << ievt << std::endl;
+
+        // MC Gen Info
+        fwlite::Handle< std::vector<reco::GenParticle> > genCollHandle;
+        std::vector<reco::GenParticle> genColl;
+        if(isMC_)
+        {
+          genCollHandle.getByLabel(ev, "genParticles");
+          if(!genCollHandle.isValid()){printf("GenParticle Collection NotFound\n");continue;}
+          genColl = *genCollHandle;
+            // Get PU Weight
+            fwlite::Handle<std::vector<PileupSummaryInfo> > PupInfo;
+            PupInfo.getByLabel(ev, "addPileupInfo");
+            if(!PupInfo.isValid())
+            {
+              std::cout << "PileupSummaryInfo Collection NotFound" << std::endl;
+              return 1.0;
+            }
+            double PUWeight_thisevent = 1;
+            double PUSystFactor = 1;
+            std::vector<PileupSummaryInfo>::const_iterator PVI;
+            int npv = -1;
+            if(Iss4pileup)
+            {
+              float sum_nvtx = 0;
+              for(PVI = PupInfo->begin(); PVI != PupInfo->end(); ++PVI)
+              {
+                npv = PVI->getPU_NumInteractions();
+                sum_nvtx += float(npv);
+              }
+              float ave_nvtx = sum_nvtx/3.;
+              PUWeight_thisevent = LumiWeightsMC_.weight3BX( ave_nvtx );
+              PUSystFactor = PShift_.ShiftWeight( ave_nvtx );
+            }
+            else
+            {
+              for(PVI = PupInfo->begin(); PVI != PupInfo->end(); ++PVI)
+              {
+                int BX = PVI->getBunchCrossing();
+                if(BX == 0)
+                {
+                  npv = PVI->getPU_NumInteractions();
+                  continue;
+                }
+              }
+              PUWeight_thisevent = LumiWeightsMC_.weight( npv );
+              PUSystFactor = PShift_.ShiftWeight( npv );
+            }
+            eventWeight = sampleWeight * PUWeight_thisevent;
+            if(ievt < 100)
+              std::cout << "ientry=" << ievt << " eventWeight = " << eventWeight << " totalE="
+                << eventWeightSum << std::endl;
+            eventWeightSum+=eventWeight;
+            rooVarPUWeight = PUWeight_thisevent;
+            rooVarPUSystFactor = PUSystFactor;
+        }
+        else
+        {
+          genCollHandle.getByLabel(ev, "genParticles");
+          if(genCollHandle.isValid())
+          {
+            std::cout << "ERROR: GenParticle Collection Found when MC not indicated" << std::endl;
+            return -5;
+          }
+        }
 
         fwlite::Handle<susybsm::HSCParticleCollection> hscpCollHandle;
         hscpCollHandle.getByLabel(ev,"HSCParticleProducer");
@@ -332,25 +518,6 @@ int main(int argc, char ** argv)
         fwlite::Handle<reco::MuonTimeExtraMap> TOFCSCCollH;
         TOFCSCCollH.getByLabel(ev, "muontiming","csc");
         if(!TOFCSCCollH.isValid()){printf("Invalid CSC TOF collection\n");continue;}
-
-        // MC Gen Info
-        fwlite::Handle< std::vector<reco::GenParticle> > genCollHandle;
-        std::vector<reco::GenParticle> genColl;
-        if(isMC_)
-        {
-          genCollHandle.getByLabel(ev, "genParticles");
-          if(!genCollHandle.isValid()){printf("GenParticle Collection NotFound\n");continue;}
-          genColl = *genCollHandle;
-        }
-        else
-        {
-          genCollHandle.getByLabel(ev, "genParticles");
-          if(genCollHandle.isValid())
-          {
-            std::cout << "ERROR: GenParticle Collection Found when MC not indicated" << std::endl;
-            return -5;
-          }
-        }
 
         // Look for gen HSCP tracks if MC
         if(isMC_)
@@ -427,8 +594,8 @@ int main(int argc, char ** argv)
         double runNumber = ev.id().run();
         double eventNumber = ev.id().event();
         //XXX ignore real data taken with tighter RPC trigger (355.227/pb) -- from Analysis_Samples.h
-        if(!isMC_ && runNumber < 165970)
-          continue;
+        //if(!isMC_ && runNumber < 165970)
+        //  continue;
 
         // check trigger
         if(!passesTrigger(ev))
@@ -678,46 +845,9 @@ int main(int argc, char ** argv)
                 rooVarRun,rooVarEvent));
           if(isMC_)
           {
-            // Get PU Weight
-            fwlite::Handle<std::vector<PileupSummaryInfo> > PupInfo;
-            PupInfo.getByLabel(ev, "addPileupInfo");
-            if(!PupInfo.isValid())
-            {
-              std::cout << "PileupSummaryInfo Collection NotFound" << std::endl;
-              return 1.0;
-            }
-            double PUWeight_thisevent = 1;
-            double PUSystFactor = 1;
-            std::vector<PileupSummaryInfo>::const_iterator PVI;
-            int npv = -1;
-            if(Iss4pileup)
-            {
-              float sum_nvtx = 0;
-              for(PVI = PupInfo->begin(); PVI != PupInfo->end(); ++PVI)
-              {
-                npv = PVI->getPU_NumInteractions();
-                sum_nvtx += float(npv);
-              }
-              float ave_nvtx = sum_nvtx/3.;
-              PUWeight_thisevent = LumiWeightsMC_.weight3BX( ave_nvtx );
-              PUSystFactor = PShift_.ShiftWeight( ave_nvtx );
-            }
-            else
-            {
-              for(PVI = PupInfo->begin(); PVI != PupInfo->end(); ++PVI)
-              {
-                int BX = PVI->getBunchCrossing();
-                if(BX == 0)
-                {
-                  npv = PVI->getPU_NumInteractions();
-                  continue;
-                }
-              }
-              PUWeight_thisevent = LumiWeightsMC_.weight( npv );
-              PUSystFactor = PShift_.ShiftWeight( npv );
-            }
-            rooVarPUWeight = PUWeight_thisevent;
-            rooVarPUSystFactor = PUSystFactor;
+            //cout << "INFO: insert event - run: " << rooVarRun.getVal() << " lumiSec: " << rooVarLumiSection.getVal()
+            //  << " eventNum: " << rooVarEvent.getVal() << endl;
+            //cout << "add puweight=" << rooVarPUWeight.getVal() << " eventWeight=" << rooVarPUWeight.getVal() * sampleWeight << std::endl;
             rooDataSetPileupWeights->add(RooArgSet(rooVarEvent,rooVarLumiSection,rooVarRun,rooVarPUWeight,rooVarPUSystFactor));
           }
 
@@ -753,9 +883,14 @@ int main(int argc, char ** argv)
   rooVarNumGenHSCPTracks = numGenHSCPTracks;
   rooVarNumGenChargedHSCPTracks = numGenChargedHSCPTracks;
   rooVarSignalEventCrossSection = signalEventCrossSection_;
+  rooVarNumGenHSCPEventsPUReweighted = numPUReweightedMCEvents;
+  rooVarEventWeightSum = eventWeightSum;
   rooDataSetGenHSCPTracks->add(
-      RooArgSet(rooVarNumGenHSCPEvents,rooVarNumGenHSCPTracks,rooVarNumGenChargedHSCPTracks,rooVarSignalEventCrossSection));
+      RooArgSet(rooVarNumGenHSCPEvents,rooVarNumGenHSCPTracks,rooVarNumGenChargedHSCPTracks,
+        rooVarSignalEventCrossSection,rooVarNumGenHSCPEventsPUReweighted,rooVarEventWeightSum,
+        rooVarSampleWeight));
 
+  std::cout << "event weight sum = " << eventWeightSum << std::endl;
   std::cout << "Found: " << numEventsPassingTrigger << " events passing trigger selection." <<
     std::endl;
   std::cout << "Found: " << numEventsWithOneTrackPassingPreselection <<
