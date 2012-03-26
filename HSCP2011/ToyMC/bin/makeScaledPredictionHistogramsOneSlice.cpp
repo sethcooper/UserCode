@@ -512,6 +512,41 @@ int main(int argc, char ** argv)
   double totalGenHSCPEvents = eventWeightSumLooseRPCRooVar->getVal()+eventWeightSumTightRPCRooVar->getVal();
   cout << "event weight sum: " << totalGenHSCPEvents << endl;
   cout << "event weight sum loose: " << eventWeightSumLooseRPCRooVar->getVal() << " tight: " << eventWeightSumTightRPCRooVar->getVal() << endl;
+  // get pileup-reweighted number of MC events -- loose RPC
+  const RooArgSet* argSetPileupWeightsLooseRPC = rooDataSetSignalPileupWeightsLooseRPC->get();
+  RooRealVar* eventNumPUDataLooseRPC = (RooRealVar*)argSetPileupWeightsLooseRPC->find(rooVarEvent.GetName());
+  RooRealVar* lumiSecPUDataLooseRPC = (RooRealVar*)argSetPileupWeightsLooseRPC->find(rooVarLumiSection.GetName());
+  RooRealVar* runNumPUDataLooseRPC = (RooRealVar*)argSetPileupWeightsLooseRPC->find(rooVarRun.GetName());
+  RooRealVar* pileupWeightPUDataLooseRPC = (RooRealVar*)argSetPileupWeightsLooseRPC->find(rooVarPUWeight.GetName());
+  //RooRealVar* pileupSystFactorPUDataLooseRPC = (RooRealVar*)argSetPileupWeightsLooseRPC->find(rooVarPUSystFactor.GetName());
+  double sampleWeightLooseRPC = sampleWeightLooseRPCRooVar->getVal();
+  // make map of pileup weights
+  std::map<EventInfo,double> pileupWeightLooseRPCMap;
+  std::map<EventInfo,double>::iterator pileupWeightLooseRPCMapItr;
+  for(int idx=0; idx < rooDataSetSignalPileupWeightsLooseRPC->numEntries(); ++idx)
+  {
+    rooDataSetSignalPileupWeightsLooseRPC->get(idx);
+    EventInfo evtInfo(runNumPUDataLooseRPC->getVal(),lumiSecPUDataLooseRPC->getVal(),eventNumPUDataLooseRPC->getVal());
+    pileupWeightLooseRPCMap[evtInfo] = pileupWeightPUDataLooseRPC->getVal();
+  }
+  // get pileup-reweighted number of MC events -- tight RPC
+  const RooArgSet* argSetPileupWeightsTightRPC = rooDataSetSignalPileupWeightsTightRPC->get();
+  RooRealVar* eventNumPUDataTightRPC = (RooRealVar*)argSetPileupWeightsTightRPC->find(rooVarEvent.GetName());
+  RooRealVar* lumiSecPUDataTightRPC = (RooRealVar*)argSetPileupWeightsTightRPC->find(rooVarLumiSection.GetName());
+  RooRealVar* runNumPUDataTightRPC = (RooRealVar*)argSetPileupWeightsTightRPC->find(rooVarRun.GetName());
+  RooRealVar* pileupWeightPUDataTightRPC = (RooRealVar*)argSetPileupWeightsTightRPC->find(rooVarPUWeight.GetName());
+  //RooRealVar* pileupSystFactorPUDataTightRPC = (RooRealVar*)argSetPileupWeightsTightRPC->find(rooVarPUSystFactor.GetName());
+  double sampleWeightTightRPC = sampleWeightTightRPCRooVar->getVal();
+  // make map of pileup weights
+  std::map<EventInfo,double> pileupWeightTightRPCMap;
+  std::map<EventInfo,double>::iterator pileupWeightTightRPCMapItr;
+  for(int idx=0; idx < rooDataSetSignalPileupWeightsTightRPC->numEntries(); ++idx)
+  {
+    rooDataSetSignalPileupWeightsTightRPC->get(idx);
+    EventInfo evtInfo(runNumPUDataTightRPC->getVal(),lumiSecPUDataTightRPC->getVal(),eventNumPUDataTightRPC->getVal());
+    pileupWeightTightRPCMap[evtInfo] = pileupWeightPUDataTightRPC->getVal();
+  }
+
 
   // loop over hists to use
   int iteratorPos = 0;
@@ -583,24 +618,6 @@ int main(int argc, char ** argv)
       (RooDataSet*)regionDDataSetSignalLooseRPC->Clone();
     //int numSignalTracksInDRegionThisSlice = etaCutNomCutDRegionDataSetSignal->numEntries();
 
-    // get pileup-reweighted number of MC events -- loose RPC
-    const RooArgSet* argSetPileupWeightsLooseRPC = rooDataSetSignalPileupWeightsLooseRPC->get();
-    RooRealVar* eventNumPUDataLooseRPC = (RooRealVar*)argSetPileupWeightsLooseRPC->find(rooVarEvent.GetName());
-    RooRealVar* lumiSecPUDataLooseRPC = (RooRealVar*)argSetPileupWeightsLooseRPC->find(rooVarLumiSection.GetName());
-    RooRealVar* runNumPUDataLooseRPC = (RooRealVar*)argSetPileupWeightsLooseRPC->find(rooVarRun.GetName());
-    RooRealVar* pileupWeightPUDataLooseRPC = (RooRealVar*)argSetPileupWeightsLooseRPC->find(rooVarPUWeight.GetName());
-    //RooRealVar* pileupSystFactorPUDataLooseRPC = (RooRealVar*)argSetPileupWeightsLooseRPC->find(rooVarPUSystFactor.GetName());
-    double sampleWeightLooseRPC = sampleWeightLooseRPCRooVar->getVal();
-    // make map of pileup weights
-    std::map<EventInfo,double> pileupWeightLooseRPCMap;
-    std::map<EventInfo,double>::iterator pileupWeightLooseRPCMapItr;
-    for(int idx=0; idx < rooDataSetSignalPileupWeightsLooseRPC->numEntries(); ++idx)
-    {
-      rooDataSetSignalPileupWeightsLooseRPC->get(idx);
-      EventInfo evtInfo(runNumPUDataLooseRPC->getVal(),lumiSecPUDataLooseRPC->getVal(),eventNumPUDataLooseRPC->getVal());
-      pileupWeightLooseRPCMap[evtInfo] = pileupWeightPUDataLooseRPC->getVal();
-    }
-
     // construct signal prediction hist (with mass cut) -- loose RPC
     const RooArgSet* argSetLooseRPC = etaCutNomCutDRegionDataSetSignalLooseRPC->get();
     RooRealVar* iasDataLooseRPC = (RooRealVar*)argSetLooseRPC->find(rooVarIas.GetName());
@@ -653,23 +670,6 @@ int main(int argc, char ** argv)
         }
       }
     }
-    // get pileup-reweighted number of MC events -- tight RPC
-    const RooArgSet* argSetPileupWeightsTightRPC = rooDataSetSignalPileupWeightsTightRPC->get();
-    RooRealVar* eventNumPUDataTightRPC = (RooRealVar*)argSetPileupWeightsTightRPC->find(rooVarEvent.GetName());
-    RooRealVar* lumiSecPUDataTightRPC = (RooRealVar*)argSetPileupWeightsTightRPC->find(rooVarLumiSection.GetName());
-    RooRealVar* runNumPUDataTightRPC = (RooRealVar*)argSetPileupWeightsTightRPC->find(rooVarRun.GetName());
-    RooRealVar* pileupWeightPUDataTightRPC = (RooRealVar*)argSetPileupWeightsTightRPC->find(rooVarPUWeight.GetName());
-    //RooRealVar* pileupSystFactorPUDataTightRPC = (RooRealVar*)argSetPileupWeightsTightRPC->find(rooVarPUSystFactor.GetName());
-    double sampleWeightTightRPC = sampleWeightTightRPCRooVar->getVal();
-    // make map of pileup weights
-    std::map<EventInfo,double> pileupWeightTightRPCMap;
-    std::map<EventInfo,double>::iterator pileupWeightTightRPCMapItr;
-    for(int idx=0; idx < rooDataSetSignalPileupWeightsTightRPC->numEntries(); ++idx)
-    {
-      rooDataSetSignalPileupWeightsTightRPC->get(idx);
-      EventInfo evtInfo(runNumPUDataTightRPC->getVal(),lumiSecPUDataTightRPC->getVal(),eventNumPUDataTightRPC->getVal());
-      pileupWeightTightRPCMap[evtInfo] = pileupWeightPUDataTightRPC->getVal();
-    }
 
     // construct signal prediction hist (with mass cut) -- tight RPC
     const RooArgSet* argSetTightRPC = etaCutNomCutDRegionDataSetSignalTightRPC->get();
@@ -710,7 +710,6 @@ int main(int argc, char ** argv)
         {
           // if track over ias cut, put the event in the set (one track per event kept)
           // there should only be one track per event at this stage anyway
-          EventInfo evtInfo(runNumDataTightRPC->getVal(),lumiSecDataTightRPC->getVal(),eventNumDataTightRPC->getVal());
           pair<set<EventInfo>::iterator,bool> ret;
           ret = selectedSignalEventsTightRPCSet.insert(evtInfo);
           if(ret.second)
