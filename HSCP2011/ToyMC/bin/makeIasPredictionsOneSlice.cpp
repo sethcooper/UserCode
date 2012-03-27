@@ -18,6 +18,8 @@
 #include "TProfile.h"
 #include "TDirectory.h"
 #include "TRandom3.h"
+#include "TMatrixDSym.h"
+#include "TFitResult.h"
 
 #include "RooDataSet.h"
 #include "RooRealVar.h"
@@ -273,10 +275,10 @@ int main(int argc, char ** argv)
   double ihSidebandThreshold (ana.getParameter<double>("IhSidebandThreshold"));
   double iasSidebandThreshold (ana.getParameter<double>("IasSidebandThreshold"));
   bool useIasForSideband (ana.getParameter<bool>("UseIasForSideband"));
-  double etaMin_ (ana.getParameter<double>("EtaMin"));
-  double etaMax_ (ana.getParameter<double>("EtaMax"));
-  int nomMin_ (ana.getParameter<int>("NoMMin"));
-  int nomMax_ (ana.getParameter<int>("NoMMax"));
+  //double etaMin_ (ana.getParameter<double>("EtaMin"));
+  //double etaMax_ (ana.getParameter<double>("EtaMax"));
+  //int nomMin_ (ana.getParameter<int>("NoMMin"));
+  //int nomMax_ (ana.getParameter<int>("NoMMax"));
 
   // fileService initialization
   //string fileNameEnd = generateFileNameEnd(massCutIasHighPHighIh_,pSidebandThreshold,ptSidebandThreshold,usePtForSideband,ihSidebandThreshold);
@@ -916,7 +918,7 @@ int main(int argc, char ** argv)
         lastDecentStatsBin = firstIasBin;
       // now fit from here to the end with an exp and fill the empty bins
       TF1* myExp = new TF1("myExp","expo(0)",iasPredictionFixedHist->GetBinCenter(lastDecentStatsBin),1);
-      TFitResultPtr r = iasPredictionFixedHist->Fit("myExp","RL");
+      TFitResultPtr r = iasPredictionFixedHist->Fit("myExp","RS");
       int fitStatus = r;
       if(fitStatus != 0)
       {
@@ -925,8 +927,15 @@ int main(int argc, char ** argv)
       }
       for(int bin=lastDecentStatsBin+1; bin <= iasPredictionFixedHist->GetNbinsX(); ++bin)
       {
-        iasPredictionFixedHist->SetBinContent(bin,myExp->Eval(iasPredictionFixedHist->GetBinCenter(bin)));
-        iasPredictionFixedHist->SetBinError(bin,sqrt(myExp->Eval(iasPredictionFixedHist->GetBinCenter(bin))));
+        double expVal = myExp->Eval(iasPredictionFixedHist->GetBinCenter(bin));
+        iasPredictionFixedHist->SetBinContent(bin,expVal);
+        //iasPredictionFixedHist->SetBinError(bin,sqrt(myExp->Eval(iasPredictionFixedHist->GetBinCenter(bin))));
+        double par0Err = myExp->GetParError(0);
+        double par1Err = myExp->GetParError(1);
+        double cov = r->CovMatrix(0,1);
+        double xVal = iasPredictionFixedHist->GetBinCenter(bin);
+        double absErr = sqrt(pow(expVal*par0Err,2)+pow(xVal*expVal*par1Err,2)+2*xVal*cov*pow(expVal,2));
+        iasPredictionFixedHist->SetBinError(bin,absErr);
       }
       delete myExp;
 
