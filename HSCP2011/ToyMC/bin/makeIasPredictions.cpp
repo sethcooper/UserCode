@@ -18,6 +18,8 @@
 #include "TProfile.h"
 #include "TDirectory.h"
 #include "TRandom3.h"
+#include "TMatrixDSym.h"
+#include "TFitResult.h"
 
 #include "RooDataSet.h"
 #include "RooRealVar.h"
@@ -923,11 +925,13 @@ int main(int argc, char ** argv)
       {
         double Bk = iasBRegionHist->GetBinContent(bin);
         // Bk * < Cj over mass > / A
-        double binContent = Bk * ceffRegionTracksOverMassCutProfile->GetBinContent(bin) / entriesInARegionNoM;
+        double binContent = Bk * ceffRegionTracksOverMassCutProfile->GetBinContent(bin) / (double)entriesInARegionNoM;
         //TODO FIXME run toys to get this error OR use SQRT(C) in first Ias bin above std ana ias cut to get overall error
-        double binError = sqrt(Bk) * ceffRegionTracksOverMassCutProfile->GetBinContent(bin) / entriesInARegionNoM;
+        double binError = sqrt(Bk) * ceffRegionTracksOverMassCutProfile->GetBinContent(bin) / (double)entriesInARegionNoM;
         iasPredictionFixedHist->SetBinContent(bin,binContent);
         iasPredictionFixedHist->SetBinError(bin,binError);
+        //std::cout << "Bin: " << bin << " Bk: " << Bk << " Ceff: " << ceffRegionTracksOverMassCutProfile->GetBinContent(bin)
+        //  << " A: " << entriesInARegionNoM << " Bincontent: " << binContent << " +/- " << binError << std::endl;
       }
 
 //XXX SIC MAR 1 new ias prediction
@@ -1000,17 +1004,27 @@ int main(int argc, char ** argv)
         lastDecentStatsBin = firstIasBin;
       // now fit from here to the end with an exp and fill the empty bins
       TF1* myExp = new TF1("myExp","expo(0)",iasPredictionFixedHist->GetBinCenter(lastDecentStatsBin),1);
-      TFitResultPtr r = iasPredictionFixedHist->Fit("myExp","RL");
+      TFitResultPtr r = iasPredictionFixedHist->Fit("myExp","RS");
       int fitStatus = r;
       if(fitStatus != 0)
       {
         std::cout << "ERROR: Fit status is " << fitStatus << " which is nonzero!  Not using the fit." << endl;
         continue;
       }
+      TMatrixDSym m = r->GetCovarianceMatrix();
+      m.Print();
+      //std::cout << "covMatrix element 0,1 --> " << r->CovMatrix(0,1) << std::endl;
       for(int bin=lastDecentStatsBin+1; bin <= iasPredictionFixedHist->GetNbinsX(); ++bin)
       {
-        iasPredictionFixedHist->SetBinContent(bin,myExp->Eval(iasPredictionFixedHist->GetBinCenter(bin)));
-        iasPredictionFixedHist->SetBinError(bin,sqrt(myExp->Eval(iasPredictionFixedHist->GetBinCenter(bin))));
+        double expVal = myExp->Eval(iasPredictionFixedHist->GetBinCenter(bin));
+        iasPredictionFixedHist->SetBinContent(bin,expVal);
+        //iasPredictionFixedHist->SetBinError(bin,sqrt(myExp->Eval(iasPredictionFixedHist->GetBinCenter(bin))));
+        double par0Err = myExp->GetParError(0);
+        double par1Err = myExp->GetParError(1);
+        double cov = r->CovMatrix(0,1);
+        double xVal = iasPredictionFixedHist->GetBinCenter(bin);
+        double absErr = sqrt(pow(expVal*par0Err,2)+pow(xVal*expVal*par1Err,2)+2*xVal*cov*pow(expVal,2));
+        iasPredictionFixedHist->SetBinError(bin,absErr);
       }
       delete myExp;
 
