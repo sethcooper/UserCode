@@ -717,7 +717,7 @@ int main(int argc, char ** argv)
       massPredictionFixedHistTitle+=", mass > ";
       massPredictionFixedHistTitle+=floatToString(massCutIasHighPHighIh_);
       massPredictionFixedHistTitle+=" GeV";
-      TH1F* massPredictionFixedHist = massPredictionFixedBinsDir.make<TH1F>(massPredictionFixedHistName.c_str(),massPredictionFixedHistTitle.c_str(),5000,0,5000);
+      TH1F* massPredictionFixedHist = massPredictionFixedBinsDir.make<TH1F>(massPredictionFixedHistName.c_str(),massPredictionFixedHistTitle.c_str(),1000,0,5000);
       massPredictionFixedHist->Sumw2();
       // success rate histogram in this NoM/eta bin
       std::string iasSuccessRateHistName = getHistNameBeg(nom,lowerEta);
@@ -891,20 +891,21 @@ int main(int argc, char ** argv)
         //  << " A: " << entriesInARegionNoM << " Bincontent: " << binContent << " +/- " << binError << std::endl;
       }
 
-      // mass prediction
+      // mass prediction -- base on C region with lower Pt cut rather than Ceff without P cut
       TH1F* etaCutNomCutBRegionIhHist = (TH1F*) etaCutNomCutBRegionDataSet->createHistogram("rooVarIh",5000);
+      TH1F* etaCutCRegionPHist = (TH1F*) etaCutCRegionDataSet->createHistogram("rooVarP",5000);
       etaCutNomCutBRegionIhHist->Scale(1.0/etaCutNomCutBRegionIhHist->Integral());
-      etaCutDeDxSBPHist->Scale(1.0/etaCutDeDxSBPHist->Integral());
+      etaCutCRegionPHist->Scale(1.0/etaCutCRegionPHist->Integral());
       TH1F* massPredictionFixedTmpHist = (TH1F*) massPredictionFixedHist->Clone();
       // loop over Ih values
       for(int ihBin=1; ihBin < etaCutNomCutBRegionIhHist->GetNbinsX()+1; ++ihBin)
       {
         // loop over P values
-        for(int pBin=1; pBin < etaCutDeDxSBPHist->GetNbinsX()+1; ++pBin)
+        for(int pBin=1; pBin < etaCutCRegionPHist->GetNbinsX()+1; ++pBin)
         {
-          double prob = etaCutDeDxSBPHist->GetBinContent(pBin)*etaCutNomCutBRegionIhHist->GetBinContent(ihBin);
+          double prob = etaCutCRegionPHist->GetBinContent(pBin)*etaCutNomCutBRegionIhHist->GetBinContent(ihBin);
           double thisIh = etaCutNomCutBRegionIhHist->GetBinCenter(ihBin);
-          double thisP = etaCutDeDxSBPHist->GetBinCenter(pBin);
+          double thisP = etaCutCRegionPHist->GetBinCenter(pBin);
           double massSqr = (thisIh-dEdx_c)*pow(thisP,2)/dEdx_k;
           if(massSqr >= 0)
             massPredictionFixedTmpHist->Fill(sqrt(massSqr),prob);

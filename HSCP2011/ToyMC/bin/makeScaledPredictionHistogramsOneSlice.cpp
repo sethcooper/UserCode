@@ -223,7 +223,7 @@ int main(int argc, char ** argv)
   // definition of sidebands/search region
   double pSidebandThreshold (ana.getParameter<double>("PSidebandThreshold"));
   double ptSidebandThreshold (ana.getParameter<double>("PtSidebandThreshold"));
-  //bool usePtForSideband (ana.getParameter<bool>("UsePtForSideband"));
+  bool usePtForSideband (ana.getParameter<bool>("UsePtForSideband"));
   double ihSidebandThreshold (ana.getParameter<double>("IhSidebandThreshold"));
   double integratedLumi (ana.getParameter<double>("IntegratedLuminosity")); // 1/pb
   //double signalCrossSectionForEff (ana.getParameter<double>("SignalCrossSectionForEff")); // pb
@@ -451,6 +451,8 @@ int main(int argc, char ** argv)
 
   // initialize the global unrolled hists
   int numGlobalBins = numIasBins*bgHistsToUse.size();
+  int numMassBins = 1000;
+  int numGlobalMassBins = numMassBins*bgHistsToUse.size();
   cout << "INFO: numIasBins = " << numIasBins << endl;
   cout << "INFO: numBGHistsToUse = " << bgHistsToUse.size() << endl;
   cout << "INFO: initializing unrolled histogram: bins=" << numGlobalBins << endl << endl;
@@ -462,6 +464,11 @@ int main(int argc, char ** argv)
       "unrolled background hist (shape -1 sigma)",numGlobalBins,1,numGlobalBins+1);
   TH1F* signalAllNoMAllEtaUnrolledHist = new TH1F("signalAllNoMAllEtaUnrolledHist",
       "unrolled signal hist",numGlobalBins,1,numGlobalBins+1);
+  // mass
+  TH1F* backgroundAllNoMAllEtaUnrolledMassHist = new TH1F("backgroundAllNoMAllEtaUnrolledMassHist",
+      "unrolled background hist (mass)",numGlobalMassBins,1,numGlobalMassBins+1);
+  TH1F* signalAllNoMAllEtaUnrolledMassHist = new TH1F("signalAllNoMAllEtaUnrolledMassHist",
+      "unrolled signal hist (mass)",numGlobalMassBins,1,numGlobalMassBins+1);
   TH2F* sigEffOverIasCutVsSliceHist = new TH2F("sigEffOverIasCutVsSlice","Sig eff. over ias cut;#eta;nom",12,0,2.4,9,5,23);
   sigEffOverIasCutVsSliceHist->GetYaxis()->SetNdivisions(509,false);
   TH1F* sigEffOverIasCutHist = new TH1F("sigEffOverIasCut","Signal eff. over ias cut",100,0,1);
@@ -576,7 +583,6 @@ int main(int argc, char ** argv)
     cRegionTracksOverMassCutProfileName+=getHistNameBeg(lowerNoM,lowerEta);
     cRegionTracksOverMassCutProfileName+="tracksInCeffOverMassCutProfile";
     TProfile* cRegionTracksOverMassCutProfile = (TProfile*)backgroundPredictionRootFile->Get(cRegionTracksOverMassCutProfileName.c_str());
-
     // debug
     //cout << " Looking at hist: " << bgHistName << " lowerNoM = " << lowerNoM
     //  << " lowerEta = " << lowerEta << endl;
@@ -587,6 +593,22 @@ int main(int argc, char ** argv)
     iasSignalMassCutNoMSliceHist->Reset();
     iasSignalMassCutNoMSliceHist->SetName(sigHistName.c_str());
     iasSignalMassCutNoMSliceHist->SetTitle(iasSignalHistTitle.c_str());
+    // mass
+    // bg mass hist
+    string dirName="massPredictionsFixedBins";
+    string bgHistNameEnd="massPredictionFixedHist";
+    string getHistName = getHistNameBeg(lowerNoM,lowerEta);
+    getHistName+=bgHistNameEnd;
+    string fullPath = dirName;
+    fullPath+="/";
+    fullPath+=getHistName;
+    TH1F* massBackgroundPredictionNoMSliceHist =
+      (TH1F*)backgroundPredictionRootFile->Get(fullPath.c_str());
+    string sigMassHistName = bgHistNameBeg;
+    sigMassHistName+="massSignalFixedHist";
+    string signalMassHistTitle = "Mass of signal";
+    signalMassHistTitle+=getHistTitleEnd(lowerNoM,lowerEta,0);
+    TH1F* massSignalNoMSliceHist = new TH1F(sigMassHistName.c_str(),signalMassHistTitle.c_str(),1000,0,5000);
 
     // construct D region for signal in this eta/nom slice
     //string nomCutString = "rooVarNoMias==";
@@ -625,7 +647,7 @@ int main(int argc, char ** argv)
     RooRealVar* etaDataLooseRPC = (RooRealVar*)argSetLooseRPC->find(rooVarEta.GetName());
     RooRealVar* ihDataLooseRPC = (RooRealVar*)argSetLooseRPC->find(rooVarIh.GetName());
     RooRealVar* pDataLooseRPC = (RooRealVar*)argSetLooseRPC->find(rooVarP.GetName());
-    //RooRealVar* ptDataLooseRPC = (RooRealVar*)argSetLooseRPC->find(rooVarPt.GetName());
+    RooRealVar* ptDataLooseRPC = (RooRealVar*)argSetLooseRPC->find(rooVarPt.GetName());
     RooRealVar* eventNumDataLooseRPC = (RooRealVar*)argSetLooseRPC->find(rooVarEvent.GetName());
     RooRealVar* lumiSecDataLooseRPC = (RooRealVar*)argSetLooseRPC->find(rooVarLumiSection.GetName());
     RooRealVar* runNumDataLooseRPC = (RooRealVar*)argSetLooseRPC->find(rooVarRun.GetName());
@@ -648,7 +670,7 @@ int main(int argc, char ** argv)
       float massSqr = (ihDataLooseRPC->getVal()-dEdx_c)*pow(pDataLooseRPC->getVal(),2)/dEdx_k;
       if(massSqr < 0)
         continue;
-      else if(sqrt(massSqr) >= massCut_)
+      if(sqrt(massSqr) >= massCut_)
       {
         iasSignalMassCutNoMSliceHist->Fill(iasDataLooseRPC->getVal(),eventWeight);
         numSignalTracksInDRegionPassingMassCut+=eventWeight;
@@ -669,6 +691,18 @@ int main(int argc, char ** argv)
           }
         }
       }
+      if(usePtForSideband)
+      {
+        if(ptDataLooseRPC->getVal() < ptSidebandThreshold)
+          continue;
+      }
+      else
+      {
+        if(pDataLooseRPC->getVal() < pSidebandThreshold)
+          continue;
+      }
+      // ih/ias cut already applied
+      massSignalNoMSliceHist->Fill(sqrt(massSqr),eventWeight);
     }
 
     // construct signal prediction hist (with mass cut) -- tight RPC
@@ -678,7 +712,7 @@ int main(int argc, char ** argv)
     RooRealVar* etaDataTightRPC = (RooRealVar*)argSetTightRPC->find(rooVarEta.GetName());
     RooRealVar* ihDataTightRPC = (RooRealVar*)argSetTightRPC->find(rooVarIh.GetName());
     RooRealVar* pDataTightRPC = (RooRealVar*)argSetTightRPC->find(rooVarP.GetName());
-    //RooRealVar* ptDataTightRPC = (RooRealVar*)argSetTightRPC->find(rooVarPt.GetName());
+    RooRealVar* ptDataTightRPC = (RooRealVar*)argSetTightRPC->find(rooVarPt.GetName());
     RooRealVar* eventNumDataTightRPC = (RooRealVar*)argSetTightRPC->find(rooVarEvent.GetName());
     RooRealVar* lumiSecDataTightRPC = (RooRealVar*)argSetTightRPC->find(rooVarLumiSection.GetName());
     RooRealVar* runNumDataTightRPC = (RooRealVar*)argSetTightRPC->find(rooVarRun.GetName());
@@ -701,7 +735,7 @@ int main(int argc, char ** argv)
       float massSqr = (ihDataTightRPC->getVal()-dEdx_c)*pow(pDataTightRPC->getVal(),2)/dEdx_k;
       if(massSqr < 0)
         continue;
-      else if(sqrt(massSqr) >= massCut_)
+      if(sqrt(massSqr) >= massCut_)
       {
         iasSignalMassCutNoMSliceHist->Fill(iasDataTightRPC->getVal(),eventWeight);
         numSignalTracksInDRegionPassingMassCut+=eventWeight;
@@ -722,6 +756,17 @@ int main(int argc, char ** argv)
           }
         }
       }
+      if(usePtForSideband)
+      {
+        if(ptDataTightRPC->getVal() < ptSidebandThreshold)
+          continue;
+      }
+      else
+      {
+        if(pDataTightRPC->getVal() < pSidebandThreshold)
+          continue;
+      }
+      massSignalNoMSliceHist->Fill(sqrt(massSqr),eventWeight);
     }
 
     double numSignalTracksInDRegionMassCutThisSlice = iasSignalMassCutNoMSliceHist->Integral();
@@ -855,6 +900,16 @@ int main(int argc, char ** argv)
         iasSignalMassCutNoMSliceHist->FindBin(iasCutForEffAcc),
         iasSignalMassCutNoMSliceHist->GetNbinsX());
 
+    // mass
+    double numSigTracksOverMassThisSlice = massSignalNoMSliceHist->
+      Integral(massSignalNoMSliceHist->FindBin(massCut_),massSignalNoMSliceHist->GetNbinsX());
+    double fracInThisSlice = numSigTracksOverMassThisSlice/totalGenHSCPEvents;
+    double numSigEventsOverMassThisSlice = fracInThisSlice*totalSignalEvents;
+    massSignalNoMSliceHist->Sumw2();
+    double sigNormFactorMass = (massSignalNoMSliceHist->Integral() > 0) ?
+      numSigEventsOverMassThisSlice/massSignalNoMSliceHist->Integral() : 0;
+    massSignalNoMSliceHist->Scale(sigNormFactorMass);
+
     //// figure out nominal sig norm for efficiency value
     //double totalSignalTracksThisSliceEff = integratedLumi*signalCrossSectionForEff;
     //double fractionOfSigTracksInDRegionPassingMassCutThisSliceEff =
@@ -903,6 +958,7 @@ int main(int argc, char ** argv)
     //  iasSignalMassCutNoMSliceHist->Integral() <<
     //  endl << endl;
     cout << "Signal tracks over Ias cut this slice: " << sigTracksOverIasCutThisSlice << endl;
+    cout << "(MASS) Signal tracks over Ias cut this slice: " << massSignalNoMSliceHist->Integral() << endl;
 
     sigEffOverIasCutVsSliceHist->Fill(lowerEta+0.1,lowerNoM,sigTracksOverIasCutThisSlice/sigTracksTotalThisSlice);
     sigEffOverIasCutHist->Fill(sigTracksOverIasCutThisSlice/sigTracksTotalThisSlice);
@@ -979,6 +1035,20 @@ int main(int argc, char ** argv)
 
       //std::cout << "INFO: Filling signal hist: bin=" << globalBinIndex << " content=" << binc << " error=" << bine << std::endl;
     }
+    //mass
+    for(int massBin=1; massBin < numMassBins+1; ++massBin)
+    {
+      int globalBinIndex = iteratorPos*numMassBins+massBin;
+      double binc = massBackgroundPredictionNoMSliceHist->GetBinContent(massBin);
+      double bine = massBackgroundPredictionNoMSliceHist->GetBinError(massBin);
+      backgroundAllNoMAllEtaUnrolledMassHist->SetBinContent(globalBinIndex,binc);
+      backgroundAllNoMAllEtaUnrolledMassHist->SetBinError(globalBinIndex,bine);
+      // signal
+      binc = massSignalNoMSliceHist->GetBinContent(massBin);
+      bine = massSignalNoMSliceHist->GetBinError(massBin);
+      signalAllNoMAllEtaUnrolledMassHist->SetBinContent(globalBinIndex,binc);
+      signalAllNoMAllEtaUnrolledMassHist->SetBinError(globalBinIndex,bine);
+    }
 
     // write the histograms
     outputRootFile->cd();
@@ -986,10 +1056,12 @@ int main(int argc, char ** argv)
     histItr->Write();
     //normedSignalPredDir->cd();
     iasSignalMassCutNoMSliceHist->Write();
+    massSignalNoMSliceHist->Write();
 
     iteratorPos++;
     // cleanup
-    //delete nomCutDRegionDataSetSignal;
+    //delete nomCutDRegionDataSetSignalLooseRPC;
+    //delete nomCutDRegionDataSetSignalTightRPC;
     delete etaCutNomCutDRegionDataSetSignalLooseRPC;
     delete etaCutNomCutDRegionDataSetSignalTightRPC;
     //delete iasBackgroundPredictionMassCutNoMSliceHist;
@@ -1161,6 +1233,8 @@ int main(int argc, char ** argv)
   backgroundAllNoMAllEtaUnrolledPlusOneSigmaHist->Write();
   backgroundAllNoMAllEtaUnrolledMinusOneSigmaHist->Write();
   signalAllNoMAllEtaUnrolledHist->Write();
+  backgroundAllNoMAllEtaUnrolledMassHist->Write();
+  signalAllNoMAllEtaUnrolledMassHist->Write();
   sigEffOverIasCutVsSliceHist->Write();
   sigEffOverIasCutHist->Write();
   backExpOverIasCutVsSliceHist->Write();
