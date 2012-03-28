@@ -16,9 +16,10 @@ now = datetime.datetime.now()
 Date = now.strftime("%b%d")
 
 # Set things here
-AllSlices = False
-RunCondor = False
-#QueueName = '1nd'
+AllSlices = True
+RunCondor = True
+DoBayesian = False
+DoMass = True
 QueueName = '8nh'
 ## FOR NOW, CutPt=Std means CutIas Std also!
 #CutPt = 'Std'
@@ -26,7 +27,7 @@ CutPt = 50
 #CutIas = 'Std'
 CutIas = 0.1
 
-FarmDirectory = 'FARM_noTightRPCData_expFit_cutPt'
+FarmDirectory = 'FARM_allData_lumiReweight_mass_cutPt'
 #
 FarmDirectory+=str(CutPt)
 FarmDirectory+='GeVcutIas'
@@ -37,13 +38,15 @@ else:
   FarmDirectory+='_oneSlice_'
 FarmDirectory+=Date
 InputDataRootFile = os.getcwd()
-#InputDataRootFile+='/MakeHSCParticlePlots_dataWithTightRPCTrig_absEta_ptErrorPresel_feb6/outputs/makeHSCParticlePlots_Data2011_all.root'
-InputDataRootFile+='/MakeHSCParticlePlots_data_absEta_ptErrorPresel_Mar08/outputs/makeHSCParticlePlots_Data2011_all.root'
+InputDataRootFile+='/FARM_MakeHSCParticlePlots_dataWithTightRPCTrig_absEta_ptErrorPresel_feb6/outputs/makeHSCParticlePlots_feb1_Data2011_all.root'
+#InputDataRootFile+='/FARM_MakeHSCParticlePlots_data_absEta_ptErrorPresel_Mar08/outputs/makeHSCParticlePlots_Data2011_all.root'
+#InputDataRootFile+='/FARM_MakeHSCParticlePlots_absEta_ptErrorPresel_Mar21/outputs/makeHSCParticlePlots_Mar21_Data2011_all.root'
 sigInput = os.getcwd()
-sigInput+='/MakeHSCParticlePlots_Signals_absEta_ptErrorPresel_Feb21/outputs/makeHSCParticlePlots_Feb21_'
-#IntLumi = 4679 # 1/pb (2011)
-# subtract the lumi before the RPC trigger change (runs before 165970) = 355.227 /pb
-IntLumi = 4323.773 # 1/pb
+#sigInput+='/FARM_MakeHSCParticlePlots_Signals_absEta_ptErrorPresel_Feb21/outputs/makeHSCParticlePlots_Feb21_'
+sigInput+='/FARM_MakeHSCParticlePlots_Signals_PUWeights_Mar23/outputs/makeHSCParticlePlots_Mar23_'
+IntLumi = 4679 # 1/pb (2011)
+# subtract the lumi before the RPC trigger change (runs before 165970) = 355.263 /pb
+#IntLumi = 4323.773 # 1/pb
 #
 
 
@@ -54,7 +57,10 @@ OutputIasPredictionDir+="/outputs/makeIasPredictions/"
 bgInput = OutputIasPredictionDir+'makeIasPredictionsCombined_'
 BaseCfgMakeScaled = "makeScaledPredictionHistograms_template_cfg.py"
 BaseCfgMakePred = "makeIasPredictions_template_cfg.py"
-BaseChXML = "hscp_dataDriven_ch_template.xml"
+if(DoMass):
+  BaseChXML = "hscp_dataDriven_ch_mass_template.xml"
+else:
+  BaseChXML = "hscp_dataDriven_ch_template.xml"
 BaseCombXML = "hscp_dataDriven_template.xml"
 BaseMacro = os.getcwd() + "/StandardHypoTestInvDemo.C"
 BaseMacroBayesian = os.getcwd() + "/StandardBayesianNumericalDemo.C"
@@ -78,7 +84,7 @@ def checkForScaledPredictions(modelName):
   #print 'Checking for ',fileName
   try:
     open(fileName)
-  except IOError as e:
+  except IOError:
     print 'File: ',fileName,' does not exist.'
     return False
   return True
@@ -136,15 +142,17 @@ def doScaledPredictions():
                                               IntLumi, BaseCfgMakeScaled, BaseChXML,
                                                            BaseCombXML, BaseMacro, AllSlices, RunCondor, QueueName)
   for model in modelList:
+    looseRPCFileName = sigInput+model.name+'BX1.root'
+    tightRPCFileName = sigInput+model.name+'.root'
     if(CutPt=='Std'):
       HSCPMakeScaledPredictionsLaunch.SendCluster_Push(
-          bgInput+model.name+'_massCut',sigInput+model.name+'.root',model.name,model.massCut,model.iasCut,model.ptCut)
+          bgInput+model.name+'_massCut',looseRPCFileName,tightRPCFileName,model.name,model.massCut,model.iasCut,model.ptCut)
     elif(CutIas=='Std'):
       HSCPMakeScaledPredictionsLaunch.SendCluster_Push(
-          bgInput+model.name+'_massCut',sigInput+model.name+'.root',model.name,model.massCut,model.iasCut,50)
+          bgInput+model.name+'_massCut',looseRPCFileName,tightRPCFileName,model.name,model.massCut,model.iasCut,50)
     else:
       HSCPMakeScaledPredictionsLaunch.SendCluster_Push(
-          bgInput+model.name+'_massCut',sigInput+model.name+'.root',model.name,model.massCut,0.1,50)
+          bgInput+model.name+'_massCut',looseRPCFileName,tightRPCFileName,model.name,model.massCut,0.1,50)
 
   HSCPMakeScaledPredictionsLaunch.SendCluster_Submit()
 
@@ -152,8 +160,10 @@ def doScaledPredictions():
 def doLimits():
   printConfiguration()
   JobName = "doLimits_"
-  #HSCPDoLimitsLaunch.SendCluster_Create(FarmDirectory, JobName, IntLumi, BaseMacro, False, RunCondor, QueueName)
-  HSCPDoLimitsLaunch.SendCluster_Create(FarmDirectory, JobName, IntLumi, BaseMacroBayesian, True, RunCondor, QueueName)
+  if(DoBayesian):
+    HSCPDoLimitsLaunch.SendCluster_Create(FarmDirectory, JobName, IntLumi, BaseMacroBayesian, True, RunCondor, QueueName)
+  else:
+    HSCPDoLimitsLaunch.SendCluster_Create(FarmDirectory, JobName, IntLumi, BaseMacro, False, RunCondor, QueueName)
   for model in modelList:
     fileExists = checkForScaledPredictions(model.name)
     if not fileExists:
