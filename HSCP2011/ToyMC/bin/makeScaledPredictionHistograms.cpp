@@ -1058,6 +1058,7 @@ int main(int argc, char ** argv)
     //normedSignalPredDir->cd();
     iasSignalMassCutNoMSliceHist->Write();
     massSignalNoMSliceHist->Write();
+    massBackgroundPredictionNoMSliceHist->Write();
 
     iteratorPos++;
     // cleanup
