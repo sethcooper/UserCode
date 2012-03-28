@@ -841,11 +841,13 @@ int main(int argc, char ** argv)
       {
         double Bk = iasBRegionHist->GetBinContent(bin);
         // Bk * < Cj over mass > / A
-        double binContent = Bk * ceffRegionTracksOverMassCutProfile->GetBinContent(bin) / entriesInARegionNoM;
+        double binContent = Bk * ceffRegionTracksOverMassCutProfile->GetBinContent(bin) / (double)entriesInARegionNoM;
         //TODO FIXME run toys to get this error OR use SQRT(C) in first Ias bin above std ana ias cut to get overall error
-        double binError = sqrt(Bk) * ceffRegionTracksOverMassCutProfile->GetBinContent(bin) / entriesInARegionNoM;
+        double binError = sqrt(Bk) * ceffRegionTracksOverMassCutProfile->GetBinContent(bin) / (double)entriesInARegionNoM;
         iasPredictionFixedHist->SetBinContent(bin,binContent);
         iasPredictionFixedHist->SetBinError(bin,binError);
+        //std::cout << "Bin: " << bin << " Bk: " << Bk << " Ceff: " << ceffRegionTracksOverMassCutProfile->GetBinContent(bin)
+        //  << " A: " << entriesInARegionNoM << " Bincontent: " << binContent << " +/- " << binError << std::endl;
       }
 
 //XXX SIC MAR 1 new ias prediction
@@ -910,12 +912,23 @@ int main(int argc, char ** argv)
 //      }
 
 //XXX do exp fit
-      // loop over bins of iasBRegionHist and find the last bin with more than 15 entries
+      // find the last bin with more than 15 entries
       std::cout << "INFO: Doing exp fit" << std::endl;
       int lastDecentStatsBin = iasBRegionHist->FindLastBinAbove(15.0);
       int firstIasBin = iasPredictionFixedHist->FindBin(iasSidebandThreshold);
       if(lastDecentStatsBin < 1)
         lastDecentStatsBin = firstIasBin;
+      // fill empty bins
+      int lastBinWithContent = iasPredictionFixedHist->FindLastBinAbove(1e-10);
+      double lastBinError = iasPredictionFixedHist->GetBinError(lastBinWithContent);
+      for(int bin=firstIasBin; bin < iasPredictionFixedHist->GetNbinsX()+1; ++bin)
+      {
+        if(iasPredictionFixedHist->GetBinContent(bin) == 0)
+        {
+          iasPredictionFixedHist->SetBinContent(bin,1e-10);
+          iasPredictionFixedHist->SetBinError(bin,lastBinError);
+        }
+      }
       // now fit from here to the end with an exp and fill the empty bins
       TF1* myExp = new TF1("myExp","expo(0)",iasPredictionFixedHist->GetBinCenter(lastDecentStatsBin),1);
       TFitResultPtr r = iasPredictionFixedHist->Fit("myExp","RS");
@@ -925,6 +938,10 @@ int main(int argc, char ** argv)
         std::cout << "ERROR: Fit status is " << fitStatus << " which is nonzero!  Not using the fit." << endl;
         return -1;
       }
+      TMatrixDSym m = r->GetCovarianceMatrix();
+      m.Print();
+      //XXX testing sic
+      //std::cout << "covMatrix element 0,1 --> " << r->CovMatrix(0,1) << std::endl;
       for(int bin=lastDecentStatsBin+1; bin <= iasPredictionFixedHist->GetNbinsX(); ++bin)
       {
         double expVal = myExp->Eval(iasPredictionFixedHist->GetBinCenter(bin));
