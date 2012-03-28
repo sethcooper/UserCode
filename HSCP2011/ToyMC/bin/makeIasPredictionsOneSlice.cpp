@@ -29,6 +29,7 @@
 #include <vector>
 #include <string>
 #include <algorithm>
+#include <cmath>
 
 #include "DataFormats/FWLite/interface/Handle.h"
 #include "DataFormats/FWLite/interface/Event.h"
@@ -1026,8 +1027,18 @@ int main(int argc, char ** argv)
         double cov = r->CovMatrix(0,1);
         double xVal = iasPredictionFixedHist->GetBinCenter(bin);
         double absErr = sqrt(pow(expVal*par0Err,2)+pow(xVal*expVal*par1Err,2)+2*xVal*cov*pow(expVal,2));
-        iasPredictionFixedHist->SetBinError(bin,absErr);
-        //std::cout << "bin = " << bin << " set bin content: " << expVal << " +/- " << absErr << std::endl;
+        if(isnan(absErr) && expVal < 1e-100)
+        {
+          iasPredictionFixedHist->SetBinError(bin,0);
+          //std::cout << "WAS nan: bin = " << bin << " set bin content: " << expVal << " +/- " << "0" << std::endl;
+        }
+        else
+        {
+          iasPredictionFixedHist->SetBinError(bin,absErr);
+          //std::cout << "bin = " << bin << " set bin content: " << expVal << " +/- " << absErr << std::endl;
+        }
+        //std::cout << "expVal=" << expVal << " par0Err=" << par0Err << " par1Err=" << par1Err << " cov=" << cov
+        //  << " xVal=" << xVal << std::endl;
       }
       delete myExp;
 
