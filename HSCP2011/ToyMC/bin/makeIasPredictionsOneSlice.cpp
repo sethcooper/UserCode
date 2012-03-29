@@ -678,7 +678,7 @@ int main(int argc, char ** argv)
       iasPredictionFixedHistTitle+=", mass > ";
       iasPredictionFixedHistTitle+=floatToString(massCutIasHighPHighIh_);
       iasPredictionFixedHistTitle+=" GeV";
-      TH1F* iasPredictionFixedHist = iasPredictionFixedBinsDir.make<TH1F>(iasPredictionFixedHistName.c_str(),iasPredictionFixedHistTitle.c_str(),100,0,1);
+      TH1D* iasPredictionFixedHist = iasPredictionFixedBinsDir.make<TH1D>(iasPredictionFixedHistName.c_str(),iasPredictionFixedHistTitle.c_str(),100,0,1);
       //TProfile* iasPredictionFixedHist = iasPredictionFixedBinsDir.make<TProfile>(iasPredictionFixedHistName.c_str(),iasPredictionFixedHistTitle.c_str(),100,0,1);
       //iasPredictionFixedHist->SetErrorOption("g");
       iasPredictionFixedHist->Sumw2();
@@ -699,7 +699,7 @@ int main(int argc, char ** argv)
       iasPointsAndFitHistTitle+=", mass > ";
       iasPointsAndFitHistTitle+=floatToString(massCutIasHighPHighIh_);
       iasPointsAndFitHistTitle+=" GeV";
-      TH1F* iasPointsAndFitHist = iasPredictionFixedBinsDir.make<TH1F>(iasPointsAndFitHistName.c_str(),iasPointsAndFitHistTitle.c_str(),100,0,1);
+      TH1D* iasPointsAndFitHist = iasPredictionFixedBinsDir.make<TH1D>(iasPointsAndFitHistName.c_str(),iasPointsAndFitHistTitle.c_str(),100,0,1);
       iasPointsAndFitHist->Sumw2();
       // mass prediction histogram in this NoM/eta bin
       std::string massPredictionFixedHistName = getHistNameBeg(nom,lowerEta);
@@ -718,7 +718,7 @@ int main(int argc, char ** argv)
       massPredictionFixedHistTitle+=", mass > ";
       massPredictionFixedHistTitle+=floatToString(massCutIasHighPHighIh_);
       massPredictionFixedHistTitle+=" GeV";
-      TH1F* massPredictionFixedHist = massPredictionFixedBinsDir.make<TH1F>(massPredictionFixedHistName.c_str(),massPredictionFixedHistTitle.c_str(),1000,0,5000);
+      TH1D* massPredictionFixedHist = massPredictionFixedBinsDir.make<TH1D>(massPredictionFixedHistName.c_str(),massPredictionFixedHistTitle.c_str(),1000,0,5000);
       massPredictionFixedHist->Sumw2();
       // success rate histogram in this NoM/eta bin
       std::string iasSuccessRateHistName = getHistNameBeg(nom,lowerEta);
@@ -891,36 +891,36 @@ int main(int argc, char ** argv)
         //std::cout << "Bin: " << bin << " Bk: " << Bk << " Ceff: " << ceffRegionTracksOverMassCutProfile->GetBinContent(bin)
         //  << " A: " << entriesInARegionNoM << " Bincontent: " << binContent << " +/- " << binError << std::endl;
       }
-
-      // mass prediction -- base on C region with lower Pt cut rather than Ceff without P cut
-      TH1F* etaCutNomCutBRegionIhHist = (TH1F*) etaCutNomCutBRegionDataSet->createHistogram("rooVarIh",5000);
-      TH1F* etaCutCRegionPHist = (TH1F*) etaCutCRegionDataSet->createHistogram("rooVarP",5000);
-      etaCutNomCutBRegionIhHist->Scale(1.0/etaCutNomCutBRegionIhHist->Integral());
-      etaCutCRegionPHist->Scale(1.0/etaCutCRegionPHist->Integral());
-      TH1F* massPredictionFixedTmpHist = (TH1F*) massPredictionFixedHist->Clone();
-      // loop over Ih values
-      for(int ihBin=1; ihBin < etaCutNomCutBRegionIhHist->GetNbinsX()+1; ++ihBin)
-      {
-        // loop over P values
-        for(int pBin=1; pBin < etaCutCRegionPHist->GetNbinsX()+1; ++pBin)
-        {
-          double prob = etaCutCRegionPHist->GetBinContent(pBin)*etaCutNomCutBRegionIhHist->GetBinContent(ihBin);
-          double thisIh = etaCutNomCutBRegionIhHist->GetBinCenter(ihBin);
-          double thisP = etaCutCRegionPHist->GetBinCenter(pBin);
-          double massSqr = (thisIh-dEdx_c)*pow(thisP,2)/dEdx_k;
-          if(massSqr >= 0)
-            massPredictionFixedTmpHist->Fill(sqrt(massSqr),prob);
-        }
-      }
-      double norm = etaCutNomCutBRegionDataSet->numEntries()
-        *etaCutCRegionDataSet->numEntries()/(double)etaCutARegionDataSet->numEntries();
-      for(int mBin=1; mBin < massPredictionFixedHist->GetNbinsX()+1; ++mBin)
-      {
-        massPredictionFixedHist->SetBinContent(mBin,massPredictionFixedTmpHist->GetBinContent(mBin)*norm);
-        // FIXME ERROR
-        massPredictionFixedHist->SetBinError(mBin,massPredictionFixedTmpHist->GetBinError(mBin)*norm);
-      }
-      // end mass
+//XXX SIC MASS
+//      // mass prediction -- base on C region with lower Pt cut rather than Ceff without P cut
+//      TH1F* etaCutNomCutBRegionIhHist = (TH1F*) etaCutNomCutBRegionDataSet->createHistogram("rooVarIh",5000);
+//      TH1F* etaCutCRegionPHist = (TH1F*) etaCutCRegionDataSet->createHistogram("rooVarP",5000);
+//      etaCutNomCutBRegionIhHist->Scale(1.0/etaCutNomCutBRegionIhHist->Integral());
+//      etaCutCRegionPHist->Scale(1.0/etaCutCRegionPHist->Integral());
+//      TH1F* massPredictionFixedTmpHist = (TH1F*) massPredictionFixedHist->Clone();
+//      // loop over Ih values
+//      for(int ihBin=1; ihBin < etaCutNomCutBRegionIhHist->GetNbinsX()+1; ++ihBin)
+//      {
+//        // loop over P values
+//        for(int pBin=1; pBin < etaCutCRegionPHist->GetNbinsX()+1; ++pBin)
+//        {
+//          double prob = etaCutCRegionPHist->GetBinContent(pBin)*etaCutNomCutBRegionIhHist->GetBinContent(ihBin);
+//          double thisIh = etaCutNomCutBRegionIhHist->GetBinCenter(ihBin);
+//          double thisP = etaCutCRegionPHist->GetBinCenter(pBin);
+//          double massSqr = (thisIh-dEdx_c)*pow(thisP,2)/dEdx_k;
+//          if(massSqr >= 0)
+//            massPredictionFixedTmpHist->Fill(sqrt(massSqr),prob);
+//        }
+//      }
+//      double norm = etaCutNomCutBRegionDataSet->numEntries()
+//        *etaCutCRegionDataSet->numEntries()/(double)etaCutARegionDataSet->numEntries();
+//      for(int mBin=1; mBin < massPredictionFixedHist->GetNbinsX()+1; ++mBin)
+//      {
+//        massPredictionFixedHist->SetBinContent(mBin,massPredictionFixedTmpHist->GetBinContent(mBin)*norm);
+//        // FIXME ERROR
+//        massPredictionFixedHist->SetBinError(mBin,massPredictionFixedTmpHist->GetBinError(mBin)*norm);
+//      }
+//      // end mass
 
 //XXX SIC MAR 1 new ias prediction
 //
