@@ -11,8 +11,10 @@ process.makeScaledPredictionHistograms = cms.PSet(
     MassCut = cms.double(XXX_MASSCUT_XXX),
     IntegratedLuminosity= cms.double(XXX_INTLUMI_XXX),
     BackgroundPredictionInputRootFile = cms.string("XXX_BGINPUTFILE_XXX"),
-    SignalInputRootFile = cms.string("XXX_SIGINPUTFILE_XXX"),
+    SignalLooseRPCInputRootFile = cms.string("XXX_SIGLOOSERPCINPUTFILE_XXX"),
+    SignalTightRPCInputRootFile = cms.string("XXX_SIGTIGHTRPCINPUTFILE_XXX"),
     OutputRootFile = cms.string("XXX_OUTPUTFILE_XXX"),
+    SignalCrossSection = cms.double(XXX_CROSSSECTION_XXX),
 
     IasCutForEfficiency = cms.double(XXX_IASCUT_XXX),
     UsePtForSideband = cms.bool(True),
