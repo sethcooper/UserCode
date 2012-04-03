@@ -450,6 +450,7 @@ int main(int argc, char ** argv)
   delete rooDataSetAll;
 
   double emptyBinVal = 1e-10;
+  int numIasBins = 20;
 
   int slicesToDo = (int)((10*etaMax_-10*etaMin_)/2.0)*(nomMax_-nomMin_+1)/2.0;
   int nomSlice = 0;
@@ -487,7 +488,7 @@ int main(int argc, char ** argv)
       std::string iasBRegionHistTitle = "Ias in B region for ";
       iasBRegionHistTitle+=getHistTitleBeg(nom,lowerEta,pSidebandThreshold,ihSidebandThreshold,ptSidebandThreshold,
           iasSidebandThreshold,usePtForSideband,useIasForSideband);
-      TH1F* iasBRegionHist = bRegionDir.make<TH1F>(iasBRegionHistName.c_str(),iasBRegionHistTitle.c_str(),100,0,1);
+      TH1F* iasBRegionHist = bRegionDir.make<TH1F>(iasBRegionHistName.c_str(),iasBRegionHistTitle.c_str(),numIasBins,0,1);
       // c region hist
       std::string cRegionHistName = getHistNameBeg(nom,lowerEta);
       cRegionHistName+="cRegionHist";
@@ -521,7 +522,7 @@ int main(int argc, char ** argv)
       ceffRegionTracksOverMassCutProfileTitle+="; Ias";
       TProfile* ceffRegionTracksOverMassCutProfile =
         cRegionDir.make<TProfile>(ceffRegionTracksOverMassCutProfileName.c_str(),
-            ceffRegionTracksOverMassCutProfileTitle.c_str(),100,0,1);
+            ceffRegionTracksOverMassCutProfileTitle.c_str(),numIasBins,0,1);
 
       // B region dataset
       std::string nomCutString = "rooVarNoMias==";
@@ -732,9 +733,7 @@ int main(int argc, char ** argv)
       iasPredictionFixedHistTitle+=", mass > ";
       iasPredictionFixedHistTitle+=floatToString(massCutIasHighPHighIh_);
       iasPredictionFixedHistTitle+=" GeV";
-      TH1D* iasPredictionFixedHist = iasPredictionFixedBinsDir.make<TH1D>(iasPredictionFixedHistName.c_str(),iasPredictionFixedHistTitle.c_str(),100,0,1);
-      //TProfile* iasPredictionFixedHist = iasPredictionFixedBinsDir.make<TProfile>(iasPredictionFixedHistName.c_str(),iasPredictionFixedHistTitle.c_str(),100,0,1);
-      //iasPredictionFixedHist->SetErrorOption("g");
+      TH1D* iasPredictionFixedHist = iasPredictionFixedBinsDir.make<TH1D>(iasPredictionFixedHistName.c_str(),iasPredictionFixedHistTitle.c_str(),numIasBins,0,1);
       iasPredictionFixedHist->Sumw2();
       // ias histogram points and fit in this NoM/eta bin
       std::string iasPointsAndFitHistName = getHistNameBeg(nom,lowerEta);
@@ -753,7 +752,7 @@ int main(int argc, char ** argv)
       iasPointsAndFitHistTitle+=", mass > ";
       iasPointsAndFitHistTitle+=floatToString(massCutIasHighPHighIh_);
       iasPointsAndFitHistTitle+=" GeV";
-      TH1D* iasPointsAndFitHist = iasPredictionFixedBinsDir.make<TH1D>(iasPointsAndFitHistName.c_str(),iasPointsAndFitHistTitle.c_str(),100,0,1);
+      TH1D* iasPointsAndFitHist = iasPredictionFixedBinsDir.make<TH1D>(iasPointsAndFitHistName.c_str(),iasPointsAndFitHistTitle.c_str(),numIasBins,0,1);
       iasPointsAndFitHist->Sumw2();
       // mass prediction histogram in this NoM/eta bin
       std::string massPredictionFixedHistName = getHistNameBeg(nom,lowerEta);
@@ -791,7 +790,7 @@ int main(int argc, char ** argv)
       iasSuccessRateHistTitle+=", mass > ";
       iasSuccessRateHistTitle+=floatToString(massCutIasHighPHighIh_);
       iasSuccessRateHistTitle+=" GeV";
-      TH1F* iasSuccessRateHist = successRateDir.make<TH1F>(iasSuccessRateHistName.c_str(),iasSuccessRateHistTitle.c_str(),100,0,1);
+      TH1F* iasSuccessRateHist = successRateDir.make<TH1F>(iasSuccessRateHistName.c_str(),iasSuccessRateHistTitle.c_str(),numIasBins,0,1);
       iasSuccessRateHist->Sumw2();
 
       std::cout << "Slice: eta=" << lowerEta << "-";
@@ -849,8 +848,8 @@ int main(int argc, char ** argv)
       ihMeanProfTitle+=floatToString(lowerEta+0.2);
       ihMeanProfTitle+=", mass > ";
       ihMeanProfTitle+=floatToString(massCutIasHighPHighIh_);
-      ihMeanProfTitle+=" GeV";
-      TProfile* ihMeanProf = ihMeanDir.make<TProfile>(ihMeanProfName.c_str(),ihMeanProfTitle.c_str(),100,0,1);
+      ihMeanProfTitle+=" GeV; Ias";
+      TProfile* ihMeanProf = ihMeanDir.make<TProfile>(ihMeanProfName.c_str(),ihMeanProfTitle.c_str(),numIasBins,0,1);
       // Min P cut mean in Ias bins histogram in this NoM/eta bin
       std::string minPCutMeanProfName = getHistNameBeg(nom,lowerEta);
       minPCutMeanProfName+="minPCutMeanProf";
@@ -867,8 +866,8 @@ int main(int argc, char ** argv)
       minPCutMeanProfTitle+=floatToString(lowerEta+0.2);
       minPCutMeanProfTitle+=", mass > ";
       minPCutMeanProfTitle+=floatToString(massCutIasHighPHighIh_);
-      minPCutMeanProfTitle+=" GeV";
-      TProfile* minPCutMeanProf = minPCutMeanDir.make<TProfile>(minPCutMeanProfName.c_str(),minPCutMeanProfTitle.c_str(),100,0,1);
+      minPCutMeanProfTitle+=" GeV; Ias";
+      TProfile* minPCutMeanProf = minPCutMeanDir.make<TProfile>(minPCutMeanProfName.c_str(),minPCutMeanProfTitle.c_str(),numIasBins,0,1);
 
       std::cout << "INFO doing slice ( " << (nomSlice-1)*(1+(nomMax_-nomMin_)/2)+etaSlice << " / " << slicesToDo <<
         " ): eta=" <<
