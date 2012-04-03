@@ -449,6 +449,8 @@ int main(int argc, char ** argv)
   //delete regionD1DataSet;
   delete rooDataSetAll;
 
+  double emptyBinVal = 1e-10;
+
   int slicesToDo = (int)((10*etaMax_-10*etaMin_)/2.0)*(nomMax_-nomMin_+1)/2.0;
   int nomSlice = 0;
   // loop over given nom/eta slices
@@ -816,6 +818,18 @@ int main(int argc, char ** argv)
           || etaCutARegionDataSet->numEntries() < 1)
       {
         std::cout << "WARNING: too few entries-not doing prediction for this slice" << std::endl;
+        // fill with "empty" bins
+        int firstIasBin = iasPredictionFixedHist->FindBin(iasSidebandThreshold);
+        for(int bin=firstIasBin; bin < iasPredictionFixedHist->GetNbinsX()+1; ++bin)
+        {
+          if(iasPredictionFixedHist->GetBinContent(bin) == 0)
+          {
+            iasPredictionFixedHist->SetBinContent(bin,emptyBinVal);
+            iasPredictionFixedHist->SetBinError(bin,sqrt(emptyBinVal));
+            iasPointsAndFitHist->SetBinContent(bin,emptyBinVal);
+            iasPointsAndFitHist->SetBinError(bin,sqrt(emptyBinVal));
+          }
+        }
         continue;
       }
 
@@ -1082,9 +1096,9 @@ int main(int argc, char ** argv)
       {
         if(iasPredictionFixedHist->GetBinContent(bin) == 0)
         {
-          iasPredictionFixedHist->SetBinContent(bin,1e-10);
+          iasPredictionFixedHist->SetBinContent(bin,emptyBinVal);
           iasPredictionFixedHist->SetBinError(bin,lastBinError);
-          iasPointsAndFitHist->SetBinContent(bin,1e-10);
+          iasPointsAndFitHist->SetBinContent(bin,emptyBinVal);
           iasPointsAndFitHist->SetBinError(bin,lastBinError);
         }
       }
@@ -1105,22 +1119,27 @@ int main(int argc, char ** argv)
       for(int bin=lastDecentStatsBin+1; bin <= iasPredictionFixedHist->GetNbinsX(); ++bin)
       {
         double expVal = myExp->Eval(iasPredictionFixedHist->GetBinCenter(bin));
-        iasPredictionFixedHist->SetBinContent(bin,expVal);
-        //iasPredictionFixedHist->SetBinError(bin,sqrt(myExp->Eval(iasPredictionFixedHist->GetBinCenter(bin))));
         double par0Err = myExp->GetParError(0);
         double par1Err = myExp->GetParError(1);
         double cov = r->CovMatrix(0,1);
         double xVal = iasPredictionFixedHist->GetBinCenter(bin);
         double absErr = sqrt(pow(expVal*par0Err,2)+pow(xVal*expVal*par1Err,2)+2*xVal*cov*pow(expVal,2));
-        if(isnan(absErr) && expVal < 1e-100)
+        if(isnan(absErr) && expVal < emptyBinVal)
         {
-          iasPredictionFixedHist->SetBinError(bin,0);
+          iasPredictionFixedHist->SetBinError(bin,emptyBinVal);
+          iasPredictionFixedHist->SetBinContent(bin,sqrt(emptyBinVal));
           //std::cout << "WAS nan: bin = " << bin << " set bin content: " << expVal << " +/- " << "0" << std::endl;
+        }
+        else if(expVal < emptyBinVal)
+        {
+          iasPredictionFixedHist->SetBinError(bin,emptyBinVal);
+          iasPredictionFixedHist->SetBinContent(bin,sqrt(emptyBinVal));
+          //std::cout << "bin = " << bin << " set bin content: " << expVal << " +/- " << absErr << std::endl;
         }
         else
         {
           iasPredictionFixedHist->SetBinError(bin,absErr);
-          //std::cout << "bin = " << bin << " set bin content: " << expVal << " +/- " << absErr << std::endl;
+          iasPredictionFixedHist->SetBinContent(bin,expVal);
         }
         //std::cout << "expVal=" << expVal << " par0Err=" << par0Err << " par1Err=" << par1Err << " cov=" << cov
         //  << " xVal=" << xVal << std::endl;

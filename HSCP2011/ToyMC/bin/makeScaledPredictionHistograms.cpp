@@ -1259,13 +1259,32 @@ int main(int argc, char ** argv)
   signalToyDataHist->Reset();
   signalToyDataHist->SetNameTitle("signalToyData","signal toy data");
   for(int bin=1; bin <= signalToyDataHist->GetNbinsX(); ++bin)
+  {
+    // set signal zero bins to small value
+    if(signalAllNoMAllEtaUnrolledHist->GetBinContent(bin)==0)
+      signalAllNoMAllEtaUnrolledHist->SetBinContent(bin,1e-10);
     signalToyDataHist->SetBinContent(bin,rand->Poisson(signalAllNoMAllEtaUnrolledHist->GetBinContent(bin)));
-  signalToyDataHist->Scale(signalCrossSectionForEff);  // scale by cross section
+  }
+  //signalToyDataHist->Scale(signalCrossSectionForEff);  // scale by cross section
+  signalToyDataHist->Scale(5.7e-3);
   // signal and background
   TH1D* signalAndBackgroundToyDataHist = (TH1D*) backgroundAllNoMAllEtaUnrolledHist->Clone();
   signalAndBackgroundToyDataHist->Reset();
   signalAndBackgroundToyDataHist->SetNameTitle("signalAndBackgroundToyDataHist","signal and background toy data");
   signalAndBackgroundToyDataHist->Add(backgroundToyDataHist,signalToyDataHist);
+
+  //check for zeros
+  for(int bin=1; bin <= backgroundAllNoMAllEtaUnrolledHist->GetNbinsX(); ++bin)
+  {
+    double bincToy = signalAndBackgroundToyDataHist->GetBinContent(bin);
+    double binc = backgroundAllNoMAllEtaUnrolledHist->GetBinContent(bin);
+    if(bincToy > 0)
+    {
+      std::cout << "bincToy=" << bincToy << " binc=" << binc << std::endl;
+      if(binc==0)
+        std::cout << "\tDetected bin where binc==0!" << std::endl;
+    }
+  }
 
   outputRootFile->cd();
   etaBRegionHist->Write();
