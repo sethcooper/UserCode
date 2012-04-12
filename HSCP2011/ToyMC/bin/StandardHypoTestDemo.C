@@ -41,7 +41,7 @@ using namespace RooStats;
 bool noSystematics = false;              // force all systematics to be off (i.e. set all nuisance parameters as constat
 double nToysRatio = 5;                   // ratio Ntoys Null/ntoys ALT
 //double poiValue = 1;                    // change poi snapshot value for S+B model
-double poiValue = 5e-3;
+//double poiValue = 1e-2;
 
 void StandardHypoTestDemo(const char* infile = "",
     const char* workspaceName = "combined",
@@ -50,11 +50,11 @@ void StandardHypoTestDemo(const char* infile = "",
     const char* dataName = "obsData", 
     int calcType = 0, // 0 freq 1 hybrid, 2 asymptotic
     int testStatType = 3,   // 0 LEP, 1 TeV, 2 LHC, 3 LHC - one sided
-    //int ntoys = 5000, 
-    int ntoys = 100000,
+    int ntoys = 25000,
     bool useNC = false, 
     const char * nuisPriorName = 0,
-    const char* outputFile = "")
+    const char* outputFile = "",
+    double poiValue = 1e-2)
 {
 
   if (calcType == 1) 
