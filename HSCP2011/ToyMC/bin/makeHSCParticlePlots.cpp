@@ -202,17 +202,24 @@ int main(int argc, char ** argv)
   // pt vs Ias
   TH2F* ptVsIasHist;
   std::string ptVsIasName = "trackPtvsIasSignal";
-  std::string ptVsIasTitle="Track Pt vs Ias (signal, trig, no presel)";
-  ptVsIasTitle+=";;GeV";
+  std::string ptVsIasTitle="Track Pt vs Ias (signal, trig, presel)";
+  ptVsIasTitle+=";Ias;GeV";
   ptVsIasHist = fs.make<TH2F>(ptVsIasName.c_str(),ptVsIasTitle.c_str(),400,0,1,200,0,1000);
   ptVsIasHist->Sumw2();
   // pt vs Ias -- mass cut
   TH2F* ptVsIasMassCutHist;
   std::string ptVsIasMassCutName = "trackPtvsIasMassCutSignal";
-  std::string ptVsIasMassCutTitle="Track Pt vs Ias after mass cut (signal, trig, no presel)";
-  ptVsIasMassCutTitle+=";;GeV";
+  std::string ptVsIasMassCutTitle="Track Pt vs Ias after mass cut (signal, trig, presel)";
+  ptVsIasMassCutTitle+=";Ias;GeV";
   ptVsIasMassCutHist = fs.make<TH2F>(ptVsIasMassCutName.c_str(),ptVsIasMassCutTitle.c_str(),400,0,1,200,0,1000);
   ptVsIasMassCutHist->Sumw2();
+  // p vs ih -- mass cut
+  TH2F* pVsIhMassCutHist;
+  std::string pVsIhMassCutName = "trackPvsIhMassCutSignal";
+  std::string pVsIhMassCutTitle="Track P vs Ih after mass cut (signal, trig, presel)";
+  pVsIhMassCutTitle+=";MeV/cm;GeV";
+  pVsIhMassCutHist = fs.make<TH2F>(pVsIhMassCutName.c_str(),pVsIhMassCutTitle.c_str(),400,0,20,200,0,1000);
+  pVsIhMassCutHist->Sumw2();
 
   PlotStruct afterPreselectionPlots(fs,"AfterPreselection","after preselection");
   PlotStruct beforePreselectionPlots(fs,"BeforePreselection","before preselection");
@@ -680,18 +687,22 @@ int main(int argc, char ** argv)
             rooVarP = trackP; // reset
           }
 
+          // apply preselections, not considering ToF
+          if(!passesPreselection(hscp,dedxSObj,dedxMObj,tof,dttof,csctof,ev,false,beforePreselectionPlots))
+            continue;
+
           if(isMC_)
           {
             ptVsIasHist->Fill(ias,trackPt);
             float massSqr = (ih-dEdx_c_)*pow(trackP,2)/dEdx_k_;
             if(sqrt(massSqr) >= massCutIasHighPHighIh_)
+            {
               ptVsIasMassCutHist->Fill(ias,trackPt);
+              pVsIhMassCutHist->Fill(ih,trackP);
+            }
           }
 
 
-          // apply preselections, not considering ToF
-          if(!passesPreselection(hscp,dedxSObj,dedxMObj,tof,dttof,csctof,ev,false,beforePreselectionPlots))
-            continue;
 
           numTracksPassingPreselection++;
           numTracksPassingPreselectionThisEvent++;

@@ -22,6 +22,8 @@ process.makeHSCParticlePlots = cms.PSet(
     IsMC = cms.bool(XXX_ISMC_XXX),
     MassCut = cms.double(XXX_MASSCUT_XXX),
     SignalEventCrossSection = cms.double(XXX_CROSSSECTION_XXX), #NLO, pb
+    IntegratedLumi = cms.double(XXX_INTEGRATEDLUMI_XXX),
+    IntegratedLumiBeforeTriggerChange = cms.double(XXX_INTEGRATEDLUMIBEFTRIGCHANGE_XXX),
 )
 
 #print 'Running with p threshold: ',

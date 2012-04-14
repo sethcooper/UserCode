@@ -11,7 +11,7 @@ import datetime
 from SignalDefinitions import *
 
 
-FarmDirBeg = "FARM_MakeHSCParticlePlots_Signals_absEta_ptErrorPresel_"
+FarmDirBeg = "FARM_MakeHSCParticlePlots_Signals_NewLumi_"
 now = datetime.datetime.now()
 Date = now.strftime("%b%d")
 BaseCfg = "makeHSCParticlePlots_template_cfg.py"
@@ -51,17 +51,25 @@ HSCParticlePlotsLaunch.SendCluster_Create(FarmDirBeg,JobsName)
 #DataInputFiles.append("    'file:/hdfs/cms/user/cooper/data/hscp/428/Data/HSCParticles_HSCP2011_PostEPS_Nov11/Data_RunA_178420_179411.root'")
 #DataInputFiles.append("    'file:/hdfs/cms/user/cooper/data/hscp/428/Data/HSCParticles_HSCP2011_PostEPS_Nov11/Data_RunA_179434_180252.root'")
 #for index,item in enumerate(DataInputFiles):
-#  HSCParticlePlotsLaunch.SendCluster_Push("Data2011_"+str(i), BaseCfg, i, DataCrossSection,
+#  HSCParticlePlotsLaunch.SendCluster_Push("Data2011_"+str(index), BaseCfg, item, DataCrossSection,
 #                      DataMassCut, DataIsMC, DataIsHSCP)
-#
+
 
 # SIGNAL MC
 HSCPisMC = "True"
 HSCPisHSCP = "True"
+IntLumiBefTrigChange = 352.067 #Total luminosity taken before RPC L1 trigger change (went into effect on run 165970)
+IntLumi = 4976 # 1/pb (2011, new pixel measurement)
+#
 for model in modelList:
-  fileName = SignalBasePath+model.name+'BX1.root'
+  fileName = SignalBasePath+model.name+"BX1.root'"
+  HSCParticlePlotsLaunch.SendCluster_Push(model.name+'BX1',BaseCfg,fileName,
+                                          model.crossSection,model.massCut,
+                                          IntLumi,IntLumiBefTrigChange,HSCPisMC,HSCPisHSCP)
+  fileName = SignalBasePath+model.name+".root'"
   HSCParticlePlotsLaunch.SendCluster_Push(model.name,BaseCfg,fileName,
-                                          model.crossSection,model.massCut,HSCPisMC,HSCPisHSCP)
+                                          model.crossSection,model.massCut,
+                                          IntLumi,IntLumiBefTrigChange,HSCPisMC,HSCPisHSCP)
 
 
 
