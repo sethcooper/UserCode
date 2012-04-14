@@ -449,8 +449,8 @@ int main(int argc, char ** argv)
   //delete regionD1DataSet;
   delete rooDataSetAll;
 
-  double emptyBinVal = 1e-10;
-  int numIasBins = 20;
+  double emptyBinVal = 1e-15;
+  int numIasBins = 50;
 
   int slicesToDo = (int)((10*etaMax_-10*etaMin_)/2.0)*(nomMax_-nomMin_+1)/2.0;
   int nomSlice = 0;
@@ -1125,15 +1125,15 @@ int main(int argc, char ** argv)
         double absErr = sqrt(pow(expVal*par0Err,2)+pow(xVal*expVal*par1Err,2)+2*xVal*cov*pow(expVal,2));
         if(isnan(absErr) && expVal < emptyBinVal)
         {
-          iasPredictionFixedHist->SetBinError(bin,emptyBinVal);
-          iasPredictionFixedHist->SetBinContent(bin,sqrt(emptyBinVal));
+          iasPredictionFixedHist->SetBinContent(bin,emptyBinVal);
+          iasPredictionFixedHist->SetBinError(bin,sqrt(emptyBinVal));
           //std::cout << "WAS nan: bin = " << bin << " set bin content: " << expVal << " +/- " << "0" << std::endl;
         }
         else if(expVal < emptyBinVal)
         {
-          iasPredictionFixedHist->SetBinError(bin,emptyBinVal);
-          iasPredictionFixedHist->SetBinContent(bin,sqrt(emptyBinVal));
-          //std::cout << "bin = " << bin << " set bin content: " << expVal << " +/- " << absErr << std::endl;
+          iasPredictionFixedHist->SetBinContent(bin,emptyBinVal);
+          iasPredictionFixedHist->SetBinError(bin,sqrt(emptyBinVal));
+          //std::cout << "expVal of " << expVal << " is less than " << emptyBinVal << "; bin = " << bin << " set bin content: " << emptyBinVal << " +/- " << sqrt(emptyBinVal) << std::endl;
         }
         else
         {
