@@ -27,7 +27,7 @@ Base_Cfg = ''
 Int_Lumi = 0
 Base_xml_channel = ''
 Base_xml_combined = ''
-Do_Bayesian = False
+Throw_Toys = False
 Condor = True
 Queue_Name = ''
 All_Slices = True
@@ -38,31 +38,49 @@ def CreateTheShellFile(modelName,inputFile,poiValue,index):
     global CopyRights
     global Jobs_Name
     global Base_macro
-    outputFile = 'doSignificance_'+modelName+'_poi'+str(poiValue)+'_'+str(index)+'.root'
-    Path_Shell = Farm_Directories[1]+Jobs_Name+modelName+'_poi'+str(poiValue)+'_'+str(index)+'.sh'
+    global Throw_Toys
+    if(Throw_Toys):
+      outputFile = 'doSignificance_'+modelName+'_poi'+str(poiValue)+'_'+str(index)+'.root'
+      Path_Shell = Farm_Directories[1]+Jobs_Name+modelName+'_poi'+str(poiValue)+'_'+str(index)+'.sh'
+    else:
+      outputFile = 'doSignificance_'+modelName+'_poi'+str(poiValue)+'_asymptotic.root'
+      Path_Shell = Farm_Directories[1]+Jobs_Name+modelName+'_poi'+str(poiValue)+'_asymptotic.sh'
     shell_file=open(Path_Shell,'w')
     shell_file.write('#!/bin/sh\n')
     shell_file.write(CopyRights + '\n')
     shell_file.write('# use later root\n')
     # CERN
-    shell_file.write('export SCRAM_ARCH=slc5_amd64_gcc434\n')
-    shell_file.write('source /afs/cern.ch/sw/lcg/external/gcc/4.3.2/x86_64-slc5/setup.sh\n')
-    shell_file.write('source /afs/cern.ch/sw/lcg/app/releases/ROOT/5.32.02/x86_64-slc5-gcc43-opt/root/bin/thisroot.sh\n')
+    #shell_file.write('export SCRAM_ARCH=slc5_amd64_gcc434\n')
+    #shell_file.write('source /afs/cern.ch/sw/lcg/external/gcc/4.3.2/x86_64-slc5/setup.sh\n')
+    #shell_file.write('source /afs/cern.ch/sw/lcg/app/releases/ROOT/5.33.02/x86_64-slc5-gcc43-opt/root/bin/thisroot.sh\n')
     # UMN
-    #shell_file.write('source /local/cms/user/cooper/root/bin/thisroot.sh\n')
+    shell_file.write('source /local/cms/user/cooper/root/bin/thisroot.sh\n')
     numToys = 25000
     shell_file.write('cd ' + os.getcwd() + '/' + Farm_Directories[4] + '\n')
-    shell_file.write('root -l -b -q "'+Base_macro
-      +'(\\"'
-      +inputFile
-      +'\\",\\"combined\\",\\"ModelConfig\\",\\"\\",\\"obsData\\",0,3,'
-      +str(numToys)
-      +',false,\\"\\",\\"'
-      +outputFile
-      +'\\",'
-      +str(poiValue)
-      +')"'
-      +'\n')
+    if(Throw_Toys):
+      shell_file.write('root -l -b -q "'+Base_macro
+        +'(\\"'
+        +inputFile
+        +'\\",\\"combined\\",\\"ModelConfig\\",\\"\\",\\"obsData\\",0,3,'
+        +str(numToys)
+        +',false,\\"\\",\\"'
+        +outputFile
+        +'\\",'
+        +str(poiValue)
+        +')"'
+        +'\n')
+    else:
+      shell_file.write('root -l -b -q "'+Base_macro
+        +'(\\"'
+        +inputFile
+        +'\\",\\"combined\\",\\"ModelConfig\\",\\"\\",\\"obsData\\",2,3,'
+        +str(numToys)
+        +',false,\\"\\",\\"'
+        +outputFile
+        +'\\",'
+        +str(poiValue)
+        +')"'
+        +'\n')
     #shell_file.write(Base_macro+' '+inputFile+' '+str(numToys)+' '+outputFile+' '+str(poiValue)+'\n')
     shell_file.write('mv ' + outputFile + ' ' + os.getcwd() + '/' + Farm_Directories[4] + '\n\n')
     shell_file.close()
@@ -108,12 +126,17 @@ def AddJobToCmdFile(modelName,inputFile,poiValue,index):
     global Jobs_Name
     global Condor
     global Queue_Name
+    global Throw_Toys
     #posLastUndsc = sigInputFile.rfind("_")
     #signalName = sigInputFile[posLastUndsc+1:len(sigInputFile)-5]
     #Path_Log   = os.getcwd()+'/'+Farm_Directories[2]+Jobs_Name+signalName+'_massCut'+`massCut`+'_ptCut'+`ptCut`+'_index'+str(index)
     #Path_Error   = os.getcwd()+'/'+Farm_Directories[3]+Jobs_Name+signalName+'_massCut'+`massCut`+'_ptCut'+`ptCut`+'_index'+str(index)
-    Path_Log   = os.getcwd()+'/'+Farm_Directories[2]+Jobs_Name+modelName+'_'+str(poiValue)+'_index'+str(index)
-    Path_Error   = os.getcwd()+'/'+Farm_Directories[3]+Jobs_Name+modelName+'_'+str(poiValue)+'_index'+str(index)
+    if(Throw_Toys):
+      Path_Log   = os.getcwd()+'/'+Farm_Directories[2]+Jobs_Name+modelName+'_'+str(poiValue)+'_index'+str(index)
+      Path_Error   = os.getcwd()+'/'+Farm_Directories[3]+Jobs_Name+modelName+'_'+str(poiValue)+'_index'+str(index)
+    else:
+      Path_Log   = os.getcwd()+'/'+Farm_Directories[2]+Jobs_Name+modelName+'_'+str(poiValue)+'_asymptotic'
+      Path_Error   = os.getcwd()+'/'+Farm_Directories[3]+Jobs_Name+modelName+'_'+str(poiValue)+'_asymptotic'
     cmd_file=open(Path_Cmd,'a')
     cmd_file.write('\n')
     if(Condor):
@@ -130,7 +153,7 @@ def AddJobToCmdFile(modelName,inputFile,poiValue,index):
       cmd_file.write(' -o %s' % Path_Log)
       cmd_file.write(' -e %s ' % Path_Error)
       cmd_file.write(os.getcwd() + '/' + Path_Shell + '\n')
-      cmd_file.write('sleep 1' + '\n')
+      cmd_file.write('sleep 15' + '\n')
     cmd_file.close()
 
 def CreateDirectoryStructure(FarmDirectory):
@@ -144,16 +167,18 @@ def CreateDirectoryStructure(FarmDirectory):
         if os.path.isdir(Farm_Directories[i]) == False:
             os.system('mkdir -p ' + Farm_Directories[i])
 
-def SendCluster_Create(FarmDirectory, jobName, baseMacro, doCondor, queueName):
+def SendCluster_Create(FarmDirectory, jobName, baseMacro, throwToys, doCondor, queueName):
     global Jobs_Name
     global Jobs_Count
     global Base_macro
+    global Throw_Toys
     global Farm_Directories
     global Condor
     global Queue_Name
     Jobs_Name  = jobName
     Jobs_Count = 0
     Base_macro = baseMacro
+    Throw_Toys = throwToys
     Condor = doCondor
     Queue_Name = queueName
     CreateDirectoryStructure(FarmDirectory)
@@ -163,11 +188,17 @@ def SendCluster_Create(FarmDirectory, jobName, baseMacro, doCondor, queueName):
 def SendCluster_Push(modelName,inputFile,poiValue):
     global Jobs_Count
     global Jobs_Index
+    global Throw_Toys
     Jobs_Index = "%04i" % Jobs_Count
-    for index in range(0,400):
-      CreateTheShellFile(modelName,inputFile,poiValue,index)
-      AddJobToCmdFile(modelName,inputFile,poiValue,index)
-      Jobs_Count = Jobs_Count+1
+    if(Throw_Toys):
+      for index in range(0,400):
+        CreateTheShellFile(modelName,inputFile,poiValue,index)
+        AddJobToCmdFile(modelName,inputFile,poiValue,index)
+        Jobs_Count = Jobs_Count+1
+    else:
+        CreateTheShellFile(modelName,inputFile,poiValue,0)
+        AddJobToCmdFile(modelName,inputFile,poiValue,0)
+        Jobs_Count = Jobs_Count+1
 
 def SendCluster_Submit():
     global CopyRights
