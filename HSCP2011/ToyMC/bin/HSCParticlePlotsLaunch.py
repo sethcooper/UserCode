@@ -24,7 +24,7 @@ Path_Log          = ''
 Path_Shell        = ''
 
 
-def CreateTheConfigFile(jobName, baseCfg, inputFile, crossSection, massCut,
+def CreateTheConfigFile(jobName, baseCfg, inputFile, crossSection, massCut, intLumi, intLumiBefTrigChange,
                         isMC, isHSCP):
     global CopyRights
     global Farm_Directories
@@ -45,16 +45,18 @@ def CreateTheConfigFile(jobName, baseCfg, inputFile, crossSection, massCut,
     config_txt = config_txt.replace("XXX_MASSCUT_XXX", str(massCut))
     config_txt = config_txt.replace("XXX_ISMC_XXX", isMC)
     config_txt = config_txt.replace("XXX_ISHSCP_XXX", isHSCP)
+    config_txt = config_txt.replace("XXX_INTEGRATEDLUMI_XXX" , str(intLumi))
+    config_txt = config_txt.replace("XXX_INTEGRATEDLUMIBEFTRIGCHANGE_XXX" , str(intLumiBefTrigChange))
 
     config_file=open(path_Cfg,'w')
     config_file.write(config_txt)
     config_file.close()
 
-def CreateTheShellFile(jobName,baseCfg,inputFile,crossSection,massCut,isMC,isHSCP):
+def CreateTheShellFile(jobName,baseCfg,inputFile,crossSection,massCut,intLumi,intLumiBefTrigChange,isMC,isHSCP):
     global Path_Shell
     global CopyRights
     global Jobs_Name
-    CreateTheConfigFile(jobName,baseCfg,inputFile,crossSection,massCut,isMC,isHSCP)
+    CreateTheConfigFile(jobName,baseCfg,inputFile,crossSection,massCut,intLumi,intLumiBefTrigChange,isMC,isHSCP)
     outputFile = Jobs_Name+jobName+'.root'
     path_Cfg   = Farm_Directories[1]+Jobs_Name+jobName+'_cfg.py'
     Path_Shell = Farm_Directories[1]+Jobs_Name+jobName+'.sh'
@@ -125,11 +127,11 @@ def SendCluster_Create(FarmDirectory,jobsName):
     CreateDirectoryStructure(FarmDirectory,jobsName)
     CreateTheCmdFile()
 
-def SendCluster_Push(jobName,baseCfg,inputFile,crossSection,massCut,isMC,isHSCP):
+def SendCluster_Push(jobName,baseCfg,inputFile,crossSection,massCut,intLumi,intLumiBefTrigChange,isMC,isHSCP):
     global Jobs_Count
     global Jobs_Index
     Jobs_Index = "%04i" % Jobs_Count
-    CreateTheShellFile(jobName,baseCfg,inputFile,crossSection,massCut,isMC,isHSCP)
+    CreateTheShellFile(jobName,baseCfg,inputFile,crossSection,massCut,intLumi,intLumiBefTrigChange,isMC,isHSCP)
     AddJobToCmdFile(jobName)
     Jobs_Count = Jobs_Count+1
 

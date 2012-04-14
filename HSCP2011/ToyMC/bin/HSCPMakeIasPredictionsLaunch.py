@@ -76,10 +76,10 @@ def CreateTheShellFile(massCut,etaMin,etaMax,nomMin,nomMax,ptThresh,iasThresh):
     shell_file.write('#!/bin/sh\n')
     shell_file.write(CopyRights + '\n')
     # if at UMN
-    #shell_file.write('source /local/cms/sw/cmsset_default.sh\n')
+    shell_file.write('source /local/cms/sw/cmsset_default.sh\n')
     # CERN
-    shell_file.write('export SCRAM_ARCH=slc5_amd64_gcc434\n')
-    shell_file.write('source /afs/cern.ch/cms/sw/cmsset_default.sh\n')
+    #shell_file.write('export SCRAM_ARCH=slc5_amd64_gcc434\n')
+    #shell_file.write('source /afs/cern.ch/cms/sw/cmsset_default.sh\n')
     #
     shell_file.write('cd ' + os.getcwd() + '\n')
     shell_file.write('eval `scramv1 runtime -sh`\n')
@@ -106,7 +106,7 @@ def CreateTheCmdFile():
       cmd_file.write('Universe                = vanilla\n')
       cmd_file.write('Environment             = CONDORJOBID=$(Process)\n')
       cmd_file.write('notification            = Error\n')
-      cmd_file.write('requirements            = (Memory > 1024)&&(Arch=?="X86_64")&&(Machine=!="zebra01.spa.umn.edu")&&(Machine=!="zebra02.spa.umn.edu")&&(Machine=!="zebra03.spa.umn.edu")\n')
+      cmd_file.write('requirements            = (Memory > 1024)&&(Arch=?="X86_64")&&(Machine=!="zebra01.spa.umn.edu")&&(Machine=!="zebra02.spa.umn.edu")&&(Machine=!="zebra03.spa.umn.edu")&&(Machine=!="caffeine.spa.umn.edu")\n')
       cmd_file.write('+CondorGroup            = "cmsfarm"\n')
       cmd_file.write('should_transfer_files   = NO\n')
       cmd_file.write('Notify_user = cooper@physics.umn.edu\n')

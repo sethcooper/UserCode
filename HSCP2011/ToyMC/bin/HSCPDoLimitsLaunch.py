@@ -53,21 +53,21 @@ def CreateTheShellFile(bgInputFile,sigInputFile,massCut,iasCut,ptCut,xSecMin,xSe
       shell_file.write(CopyRights + '\n')
       shell_file.write('# use later root\n')
       # CERN
-      shell_file.write('export SCRAM_ARCH=slc5_amd64_gcc434\n')
-      shell_file.write('source /afs/cern.ch/sw/lcg/external/gcc/4.3.2/x86_64-slc5/setup.sh\n')
-      shell_file.write('source /afs/cern.ch/sw/lcg/app/releases/ROOT/5.32.00/x86_64-slc5-gcc43-opt/root/bin/thisroot.sh\n')
+      #shell_file.write('export SCRAM_ARCH=slc5_amd64_gcc434\n')
+      #shell_file.write('source /afs/cern.ch/sw/lcg/external/gcc/4.3.2/x86_64-slc5/setup.sh\n')
+      #shell_file.write('source /afs/cern.ch/sw/lcg/app/releases/ROOT/5.32.00/x86_64-slc5-gcc43-opt/root/bin/thisroot.sh\n')
       # UMN
-      #shell_file.write('source /local/cms/user/cooper/root/bin/thisroot.sh\n')
-      shell_file.write('cd ' + os.getcwd() + '/' + Farm_Directories[0] + 'outputs/makeScaledPredictions/' + signalName + '\n')
+      shell_file.write('source /local/cms/user/cooper/root/bin/thisroot.sh\n')
+      shell_file.write('cd ' + os.getcwd() + '/' + Farm_Directories[0] + 'outputs/makeScaledPredictions/' + signalName + '_Limits' + '\n')
       shell_file.write('root -l -b -q "'+Base_macro
         +'(\\"hscp_combined_hscp_model.root\\",\\"combined\\",\\"ModelConfig\\",\\"asimovData\\",\\"'+outputFile+'\\")"'+'\n')
     else:
       # CLs
       # variables for limit setting
       #nPoints = 8 # per job
-      nPoints = 4 # per job
+      nPoints = 5 # per job
       #nToys = 1000 # per xSec trial point
-      nToys = 2000 # per xSec trial point
+      nToys = 4000 # per xSec trial point
       # end variables for limit setting
       outputFile = 'doLimits_'+signalName+'_massCut'+`massCut`+'_ptCut'+`ptCut`+'_index'+str(index)+'.root'
       Path_Shell = Farm_Directories[1]+Jobs_Name+signalName+'_massCut'+`massCut`+'_ptCut'+`ptCut`+'_index'+str(index)+'.sh'
@@ -76,17 +76,17 @@ def CreateTheShellFile(bgInputFile,sigInputFile,massCut,iasCut,ptCut,xSecMin,xSe
       shell_file.write(CopyRights + '\n')
       shell_file.write('# use later root\n')
       # CERN
-      shell_file.write('export SCRAM_ARCH=slc5_amd64_gcc434\n')
-      shell_file.write('source /afs/cern.ch/sw/lcg/external/gcc/4.3.2/x86_64-slc5/setup.sh\n')
-      shell_file.write('source /afs/cern.ch/sw/lcg/app/releases/ROOT/5.32.00/x86_64-slc5-gcc43-opt/root/bin/thisroot.sh\n')
+      #shell_file.write('export SCRAM_ARCH=slc5_amd64_gcc434\n')
+      #shell_file.write('source /afs/cern.ch/sw/lcg/external/gcc/4.3.2/x86_64-slc5/setup.sh\n')
+      #shell_file.write('source /afs/cern.ch/sw/lcg/app/releases/ROOT/5.32.00/x86_64-slc5-gcc43-opt/root/bin/thisroot.sh\n')
       # UMN
-      #shell_file.write('source /local/cms/user/cooper/root/bin/thisroot.sh\n')
-      shell_file.write('cd ' + os.getcwd() + '/' + Farm_Directories[0] + 'outputs/makeScaledPredictions/' + signalName + '\n')
+      shell_file.write('source /local/cms/user/cooper/root/bin/thisroot.sh\n')
+      shell_file.write('cd ' + os.getcwd() + '/' + Farm_Directories[0] + 'outputs/makeScaledPredictions/' + signalName + '_Limits' + '\n')
       shell_file.write('root -l -b -q "'+Base_macro
           # Frequentist calculator
-          #+'(\\"hscp_combined_hscp_model.root\\",\\"combined\\",\\"ModelConfig\\",\\"\\",\\"asimovData\\",0,3,true,'
+          +'(\\"hscp_combined_hscp_model.root\\",\\"combined\\",\\"ModelConfig\\",\\"\\",\\"asimovData\\",0,3,true,'
           # Hybrid calculator
-          +'(\\"hscp_combined_hscp_model.root\\",\\"combined\\",\\"ModelConfig\\",\\"\\",\\"asimovData\\",1,3,true,'
+          #+'(\\"hscp_combined_hscp_model.root\\",\\"combined\\",\\"ModelConfig\\",\\"\\",\\"asimovData\\",1,3,true,'
           #asymptCLs#+'(\\"hscp_combined_hscp_model.root\\",\\"combined\\",\\"ModelConfig\\",\\"\\",\\"asimovData\\",2,3,true,'
           +str(nPoints)+','
           +str(xSecMin)+','
@@ -121,8 +121,7 @@ def CreateTheCmdFile():
       cmd_file.write('Universe                = vanilla\n')
       cmd_file.write('Environment             = CONDORJOBID=$(Process)\n')
       cmd_file.write('notification            = Error\n')
-      #cmd_file.write('requirements            = (Memory > 512)&&(Arch=?="X86_64")\n')
-      cmd_file.write('requirements            = (Memory > 512)&&(Arch=?="X86_64")&&(Machine=!="zebra01.spa.umn.edu")&&(Machine=!="zebra02.spa.umn.edu")&&(Machine=!="zebra03.spa.umn.edu")\n')
+      cmd_file.write('requirements            = (Memory > 1024)&&(Arch=?="X86_64")&&(Machine=!="zebra01.spa.umn.edu")&&(Machine=!="zebra02.spa.umn.edu")&&(Machine=!="zebra03.spa.umn.edu")&&(Machine=!="caffeine.spa.umn.edu")\n')
       cmd_file.write('+CondorGroup            = "cmsfarm"\n')
       cmd_file.write('should_transfer_files   = NO\n')
       cmd_file.write('Notify_user = cooper@physics.umn.edu\n')
@@ -216,7 +215,7 @@ def SendCluster_Push(bgInputFilesBase,sigInputFile,massCut,iasCut,ptCut):
     else:
       xSecMin = 0.0001
       xSecMax = 0.025
-      nSteps = 100
+      nSteps = 50
       stepSize = (xSecMax-xSecMin)/nSteps
       for index in range(0,nSteps):
         xSecMinPt = xSecMin+index*stepSize

@@ -7,9 +7,9 @@ import glob
 import math
 from subprocess import call
 
-BaseDirPt50Ias0p1 = 'FARM_allData_lumiReweight_expFit_cutPt50GeVcutIas0.1_allSlices_Mar26'
+BaseDirPt50Ias0p1 = 'FARM_allData_noMass_emptyBins1e-10alsoSignal_20IasBins_cutPt50GeVcutIas0.1_allSlices_Apr03'
 BaseDirPt50IasStd = ''
-BaseDirPtStdIasStd = 'FARM_allData_lumiReweight_expFit_cutPtStdGeVcutIasStd_allSlices_Mar26'
+BaseDirPtStdIasStd = ''
 runCERN = False
 
 def GetModelName(fileName):
@@ -81,12 +81,19 @@ def GetBkOverIas(filePath):
     return 0.0
 
 def GetExpLimit(filePath):
-  for line in open(filePath):
-    if "95%" in line:
+  line = ''
+  for thisLine in open(filePath):
+    if "95%" in thisLine:
+      line = thisLine
       break
   #print filePath
+  #print line
   #print "limitFind=",line[line.find("0,")+2:line.find("]")-1]
-  return float(line[line.find("0,")+2:line.find("]")-1])
+  limitFind = line[line.find("0,")+2:line.find("]")-1]
+  if(len(limitFind) > 0):
+    return float(limitFind)
+  else:
+    return 0.0
   
 doPt50IasStd = True
 doPt50Ias0p1 = True
