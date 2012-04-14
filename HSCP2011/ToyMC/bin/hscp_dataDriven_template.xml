@@ -18,7 +18,7 @@
 
   <Input>XXX_INPUTFILE_XXX</Input>
 
-  <Measurement Name="hscp" Lumi="1.0" LumiRelErr="0.045" ExportOnly="False" >
+  <Measurement Name="hscp" Lumi="1.0" LumiRelErr="0.022" ExportOnly="False" >
     <POI>SigXsec</POI>
   </Measurement>
 

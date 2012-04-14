@@ -21,7 +21,7 @@
     <!-- <StatErrorConfig RelErrorThreshold="0.05" ConstraintType="Gaussian" /> -->
 
     <Sample Name="signal" HistoPath="" HistoName="signalAllNoMAllEtaUnrolledHist">
-      <NormFactor Name="SigXsec" Val="0.0" Low="0.0" High="1.0" Const="True" />
+      <NormFactor Name="SigXsec" Val="0.5" Low="0.00001" High="200.0" Const="True" />
     </Sample>
 
     <!-- Background  is completely DataDriven -->
