@@ -36,6 +36,7 @@ analyticalWithoutHistFactory()
   RooArgSet poi("poi");
   poi.add(sigXSec);
 
+  //XXX SIC TODO: switch to gluino1000 to be able to use the p-value plots I've already made
   // background pdf -- gluino1200 exp
   RooRealVar expoSlope("expoSlope","expoSlope",-0.2437);
   expoSlope.setConstant();
@@ -64,7 +65,7 @@ analyticalWithoutHistFactory()
   RooProdPdf bgOnlyModel("bgOnlyModel","bgOnlyModel",RooArgSet(lumiConstraint,backgroundOnly));
 
   // generate background-only data
-  RooDataSet* asimovDataSet = backgroundExp.generate(ias,RooFit::ExpectedData());
+  RooDataSet* asimovDataSet = bgOnlyModel.generate(ias,RooFit::ExpectedData());
   wspace->import(*asimovDataSet,Rename("AsimovData"));
 
   // create set of global observables (need to be defined as constants)
@@ -122,34 +123,43 @@ analyticalWithoutHistFactory()
   //profll.SetStrategy(2);
   //profll.SetTolerance(1e-10);
   //profll.SetPrintLevel(3);
-  //RooMsgService::instance().getStream(1).addTopic(Generation);
   // hists of test stat value
-  TH1F* bgDataTestStatHist = new TH1F("bgDataTestStat","BG-only data test stat",2500,0,2.5);
-  TH1F* sbDataTestStatHist = new TH1F("sbDataTestStat","SB data test stat",2500,0,2.5);
+  TH1F* bgDataTestStatHist = new TH1F("bgDataTestStat","BG-only data test stat",500,0,5);
+  TH1F* sbDataTestStatHist = new TH1F("sbDataTestStat","SB data test stat",500,0,5);
   double sigma1 = 0.002588;
   double sigma2 = 0.002714;
+  double sigma3 = 1e-3;
 
-  TH1* modelHistogram = model.createHistogram("ias",100);
-  modelHistogram->Scale(model.expectedEvents(ias));
+  //TH1* modelHistogram = model.createHistogram("ias",100);
+  //modelHistogram->Scale(model.expectedEvents(ias));
 
+
+  // test stat on data
+  sigXSec.setVal(sigma3);
+  RooMsgService::instance().getStream(1).addTopic(Generation);
+  RooAbsData* testData = model.generate(RooArgSet(ias,Lumi),Extended());
+  sigXSec.setVal(sigma1);
+  profll.SetPrintLevel(3);
+  double testStatOnData = profll.Evaluate(*testData,RooArgSet(sigXSec));
+  TH1F* dataTestStatHist = new TH1F("dataTestStat","SB data test stat",500,0,5);
+  dataTestStatHist->Fill(testStatOnData);
+  std::cout << "testStatOnData: " << testStatOnData << std::endl;
+
+  profll.SetPrintLevel(0);
+  RooMsgService::instance().setGlobalKillBelow(RooFit::WARNING);
   int numToys = 2000;
   for(int i=0; i < numToys; ++i)
   {
+    //
     sigXSec.setVal(sigma1);
-    //RooAbsData* lumiData = lumiConstraint.generate(RooArgSet(Lumi),1);
-    //RooArgSet* set = lumiData->get();
-    //RooRealVar* lData = set->find(Lumi.GetName());
-    //Lumi.setVal(lData->getVal());
-    RooAbsData* toySBData = model.generate(RooArgSet(ias),Extended());
-    //// select only datasets with >= 1 event
-    //if(toyData->numEntries()==0)
-    //  continue;
-    ////TH1* toyHist = toyData->createHistogram("ias",50);
+    RooAbsData* toySBData = model.generate(RooArgSet(ias,Lumi),Extended());
+    //TH1* toyHist = toyData->createHistogram("ias",50);
     sigXSec.setVal(sigma1);
     double testStatValue = profll.Evaluate(*toySBData,RooArgSet(sigXSec));
     sbDataTestStatHist->Fill(testStatValue);
+    // BG data
     sigXSec.setVal(0);
-    RooAbsData* toyBData = model.generate(RooArgSet(ias),Extended());
+    RooAbsData* toyBData = model.generate(RooArgSet(ias,Lumi),Extended());
     sigXSec.setVal(sigma1);
     testStatValue = profll.Evaluate(*toyBData,RooArgSet(sigXSec));
     bgDataTestStatHist->Fill(testStatValue);
@@ -168,5 +178,11 @@ analyticalWithoutHistFactory()
   sbDataTestStatHist->SetLineColor(kRed);
   sbDataTestStatHist->SetMarkerColor(kRed);
   sbDataTestStatHist->Draw("sames");
+  dataTestStatHist->Draw("sames");
+
+  double CLb = bgDataTestStatHist->Integral(bgDataTestStatHist->FindBin(testStatOnData),bgDataTestStatHist->GetNbinsX());
+  double CLsb = sbDataTestStatHist->Integral(sbDataTestStatHist->FindBin(testStatOnData),sbDataTestStatHist->GetNbinsX());
+  double CLs = CLsb/CLb;
+  std::cout << "CLs: " << CLs << std::endl;
 }
 
