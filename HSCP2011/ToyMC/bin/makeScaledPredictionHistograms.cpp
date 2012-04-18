@@ -375,7 +375,9 @@ int main(int argc, char ** argv)
     return -3;
   }
 
+  // can remove these and use only one loop
   vector<TH1D> bgHistsToUse;
+  vector<TH1D> dataHistsToUse;
   //vector<TH1F> bRegionHistsToUse;
   //vector<TH1F> cRegionHistsToUse;
 
@@ -384,6 +386,8 @@ int main(int argc, char ** argv)
   //string getHistName+="iasPredictionVarBinHist";
   string dirName="iasPredictionsFixedBins";
   string bgHistNameEnd="iasPredictionFixedHist";
+  string dataDirName="dRegionFixedBins";
+  string dataHistNameEnd="dRegionFixedHist";
 
   // look at BG predictions to determine unrolled hist binning
   for(int lowerNoM = minNoM; lowerNoM < maxNoM; lowerNoM+=2)
@@ -400,12 +404,19 @@ int main(int argc, char ** argv)
       fullPath+="/";
       fullPath+=getHistName;
 
-      iasBackgroundPredictionMassCutNoMSliceHist =
-        (TH1D*)backgroundPredictionRootFile->Get(fullPath.c_str());
+      TH1D* dRegionDataHist = 0;
+      string dataHistGetName = getHistNameBeg(lowerNoM,lowerEta);
+      dataHistGetName+=dataHistNameEnd;
+      string fullDataHistPath = dataDirName;
+      fullDataHistPath+="/";
+      fullDataHistPath+=dataHistGetName;
 
-      // do the rest if the hist is found and integral > 0
+      iasBackgroundPredictionMassCutNoMSliceHist = (TH1D*)backgroundPredictionRootFile->Get(fullPath.c_str());
+        
+      dRegionDataHist = (TH1D*)backgroundPredictionRootFile->Get(fullDataHistPath.c_str());
+
+      // do the rest if the BG hist is found, which should always be the case (so we can remove these vectors)
       if(iasBackgroundPredictionMassCutNoMSliceHist)
-          //&& iasBackgroundPredictionMassCutNoMSliceHist->Integral() > 0)
       {
         // set ias bins or check hist consistency
         if(numIasBins < 1)
@@ -423,6 +434,7 @@ int main(int argc, char ** argv)
         //  << " with integral = " << iasBackgroundPredictionMassCutNoMSliceHist->Integral()
         //  << " pushing onto the vector." << endl;
         bgHistsToUse.push_back(*iasBackgroundPredictionMassCutNoMSliceHist);
+        dataHistsToUse.push_back(*dRegionDataHist);
         // now get the b region hist
         //string getHistName = dirName;
         //getHistName+="/";
@@ -444,7 +456,8 @@ int main(int argc, char ** argv)
       {
         cout << "WARNING: no input found for this slice (histogram " <<
           fullPath << ") in file: " << backgroundPredictionRootFilename_ << ")." << 
-          " Excluded. " << endl;
+          " Excluded -- should not happen. " << endl;
+        return -11;
       }
       delete iasBackgroundPredictionMassCutNoMSliceHist;
       //delete bRegionHist;
@@ -453,7 +466,11 @@ int main(int argc, char ** argv)
   }
 
   // initialize the global unrolled hists
-  int numGlobalBins = numIasBins*bgHistsToUse.size();
+  //numIasBins-=iasCutForEffAcc*numIasBins;
+  //int numGlobalBins = (numIasBins-numIasBins*iasCutForEffAcc)*bgHistsToUse.size();
+  int binsToExclude = ceil(numIasBins*iasCutForEffAcc);
+  int numBinsEachSlice = numIasBins-binsToExclude;
+  int numGlobalBins = numBinsEachSlice*bgHistsToUse.size();
   int numMassBins = 1000;
   int numGlobalMassBins = numMassBins*bgHistsToUse.size();
   cout << "INFO: numIasBins = " << numIasBins << endl;
@@ -467,6 +484,8 @@ int main(int argc, char ** argv)
       "unrolled background hist (shape -1 sigma)",numGlobalBins,1,numGlobalBins+1);
   TH1D* signalAllNoMAllEtaUnrolledHist = new TH1D("signalAllNoMAllEtaUnrolledHist",
       "unrolled signal hist",numGlobalBins,1,numGlobalBins+1);
+  TH1D* dataAllNoMAllEtaUnrolledHist = new TH1D("dataAllNoMAllEtaUnrolledHist",
+      "unrolled data hist, D region",numGlobalBins,1,numGlobalBins+1);
   // mass
   TH1D* backgroundAllNoMAllEtaUnrolledMassHist = new TH1D("backgroundAllNoMAllEtaUnrolledMassHist",
       "unrolled background hist (mass)",numGlobalMassBins,1,numGlobalMassBins+1);
@@ -1026,12 +1045,12 @@ int main(int argc, char ** argv)
       numSignalTracksInDRegionPassingMassCutThisSlice/iasSignalMassCutNoMSliceHist->Integral() : 0;
     iasSignalMassCutNoMSliceHist->Scale(sigNormFactor);
 
-    //int thisNoMSlice = getNoMSliceFromLowerNoM(lowerNoM);
-    //int thisEtaSlice = getEtaSliceFromLowerEta(lowerEta);
+    // Fill unrolled histograms
     // loop over ias bins, fill unrolled hists
-    for(int iasBin=1; iasBin < numIasBins+1; ++iasBin)
+    int firstIasBin = binsToExclude+1;
+    for(int iasBin=firstIasBin; iasBin < numIasBins+1; ++iasBin)
     {
-      int globalBinIndex = iteratorPos*numIasBins+iasBin;
+      int globalBinIndex = iteratorPos*numBinsEachSlice+iasBin-firstIasBin+1;
       double binc = histItr->GetBinContent(iasBin);
       double bine = histItr->GetBinError(iasBin);
       backgroundAllNoMAllEtaUnrolledHist->SetBinContent(globalBinIndex,binc);
@@ -1050,6 +1069,12 @@ int main(int argc, char ** argv)
       bine = iasSignalMassCutNoMSliceHist->GetBinError(iasBin);
       signalAllNoMAllEtaUnrolledHist->SetBinContent(globalBinIndex,binc);
       signalAllNoMAllEtaUnrolledHist->SetBinError(globalBinIndex,bine);
+
+      // data D region
+      binc = dataHistsToUse[iteratorPos].GetBinContent(iasBin);
+      bine = dataHistsToUse[iteratorPos].GetBinError(iasBin);
+      dataAllNoMAllEtaUnrolledHist->SetBinContent(globalBinIndex,binc);
+      dataAllNoMAllEtaUnrolledHist->SetBinError(globalBinIndex,bine);
 
       //std::cout << "INFO: Filling signal hist: bin=" << globalBinIndex << " content=" << binc << " error=" << bine << std::endl;
     }
@@ -1075,6 +1100,7 @@ int main(int argc, char ** argv)
     outputRootFile->cd();
     //scaledBGPredDir->cd();
     histItr->Write();
+    dataHistsToUse[iteratorPos].Write();
     //normedSignalPredDir->cd();
     iasSignalMassCutNoMSliceHist->Write();
     if(doMass)
@@ -1262,11 +1288,11 @@ int main(int argc, char ** argv)
   {
     // set signal zero bins to small value
     if(signalAllNoMAllEtaUnrolledHist->GetBinContent(bin)==0)
-      signalAllNoMAllEtaUnrolledHist->SetBinContent(bin,1e-10);
+      signalAllNoMAllEtaUnrolledHist->SetBinContent(bin,1e-15);
     signalToyDataHist->SetBinContent(bin,rand->Poisson(signalAllNoMAllEtaUnrolledHist->GetBinContent(bin)));
   }
-  //signalToyDataHist->Scale(signalCrossSectionForEff);  // scale by cross section
-  signalToyDataHist->Scale(5.7e-3);
+  signalToyDataHist->Scale(signalCrossSectionForEff);  // scale by cross section
+  //signalToyDataHist->Scale(1e-4);
   // signal and background
   TH1D* signalAndBackgroundToyDataHist = (TH1D*) backgroundAllNoMAllEtaUnrolledHist->Clone();
   signalAndBackgroundToyDataHist->Reset();
@@ -1276,13 +1302,18 @@ int main(int argc, char ** argv)
   //check for zeros
   for(int bin=1; bin <= backgroundAllNoMAllEtaUnrolledHist->GetNbinsX(); ++bin)
   {
-    double bincToy = signalAndBackgroundToyDataHist->GetBinContent(bin);
     double binc = backgroundAllNoMAllEtaUnrolledHist->GetBinContent(bin);
-    if(bincToy > 0)
+    //double bincToy = signalAndBackgroundToyDataHist->GetBinContent(bin);
+    //if(bincToy > 0)
+    //{
+    //  std::cout << "bincToy=" << bincToy << " binc=" << binc << std::endl;
+    //  if(binc==0)
+    //    std::cout << "\tDetected bin where binc==0!" << std::endl;
+    //}
+    if(binc == 0)
     {
-      std::cout << "bincToy=" << bincToy << " binc=" << binc << std::endl;
-      if(binc==0)
-        std::cout << "\tDetected bin where binc==0!" << std::endl;
+      std::cout << "WARNING: binc==0 : bin " << bin << std::endl;
+      return -11;
     }
   }
 
@@ -1298,6 +1329,7 @@ int main(int argc, char ** argv)
   backgroundAllNoMAllEtaUnrolledPlusOneSigmaHist->Write();
   backgroundAllNoMAllEtaUnrolledMinusOneSigmaHist->Write();
   signalAllNoMAllEtaUnrolledHist->Write();
+  dataAllNoMAllEtaUnrolledHist->Write();
   if(doMass)
   {
     backgroundAllNoMAllEtaUnrolledMassHist->Write();
