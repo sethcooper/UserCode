@@ -287,6 +287,7 @@ int main(int argc, char ** argv)
   fwlite::TFileService fs = fwlite::TFileService((outputHandler_.file()+fileNameEnd).c_str());
   TFileDirectory successRateDir = fs.mkdir("successRates");
   TFileDirectory iasPredictionFixedBinsDir = fs.mkdir("iasPredictionsFixedBins");
+  TFileDirectory dRegionFixedBinsDir = fs.mkdir("dRegionFixedBins");
   TFileDirectory massPredictionFixedBinsDir = fs.mkdir("massPredictionsFixedBins");
   TFileDirectory iasPredictionVarBinsDir = fs.mkdir("iasPredictionsVariableBins");
   TFileDirectory aRegionDir = fs.mkdir("aRegionHistograms");
@@ -373,7 +374,7 @@ int main(int argc, char ** argv)
   iasSBcutString+=floatToString(iasSidebandThreshold);
   std::string iasSearchCutString = "rooVarIas>";
   iasSearchCutString+=floatToString(iasSidebandThreshold);
-  //XXX TESTING CUT OFF PT < 50
+  // TESTING CUT OFF PT < 50
   //RooDataSet* rooDataSetPtCut = (RooDataSet*) rooDataSetInput->reduce(Cut("rooVarPt>50"));
   //std::cout << "INFO: Applying minimum Pt cut of 50" << std::endl;
   RooDataSet* rooDataSetPtCut = (RooDataSet*) rooDataSetInput->Clone();
@@ -431,22 +432,16 @@ int main(int argc, char ** argv)
     //regionCDataSet = (RooDataSet*)pCutCDataSet->reduce(Cut(ihSBcutString.c_str()));
 
   std::cout << "INFO: " << regionCDataSet->numEntries() << " entries in total C region." << std::endl;
-  //XXX SIC MAR 2 -- define D region later using mass and ias cuts only
+  // SIC APR 14 -- define D region using mass and ias cuts only
   // no p cut needed since eff p cut is done by mass cut
-  //// D ==> search region, high P/Pt, high Ih
-  //RooDataSet* regionD1DataSet;
-  //RooDataSet* regionDDataSet;
-  //if(usePtForSideband)
-  //  regionD1DataSet = (RooDataSet*)rooDataSetAll->reduce(Cut(ptSearchCutString.c_str()));
-  //else
-  //  regionD1DataSet = (RooDataSet*)rooDataSetAll->reduce(Cut(pSearchCutString.c_str()));
-  //if(useIasForSideband)
-  //  regionDDataSet = (RooDataSet*)regionD1DataSet->reduce(Cut(iasSearchCutString.c_str()),
-  //        SelectVars(RooArgSet(rooVarP,rooVarEta,rooVarNoMias)));
-  //else
-  //  regionDDataSet = (RooDataSet*)regionD1DataSet->reduce(Cut(ihSearchCutString.c_str()),
-  //        SelectVars(RooArgSet(rooVarP,rooVarEta,rooVarNoMias)));
-  //delete regionD1DataSet;
+  // D ==> search region, high dE/dx; apply mass cut later
+  RooDataSet* highDeDxDataSet;
+  if(useIasForSideband)
+    highDeDxDataSet = (RooDataSet*)rooDataSetAll->reduce(Cut(iasSearchCutString.c_str()),
+          SelectVars(RooArgSet(rooVarP,rooVarEta,rooVarNoMias,rooVarIas,rooVarIh)));
+  else
+    highDeDxDataSet = (RooDataSet*)rooDataSetAll->reduce(Cut(ihSearchCutString.c_str()),
+          SelectVars(RooArgSet(rooVarP,rooVarEta,rooVarNoMias,rooVarIas,rooVarIh)));
   delete rooDataSetAll;
 
   double emptyBinVal = 1e-15;
@@ -462,17 +457,6 @@ int main(int argc, char ** argv)
     for(float lowerEta = etaMin_; lowerEta < etaMax_; lowerEta+=0.2)
     {
       etaSlice++;
-      //double successRateSumsInIasBins[100];
-      //double successRateCountsInIasBins[100];
-      //double successRateLastErrorInIasBins[100];
-      //double ihSumsInIasBins[100];
-      //for(int i=0; i<100; ++i)
-      //{
-      //  successRateLastErrorInIasBins[i]=0;
-      //  successRateCountsInIasBins[i]=0;
-      //  successRateSumsInIasBins[i]=0;
-      //  ihSumsInIasBins[i]=0;
-      //}
 
       // book histograms -- b region
       std::string bRegionHistName = getHistNameBeg(nom,lowerEta);
@@ -535,7 +519,7 @@ int main(int argc, char ** argv)
       etaCutString+=floatToString(lowerEta);
       etaCutString+="&&rooVarEta<";
       std::string upperEtaLimit;
-      ////XXX TESTING eta 1.5 max
+      //// eta 1.5 max
       //cout << "lowerEta = " << lowerEta << " 10*lowerEta = " << ((int)10*lowerEta) << " 10*lowerEta==14? " <<
       //  (((int)10*lowerEta)==14) << endl;
       //if(10*lowerEta==14)
@@ -561,10 +545,10 @@ int main(int argc, char ** argv)
       // dE/dx SB data set cut in eta --> used for Ceff region later
       RooDataSet* etaCutDeDxSBDataSet = (RooDataSet*)dedxSBDataSet->reduce(Cut(etaCutString.c_str()),
           SelectVars(RooArgSet(rooVarP)));
-      // D region dataset
-      //RooDataSet* nomCutDRegionDataSet = (RooDataSet*)regionDDataSet->reduce(Cut(nomCutString.c_str()),
-      //    SelectVars(RooArgSet(rooVarP,rooVarEta)));
-      //RooDataSet* etaCutNomCutDRegionDataSet = (RooDataSet*)nomCutDRegionDataSet->reduce(Cut(etaCutString.c_str()));
+      // High dE/dx dataset
+      RooDataSet* nomCutHighDeDxDataSet = (RooDataSet*)highDeDxDataSet->reduce(Cut(nomCutString.c_str()),
+          SelectVars(RooArgSet(rooVarP,rooVarEta,rooVarIh,rooVarIas)));
+      RooDataSet* etaCutNomCutHighDeDxDataSet = (RooDataSet*)nomCutHighDeDxDataSet->reduce(Cut(etaCutString.c_str()));
       // A region dataset
       RooDataSet* etaCutARegionDataSet = (RooDataSet*)regionADataSet->reduce(Cut(etaCutString.c_str()),
           SelectVars(RooArgSet(rooVarPt,rooVarEta,rooVarIh,rooVarNoMias)));
@@ -577,7 +561,7 @@ int main(int argc, char ** argv)
       //debug/output
       std::cout << "eta=" <<
         lowerEta << "-";
-      //XXX TESTING eta 1.5 max
+      // eta 1.5 max
       //if(10*lowerEta==14)
       //  std::cout << "1.5";
       //else
@@ -773,28 +757,29 @@ int main(int argc, char ** argv)
       massPredictionFixedHistTitle+=" GeV";
       TH1D* massPredictionFixedHist = massPredictionFixedBinsDir.make<TH1D>(massPredictionFixedHistName.c_str(),massPredictionFixedHistTitle.c_str(),1000,0,5000);
       massPredictionFixedHist->Sumw2();
-      // success rate histogram in this NoM/eta bin
-      std::string iasSuccessRateHistName = getHistNameBeg(nom,lowerEta);
-      iasSuccessRateHistName+="iasSuccessRateHist";
-      std::string iasSuccessRateHistTitle = "Ias success rate for nom ";
-      iasSuccessRateHistTitle+=intToString(nom);
-      iasSuccessRateHistTitle+="-";
+      // success rate histogram in this NoM/eta bin -- removed APR 14
+      // ias D region histogram in this NoM/eta bin
+      std::string dRegionFixedHistName = getHistNameBeg(nom,lowerEta);
+      dRegionFixedHistName+="dRegionFixedHist";
+      std::string dRegionFixedHistTitle = "Ias data in D region for ";
+      dRegionFixedHistTitle+=intToString(nom);
+      dRegionFixedHistTitle+="-";
       if(nom==21)
-        iasSuccessRateHistTitle+="end";
+        dRegionFixedHistTitle+="end";
       else
-        iasSuccessRateHistTitle+=intToString(nom+1);
-      iasSuccessRateHistTitle+=", ";
-      iasSuccessRateHistTitle+=floatToString(lowerEta);
-      iasSuccessRateHistTitle+=" < |#eta| < ";
-      iasSuccessRateHistTitle+=floatToString(lowerEta+0.2);
-      iasSuccessRateHistTitle+=", mass > ";
-      iasSuccessRateHistTitle+=floatToString(massCutIasHighPHighIh_);
-      iasSuccessRateHistTitle+=" GeV";
-      TH1F* iasSuccessRateHist = successRateDir.make<TH1F>(iasSuccessRateHistName.c_str(),iasSuccessRateHistTitle.c_str(),numIasBins,0,1);
-      iasSuccessRateHist->Sumw2();
+        dRegionFixedHistTitle+=intToString(nom+1);
+      dRegionFixedHistTitle+=", ";
+      dRegionFixedHistTitle+=floatToString(lowerEta);
+      dRegionFixedHistTitle+=" < |#eta| < ";
+      dRegionFixedHistTitle+=floatToString(lowerEta+0.2);
+      dRegionFixedHistTitle+=", mass > ";
+      dRegionFixedHistTitle+=floatToString(massCutIasHighPHighIh_);
+      dRegionFixedHistTitle+=" GeV";
+      TH1D* dRegionFixedHist = dRegionFixedBinsDir.make<TH1D>(dRegionFixedHistName.c_str(),dRegionFixedHistTitle.c_str(),numIasBins,0,1);
+      dRegionFixedHist->Sumw2();
 
       std::cout << "Slice: eta=" << lowerEta << "-";
-      //XXX TESTING eta 1.5 max
+      // eta 1.5 max -- applied above
       if(10*lowerEta==14)
         std::cout << "1.5";
       else
@@ -810,6 +795,25 @@ int main(int argc, char ** argv)
         " entries in C region (summed over NoM) and " << etaCutARegionDataSet->numEntries() <<
         " entries in A region (summed over NoM)" << endl <<
         " C/A = " << etaCutCRegionDataSet->numEntries()/(double)etaCutARegionDataSet->numEntries() << std::endl;
+
+      // fill D region hist
+      const RooArgSet* argSet_highDeDx = etaCutNomCutHighDeDxDataSet->get();
+      RooRealVar* ihData_highDeDx = (RooRealVar*)argSet_highDeDx->find(rooVarIh.GetName());
+      RooRealVar* iasData_highDeDx = (RooRealVar*)argSet_highDeDx->find(rooVarIas.GetName());
+      RooRealVar* pData_highDeDx = (RooRealVar*)argSet_highDeDx->find(rooVarP.GetName());
+      for(int index=0; index < etaCutNomCutHighDeDxDataSet->numEntries(); ++index)
+      {
+        etaCutNomCutHighDeDxDataSet->get(index);
+        double thisIh = ihData_highDeDx->getVal();
+        double thisIas = iasData_highDeDx->getVal();
+        double thisP = pData_highDeDx->getVal();
+        if(thisIas < 0) continue; // require ias >= 0
+        double massSqr = (thisIh-dEdx_c)*pow(thisP,2)/dEdx_k;
+        if(sqrt(massSqr) > massCutIasHighPHighIh_)
+          dRegionFixedHist->Fill(thisIas);
+      }
+      delete etaCutNomCutHighDeDxDataSet;
+      delete nomCutHighDeDxDataSet;
 
       // require at least 1 entry in each dataset to do prediction
       //if(etaCutNomCutBRegionDataSet->numEntries() < 1 || etaCutCRegionDataSet->numEntries() < 1)
@@ -898,24 +902,6 @@ int main(int argc, char ** argv)
         }
         double minMomPassMass = sqrt(momSqr);
         int numMomPassingMass = etaCutDeDxSBPHist->Integral(etaCutDeDxSBPHist->FindBin(minMomPassMass),etaCutDeDxSBPHist->GetNbinsX()+1);
-        //RooDataSet* momPassDataSet = (RooDataSet*)etaCutCRegionDataSet->reduce(Cut(("rooVarP>"+floatToString(minMomPassMass)).c_str()),
-        //    SelectVars(rooVarP));
-        // let C region go below the Pt threshold
-        //RooDataSet* momPassDataSet = (RooDataSet*)etaCutDeDxSBDataSet->reduce(Cut(("rooVarP>"+floatToString(minMomPassMass)).c_str()),
-        //    SelectVars(rooVarP));
-        //int numMomPassingMass = momPassDataSet->numEntries();
-        //delete momPassDataSet;
-        //RooDataSet* momFailDataSet = (RooDataSet*)etaCutCRegionDataSet->reduce(Cut(("rooVarP<"+floatToString(minMomPassMass)).c_str()),
-        //    SelectVars(rooVarP));
-        //int numMomFailingMass = momFailDataSet->numEntries();
-        //delete momFailDataSet;
-        //int total = numMomPassingMass+numMomFailingMass;
-        //double successRate = numMomPassingMass/(double)total;
-        //double successRateError = sqrt(successRate*(1-successRate)/(double)total);
-        //successRateSumsInIasBins[iasPredictionFixedHist->FindBin(thisIas)-1]+=successRate;
-        //successRateCountsInIasBins[iasPredictionFixedHist->FindBin(thisIas)-1]++;
-        //FIXME?
-        //successRateLastErrorInIasBins[iasPredictionFixedHist->FindBin(thisIas)-1]=successRateError;
         ceffRegionTracksOverMassCutProfile->Fill(thisIas,numMomPassingMass);
         ihMeanProf->Fill(thisIas,thisIh);
         minPCutMeanProf->Fill(thisIas,minMomPassMass);
@@ -927,52 +913,9 @@ int main(int argc, char ** argv)
         //    " CtracksTotal: " << etaCutCRegionDataSet->numEntries() << std::endl;
         //}
         
-        //if(nom==11 && (int)(lowerEta*10)==4)
-        //{
-        //std::cout << "numMomPassingMass: " << numMomPassingMass << " numMomFailingMass: " <<
-        //  numMomFailingMass << " minMomPassMass:" << minMomPassMass << " thisIh: " << thisIh << std::endl;
-        //std::cout << "ias: " << thisIas << " successRate: " << successRate << " successRateError:"
-        //  << successRateError << " trials:"  << total << std::endl;
-        //}
       }
 
-      //// fill the success rate histogram
-      //for(int i=0; i<100; ++i)
-      //{
-      //  if(successRateCountsInIasBins[i] > 0)
-      //  {
-      //    iasSuccessRateHist->SetBinContent(i+1,successRateSumsInIasBins[i]/successRateCountsInIasBins[i]);
-      //    iasSuccessRateHist->SetBinError(i+1,successRateLastErrorInIasBins[i]);
-      //    //debug
-      //    if(i+1==12)
-      //      std::cout << "ias: " << iasSuccessRateHist->GetBinCenter(i+1) << 
-      //        " trials in this ias bin (B_k): " << successRateCountsInIasBins[i] <<
-      //        " successRate avg (Cj/C): " << successRateSumsInIasBins[i]/successRateCountsInIasBins[i] << 
-      //        " C_NoM = " << etaCutCRegionDataSet->numEntries() <<
-      //        //" 28.36 (C region ratio)*successRate: " << 28.36*successRateSumsInIasBins[i]/successRateCountsInIasBins[i] <<
-      //        std::endl;
-      //  }
-      //}
 
-      //TODO: move to scaling code
-    ////XXX test histogram for particular slice
-    //if(lowerNoM==11 && (int)(lowerEta*10)==4)
-    //{
-    //  cout << "INFO: Rescaling this slice to 0.3 of nominal. " << endl;
-    //  for(int bin=1; bin<=histItr->GetNbinsX();++bin)
-    //  {
-    //    double binc = 0.3*histItr->GetBinContent(bin);
-    //    double bine = 0.3*histItr->GetBinError(bin);
-    //    histItr->SetBinContent(bin,binc);
-    //    histItr->SetBinError(bin,bine);
-    //  }
-    //}
-
-      // multiply by the original ias in this slice before mass cut
-      //iasPredictionFixedHist->Multiply(iasBRegionHist,iasSuccessRateHist);
-      //iasPredictionFixedHist->Multiply(iasBRegionHist,iasSuccessRateHist,
-      //    etaCutCRegionDataSet->numEntries()/(double)etaCutARegionDataSet->numEntries());
-      //std::cout << "Scaling by C_NoM/A_NoM = " << etaCutCRegionDataSet->numEntries()/(double)etaCutARegionDataSet->numEntries() << std::endl;
       double entriesInARegionNoM = etaCutARegionDataSet->numEntries();
       for(int bin=1; bin <= ceffRegionTracksOverMassCutProfile->GetNbinsX(); ++bin)
       {
@@ -989,7 +932,7 @@ int main(int argc, char ** argv)
         //  << " A: " << entriesInARegionNoM << " Bincontent: " << binContent << " +/- " << binError << std::endl;
       }
 
-//XXX MASS
+// MASS
 //      // mass prediction -- base on C region with lower Pt cut rather than Ceff without P cut
 //      TH1F* etaCutNomCutBRegionIhHist = (TH1F*) etaCutNomCutBRegionDataSet->createHistogram("rooVarIh",5000);
 //      TH1F* etaCutCRegionPHist = (TH1F*) etaCutCRegionDataSet->createHistogram("rooVarP",5000);
@@ -1081,7 +1024,7 @@ int main(int argc, char ** argv)
 //        //}
 //      }
 
-//XXX do exp fit
+// do exp fit
       // find the last bin with more than 15 entries
       std::cout << "INFO: Doing exp fit" << std::endl;
       int lastDecentStatsBin = iasBRegionHist->FindLastBinAbove(15.0);
@@ -1113,8 +1056,6 @@ int main(int argc, char ** argv)
       }
       TMatrixDSym m = r->GetCovarianceMatrix();
       m.Print();
-      //XXX testing sic
-      //std::cout << "covMatrix element 0,1 --> " << r->CovMatrix(0,1) << std::endl;
       for(int bin=lastDecentStatsBin+1; bin <= iasPredictionFixedHist->GetNbinsX(); ++bin)
       {
         double expVal = myExp->Eval(iasPredictionFixedHist->GetBinCenter(bin));
