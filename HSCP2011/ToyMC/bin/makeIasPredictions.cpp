@@ -444,7 +444,7 @@ int main(int argc, char ** argv)
           SelectVars(RooArgSet(rooVarP,rooVarEta,rooVarNoMias,rooVarIas,rooVarIh)));
   delete rooDataSetAll;
 
-  double emptyBinVal = 1e-15;
+  double emptyBinVal = 1e-25;
   int numIasBins = 50;
 
   int slicesToDo = (int)((10*etaMax_-10*etaMin_)/2.0)*(nomMax_-nomMin_+1)/2.0;
