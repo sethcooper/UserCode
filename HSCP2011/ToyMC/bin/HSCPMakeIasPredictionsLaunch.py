@@ -177,6 +177,7 @@ def SendCluster_Create(farmDirectory, jobName, inputRootFile, baseCfg,
       Init = False
       CreateDirectoryStructure(farmDirectory)
       CreateTheCmdFile()
+    # if this splitting is changed, have to change checkForIasPredictions function in Launch.py
     if(allSlices):
       for etaIndex in range(0,16,4):
         for nomIndex in range(5,22,4):
