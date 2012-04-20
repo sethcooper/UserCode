@@ -31,6 +31,7 @@ Do_Bayesian = False
 Condor = True
 Queue_Name = ''
 All_Slices = True
+Expected_Limits = True
 
 
 def CreateTheShellFile(bgInputFile,sigInputFile,massCut,iasCut,ptCut,xSecMin,xSecMax,index):
@@ -39,15 +40,22 @@ def CreateTheShellFile(bgInputFile,sigInputFile,massCut,iasCut,ptCut,xSecMin,xSe
     global Jobs_Name
     global Base_macro
     global Do_Bayesian
+    global Expected_Limits
     posLastUndsc = sigInputFile.rfind("_")
     signalName = sigInputFile[posLastUndsc+1:len(sigInputFile)-5]
     #endRemoved = sigInputFile[0:posLastUndsc]
     #posLastUndsc = endRemoved.rfind("_")
     #signalName = endRemoved[posLastUndsc+1:len(endRemoved)]
     #print signalName
+    if(Expected_Limits):
+      dataName = 'asimovData'
+      prepend = 'expected_'
+    else:
+      dataName = 'obsData'
+      prepend = ''
     if(Do_Bayesian):
-      outputFile = 'doLimits_'+signalName+'_massCut'+`massCut`+'_ptCut'+`ptCut`+'_bayesian.root'
-      Path_Shell = Farm_Directories[1]+Jobs_Name+signalName+'_massCut'+`massCut`+'_ptCut'+`ptCut`+'_bayesian.sh'
+      outputFile = 'doLimits_'+prepend+signalName+'_massCut'+`massCut`+'_ptCut'+`ptCut`+'_bayesian.root'
+      Path_Shell = Farm_Directories[1]+Jobs_Name+prepend+signalName+'_massCut'+`massCut`+'_ptCut'+`ptCut`+'_bayesian.sh'
       shell_file=open(Path_Shell,'w')
       shell_file.write('#!/bin/sh\n')
       shell_file.write(CopyRights + '\n')
@@ -58,19 +66,18 @@ def CreateTheShellFile(bgInputFile,sigInputFile,massCut,iasCut,ptCut,xSecMin,xSe
       #shell_file.write('source /afs/cern.ch/sw/lcg/app/releases/ROOT/5.32.00/x86_64-slc5-gcc43-opt/root/bin/thisroot.sh\n')
       # UMN
       shell_file.write('source /local/cms/user/cooper/root/bin/thisroot.sh\n')
-      shell_file.write('cd ' + os.getcwd() + '/' + Farm_Directories[0] + 'outputs/makeScaledPredictions/' + signalName + '_Limits' + '\n')
+      shell_file.write('cd ' + os.getcwd() + '/' + Farm_Directories[0] + 'outputs/makeScaledPredictions/' + signalName + '\n')
       shell_file.write('root -l -b -q "'+Base_macro
-        +'(\\"hscp_combined_hscp_model.root\\",\\"combined\\",\\"ModelConfig\\",\\"asimovData\\",\\"'+outputFile+'\\")"'+'\n')
+        +'(\\"hscp_combined_hscp_model.root\\",\\"combined\\",\\"ModelConfig\\",\\"'+dataName+'\\",\\"'+outputFile+'\\")"'+'\n')
     else:
       # CLs
       # variables for limit setting
       #nPoints = 8 # per job
-      nPoints = 5 # per job
-      #nToys = 1000 # per xSec trial point
-      nToys = 4000 # per xSec trial point
+      nPoints = 6 # per job
+      nToys = 2000 # per xSec trial point
       # end variables for limit setting
-      outputFile = 'doLimits_'+signalName+'_massCut'+`massCut`+'_ptCut'+`ptCut`+'_index'+str(index)+'.root'
-      Path_Shell = Farm_Directories[1]+Jobs_Name+signalName+'_massCut'+`massCut`+'_ptCut'+`ptCut`+'_index'+str(index)+'.sh'
+      outputFile = 'doLimits_'+prepend+signalName+'_massCut'+`massCut`+'_ptCut'+`ptCut`+'_index'+str(index)+'.root'
+      Path_Shell = Farm_Directories[1]+Jobs_Name+prepend+signalName+'_massCut'+`massCut`+'_ptCut'+`ptCut`+'_index'+str(index)+'.sh'
       shell_file=open(Path_Shell,'w')
       shell_file.write('#!/bin/sh\n')
       shell_file.write(CopyRights + '\n')
@@ -81,13 +88,13 @@ def CreateTheShellFile(bgInputFile,sigInputFile,massCut,iasCut,ptCut,xSecMin,xSe
       #shell_file.write('source /afs/cern.ch/sw/lcg/app/releases/ROOT/5.32.00/x86_64-slc5-gcc43-opt/root/bin/thisroot.sh\n')
       # UMN
       shell_file.write('source /local/cms/user/cooper/root/bin/thisroot.sh\n')
-      shell_file.write('cd ' + os.getcwd() + '/' + Farm_Directories[0] + 'outputs/makeScaledPredictions/' + signalName + '_Limits' + '\n')
+      shell_file.write('cd ' + os.getcwd() + '/' + Farm_Directories[0] + 'outputs/makeScaledPredictions/' + signalName + '\n')
       shell_file.write('root -l -b -q "'+Base_macro
           # Frequentist calculator
-          +'(\\"hscp_combined_hscp_model.root\\",\\"combined\\",\\"ModelConfig\\",\\"\\",\\"asimovData\\",0,3,true,'
+          +'(\\"hscp_combined_hscp_model.root\\",\\"combined\\",\\"ModelConfig\\",\\"\\",\\"'+dataName+'\\",0,3,true,'
           # Hybrid calculator
-          #+'(\\"hscp_combined_hscp_model.root\\",\\"combined\\",\\"ModelConfig\\",\\"\\",\\"asimovData\\",1,3,true,'
-          #asymptCLs#+'(\\"hscp_combined_hscp_model.root\\",\\"combined\\",\\"ModelConfig\\",\\"\\",\\"asimovData\\",2,3,true,'
+          #+'(\\"hscp_combined_hscp_model.root\\",\\"combined\\",\\"ModelConfig\\",\\"\\",\\"'+dataName+'\\",1,3,true,'
+          #asymptCLs#+'(\\"hscp_combined_hscp_model.root\\",\\"combined\\",\\"ModelConfig\\",\\"\\",\\"'+dataName+'\\",2,3,true,'
           +str(nPoints)+','
           +str(xSecMin)+','
           +str(xSecMax)+','
@@ -108,7 +115,11 @@ def CreateTheCmdFile():
     global Farm_Directories
     global Condor
     global Queue_Name
-    Path_Cmd   = Farm_Directories[0]+Jobs_Name+'submit.sh'
+    global Expected_Limits
+    if(Expected_Limits):
+      Path_Cmd   = Farm_Directories[0]+Jobs_Name+'expected_submit.sh'
+    else:
+      Path_Cmd   = Farm_Directories[0]+Jobs_Name+'submit.sh'
     cmd_file=open(Path_Cmd,'w')
     if(Condor):
       cmd_file.write(CopyRights + '\n')
@@ -140,18 +151,23 @@ def AddJobToCmdFile(massCut,ptCut,sigInputFile,index):
     global Do_Bayesian
     global Condor
     global Queue_Name
+    global Expected_Limits
     #posLastUndsc = sigInputFile.rfind("_")
     #endRemoved = sigInputFile[0:posLastUndsc]
     #posLastUndsc = endRemoved.rfind("_")
     #signalName = endRemoved[posLastUndsc+1:len(endRemoved)]
     posLastUndsc = sigInputFile.rfind("_")
     signalName = sigInputFile[posLastUndsc+1:len(sigInputFile)-5]
-    if(Do_Bayesian):
-      Path_Log   = os.getcwd()+'/'+Farm_Directories[2]+Jobs_Name+signalName+'_massCut'+`massCut`+'_ptCut'+`ptCut`+'_bayesian'
-      Path_Error   = os.getcwd()+'/'+Farm_Directories[3]+Jobs_Name+signalName+'_massCut'+`massCut`+'_ptCut'+`ptCut`+'_bayesian'
+    if(Expected_Limits):
+      prepend = 'expected_'
     else:
-      Path_Log   = os.getcwd()+'/'+Farm_Directories[2]+Jobs_Name+signalName+'_massCut'+`massCut`+'_ptCut'+`ptCut`+'_index'+str(index)
-      Path_Error   = os.getcwd()+'/'+Farm_Directories[3]+Jobs_Name+signalName+'_massCut'+`massCut`+'_ptCut'+`ptCut`+'_index'+str(index)
+      prepend = ''
+    if(Do_Bayesian):
+      Path_Log   = os.getcwd()+'/'+Farm_Directories[2]+Jobs_Name+prepend+signalName+'_massCut'+`massCut`+'_ptCut'+`ptCut`+'_bayesian'
+      Path_Error   = os.getcwd()+'/'+Farm_Directories[3]+Jobs_Name+prepend+signalName+'_massCut'+`massCut`+'_ptCut'+`ptCut`+'_bayesian'
+    else:
+      Path_Log   = os.getcwd()+'/'+Farm_Directories[2]+Jobs_Name+prepend+signalName+'_massCut'+`massCut`+'_ptCut'+`ptCut`+'_index'+str(index)
+      Path_Error   = os.getcwd()+'/'+Farm_Directories[3]+Jobs_Name+prepend+signalName+'_massCut'+`massCut`+'_ptCut'+`ptCut`+'_index'+str(index)
     cmd_file=open(Path_Cmd,'a')
     cmd_file.write('\n')
     if(Condor):
@@ -181,7 +197,7 @@ def CreateDirectoryStructure(FarmDirectory):
         if os.path.isdir(Farm_Directories[i]) == False:
             os.system('mkdir -p ' + Farm_Directories[i])
 
-def SendCluster_Create(FarmDirectory, jobName, intLumi, baseMacro, doBayesian,
+def SendCluster_Create(FarmDirectory, jobName, intLumi, baseMacro, doBayesian, doExpLimits,
                         doCondor, queueName):
     global Jobs_Name
     global Jobs_Count
@@ -189,6 +205,7 @@ def SendCluster_Create(FarmDirectory, jobName, intLumi, baseMacro, doBayesian,
     global Int_Lumi
     global Farm_Directories
     global Do_Bayesian
+    global Expected_Limits
     global Condor
     global Queue_Name
     Jobs_Name  = jobName
@@ -196,6 +213,7 @@ def SendCluster_Create(FarmDirectory, jobName, intLumi, baseMacro, doBayesian,
     Base_macro = baseMacro
     Int_Lumi=intLumi
     Do_Bayesian=doBayesian
+    Expected_Limits=doExpLimits
     Condor = doCondor
     Queue_Name = queueName
     CreateDirectoryStructure(FarmDirectory)
@@ -214,8 +232,8 @@ def SendCluster_Push(bgInputFilesBase,sigInputFile,massCut,iasCut,ptCut):
       Jobs_Count = Jobs_Count+1
     else:
       xSecMin = 0.0001
-      xSecMax = 0.025
-      nSteps = 50
+      xSecMax = 0.01
+      nSteps = 40 # gets multiplied by points/job later
       stepSize = (xSecMax-xSecMin)/nSteps
       for index in range(0,nSteps):
         xSecMinPt = xSecMin+index*stepSize
