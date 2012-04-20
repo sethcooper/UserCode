@@ -76,8 +76,8 @@ modelList.extend([Stop130,Stop200,Stop300,Stop400,Stop500,Stop600,Stop700,Stop80
 #modelList.extend([StopN130,StopN200,StopN300,StopN400,StopN500,StopN600,StopN700,StopN800])
 modelList.extend([GMStau100,GMStau126,GMStau156,GMStau200,GMStau247,GMStau308,GMStau370,GMStau432,GMStau494])
 #modelList.extend([PPStau100,PPStau126,PPStau156,PPStau200,PPStau247,PPStau308])
-modelList.extend([PPStau100,PPStau126,PPStau156,PPStau247,PPStau308])
+#modelList.extend([PPStau100,PPStau126,PPStau156,PPStau247,PPStau308])
 
 
-SignalBasePath = 'file:/hdfs/cms/user/cooper/data/hscp/428/Data/HSCParticles_HSCP2011_PostEPS_Nov11/'
+SignalBasePath = "    'file:/hdfs/cms/user/cooper/data/hscp/428/Data/HSCParticles_HSCP2011_PostEPS_Nov11/"
 
