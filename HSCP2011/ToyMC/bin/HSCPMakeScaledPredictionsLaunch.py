@@ -66,7 +66,7 @@ def CreateTheXMLFiles(signalName,inputFile,massCut,ptCut):
     XMLcombined_file.close()
 
 
-def CreateTheConfigFile(bgInputFile,sigInputFile,massCut,iasCut,ptCut,signalName):
+def CreateTheConfigFile(bgInputFile,sigLooseInputFile,sigTightInputFile,massCut,iasCut,ptCut,signalName,crossSection):
     global Jobs_Name
     global Jobs_Index
     global Jobs_Count
@@ -83,19 +83,21 @@ def CreateTheConfigFile(bgInputFile,sigInputFile,massCut,iasCut,ptCut,signalName
 
     #Default Replacements
     config_txt = config_txt.replace("XXX_BGINPUTFILE_XXX", bgInputFile)
-    config_txt = config_txt.replace("XXX_SIGINPUTFILE_XXX", sigInputFile)
+    config_txt = config_txt.replace("XXX_SIGLOOSERPCINPUTFILE_XXX", sigLooseInputFile)
+    config_txt = config_txt.replace("XXX_SIGTIGHTRPCINPUTFILE_XXX", sigTightInputFile)
     config_txt = config_txt.replace("XXX_OUTPUTFILE_XXX"        , outputFile)
     config_txt = config_txt.replace("XXX_MASSCUT_XXX"        , `massCut`)
     config_txt = config_txt.replace("XXX_IASCUT_XXX"        , str(iasCut))
     config_txt = config_txt.replace("XXX_INTLUMI_XXX"        , str(Int_Lumi))
     config_txt = config_txt.replace("XXX_PTTHRESH_XXX"       , str(ptCut))
+    config_txt = config_txt.replace("XXX_CROSSSECTION_XXX"       , str(crossSection))
 
     config_file=open(Path_Cfg,'w')
     config_file.write(config_txt)
     config_file.close()
 
 
-def CreateTheShellFile(bgInputFile,sigInputFile,modelName,massCut,iasCut,ptCut):
+def CreateTheShellFile(bgInputFile,sigLooseInputFile,sigTightInputFile,modelName,massCut,iasCut,ptCut,crossSection):
     global Path_Shell
     global CopyRights
     global Jobs_Name
@@ -103,7 +105,7 @@ def CreateTheShellFile(bgInputFile,sigInputFile,modelName,massCut,iasCut,ptCut):
     global All_Slices
     signalName = modelName
     outputFile = 'makeScaledPredictionHistograms_'+signalName+'_massCut'+`massCut`+'_ptCut'+`ptCut`+'.root'
-    CreateTheConfigFile(bgInputFile,sigInputFile,massCut,iasCut,ptCut,signalName)
+    CreateTheConfigFile(bgInputFile,sigLooseInputFile,sigTightInputFile,massCut,iasCut,ptCut,signalName,crossSection)
     CreateTheXMLFiles(signalName,outputFile,massCut,ptCut)
     Path_Shell = Farm_Directories[1]+Jobs_Name+signalName+'_massCut'+`massCut`+'_ptCut'+`ptCut`+'.sh'
     combXMLFilename = 'hscp_dataDriven_'+signalName+'_massCut'+`massCut`+'_ptCut'+`ptCut`+'.xml'
@@ -114,9 +116,9 @@ def CreateTheShellFile(bgInputFile,sigInputFile,modelName,massCut,iasCut,ptCut):
     shell_file.write('#!/bin/sh\n')
     shell_file.write(CopyRights + '\n')
     # CERN
-    shell_file.write('export SCRAM_ARCH=slc5_amd64_gcc434\n')
+    #shell_file.write('export SCRAM_ARCH=slc5_amd64_gcc434\n')
     # UMN
-    #shell_file.write('source /local/cms/sw/cmsset_default.sh\n')
+    shell_file.write('source /local/cms/sw/cmsset_default.sh\n')
     shell_file.write('cd ' + os.getcwd() + '\n')
     shell_file.write('eval `scramv1 runtime -sh`\n')
     shell_file.write('cd -\n')
@@ -127,10 +129,11 @@ def CreateTheShellFile(bgInputFile,sigInputFile,modelName,massCut,iasCut,ptCut):
     shell_file.write('mv ' + outputFile + ' ' + os.getcwd() + '/' + Farm_Directories[4] + '\n\n')
     shell_file.write('# switch to later root\n')
     # CERN
-    shell_file.write('source /afs/cern.ch/sw/lcg/external/gcc/4.3.2/x86_64-slc5/setup.sh\n')
-    shell_file.write('source /afs/cern.ch/sw/lcg/app/releases/ROOT/5.32.00/x86_64-slc5-gcc43-opt/root/bin/thisroot.sh\n')
+    #shell_file.write('source /afs/cern.ch/sw/lcg/external/gcc/4.3.2/x86_64-slc5/setup.sh\n')
+    #shell_file.write('source /afs/cern.ch/sw/lcg/app/releases/ROOT/5.32.00/x86_64-slc5-gcc43-opt/root/bin/thisroot.sh\n')
     # UMN
-    #shell_file.write('source /local/cms/user/cooper/root/bin/thisroot.sh\n')
+    shell_file.write('source /local/cms/user/cooper/root/bin/thisroot.sh\n')
+    #
     shell_file.write('cd ' + os.getcwd() + '/' + Farm_Directories[4] + '\n')
     shell_file.write('mkdir ' + signalName + '\n')
     shell_file.write('cd ' + signalName + '\n')
@@ -150,18 +153,12 @@ def CreateTheCmdFile():
     global Condor
     Path_Cmd   = Farm_Directories[0]+Jobs_Name+'submit.sh'
     cmd_file=open(Path_Cmd,'w')
-    #cmd_file.write('cd ' + os.getcwd() + Farm_Directories[1] + '\n')
-    #cmd_file.write('# init root and prepare histfactory\n')
-    #cmd_file.write('source /afs/cern.ch/sw/lcg/external/gcc/4.3.2/x86_64-slc5/setup.sh\n')
-    #cmd_file.write('source /afs/cern.ch/sw/lcg/app/releases/ROOT/5.32.00/x86_64-slc5-gcc43-opt/root/bin/thisroot.sh\n')
-    #cmd_file.write('prepareHistFactory\n')
-    #cmd_file.write('cd -\n\n')
     if(Condor):
       cmd_file.write(CopyRights + '\n')
       cmd_file.write('Universe                = vanilla\n')
       cmd_file.write('Environment             = CONDORJOBID=$(Process)\n')
       cmd_file.write('notification            = Error\n')
-      cmd_file.write('requirements            = (Memory > 512)&&(Arch=?="X86_64")\n')
+      cmd_file.write('requirements            = (Memory > 1024)&&(Arch=?="X86_64")&&(Machine=!="zebra01.spa.umn.edu")&&(Machine=!="zebra02.spa.umn.edu")&&(Machine=!="zebra03.spa.umn.edu")&&(Machine=!="caffeine.spa.umn.edu")\n')
       cmd_file.write('+CondorGroup            = "cmsfarm"\n')
       cmd_file.write('should_transfer_files   = NO\n')
       cmd_file.write('Notify_user = cooper@physics.umn.edu\n')
@@ -173,7 +170,7 @@ def CreateTheCmdFile():
       cmd_file.write('# list all bsub commands' + '\n')
     cmd_file.close()
 
-def AddJobToCmdFile(massCut,ptCut,modelName,sigInputFile):
+def AddJobToCmdFile(massCut,ptCut,modelName):
     global Path_Shell
     global Path_Cmd
     global Jobs_Name
@@ -241,13 +238,13 @@ def SendCluster_Create(farmDirectory, jobName, intLumi, baseCfg,
     #    SendCluster_Push(massCut)
 
 
-def SendCluster_Push(bgInputFilesBase,sigInputFile,modelName,massCut,iasCut,ptCut):
+def SendCluster_Push(bgInputFilesBase,sigLooseInputFile,sigTightInputFile,modelName,massCut,iasCut,ptCut,crossSection):
     global Jobs_Count
     global Jobs_Index
     Jobs_Index = "%04i" % Jobs_Count
     bgInputFile = bgInputFilesBase+`massCut`+'_ptCut'+`ptCut`+'_ias'+str(iasCut)+'.root'
-    CreateTheShellFile(bgInputFile,sigInputFile,modelName,massCut,iasCut,ptCut)
-    AddJobToCmdFile(massCut,ptCut,modelName,sigInputFile)
+    CreateTheShellFile(bgInputFile,sigLooseInputFile,sigTightInputFile,modelName,massCut,iasCut,ptCut,crossSection)
+    AddJobToCmdFile(massCut,ptCut,modelName)
     Jobs_Count = Jobs_Count+1
 
 def SendCluster_Submit():
