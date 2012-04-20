@@ -57,10 +57,12 @@ void StandardHypoTestDemo(const char* infile = "",
     double poiValue = 1e-2)
 {
 
-  if (calcType == 1) 
-    ToyMCSampler::SetAlwaysUseMultiGen(false);
-  else
-    ToyMCSampler::SetAlwaysUseMultiGen(true);
+  //if (calcType == 1) 
+  //  ToyMCSampler::SetAlwaysUseMultiGen(false);
+  //else
+  //  ToyMCSampler::SetAlwaysUseMultiGen(true);
+  //SIC APR 20 -- never use multigen
+  ToyMCSampler::SetAlwaysUseMultiGen(false);
 
   SimpleLikelihoodRatioTestStat::SetAlwaysReuseNLL(true);
   RooRandom::randomGenerator()->SetSeed(0);
@@ -267,6 +269,8 @@ void StandardHypoTestDemo(const char* infile = "",
 
   ToyMCSampler * sampler = (ToyMCSampler *)hypoCalc->GetTestStatSampler();
   if (useNC) sampler->SetNEventsPerToy(1); 
+  // SIC APR 20 -- never use multigen
+  sampler->SetUseMultiGen(false);
 
 
   if (testStatType == 0) sampler->SetTestStatistic(slrts); 
