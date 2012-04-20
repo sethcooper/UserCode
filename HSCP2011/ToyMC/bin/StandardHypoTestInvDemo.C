@@ -660,6 +660,8 @@ RooStats::HypoTestInvTool::RunInverter(RooWorkspace * w,
    }
   
   
+   ToyMCSampler::SetAlwaysUseMultiGen(false);
+
    ToyMCSampler *toymcs = (ToyMCSampler*)hc->GetTestStatSampler();
    if (toymcs) { 
       if (useNumberCounting) toymcs->SetNEventsPerToy(1);
@@ -670,7 +672,9 @@ RooStats::HypoTestInvTool::RunInverter(RooWorkspace * w,
       }
       toymcs->SetGenerateBinned(mGenerateBinned);
     
-      toymcs->SetUseMultiGen(mOptimize);
+      // SIC APR 20 -- don't use multigen
+      //toymcs->SetUseMultiGen(mOptimize);
+      toymcs->SetUseMultiGen(false);
     
       if (mGenerateBinned &&  sbModel->GetObservables()->getSize() > 2) { 
          Warning("StandardHypoTestInvDemo","generate binned is activated but the number of ovservable is %d. Too much memory could be needed for allocating all the bins",sbModel->GetObservables()->getSize() );
@@ -770,6 +774,7 @@ RooStats::HypoTestInvTool::RunInverter(RooWorkspace * w,
       std::cout << "Doing an  automatic scan  in interval : " << poi->getMin() << " , " << poi->getMax() << std::endl;
    }
   
+   
    tw.Start();
    HypoTestInverterResult * r = calc.GetInterval();
    std::cout << "Time to perform limit scan \n";
