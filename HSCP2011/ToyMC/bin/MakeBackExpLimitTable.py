@@ -7,7 +7,7 @@ import glob
 import math
 from subprocess import call
 
-BaseDirPt50Ias0p1 = 'FARM_allData_noMass_emptyBins1e-10alsoSignal_20IasBins_cutPt50GeVcutIas0.1_allSlices_Apr03'
+BaseDirPt50Ias0p1 = 'FARM_includeDRegion_NewLumi_50IasBins_cutPt50GeVcutIas0.1_allSlices_Apr14'
 BaseDirPt50IasStd = ''
 BaseDirPtStdIasStd = ''
 runCERN = False
@@ -127,8 +127,12 @@ if(doPt50IasStd):
   fileListLimitsPt50IasStd.sort()
 doLimitsDirPt50Ias0p1 = BaseDirPt50Ias0p1+'/logs/doLimits/'
 if(doPt50Ias0p1):
-  fileListLimitsPt50Ias0p1 = os.listdir(doLimitsDirPt50Ias0p1)
-  fileListLimitsPt50Ias0p1.sort()
+  try:
+    fileListLimitsPt50Ias0p1 = os.listdir(doLimitsDirPt50Ias0p1)
+    fileListLimitsPt50Ias0p1.sort()
+  except OSError:
+    fileListLimitsPt50Ias0p1 = []
+    
 print
 #print 'FarmDirectory =',BaseDir
 titleString = string.ljust('Model',15)+string.ljust('Pt',8)+string.ljust('Ias',10)+string.center('Mass',8)+string.center('BackExpOverIas',30)
