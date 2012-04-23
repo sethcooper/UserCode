@@ -20,8 +20,9 @@ Date = now.strftime("%b%d")
 AllSlices = True
 RunCondor = True
 BayesianLimit = False
-ThrowToysSignificance = True
 DoMass = False
+ModelListToys = [GMStau100,GMStau432,Gluino300,Gluino900,Stop130,Stop700]
+PoiList = [6e-3,5e-3,4e-3,3e-3,2e-3,1e-3]
 QueueName = '8nh'
 ## FOR NOW, CutPt=Std means CutIas Std also!
 #CutPt = 'Std'
@@ -29,17 +30,18 @@ CutPt = 50
 #CutIas = 'Std'
 CutIas = 0.1
 
-FarmDirectory = 'FARM_dReg_NL_50IasBins_emptyBins1e-25_stepsFix_'
-FarmDirectory+='cutPt'
-#
-FarmDirectory+=str(CutPt)
-FarmDirectory+='GeVcutIas'
-FarmDirectory+=str(CutIas)
-if(AllSlices):
-  FarmDirectory+='_allSlices_'
-else:
-  FarmDirectory+='_oneSlice_'
-FarmDirectory+=Date
+FarmDirectory = 'FARM_dReg_NL_50IasBins_emptyBins1e-25_stepsFix_cutPt50GeVcutIas0.1_allSlices_Apr20'
+#FarmDirectory = 'FARM_dReg_NL_50IasBins_emptyBins1e-25_stepsFix_'
+#FarmDirectory+='cutPt'
+##
+#FarmDirectory+=str(CutPt)
+#FarmDirectory+='GeVcutIas'
+#FarmDirectory+=str(CutIas)
+#if(AllSlices):
+#  FarmDirectory+='_allSlices_'
+#else:
+#  FarmDirectory+='_oneSlice_'
+#FarmDirectory+=Date
 InputDataRootFile = os.getcwd()
 InputDataRootFile+='/FARM_MakeHSCParticlePlots_dataWithTightRPCTrig_absEta_ptErrorPresel_feb6/outputs/makeHSCParticlePlots_feb1_Data2011_all.root'
 #InputDataRootFile+='/FARM_MakeHSCParticlePlots_data_absEta_ptErrorPresel_Mar08/outputs/makeHSCParticlePlots_Data2011_all.root'
@@ -235,40 +237,68 @@ def doLimits():
     HSCPDoLimitsLaunch.SendCluster_Submit()
 
 
+def combineLimitResults():
+  # used to combine limit files from CLs
+  # must execute makeCombineLimitResults to build the binary first
+  doLimitsOutputDir = FarmDirectory+'/outputs/doLimits/'
+  for model in modelList:
+    shell_file=open('/tmp/combine.sh','w')
+    shell_file.write('#!/bin/sh\n')
+    # CERN
+    #shell_file.write('export SCRAM_ARCH=slc5_amd64_gcc434\n')
+    #shell_file.write('source /afs/cern.ch/sw/lcg/external/gcc/4.3.2/x86_64-slc5/setup.sh\n')
+    #shell_file.write('source /afs/cern.ch/sw/lcg/app/releases/ROOT/5.32.02/x86_64-slc5-gcc43-opt/root/bin/thisroot.sh\n')
+    # UMN
+    shell_file.write('source /local/cms/user/cooper/root/bin/thisroot.sh\n')
+    shell_file.write(os.getcwd()+'/combineLimitResults '+doLimitsOutputDir+' '+model.name+'\n')
+    shell_file.close()
+    os.system("chmod 777 /tmp/combine.sh")
+    os.system("source /tmp/combine.sh")
+    #thisCommand = [os.getcwd()+"/combineLimitResults"]
+    #thisCommand.append(doLimitsOutputDir)
+    #thisCommand.append(model.name)
+    #print thisCommand
+    #call(thisCommand)
+   
 
 def doSignificance():
   printConfiguration()
+  for model in modelList:
+    fileExists = checkForScaledPredictions(model.name)
+    if not fileExists:
+      return
   JobName = "doSignificance_"
-  poiList = [6e-3,5e-3,4e-3,3e-3,2e-3,1e-3]
   inputWorkspaceFile = 'hscp_combined_hscp_model.root'
   inputWorkspacePathBeg = os.getcwd()+'/'+FarmDirectory+'/outputs/makeScaledPredictions/'
   # use observed data as "black line" or test point
+  # first do asymptotic for all
+  print 'Running asymptotic significance test for all models'
+  ThrowToysSignificance = False
   HSCPDoSignificanceLaunch.SendCluster_Create(FarmDirectory, JobName, BaseMacroSignificance, ThrowToysSignificance, False, RunCondor, QueueName)
   for model in modelList:
-   fileExists = checkForScaledPredictions(model.name)
-   if not fileExists:
-     return
-   else:
-     for poi in poiList:
-       #HSCPDoSignificanceLaunch.SendCluster_Push(bgInput,sigInput+model.name+'.root',model.massCut,model.iasCut,
-       #  model.ptCut,model.crossSection)
-       #HSCPDoSignificanceLaunch.SendCluster_Push('GMStau100',os.getcwd()+'/'+FarmDirectory+'/outputs/makeScaledPredictions/GMStau100_Significance/hscp_combined_hscp_model.root',poi)
-       #HSCPDoSignificanceLaunch.SendCluster_Push(model.name,inputWorkspacePathBeg+model.name+'_Significance/'+inputWorkspaceFile,poi)
-       HSCPDoSignificanceLaunch.SendCluster_Push(model.name,inputWorkspacePathBeg+model.name+'/'+inputWorkspaceFile,poi)
-
+    for poi in PoiList:
+      HSCPDoSignificanceLaunch.SendCluster_Push(model.name,inputWorkspacePathBeg+model.name+'/'+inputWorkspaceFile,poi)
+  HSCPDoSignificanceLaunch.SendCluster_Submit()
+  # then throw toys for a few test models
+  print 'Running toys for selected models'
+  ThrowToysSignificance = True
+  HSCPDoSignificanceLaunch.SendCluster_Create(FarmDirectory, JobName, BaseMacroSignificance, ThrowToysSignificance, False, RunCondor, QueueName)
+  for model in ModelListToys:
+    for poi in PoiList:
+      HSCPDoSignificanceLaunch.SendCluster_Push(model.name,inputWorkspacePathBeg+model.name+'/'+inputWorkspaceFile,poi)
   HSCPDoSignificanceLaunch.SendCluster_Submit()
 
 def combineHypoTestResults():
+  # for combining significance test with toys -- CLs
   doSignificanceOutputDir = FarmDirectory+'/outputs/doSignificance'
-  poiList = [6e-3,5e-3,4e-3,3e-3,2e-3,1e-3]
-  for poi in poiList:
-    doSignificanceMerge = 'combineHypoTestResults'
-    doSignificanceMerge.append(doSignificanceOutputDir)
-    doSignificanceMerge.append('GMStau100')
-    doSignificanceMerge.append(poi)
-    #print 'Merging files for ' + model.name + ' poi = ' + poi
-    print 'Merging files for GMStau100 poi = ' + poi
-    call(doSignificanceMerge)
+  for model in ModelListToys:
+    for poi in PoiList:
+      doSignificanceMerge = 'combineHypoTestResults'
+      doSignificanceMerge.append(doSignificanceOutputDir)
+      doSignificanceMerge.append(model.name)
+      doSignificanceMerge.append(poi)
+      #print 'Merging files for ' + model.name + ' poi = ' + poi
+      call(doSignificanceMerge)
   
 
 def Usage():
@@ -278,8 +308,9 @@ def Usage():
   print '    2 --> makeIasPredictions'
   print '    3 --> mergeIasPredictions'
   print '    4 --> makeScaledPredictionPlots (process input for limit-setting macro)'
-  print '    5 --> do expected and observed limits'
-  print '    6 --> significance test using CLs'
+  print '    5 --> do limits (expected and observed)'
+  print '    6 --> combine limit results (when using CLs limits)'
+  print '    7 --> significance test using CLs'
 
 
 
@@ -314,6 +345,10 @@ elif sys.argv[1]=='5':
   doLimits()
 
 elif sys.argv[1]=='6':
+  print 'Step 6: Merge CLs limit results'
+  combineLimitResults()
+
+elif sys.argv[1]=='7':
   print 'Step 6: Calculate significance using CLs'
   doSignificance()
   
