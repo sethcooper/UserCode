@@ -9,10 +9,9 @@ import array
 
 from SignalDefinitions import *
 
-from ROOT import TGraph,TMultiGraph,TCanvas,TPaveText,gROOT,TLegend,TCutG,kGreen
-
-BaseDir = 'FARM_allData_cutPt50GeVcutIas0.1_oneSlice_Mar16'
-runCERN = True
+from ROOT import TGraph,TMultiGraph,TCanvas,TPaveText,gROOT,TLegend,TCutG,kGreen,TFile,RooStats
+BaseDir = 'FARM_dReg_NL_50IasBins_emptyBins1e-25_stepsFix_cutPt50GeVcutIas0.1_allSlices_Apr20'
+runCERN = False
 PlotMinScale = 0.0005
 PlotMaxScale = 3
 GluinoXSecFile = 'gluino_XSec.txt'
@@ -25,6 +24,49 @@ if(runCERN):
   fileEnd = '.log'
 else:
   fileEnd = '.out'
+
+
+class LimitResult:
+  def __init__(self,name,mass,thCrossSection,ptCut,iasCut,massCut,sigEff,expBg,expBgStatErr,obsEvts,expLimit,obsLimit):
+    self.name = name
+    self.mass = mass
+    self.thCrossSection = thCrossSection
+    self.ptCut = ptCut
+    self.iasCut = iasCut
+    self.massCut = massCut
+    self.sigEff = sigEff
+    self.expBg = expBg
+    self.expBgStatErr = expBgStatErr
+    self.obsEvts = obsEvts
+    self.expLimit = expLimit
+    self.obsLimit = obsLimit
+
+  def Print(self):
+    print 'LimitResults object information:'
+    print '\tname=',self.name
+    print '\tmass=',self.mass
+    print '\tthCrossSection=',self.thCrossSection
+    print '\tptCut=',self.ptCut
+    print '\tiasCut=',self.iasCut
+    print '\tmassCut=',self.massCut
+    print '\tsigEff=',self.sigEff
+    print '\texpBg=',self.expBg
+    print '\texpBgStatErr=',self.expBgStatErr
+    print '\tobsEvts=',self.obsEvts
+    print '\texpLimit=',self.expLimit
+    print '\tobsLimit=',self.obsLimit
+
+  def LatexTableLine(self):
+    return ''
+
+  def StringTableLine(self):
+    tableString = string.ljust(self.name,15)+string.ljust(self.ptCut,6)+string.ljust(self.iasCut,6)
+    tableString+=string.center(str(self.massCut),8)+string.center(str(round(self.sigEff,4)),10)
+    backExpString = str(round(self.expBg,4))+' +/- '+str(round(self.expBgStatErr,4))
+    tableString+=string.center(backExpString,30)+string.center(str(self.obsEvts),10)
+    tableString+=string.center(str(round(float(self.thCrossSection),6)),10)+string.center(str(round(self.expLimit,6)),10)+string.center(str(round(self.obsLimit,6)),10)
+    return tableString
+
 
 
 def GetModelName(fileName):
@@ -57,7 +99,7 @@ def GetIasCut(filePath):
 def GetBackExp(filePath):
   for line in open(filePath):
     if "found" in line and not "WARNING" in line:
-      break
+       break
   lineSplit = line.split(' ')
   if "found" in line and not "WARNING" in line:
     return float(lineSplit[1])
@@ -105,6 +147,15 @@ def GetFile(fileList,modelName):
   for fileName in fileList:
     if fileEnd in fileName and modelName in fileName:
       return fileName
+  return ''
+
+def GetRootFile(fileList,modelName,limitFile):
+  for fileName in fileList:
+    if modelName in fileName:
+      if limitFile and 'combined' in fileName:
+        return fileName
+      elif not limitFile:
+        return fileName
   return ''
 
 def FindIntersection(obsGraph, thGraph, min, max, step, thUncertainty, debug):
@@ -173,45 +224,69 @@ def ReadXSection(InputFile):
 
 # Run
 makeScaledPredictionsDir = BaseDir+'/logs/makeScaledPredictions/'
-makeScaledPredictionsFileList = os.listdir(makeScaledPredictionsDir)
+makeScaledPredictionsLogFileList = os.listdir(makeScaledPredictionsDir)
+makeScaledPredictionsRootDir = BaseDir+'/outputs/makeScaledPredictions/'
+makeScaledPredictionsRootFileList = os.listdir(makeScaledPredictionsRootDir)
 doLimitsDir = BaseDir+'/logs/doLimits/'
-doLimitsFileList = os.listdir(doLimitsDir)
+doLimitsLogFileList = os.listdir(doLimitsDir)
+doLimitsRootDir = BaseDir+'/outputs/doLimits/'
+doLimitsRootFileList = os.listdir(doLimitsRootDir)
 
-massesGluinos = []
-expCrossSectionsGluinos = []
-massesStops = []
-expCrossSectionsStops = []
-massesStaus = []
-expCrossSectionsStaus = []
+LimitResultsGluinos = []
+LimitResultsStops = []
+LimitResultsStaus = []
+
+# TABLE OUTPUT
+titleString = string.ljust('Model',15)+string.ljust('Pt',6)+string.ljust('Ias',6)+string.center('Mass',8)+string.center('SigEff',10)
+titleString+=string.center('BackExpOverIas',30)+string.center('Obs.',10)+string.center('thCrossSec',10)+string.center('ExpLim',10)+string.center('ObsLim',10)
+print titleString
+print
 for model in modelList:
-    predFile = GetFile(makeScaledPredictionsFileList,model.name)
-    limitFile = GetFile(doLimitsFileList,model.name)
-    if predFile=='' or limitFile=='':
-      print 'Warning: Found predFile ',predFile,' and limitFile ',limitFile,' one of which is empty'
+    predLogFile = GetFile(makeScaledPredictionsLogFileList,model.name)
+    limitLogFile = GetFile(doLimitsLogFileList,model.name)
+    predRootFile = GetRootFile(makeScaledPredictionsRootFileList,model.name,False)
+    limitRootFile = GetRootFile(doLimitsRootFileList,model.name,True)
+    if predLogFile=='' or limitLogFile=='':
+      print 'Warning: Found predLogFile ',predLogFile,' and limitLogFile ',limitLogFile,' one of which is empty'
+      continue
+    if predRootFile=='' or limitRootFile=='':
+      print 'Warning: Found predRootFile ',predRootFile,' and limitRootFile ',limitRootFile,' one of which is empty'
       continue
 
-    backExp = GetBackExp(makeScaledPredictionsDir+predFile)
-    backExpError = GetBackExpError(makeScaledPredictionsDir+predFile)
-    iasCut  = GetIasCut(makeScaledPredictionsDir+predFile)
-    sigEff = GetSigEff(makeScaledPredictionsDir+predFile)
-    bk = GetBkOverIas(makeScaledPredictionsDir+predFile)
-    massCut = GetMassCut(predFile)
-    ptCut = GetPtCut(predFile)
-    signalName = GetModelName(predFile)
-    expLimit = GetExpLimit(doLimitsDir+limitFile)
+    backExp = GetBackExp(makeScaledPredictionsDir+predLogFile)
+    #TODO FIX BACKEXPERROR
+    backExpError = GetBackExpError(makeScaledPredictionsDir+predLogFile)
+    iasCut  = GetIasCut(makeScaledPredictionsDir+predLogFile)
+    sigEff = GetSigEff(makeScaledPredictionsDir+predLogFile)
+    bk = GetBkOverIas(makeScaledPredictionsDir+predLogFile)
+    massCut = GetMassCut(predLogFile)
+    ptCut = GetPtCut(predLogFile)
+    signalName = GetModelName(predLogFile)
+    limitTFile = TFile(doLimitsRootDir+limitRootFile)
+    htr = limitTFile.Get("result_SigXsec")
+    expLimit = htr.GetExpectedUpperLimit(0)
+    obsLimit = htr.UpperLimit()
+    limitTFile.Close()
+    predTFile = TFile(makeScaledPredictionsRootDir+predRootFile)
+    dataHist = predTFile.Get("dataAllNoMAllEtaUnrolledHist")
+    obsEvts = dataHist.Integral()
 
     if 'Gluino' in model.name and not 'GluinoN' in model.name:
-      massesGluinos.append(float(model.mass))
-      expCrossSectionsGluinos.append(float(expLimit))
-      #print 'Gluino: Mass: ',model.mass,' thCrossSection: ',model.crossSection,' expLimit: ',expLimit
+      thisLR = LimitResult(model.name,model.mass,model.crossSection,ptCut,iasCut,massCut,sigEff,backExp,backExpError,obsEvts,expLimit,obsLimit)
+      LimitResultsGluinos.append(thisLR)
+      print thisLR.StringTableLine()
     if 'Stop' in model.name and not 'StopN' in model.name:
-      massesStops.append(float(model.mass))
-      expCrossSectionsStops.append(float(expLimit))
-      #print 'Stop: Mass: ',model.mass,' thCrossSection: ',model.crossSection,' expLimit: ',expLimit
+      thisLR = LimitResult(model.name,model.mass,model.crossSection,ptCut,iasCut,massCut,sigEff,backExp,backExpError,obsEvts,expLimit,obsLimit)
+      LimitResultsStops.append(thisLR)
+      print thisLR.StringTableLine()
     if 'Stau' in model.name and not 'PPStau' in model.name:
-      massesStaus.append(float(model.mass))
-      expCrossSectionsStaus.append(float(expLimit))
-      #print 'Stau: Mass: ',model.mass,' thCrossSection: ',model.crossSection,' expLimit: ',expLimit
+      thisLR = LimitResult(model.name,model.mass,model.crossSection,ptCut,iasCut,massCut,sigEff,backExp,backExpError,obsEvts,expLimit,obsLimit)
+      LimitResultsStaus.append(thisLR)
+      print thisLR.StringTableLine()
+      #thisLR.Print()
+
+# TEST
+sys.exit()
 
 gluinoThInfo = ReadXSection(GluinoXSecFile)
 gluinoXSecErr = GetErrorBand("gluinoErr",gluinoThInfo['mass'],gluinoThInfo['low'],gluinoThInfo['high'])
@@ -295,7 +370,7 @@ MGTk.GetYaxis().SetTitle("#sigma (pb)")
 MGTk.GetYaxis().SetTitleOffset(1.0)
 MGTk.GetYaxis().SetRangeUser(PlotMinScale,PlotMaxScale)
 
-Lumi=4679
+Lumi=4976
 X=0.40
 Y=0.995
 W=0.82
@@ -303,7 +378,7 @@ H=0.945
 text = TPaveText(X,Y,W,H, "NDC")
 text.SetFillColor(0)
 text.SetTextAlign(22)
-text.AddText("CMS Preliminary   #sqrt{s} = 7 TeV   "+str(Lumi)+" fb^{-1}")
+text.AddText("CMS Preliminary   #sqrt{s} = 7 TeV   "+str(Lumi)+" pb^{-1}")
 text.SetBorderSize(0)
 text.Draw("same")
 
