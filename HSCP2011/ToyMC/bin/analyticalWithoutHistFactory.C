@@ -28,30 +28,30 @@ analyticalWithoutHistFactory()
   nominalLumi.setConstant();
   RooGaussian lumiConstraint("lumiConstraint","lumiConstraint",Lumi,nominalLumi,RooRealConstant::value(0.022));
 
+  const int numIasBins = 50;
   // observable
-  RooRealVar ias("ias","ias",0,100);
-  ias.setBins(100);
+  RooRealVar ias("ias","ias",0,1);
+  ias.setBins(numIasBins);
   // poi
   RooRealVar sigXSec("sigXSec","sigXSec",0,1);
   RooArgSet poi("poi");
   poi.add(sigXSec);
 
-  //XXX SIC TODO: switch to gluino1000 to be able to use the p-value plots I've already made
-  // background pdf -- gluino1200 exp
-  RooRealVar expoSlope("expoSlope","expoSlope",-0.2437);
+  // background pdf -- gluino1000 exp
+  RooRealVar expoSlope("expoSlope","expoSlope",-2.38);
   expoSlope.setConstant();
   RooExponential backgroundExp("backgroundExp","backgroundExp",ias,expoSlope);
-  RooRealVar backNorm("backNorm","backNorm",0.08735); // normalize to exp events
+  RooRealVar backNorm("backNorm","backNorm",2.151); // normalize to exp events
   backNorm.setConstant();
   RooExtendPdf backgroundOnly("backgroundOnly","backgroundOnly",backgroundExp,backNorm);
 
-  // signal pdf -- taken from Gluino1200, from apr5 directory on laptop (one slice)
-  RooRealVar gausMean("gausMean","gausMean",73.31);
-  RooRealVar gausWidth("gausWidth","gausWidth",11.09);
+  // signal pdf -- taken from Gluino1000, from apr16 directory on laptop (nom11-12,eta0-0.2)
+  RooRealVar gausMean("gausMean","gausMean",0.7481);
+  RooRealVar gausWidth("gausWidth","gausWidth",0.04995);
   gausMean.setConstant();
   gausWidth.setConstant();
   RooGaussian signalGaus("signalGaus","signalGaus",ias,gausMean,gausWidth);
-  RooRealVar sigNorm("sigNorm","sigNorm",655.8); // normalize to exp events with 1 pb cross section
+  RooRealVar sigNorm("sigNorm","sigNorm",868.440); // normalize to exp events with 1 pb cross section
   sigNorm.setConstant();
   RooProduct lumiXCrossSection("lumiXCrossSection","lumiXCrossSection",RooArgSet(Lumi,sigXSec));
   RooProduct sigNormXLumiXCrossSection("sigNormXLumiXCrossSection","sigNormXLumiXCrossSection",RooArgSet(sigNorm,lumiXCrossSection));
@@ -126,21 +126,23 @@ analyticalWithoutHistFactory()
   // hists of test stat value
   TH1F* bgDataTestStatHist = new TH1F("bgDataTestStat","BG-only data test stat",500,0,5);
   TH1F* sbDataTestStatHist = new TH1F("sbDataTestStat","SB data test stat",500,0,5);
-  double sigma1 = 0.002588;
-  double sigma2 = 0.002714;
+  double sigma1 = 0.00384;
+  double sigma2 = 0.00390571;
   double sigma3 = 1e-3;
 
   //TH1* modelHistogram = model.createHistogram("ias",100);
   //modelHistogram->Scale(model.expectedEvents(ias));
 
 
-  // test stat on data
-  sigXSec.setVal(sigma3);
-  RooMsgService::instance().getStream(1).addTopic(Generation);
-  RooAbsData* testData = model.generate(RooArgSet(ias,Lumi),Extended());
-  sigXSec.setVal(sigma1);
-  profll.SetPrintLevel(3);
-  double testStatOnData = profll.Evaluate(*testData,RooArgSet(sigXSec));
+  //// test stat on data
+  //sigXSec.setVal(sigma3);
+  //RooMsgService::instance().getStream(1).addTopic(Generation);
+  //RooAbsData* testData = model.generate(RooArgSet(ias,Lumi),Extended());
+  //sigXSec.setVal(sigma1);
+  //profll.SetPrintLevel(3);
+  //double testStatOnData = profll.Evaluate(*testData,RooArgSet(sigXSec));
+  double testStatOnData = 3.15963; // we know this for sigma=0.00384
+  //double testStatOnData = 3.21374; // we know this for sigma=0.00390571
   TH1F* dataTestStatHist = new TH1F("dataTestStat","SB data test stat",500,0,5);
   dataTestStatHist->Fill(testStatOnData);
   std::cout << "testStatOnData: " << testStatOnData << std::endl;
