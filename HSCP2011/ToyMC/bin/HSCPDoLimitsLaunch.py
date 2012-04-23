@@ -85,7 +85,7 @@ def CreateTheShellFile(bgInputFile,sigInputFile,massCut,iasCut,ptCut,xSecMin,xSe
       # CERN
       #shell_file.write('export SCRAM_ARCH=slc5_amd64_gcc434\n')
       #shell_file.write('source /afs/cern.ch/sw/lcg/external/gcc/4.3.2/x86_64-slc5/setup.sh\n')
-      #shell_file.write('source /afs/cern.ch/sw/lcg/app/releases/ROOT/5.32.00/x86_64-slc5-gcc43-opt/root/bin/thisroot.sh\n')
+      #shell_file.write('source /afs/cern.ch/sw/lcg/app/releases/ROOT/5.32.02/x86_64-slc5-gcc43-opt/root/bin/thisroot.sh\n')
       # UMN
       shell_file.write('source /local/cms/user/cooper/root/bin/thisroot.sh\n')
       shell_file.write('cd ' + os.getcwd() + '/' + Farm_Directories[0] + 'outputs/makeScaledPredictions/' + signalName + '\n')
