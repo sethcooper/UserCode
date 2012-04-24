@@ -250,13 +250,13 @@ int main(int argc, char ** argv)
 
   // Dataset for IasShift
   RooDataSet* rooDataSetIasShift = fs.make<RooDataSet>("rooDataSetIasShift","rooDataSetIasShift",
-      RooArgSet(rooVarIas,rooVarIh,rooVarP,rooVarPt,rooVarNoMias,rooVarEta,rooVarIp));
+      RooArgSet(rooVarIas,rooVarIh,rooVarP,rooVarPt,rooVarNoMias,rooVarEta,rooVarRun,rooVarLumiSection,rooVarEvent));
   // Dataset for IhShift
   RooDataSet* rooDataSetIhShift = fs.make<RooDataSet>("rooDataSetIhShift","rooDataSetIhShift",
-      RooArgSet(rooVarIas,rooVarIh,rooVarP,rooVarPt,rooVarNoMias,rooVarEta,rooVarIp));
+      RooArgSet(rooVarIas,rooVarIh,rooVarP,rooVarPt,rooVarNoMias,rooVarEta,rooVarRun,rooVarLumiSection,rooVarEvent));
   // Dataset for PtShift
   RooDataSet* rooDataSetPtShift = fs.make<RooDataSet>("rooDataSetPtShift","rooDataSetPtShift",
-      RooArgSet(rooVarIas,rooVarIh,rooVarP,rooVarPt,rooVarNoMias,rooVarEta,rooVarIp));
+      RooArgSet(rooVarIas,rooVarIh,rooVarP,rooVarPt,rooVarNoMias,rooVarEta,rooVarRun,rooVarLumiSection,rooVarEvent));
 
   // RooDataSet for number of original tracks, etc.
   RooRealVar rooVarNumGenHSCPEvents("rooVarNumGenHSCPEvents","numGenHSCPEvents",0,1e10);
@@ -424,7 +424,21 @@ int main(int argc, char ** argv)
         double tempRun = 0;
         double tempLumiSection = 0;
         double tempEvent = 0;
+        double tempSystPt = 0;
+        double tempSystP = 0;
+        double tempSystIh = 0;
         double eventWeight = 1;
+        // systematics datasets
+        double iasSystIas = -1;
+        double iasSystIh = 0;
+        double iasSystP = 0;
+        double iasSystPt = 0;
+        double iasSystNoMias = 0;
+        double iasSystEta = 0;
+        double iasSystLumiSection = 0;
+        double iasSystRun = 0;
+        double iasSystEvent = 0;
+        double highestShiftedIas = -1;
 
         // break loop if maximal number of events is reached 
         if(maxEvents_>0 ? ievt+1>maxEvents_ : false) break;
@@ -600,9 +614,6 @@ int main(int argc, char ** argv)
         double lumiSection = ev.id().luminosityBlock();
         double runNumber = ev.id().run();
         double eventNumber = ev.id().event();
-        //XXX ignore real data taken with tighter RPC trigger (355.227/pb) -- from Analysis_Samples.h
-        //if(!isMC_ && runNumber < 165970)
-        //  continue;
 
         // check trigger
         if(!passesTrigger(ev))
@@ -655,41 +666,30 @@ int main(int argc, char ** argv)
           int trackNoH = track->found();
           float trackPtErr = track->ptError();
 
-          // systematics datasets for MC
-          //TODO: FIXME: apply shift, then preselect/choose highest ias, then add to dataset
-          if(isMC_)
-          {
-            TRandom3 myRandom;
-            //TODO include TOF at some point?
-            rooVarIas = ias;
-            rooVarIp = ip;
-            rooVarIh = ih;
-            rooVarP = trackP;
-            rooVarPt = trackPt;
-            rooVarNoMias = iasNoM;
-            rooVarEta = trackEta;
-            // ias shift
-            double newIas = ias + myRandom.Gaus(0,0.083) + 0.015; // from YK results Nov 21 2011 hypernews thread
-            rooVarIas = newIas;
-            rooDataSetIasShift->add(RooArgSet(rooVarIas,rooVarIh,rooVarP,rooVarPt,rooVarNoMias,rooVarEta,rooVarIp));
-            rooVarIas = ias; // reset to original value
-            // ih shift
-            double newIh = ih*1.036; // from SIC results, Nov 10 2011 HSCP meeting
-            rooVarIh = newIh;
-            rooDataSetIhShift->add(RooArgSet(rooVarIas,rooVarIh,rooVarP,rooVarPt,rooVarNoMias,rooVarEta,rooVarIp));
-            rooVarIh = ih; // reset to original value
-            // pt shift (and p shift) -- from MU-10-004-001 -- SIC report Jun 7 2011 HSCP meeting
-            double newInvPt = 1/trackPt+0.000236-0.000135*pow(trackEta,2)+track->charge()*0.000282*TMath::Sin(track->phi()-1.337);
-            rooVarPt = 1/newInvPt;
-            rooVarP = rooVarPt.getVal()/TMath::Sin(track->theta());
-            rooDataSetPtShift->add(RooArgSet(rooVarIas,rooVarIh,rooVarP,rooVarPt,rooVarNoMias,rooVarEta,rooVarIp));
-            rooVarPt = trackPt; // reset
-            rooVarP = trackP; // reset
-          }
-
           // apply preselections, not considering ToF
           if(!passesPreselection(hscp,dedxSObj,dedxMObj,tof,dttof,csctof,ev,false,beforePreselectionPlots))
             continue;
+
+          // systematics datasets for MC
+          // can look after applying preselection only since preselection does not use Ias, Ih, or P/Pt directly
+          double shiftedIas = ias;
+          double shiftedIh = ih;
+          double shiftedPt = trackPt;
+          double shiftedP = trackP;
+          // apply shift, then choose highest ias (same track for P/Pt/Ih shifts, could be different for Ias shift)
+          if(isMC_)
+          {
+            TRandom3 myRandom;
+            // include TOF at some point?
+            // ias shift
+            shiftedIas = ias + myRandom.Gaus(0,0.083) + 0.015; // from YK results Nov 21 2011 hypernews thread
+            // ih shift
+            shiftedIh = ih*1.036; // from SIC results, Nov 10 2011 HSCP meeting
+            // pt shift (and p shift) -- from MU-10-004-001 -- SIC report Jun 7 2011 HSCP meeting
+            double newInvPt = 1/trackPt+0.000236-0.000135*pow(trackEta,2)+track->charge()*0.000282*TMath::Sin(track->phi()-1.337);
+            shiftedPt = 1.0/newInvPt;
+            shiftedP = shiftedPt/TMath::Sin(track->theta());
+          }
 
           if(isMC_)
           {
@@ -801,8 +801,6 @@ int main(int argc, char ** argv)
           rooVarLumiSection = lumiSection;
           rooVarRun = runNumber;
           rooVarEvent = eventNumber;
-          //rooDataSetCandidates->add(RooArgSet(rooVarIas,rooVarIh,rooVarP,rooVarPt,rooVarNoMias,rooVarEta,rooVarIp));
-          //XXX TURN OFF BELOW TO MAKE ONLY ONE ENTRY PER EVENT DATASET ONLY
           rooDataSetCandidates->add(RooArgSet(rooVarIas,rooVarIh,rooVarP,rooVarPt,rooVarNoMias,rooVarEta,rooVarLumiSection,
                 rooVarRun,rooVarEvent));
           if(ias > tempIas)
@@ -816,6 +814,23 @@ int main(int argc, char ** argv)
             tempLumiSection = lumiSection;
             tempRun = runNumber;
             tempEvent = eventNumber;
+            tempSystPt = shiftedPt;
+            tempSystP = shiftedP;
+            tempSystIh = shiftedIh;
+          }
+          // for ias shift syst., have to select highest Ias track separately
+          // for other shifts, highest ias track will be the same (use above section)
+          if(isMC_ && shiftedIas > highestShiftedIas)
+          {
+            iasSystIas = ias;
+            iasSystIh = ih;
+            iasSystP = trackP;
+            iasSystPt = trackPt;
+            iasSystNoMias = iasNoM;
+            iasSystEta = trackEta;
+            iasSystLumiSection = lumiSection;
+            iasSystRun = runNumber;
+            iasSystEvent = eventNumber;
           }
 
           //// now consider the ToF
@@ -860,6 +875,37 @@ int main(int argc, char ** argv)
             //  << " eventNum: " << rooVarEvent.getVal() << endl;
             //cout << "add puweight=" << rooVarPUWeight.getVal() << " eventWeight=" << rooVarPUWeight.getVal() * sampleWeight << std::endl;
             rooDataSetPileupWeights->add(RooArgSet(rooVarEvent,rooVarLumiSection,rooVarRun,rooVarPUWeight,rooVarPUSystFactor));
+            // add tracks to systematics datasets with shifts
+            // ih shift
+            rooVarIh = tempSystIh;
+            rooDataSetIhShift->add(RooArgSet(rooVarIas,rooVarIh,rooVarP,rooVarPt,rooVarNoMias,rooVarEta,rooVarLumiSection,rooVarRun,rooVarEvent));
+            rooVarIh = tempIh; // reset to original value
+            // pt/p shift dataset
+            rooVarPt = tempSystPt;
+            rooVarP = tempSystP;
+            rooDataSetPtShift->add(RooArgSet(rooVarIas,rooVarIh,rooVarP,rooVarPt,rooVarNoMias,rooVarEta,rooVarLumiSection,rooVarRun,rooVarEvent));
+            rooVarPt = tempPt; // reset
+            rooVarP = tempP; // reset
+            // ias shift dataset
+            rooVarIas = iasSystIas;
+            rooVarIh = iasSystIh;
+            rooVarP = iasSystP;
+            rooVarPt = iasSystPt;
+            rooVarNoMias = iasSystNoMias;
+            rooVarEta = iasSystEta;
+            rooVarLumiSection = iasSystLumiSection;
+            rooVarRun = iasSystRun;
+            rooVarEvent = iasSystEvent;
+            rooDataSetIasShift->add(RooArgSet(rooVarIas,rooVarIh,rooVarP,rooVarPt,rooVarNoMias,rooVarEta,rooVarLumiSection,rooVarRun,rooVarEvent));
+            rooVarIas = tempIas; // reset to original value
+            rooVarIh = tempIh;
+            rooVarP = tempP;
+            rooVarPt = tempPt;
+            rooVarNoMias = tempNoMias;
+            rooVarEta = tempEta;
+            rooVarLumiSection = tempLumiSection;
+            rooVarRun = tempRun;
+            rooVarEvent = tempEvent;
           }
 
         }
