@@ -917,19 +917,28 @@ int main(int argc, char ** argv)
 
 
       double entriesInARegionNoM = etaCutARegionDataSet->numEntries();
+      double cEffFirstBin = -1;
       for(int bin=1; bin <= ceffRegionTracksOverMassCutProfile->GetNbinsX(); ++bin)
       {
         double Bk = iasBRegionHist->GetBinContent(bin);
         // Bk * < Cj over mass > / A
         double binContent = Bk * ceffRegionTracksOverMassCutProfile->GetBinContent(bin) / (double)entriesInARegionNoM;
-        //TODO FIXME run toys to get this error OR use SQRT(C) in first Ias bin above std ana ias cut to get overall error
-        double binError = sqrt(Bk) * ceffRegionTracksOverMassCutProfile->GetBinContent(bin) / (double)entriesInARegionNoM;
+        // use SQRT(C) in first Ias bin above std ana ias cut to get c part of error in each bin (somewhat handles correlation)
+        if(Bk > 0 && cEffFirstBin==-1) // first bin over Ias bin has Bk > 0
+          cEffFirstBin = ceffRegionTracksOverMassCutProfile->GetBinContent(bin);
+        // error should be set in each nonzero bin as the relative c/b errors added in quad.
+        double binError = 0;
+        if(cEffFirstBin==-1)
+          binError = (binContent > 0) ? binContent/Bk*sqrt(Bk) : 0; // first case shouldn't happen anyway
+        else
+          binError = (binContent > 0) ? binContent*sqrt(1.0/Bk + 1.0/cEffFirstBin + 1.0/entriesInARegionNoM) : 0;
         iasPredictionFixedHist->SetBinContent(bin,binContent);
         iasPredictionFixedHist->SetBinError(bin,binError);
         iasPointsAndFitHist->SetBinContent(bin,binContent);
         iasPointsAndFitHist->SetBinError(bin,binError);
-        //std::cout << "Bin: " << bin << " Bk: " << Bk << " Ceff: " << ceffRegionTracksOverMassCutProfile->GetBinContent(bin)
-        //  << " A: " << entriesInARegionNoM << " Bincontent: " << binContent << " +/- " << binError << std::endl;
+        std::cout << "Bin: " << bin << " Bk: " << Bk << " Ceff: " << ceffRegionTracksOverMassCutProfile->GetBinContent(bin)
+          << " A: " << entriesInARegionNoM << " cEffFirstBin: " << cEffFirstBin
+          << " Bincontent: " << binContent << " +/- " << binError << std::endl;
       }
 
 // MASS
