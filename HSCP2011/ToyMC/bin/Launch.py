@@ -21,8 +21,16 @@ AllSlices = True
 RunCondor = True
 BayesianLimit = False
 DoMass = False
-ModelListToys = [GMStau100,GMStau432,Gluino300,Gluino900,Stop130,Stop700]
-PoiList = [6e-3,5e-3,4e-3,3e-3,2e-3,1e-3]
+DoSignificanceToys = True
+#ModelListToys = [GMStau100]#,GMStau432,Gluino300,Gluino900,Stop130,Stop700]
+ModelListToys = [Gluino1200]
+#PoiList = [6e-3,5e-3,4e-3,3e-3,2e-3,1e-3]
+#PoiList = [5e-4,1.5e-3]
+#PoiList = [2.5e-4,1e-4]
+# TOYS
+#PoiList = [1e-3,7.5e-4,5e-4,2.5e-4,1e-4]
+#PoiList = [1.2e-3,1.5e-3]
+PoiList = [1.25e-3,1.3e-3]
 QueueName = '8nh'
 ## FOR NOW, CutPt=Std means CutIas Std also!
 #CutPt = 'Std'
@@ -31,7 +39,7 @@ CutPt = 50
 CutIas = 0.1
 
 FarmDirectory = 'FARM_dReg_NL_50IasBins_emptyBins1e-25_stepsFix_cutPt50GeVcutIas0.1_allSlices_Apr20'
-#FarmDirectory = 'FARM_dReg_NL_50IasBins_emptyBins1e-25_stepsFix_'
+#FarmDirectory = 'FARM_dReg_NL_50IasBins_emptyBins1e-25_stepsFix_iasPredErrorFix_'
 #FarmDirectory+='cutPt'
 ##
 #FarmDirectory+=str(CutPt)
@@ -254,50 +262,48 @@ def combineLimitResults():
     shell_file.close()
     os.system("chmod 777 /tmp/combine.sh")
     os.system("source /tmp/combine.sh")
-    #thisCommand = [os.getcwd()+"/combineLimitResults"]
-    #thisCommand.append(doLimitsOutputDir)
-    #thisCommand.append(model.name)
-    #print thisCommand
-    #call(thisCommand)
    
 
 def doSignificance():
   printConfiguration()
-  for model in modelList:
-    fileExists = checkForScaledPredictions(model.name)
-    if not fileExists:
-      return
+#  for model in modelList:
+#    fileExists = checkForScaledPredictions(model.name)
+#    if not fileExists:
+#      return
   JobName = "doSignificance_"
   inputWorkspaceFile = 'hscp_combined_hscp_model.root'
   inputWorkspacePathBeg = os.getcwd()+'/'+FarmDirectory+'/outputs/makeScaledPredictions/'
-  # use observed data as "black line" or test point
+#  # use observed data as "black line" or test point
   # first do asymptotic for all
-  print 'Running asymptotic significance test for all models'
-  ThrowToysSignificance = False
-  HSCPDoSignificanceLaunch.SendCluster_Create(FarmDirectory, JobName, BaseMacroSignificance, ThrowToysSignificance, False, RunCondor, QueueName)
-  for model in modelList:
-    for poi in PoiList:
-      HSCPDoSignificanceLaunch.SendCluster_Push(model.name,inputWorkspacePathBeg+model.name+'/'+inputWorkspaceFile,poi)
-  HSCPDoSignificanceLaunch.SendCluster_Submit()
-  # then throw toys for a few test models
-  print 'Running toys for selected models'
-  ThrowToysSignificance = True
-  HSCPDoSignificanceLaunch.SendCluster_Create(FarmDirectory, JobName, BaseMacroSignificance, ThrowToysSignificance, False, RunCondor, QueueName)
-  for model in ModelListToys:
-    for poi in PoiList:
-      HSCPDoSignificanceLaunch.SendCluster_Push(model.name,inputWorkspacePathBeg+model.name+'/'+inputWorkspaceFile,poi)
-  HSCPDoSignificanceLaunch.SendCluster_Submit()
+#  print 'Running asymptotic significance test for all models'
+#  ThrowToysSignificance = False
+#  HSCPDoSignificanceLaunch.SendCluster_Create(FarmDirectory, JobName, BaseMacroSignificance, ThrowToysSignificance, False, RunCondor, QueueName)
+#  for model in modelList:
+#    for poi in PoiList:
+#      HSCPDoSignificanceLaunch.SendCluster_Push(model.name,inputWorkspacePathBeg+model.name+'/'+inputWorkspaceFile,poi)
+#  HSCPDoSignificanceLaunch.SendCluster_Submit()
+  if(DoSignificanceToys):
+    # then throw toys for a few test models
+    print 'Running toys for selected models'
+    ThrowToysSignificance = True
+    HSCPDoSignificanceLaunch.SendCluster_Create(FarmDirectory, JobName, BaseMacroSignificance, ThrowToysSignificance, False, RunCondor, QueueName)
+    for model in ModelListToys:
+      for poi in PoiList:
+        HSCPDoSignificanceLaunch.SendCluster_Push(model.name,inputWorkspacePathBeg+model.name+'/'+inputWorkspaceFile,poi)
+    HSCPDoSignificanceLaunch.SendCluster_Submit()
 
 def combineHypoTestResults():
   # for combining significance test with toys -- CLs
   doSignificanceOutputDir = FarmDirectory+'/outputs/doSignificance'
   for model in ModelListToys:
     for poi in PoiList:
-      doSignificanceMerge = 'combineHypoTestResults'
+      doSignificanceMerge = []
+      doSignificanceMerge.append(os.getcwd()+'/combineHypoTestResults')
       doSignificanceMerge.append(doSignificanceOutputDir)
       doSignificanceMerge.append(model.name)
-      doSignificanceMerge.append(poi)
-      #print 'Merging files for ' + model.name + ' poi = ' + poi
+      doSignificanceMerge.append(str(poi))
+      print 'Merging files for ' + model.name + ' poi = ' + str(poi)
+      print doSignificanceMerge
       call(doSignificanceMerge)
   
 
@@ -311,6 +317,7 @@ def Usage():
   print '    5 --> do limits (expected and observed)'
   print '    6 --> combine limit results (when using CLs limits)'
   print '    7 --> significance test using CLs'
+  print '    8 --> combine significance test results for toys'
 
 
 
@@ -351,6 +358,10 @@ elif sys.argv[1]=='6':
 elif sys.argv[1]=='7':
   print 'Step 6: Calculate significance using CLs'
   doSignificance()
+
+elif sys.argv[1]=='8':
+  print 'Step 7: Merge significance test toys'
+  combineHypoTestResults()
   
 
 else:
