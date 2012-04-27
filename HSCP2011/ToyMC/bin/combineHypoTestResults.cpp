@@ -33,6 +33,8 @@ vector<string> getFilesInDir(string dir, string signal, float poi)
 
   while ((dirp = readdir(dp)) != NULL) {
     string fileName = string(dirp->d_name);
+    if(fileName.find("asymptotic") != string::npos)
+      continue;
     if(fileName.find("root") == string::npos)
       continue;
     if(fileName.find(signal) == string::npos)
@@ -103,10 +105,11 @@ int main(int argc, char* argv[])
     << endl;
   r->Print();
   string outputPath = outputDir;
+  outputPath+="_";
   outputPath+=signalName;
   outputPath+="_poi";
   outputPath+=floatToString(poi);
-  outputPath+="_doLimits_combined.root";
+  outputPath+="_combined.root";
   TFile* thisSignalCombinedTFile = new TFile(outputPath.c_str(),"recreate");
   thisSignalCombinedTFile->cd();
   r->SetName("result");
