@@ -700,25 +700,44 @@ int main(int argc, char ** argv)
       Double_t *cRegionIntegral = cRegionHist->GetIntegral();
       cRegionCumuHist->SetContent(cRegionIntegral);
 
-      // ias prediction histogram in this NoM/eta bin
-      std::string iasPredictionFixedHistName = getHistNameBeg(nom,lowerEta);
-      iasPredictionFixedHistName+="iasPredictionFixedHist";
-      std::string iasPredictionFixedHistTitle = "Ias prediction for ";
-      iasPredictionFixedHistTitle+=intToString(nom);
-      iasPredictionFixedHistTitle+="-";
+      // ias prediction histogram in this NoM/eta bin for limits -- underestimation of background
+      std::string iasPredictionFixedLimitsHistName = getHistNameBeg(nom,lowerEta);
+      iasPredictionFixedLimitsHistName+="iasPredictionFixedLimitsHist";
+      std::string iasPredictionFixedLimitsHistTitle = "Ias prediction (limits) for ";
+      iasPredictionFixedLimitsHistTitle+=intToString(nom);
+      iasPredictionFixedLimitsHistTitle+="-";
       if(nom==21)
-        iasPredictionFixedHistTitle+="end";
+        iasPredictionFixedLimitsHistTitle+="end";
       else
-        iasPredictionFixedHistTitle+=intToString(nom+1);
-      iasPredictionFixedHistTitle+=", ";
-      iasPredictionFixedHistTitle+=floatToString(lowerEta);
-      iasPredictionFixedHistTitle+=" < |#eta| < ";
-      iasPredictionFixedHistTitle+=floatToString(lowerEta+0.2);
-      iasPredictionFixedHistTitle+=", mass > ";
-      iasPredictionFixedHistTitle+=floatToString(massCutIasHighPHighIh_);
-      iasPredictionFixedHistTitle+=" GeV";
-      TH1D* iasPredictionFixedHist = iasPredictionFixedBinsDir.make<TH1D>(iasPredictionFixedHistName.c_str(),iasPredictionFixedHistTitle.c_str(),numIasBins,0,1);
-      iasPredictionFixedHist->Sumw2();
+        iasPredictionFixedLimitsHistTitle+=intToString(nom+1);
+      iasPredictionFixedLimitsHistTitle+=", ";
+      iasPredictionFixedLimitsHistTitle+=floatToString(lowerEta);
+      iasPredictionFixedLimitsHistTitle+=" < |#eta| < ";
+      iasPredictionFixedLimitsHistTitle+=floatToString(lowerEta+0.2);
+      iasPredictionFixedLimitsHistTitle+=", mass > ";
+      iasPredictionFixedLimitsHistTitle+=floatToString(massCutIasHighPHighIh_);
+      iasPredictionFixedLimitsHistTitle+=" GeV";
+      TH1D* iasPredictionFixedLimitsHist = iasPredictionFixedBinsDir.make<TH1D>(iasPredictionFixedLimitsHistName.c_str(),iasPredictionFixedLimitsHistTitle.c_str(),numIasBins,0,1);
+      iasPredictionFixedLimitsHist->Sumw2();
+      // ias prediction histogram for discovery  -- overestimation of background
+      std::string iasPredictionFixedDiscoveryHistName = getHistNameBeg(nom,lowerEta);
+      iasPredictionFixedDiscoveryHistName+="iasPredictionFixedDiscoveryHist";
+      std::string iasPredictionFixedDiscoveryHistTitle = "Ias prediction (discovery) for ";
+      iasPredictionFixedDiscoveryHistTitle+=intToString(nom);
+      iasPredictionFixedDiscoveryHistTitle+="-";
+      if(nom==21)
+        iasPredictionFixedDiscoveryHistTitle+="end";
+      else
+        iasPredictionFixedDiscoveryHistTitle+=intToString(nom+1);
+      iasPredictionFixedDiscoveryHistTitle+=", ";
+      iasPredictionFixedDiscoveryHistTitle+=floatToString(lowerEta);
+      iasPredictionFixedDiscoveryHistTitle+=" < |#eta| < ";
+      iasPredictionFixedDiscoveryHistTitle+=floatToString(lowerEta+0.2);
+      iasPredictionFixedDiscoveryHistTitle+=", mass > ";
+      iasPredictionFixedDiscoveryHistTitle+=floatToString(massCutIasHighPHighIh_);
+      iasPredictionFixedDiscoveryHistTitle+=" GeV";
+      TH1D* iasPredictionFixedDiscoveryHist = iasPredictionFixedBinsDir.make<TH1D>(iasPredictionFixedDiscoveryHistName.c_str(),iasPredictionFixedDiscoveryHistTitle.c_str(),numIasBins,0,1);
+      iasPredictionFixedDiscoveryHist->Sumw2();
       // ias histogram points and fit in this NoM/eta bin
       std::string iasPointsAndFitHistName = getHistNameBeg(nom,lowerEta);
       iasPointsAndFitHistName+="iasPointsAndFitHist";
@@ -822,13 +841,15 @@ int main(int argc, char ** argv)
       {
         std::cout << "WARNING: too few entries-not doing prediction for this slice" << std::endl;
         // fill with "empty" bins
-        int firstIasBin = iasPredictionFixedHist->FindBin(iasSidebandThreshold);
-        for(int bin=firstIasBin; bin < iasPredictionFixedHist->GetNbinsX()+1; ++bin)
+        int firstIasBin = iasPredictionFixedLimitsHist->FindBin(iasSidebandThreshold);
+        for(int bin=firstIasBin; bin < iasPredictionFixedLimitsHist->GetNbinsX()+1; ++bin)
         {
-          if(iasPredictionFixedHist->GetBinContent(bin) == 0)
+          if(iasPredictionFixedLimitsHist->GetBinContent(bin) == 0)
           {
-            iasPredictionFixedHist->SetBinContent(bin,emptyBinVal);
-            iasPredictionFixedHist->SetBinError(bin,sqrt(emptyBinVal));
+            iasPredictionFixedLimitsHist->SetBinContent(bin,emptyBinVal);
+            iasPredictionFixedLimitsHist->SetBinError(bin,sqrt(emptyBinVal));
+            iasPredictionFixedDiscoveryHist->SetBinContent(bin,emptyBinVal);
+            iasPredictionFixedDiscoveryHist->SetBinError(bin,sqrt(emptyBinVal));
             iasPointsAndFitHist->SetBinContent(bin,emptyBinVal);
             iasPointsAndFitHist->SetBinError(bin,sqrt(emptyBinVal));
           }
@@ -906,39 +927,13 @@ int main(int argc, char ** argv)
         ihMeanProf->Fill(thisIas,thisIh);
         minPCutMeanProf->Fill(thisIas,minMomPassMass);
         //debug output
-        //if(iasPredictionFixedHist->FindBin(thisIas)==12)
+        //if(iasPredictionFixedLimitsHist->FindBin(thisIas)==12)
         //{
         //  std::cout << "For ias bin 12: thisIas = " << thisIas << std::endl <<
         //    "\tCtracksPassingMassCut: " << numMomPassingMass << " CtracksFailingMassCut: " << numMomFailingMass << 
         //    " CtracksTotal: " << etaCutCRegionDataSet->numEntries() << std::endl;
         //}
         
-      }
-
-
-      double entriesInARegionNoM = etaCutARegionDataSet->numEntries();
-      double cEffFirstBin = -1;
-      for(int bin=1; bin <= ceffRegionTracksOverMassCutProfile->GetNbinsX(); ++bin)
-      {
-        double Bk = iasBRegionHist->GetBinContent(bin);
-        // Bk * < Cj over mass > / A
-        double binContent = Bk * ceffRegionTracksOverMassCutProfile->GetBinContent(bin) / (double)entriesInARegionNoM;
-        // use SQRT(C) in first Ias bin above std ana ias cut to get c part of error in each bin (somewhat handles correlation)
-        if(Bk > 0 && cEffFirstBin==-1) // first bin over Ias bin has Bk > 0
-          cEffFirstBin = ceffRegionTracksOverMassCutProfile->GetBinContent(bin);
-        // error should be set in each nonzero bin as the relative c/b errors added in quad.
-        double binError = 0;
-        if(cEffFirstBin==-1)
-          binError = (binContent > 0) ? binContent/Bk*sqrt(Bk) : 0; // first case shouldn't happen anyway
-        else
-          binError = (binContent > 0) ? binContent*sqrt(1.0/Bk + 1.0/cEffFirstBin + 1.0/entriesInARegionNoM) : 0;
-        iasPredictionFixedHist->SetBinContent(bin,binContent);
-        iasPredictionFixedHist->SetBinError(bin,binError);
-        iasPointsAndFitHist->SetBinContent(bin,binContent);
-        iasPointsAndFitHist->SetBinError(bin,binError);
-        std::cout << "Bin: " << bin << " Bk: " << Bk << " Ceff: " << ceffRegionTracksOverMassCutProfile->GetBinContent(bin)
-          << " A: " << entriesInARegionNoM << " cEffFirstBin: " << cEffFirstBin
-          << " Bincontent: " << binContent << " +/- " << binError << std::endl;
       }
 
 // MASS
@@ -1033,67 +1028,110 @@ int main(int argc, char ** argv)
 //        //}
 //      }
 
-// do exp fit
+// do exp fit on the Bk's
       // find the last bin with more than 15 entries
       std::cout << "INFO: Doing exp fit" << std::endl;
-      int lastDecentStatsBin = iasBRegionHist->FindLastBinAbove(15.0);
-      int firstIasBin = iasPredictionFixedHist->FindBin(iasSidebandThreshold);
+      int lastDecentStatsBin = iasBRegionHist->FindLastBinAbove(10.0);
+      int firstIasBin = iasBRegionHist->FindBin(iasSidebandThreshold);
       if(lastDecentStatsBin < 1)
         lastDecentStatsBin = firstIasBin-1;
       // fill empty bins
-      int lastBinWithContent = iasPredictionFixedHist->FindLastBinAbove(1e-10);
-      double lastBinError = iasPredictionFixedHist->GetBinError(lastBinWithContent);
-      for(int bin=firstIasBin; bin < iasPredictionFixedHist->GetNbinsX()+1; ++bin)
+      int lastBinWithContent = iasBRegionHist->FindLastBinAbove(1);
+      double lastBinError = iasBRegionHist->GetBinError(lastBinWithContent);
+      for(int bin=firstIasBin; bin < iasPredictionFixedLimitsHist->GetNbinsX()+1; ++bin)
       {
-        if(iasPredictionFixedHist->GetBinContent(bin) == 0)
+        double Bk = iasBRegionHist->GetBinContent(bin);
+        if(Bk != 0)
         {
-          iasPredictionFixedHist->SetBinContent(bin,emptyBinVal);
-          iasPredictionFixedHist->SetBinError(bin,lastBinError);
+          iasPredictionFixedLimitsHist->SetBinContent(bin,Bk);
+          iasPredictionFixedLimitsHist->SetBinError(bin,sqrt(Bk));
+          iasPredictionFixedDiscoveryHist->SetBinContent(bin,Bk);
+          iasPredictionFixedDiscoveryHist->SetBinError(bin,sqrt(Bk));
+          iasPointsAndFitHist->SetBinContent(bin,Bk);
+          iasPointsAndFitHist->SetBinError(bin,sqrt(Bk));
+        }
+        else
+        {
+          iasPredictionFixedLimitsHist->SetBinContent(bin,emptyBinVal);
+          iasPredictionFixedLimitsHist->SetBinError(bin,lastBinError);
+          iasPredictionFixedDiscoveryHist->SetBinContent(bin,emptyBinVal);
+          iasPredictionFixedDiscoveryHist->SetBinError(bin,lastBinError);
           iasPointsAndFitHist->SetBinContent(bin,emptyBinVal);
           iasPointsAndFitHist->SetBinError(bin,lastBinError);
         }
       }
       // now fit from here to the end with an exp and fill the empty bins
-      TF1* myExp = new TF1("myExp","expo(0)",iasPredictionFixedHist->GetBinCenter(lastDecentStatsBin),1);
-      iasPointsAndFitHist->Fit("myExp","R"); // put the fit on
-      TFitResultPtr r = iasPredictionFixedHist->Fit("myExp","RS");
+      TF1* myExp = new TF1("myExp","expo(0)",iasPredictionFixedLimitsHist->GetBinCenter(lastDecentStatsBin),1);
+      myExp->SetLineColor(kRed);
+      TFitResultPtr r = iasPointsAndFitHist->Fit("myExp","RS");
       int fitStatus = r;
       if(fitStatus != 0)
       {
         std::cout << "ERROR: Fit status is " << fitStatus << " which is nonzero!  Not using the fit." << endl;
         continue;
       }
-      TMatrixDSym m = r->GetCovarianceMatrix();
-      m.Print();
-      for(int bin=lastDecentStatsBin+1; bin <= iasPredictionFixedHist->GetNbinsX(); ++bin)
+      for(int bin=lastDecentStatsBin+1; bin <= iasPredictionFixedLimitsHist->GetNbinsX(); ++bin)
       {
-        double expVal = myExp->Eval(iasPredictionFixedHist->GetBinCenter(bin));
-        double par0Err = myExp->GetParError(0);
-        double par1Err = myExp->GetParError(1);
-        double cov = r->CovMatrix(0,1);
-        double xVal = iasPredictionFixedHist->GetBinCenter(bin);
-        double absErr = sqrt(pow(expVal*par0Err,2)+pow(xVal*expVal*par1Err,2)+2*xVal*cov*pow(expVal,2));
+        double expVal = myExp->Eval(iasPredictionFixedLimitsHist->GetBinCenter(bin));
+        double absErr = sqrt(expVal);
         if(isnan(absErr) && expVal < emptyBinVal)
         {
-          iasPredictionFixedHist->SetBinContent(bin,emptyBinVal);
-          iasPredictionFixedHist->SetBinError(bin,sqrt(emptyBinVal));
+          iasPredictionFixedLimitsHist->SetBinContent(bin,emptyBinVal);
+          iasPredictionFixedLimitsHist->SetBinError(bin,sqrt(emptyBinVal));
+          iasPredictionFixedDiscoveryHist->SetBinContent(bin,emptyBinVal);
+          iasPredictionFixedDiscoveryHist->SetBinError(bin,sqrt(emptyBinVal));
           //std::cout << "WAS nan: bin = " << bin << " set bin content: " << expVal << " +/- " << "0" << std::endl;
         }
         else if(expVal < emptyBinVal)
         {
-          iasPredictionFixedHist->SetBinContent(bin,emptyBinVal);
-          iasPredictionFixedHist->SetBinError(bin,sqrt(emptyBinVal));
+          iasPredictionFixedLimitsHist->SetBinContent(bin,emptyBinVal);
+          iasPredictionFixedLimitsHist->SetBinError(bin,sqrt(emptyBinVal));
+          iasPredictionFixedDiscoveryHist->SetBinContent(bin,emptyBinVal);
+          iasPredictionFixedDiscoveryHist->SetBinError(bin,sqrt(emptyBinVal));
           //std::cout << "expVal of " << expVal << " is less than " << emptyBinVal << "; bin = " << bin << " set bin content: " << emptyBinVal << " +/- " << sqrt(emptyBinVal) << std::endl;
         }
         else
         {
-          iasPredictionFixedHist->SetBinError(bin,absErr);
-          iasPredictionFixedHist->SetBinContent(bin,expVal);
+          iasPredictionFixedLimitsHist->SetBinError(bin,absErr);
+          iasPredictionFixedLimitsHist->SetBinContent(bin,expVal);
+          iasPredictionFixedDiscoveryHist->SetBinError(bin,absErr);
+          iasPredictionFixedDiscoveryHist->SetBinContent(bin,expVal);
         }
         //std::cout << "expVal=" << expVal << " par0Err=" << par0Err << " par1Err=" << par1Err << " cov=" << cov
         //  << " xVal=" << xVal << std::endl;
       }
       delete myExp;
+
+      // now do the C/A scaling
+      // for bins that had no Bk:
+      //   1) For limits, underestimate background by using C/A from last non-empty bin
+      //   2) For discovery, overestimate background by using C/A without mass cut on C
+      double entriesInARegionNoM = etaCutARegionDataSet->numEntries();
+      double entriesInCRegionNoM = etaCutCRegionDataSet->numEntries();
+      double cEffLastBin = ceffRegionTracksOverMassCutProfile->GetBinContent(lastDecentStatsBin);
+      for(int bin=1; bin <= ceffRegionTracksOverMassCutProfile->GetNbinsX(); ++bin)
+      {
+        // Bk * < Cj over mass > / A
+        double cEff = ceffRegionTracksOverMassCutProfile->GetBinContent(bin);
+        double bk = iasPredictionFixedLimitsHist->GetBinContent(bin);
+        
+        double binContent = (cEff > 0) ? bk*cEff / entriesInARegionNoM : bk*cEffLastBin / entriesInARegionNoM;
+        double binError = (cEff > 0) ? binContent*sqrt(1.0/bk + 1.0/cEff + 1.0/entriesInARegionNoM) :
+          binContent*sqrt(1.0/bk + 1.0/cEffLastBin + 1.0/entriesInARegionNoM);
+
+        iasPredictionFixedLimitsHist->SetBinContent(bin,binContent);
+        iasPredictionFixedLimitsHist->SetBinError(bin,binError);
+
+        binContent = (cEff > 0) ? bk*cEff / entriesInARegionNoM : bk*entriesInCRegionNoM / entriesInARegionNoM;
+        binError = (cEff > 0) ? binContent*sqrt(1.0/bk + 1.0/cEff + 1.0/entriesInARegionNoM) :
+          binContent*sqrt(1.0/bk + 1.0/entriesInCRegionNoM + 1.0/entriesInARegionNoM);
+
+        iasPredictionFixedDiscoveryHist->SetBinContent(bin,binContent);
+        iasPredictionFixedDiscoveryHist->SetBinError(bin,binError);
+        //std::cout << "Bin: " << bin << " Bk: " << Bk << " Ceff: " << ceffRegionTracksOverMassCutProfile->GetBinContent(bin)
+        //  << " A: " << entriesInARegionNoM << " cEffFirstBin: " << cEffFirstBin
+        //  << " Bincontent: " << binContent << " +/- " << binError << std::endl;
+      }
 
       // remove variable bin stuff - mar 1
       //// ias prediction histogram in this NoM/eta bin -- variable
