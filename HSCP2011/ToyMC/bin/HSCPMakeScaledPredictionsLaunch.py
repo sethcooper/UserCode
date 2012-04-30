@@ -27,13 +27,14 @@ Base_Cfg = ''
 Int_Lumi = 0
 Base_xml_channel = ''
 Base_xml_combined = ''
+Base_xml_channel_sig = ''
 #
 Condor = True
 Queue_Name = ''
 All_Slices = True
 
 
-def CreateTheXMLFiles(signalName,inputFile,massCut,ptCut):
+def CreateTheXMLFilesLimits(signalName,inputFile,massCut,ptCut):
     global Base_xml_channel
     global Base_xml_combined
 
@@ -41,10 +42,8 @@ def CreateTheXMLFiles(signalName,inputFile,massCut,ptCut):
     XMLchannel_txt = '\n'
     XMLchannel_txt += baseXMLchannel_file.read()
     baseXMLchannel_file.close()
-
     # replacements
     XMLchannel_txt = XMLchannel_txt.replace("XXX_INPUTFILE_XXX",os.getcwd()+'/'+Farm_Directories[4]+inputFile)
-
     chXMLFilename = 'hscp_dataDriven_ch_'+signalName+'_massCut'+`massCut`+'_ptCut'+`ptCut`+'.xml'
     pathXMLFile = Farm_Directories[1]+'config/'+chXMLFilename
     XMLchannel_file = open(pathXMLFile,'w')
@@ -55,11 +54,38 @@ def CreateTheXMLFiles(signalName,inputFile,massCut,ptCut):
     XMLcombined_txt = '\n'
     XMLcombined_txt += baseXMLcombined_file.read()
     baseXMLcombined_file.close()
-
     # replacements
     XMLcombined_txt = XMLcombined_txt.replace("XXX_INPUTFILE_XXX",'./config/'+chXMLFilename)
-
     combXMLFilename = 'hscp_dataDriven_'+signalName+'_massCut'+`massCut`+'_ptCut'+`ptCut`+'.xml'
+    pathXMLFile = Farm_Directories[1]+'config/'+combXMLFilename
+    XMLcombined_file = open(pathXMLFile,'w')
+    XMLcombined_file.write(XMLcombined_txt)
+    XMLcombined_file.close()
+
+
+def CreateTheXMLFilesDiscovery(signalName,inputFile,massCut,ptCut):
+    global Base_xml_channel_sig
+    global Base_xml_combined
+
+    baseXMLchannel_file = open(Base_xml_channel_sig,'r')
+    XMLchannel_txt = '\n'
+    XMLchannel_txt += baseXMLchannel_file.read()
+    baseXMLchannel_file.close()
+    # replacements
+    XMLchannel_txt = XMLchannel_txt.replace("XXX_INPUTFILE_XXX",os.getcwd()+'/'+Farm_Directories[4]+inputFile)
+    chXMLFilename = 'hscp_dataDriven_ch_sig_'+signalName+'_massCut'+`massCut`+'_ptCut'+`ptCut`+'.xml'
+    pathXMLFile = Farm_Directories[1]+'config/'+chXMLFilename
+    XMLchannel_file = open(pathXMLFile,'w')
+    XMLchannel_file.write(XMLchannel_txt)
+    XMLchannel_file.close()
+
+    baseXMLcombined_file = open(Base_xml_combined,'r')
+    XMLcombined_txt = '\n'
+    XMLcombined_txt += baseXMLcombined_file.read()
+    baseXMLcombined_file.close()
+    # replacements
+    XMLcombined_txt = XMLcombined_txt.replace("XXX_INPUTFILE_XXX",'./config/'+chXMLFilename)
+    combXMLFilename = 'hscp_dataDriven_sig_'+signalName+'_massCut'+`massCut`+'_ptCut'+`ptCut`+'.xml'
     pathXMLFile = Farm_Directories[1]+'config/'+combXMLFilename
     XMLcombined_file = open(pathXMLFile,'w')
     XMLcombined_file.write(XMLcombined_txt)
@@ -105,12 +131,18 @@ def CreateTheShellFile(bgInputFile,sigLooseInputFile,sigTightInputFile,modelName
     signalName = modelName
     outputFile = 'makeScaledPredictionHistograms_'+signalName+'_massCut'+`massCut`+'_ptCut'+`ptCut`+'.root'
     CreateTheConfigFile(bgInputFile,sigLooseInputFile,sigTightInputFile,massCut,iasCut,ptCut,signalName,crossSection)
-    CreateTheXMLFiles(signalName,outputFile,massCut,ptCut)
+    CreateTheXMLFilesLimits(signalName,outputFile,massCut,ptCut)
     Path_Shell = Farm_Directories[1]+Jobs_Name+signalName+'_massCut'+`massCut`+'_ptCut'+`ptCut`+'.sh'
     combXMLFilename = 'hscp_dataDriven_'+signalName+'_massCut'+`massCut`+'_ptCut'+`ptCut`+'.xml'
     pathCombXMLFile = os.getcwd()+'/'+Farm_Directories[1]+'/config/'+combXMLFilename
     chXMLFilename = 'hscp_dataDriven_ch_'+signalName+'_massCut'+`massCut`+'_ptCut'+`ptCut`+'.xml'
     pathChXMLFile = os.getcwd()+'/'+Farm_Directories[1]+'config/'+chXMLFilename
+    # discovery/significance
+    CreateTheXMLFilesDiscovery(signalName,outputFile,massCut,ptCut)
+    combXMLSigFilename = 'hscp_dataDriven_sig_'+signalName+'_massCut'+`massCut`+'_ptCut'+`ptCut`+'.xml'
+    pathCombXMLSigFile = os.getcwd()+'/'+Farm_Directories[1]+'/config/'+combXMLSigFilename
+    chXMLSigFilename = 'hscp_dataDriven_ch_sig_'+signalName+'_massCut'+`massCut`+'_ptCut'+`ptCut`+'.xml'
+    pathChXMLSigFile = os.getcwd()+'/'+Farm_Directories[1]+'config/'+chXMLSigFilename
     shell_file=open(Path_Shell,'w')
     shell_file.write('#!/bin/sh\n')
     shell_file.write(CopyRights + '\n')
@@ -134,12 +166,21 @@ def CreateTheShellFile(bgInputFile,sigLooseInputFile,sigTightInputFile,modelName
     shell_file.write('source /local/cms/user/cooper/root/bin/thisroot.sh\n')
     #
     shell_file.write('cd ' + os.getcwd() + '/' + Farm_Directories[4] + '\n')
-    shell_file.write('mkdir ' + signalName + '\n')
-    shell_file.write('cd ' + signalName + '\n')
+    shell_file.write('mkdir ' + signalName + '_Limits\n')
+    shell_file.write('cd ' + signalName + '_Limits\n')
     shell_file.write('prepareHistFactory\n')
     shell_file.write('cp ' + pathChXMLFile + ' config/\n')
     shell_file.write('cp ' + pathCombXMLFile + ' config/\n')
     shell_file.write('hist2workspace ' + 'config/' + combXMLFilename + '\n')
+    # now for discovery
+    shell_file.write('# now do discovery\n')
+    shell_file.write('cd ..\n')
+    shell_file.write('mkdir ' + signalName + '_Significance\n')
+    shell_file.write('cd ' + signalName + '_Significance\n')
+    shell_file.write('prepareHistFactory\n')
+    shell_file.write('cp ' + pathChXMLSigFile + ' config/\n')
+    shell_file.write('cp ' + pathCombXMLSigFile + ' config/\n')
+    shell_file.write('hist2workspace ' + 'config/' + combXMLSigFilename + '\n')
     shell_file.close()
     os.system("chmod 777 "+Path_Shell)
 
