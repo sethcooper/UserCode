@@ -180,8 +180,8 @@ def SendCluster_Create(farmDirectory, jobName, inputRootFile, baseCfg,
     # if this splitting is changed, have to change checkForIasPredictions function in Launch.py
     if(allSlices):
       for etaIndex in range(0,16,4):
-        for nomIndex in range(5,22,4):
-          SendCluster_Push(massCut,etaIndex/10.0,(etaIndex+4)/10.0,nomIndex,nomIndex+3,ptCut,iasCut)
+        SendCluster_Push(massCut,etaIndex/10.0,(etaIndex+4)/10.0,5,12,ptCut,iasCut)
+        SendCluster_Push(massCut,etaIndex/10.0,(etaIndex+4)/10.0,13,18,ptCut,iasCut)
     else:
       SendCluster_Push(massCut,0.0,1.5,5,21,ptCut,iasCut)
 
