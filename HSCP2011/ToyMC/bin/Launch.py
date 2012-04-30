@@ -23,14 +23,16 @@ BayesianLimit = False
 DoMass = False
 DoSignificanceToys = True
 #ModelListToys = [GMStau100]#,GMStau432,Gluino300,Gluino900,Stop130,Stop700]
-ModelListToys = [Gluino1200]
+#ModelListToys = [Gluino1200]
+ModelListToys = [GMStau100]
 #PoiList = [6e-3,5e-3,4e-3,3e-3,2e-3,1e-3]
 #PoiList = [5e-4,1.5e-3]
 #PoiList = [2.5e-4,1e-4]
 # TOYS
 #PoiList = [1e-3,7.5e-4,5e-4,2.5e-4,1e-4]
 #PoiList = [1.2e-3,1.5e-3]
-PoiList = [1.25e-3,1.3e-3]
+#PoiList = [1.35e-3]
+PoiList = [1.3e-3]
 QueueName = '8nh'
 ## FOR NOW, CutPt=Std means CutIas Std also!
 #CutPt = 'Std'
@@ -38,28 +40,31 @@ CutPt = 50
 #CutIas = 'Std'
 CutIas = 0.1
 
-FarmDirectory = 'FARM_dReg_NL_50IasBins_emptyBins1e-25_stepsFix_cutPt50GeVcutIas0.1_allSlices_Apr20'
-#FarmDirectory = 'FARM_dReg_NL_50IasBins_emptyBins1e-25_stepsFix_iasPredErrorFix_'
-#FarmDirectory+='cutPt'
-##
-#FarmDirectory+=str(CutPt)
-#FarmDirectory+='GeVcutIas'
-#FarmDirectory+=str(CutIas)
-#if(AllSlices):
-#  FarmDirectory+='_allSlices_'
-#else:
-#  FarmDirectory+='_oneSlice_'
-#FarmDirectory+=Date
+# XXX SIC TEST
+modelList = [GMStau100]
+
+#FarmDirectory = 'FARM_dReg_NL_50IasBins_emptyBins1e-25_stepsFix_cutPt50GeVcutIas0.1_allSlices_Apr20'
+FarmDirectory = 'FARM_dReg_NL_50IasBins_emptyBins1e-25_iasPredFitFix5_'
+FarmDirectory+='cutPt'
+#
+FarmDirectory+=str(CutPt)
+FarmDirectory+='GeVcutIas'
+FarmDirectory+=str(CutIas)
+if(AllSlices):
+  FarmDirectory+='_allSlices_'
+else:
+  FarmDirectory+='_oneSlice_'
+FarmDirectory+=Date
+
 InputDataRootFile = os.getcwd()
-InputDataRootFile+='/FARM_MakeHSCParticlePlots_dataWithTightRPCTrig_absEta_ptErrorPresel_feb6/outputs/makeHSCParticlePlots_feb1_Data2011_all.root'
+InputDataRootFile+='/FARM_MakeHSCParticlePlots_Data_Apr28/outputs/makeHSCParticlePlots_Data2011_all.root'
+#InputDataRootFile+='/FARM_MakeHSCParticlePlots_dataWithTightRPCTrig_absEta_ptErrorPresel_feb6/outputs/makeHSCParticlePlots_feb1_Data2011_all.root'
 #InputDataRootFile+='/FARM_MakeHSCParticlePlots_data_absEta_ptErrorPresel_Mar08/outputs/makeHSCParticlePlots_Data2011_all.root'
 #InputDataRootFile+='/FARM_MakeHSCParticlePlots_absEta_ptErrorPresel_Mar21/outputs/makeHSCParticlePlots_Mar21_Data2011_all.root'
 sigInput = os.getcwd()
 #sigInput+='/FARM_MakeHSCParticlePlots_Signals_PUWeights_Mar23/outputs/makeHSCParticlePlots_Mar23_'
 sigInput+='/FARM_MakeHSCParticlePlots_Signals_NewLumi_Apr13/outputs/makeHSCParticlePlots_Apr13_'
 IntLumi = 4976 # 1/pb (2011, new pixel measurement)
-# subtract the lumi before the RPC trigger change (runs before 165970) = 352.067 /pb
-#IntLumi = 4623.993 # 1/pb
 #
 
 
@@ -74,6 +79,7 @@ if(DoMass):
   BaseChXML = "hscp_dataDriven_ch_mass_template.xml"
 else:
   BaseChXML = "hscp_dataDriven_ch_template.xml"
+BaseChXMLSig = "hscp_dataDriven_ch_sig_template.xml"
 BaseCombXML = "hscp_dataDriven_template.xml"
 BaseMacro = os.getcwd() + "/StandardHypoTestInvDemo.C"
 BaseMacroBayesian = os.getcwd() + "/StandardBayesianNumericalDemo.C"
@@ -97,7 +103,7 @@ def printConfiguration():
 def checkForIasPredictions(modelName,massCut,ptCut,iasCut):
   # have to change this if slicing is changed in HSCPMakeIasPredictionsLaunch.py
   etaCuts = [0.0,0.4,0.8,1.2]
-  nomCuts = [5,9,13,17,21]
+  nomCuts = [5,13]
   for minEta in etaCuts:
     for minNom in nomCuts:
       fileName = os.getcwd()+'/'+FarmDirectory+'/outputs/makeIasPredictions/makeIasPredictions_'+modelName+'_massCut'+str(massCut)+'_pt'+str(ptCut)+'_ias'+str(iasCut)+'_etaMin'+str(minEta)+'_nomMin'+str(minNom)+'.root'
@@ -150,7 +156,7 @@ def doMergeIasPredictions():
         print 'Merging files for ' + model.name + ' mass cut = ' + str(model.massCut) + ' pt cut = ' + str(model.ptCut) + ' ias cut = ' + model.iasCut
         call(thisMassCutFiles,stdout = fnull)
       else:
-        break
+        print 'ERROR: Ias predictions for',model.name,'not found!'
   elif(CutIas=='Std'):
     for model in modelList:
       if(checkForIasPredictions(model.name,model.massCut,CutPt,model.iasCut)):
@@ -160,7 +166,7 @@ def doMergeIasPredictions():
         print 'Merging files for ' + model.name + ': mass cut = ' + str(model.massCut) + ' pt cut = 50 ias cut = ' + model.iasCut
         call(thisMassCutFiles,stdout = fnull)
       else:
-        break
+        print 'ERROR: Ias predictions for',model.name,'not found!'
   else:
     for model in modelList:
       if(checkForIasPredictions(model.name,model.massCut,CutPt,CutIas)):
@@ -170,7 +176,7 @@ def doMergeIasPredictions():
         print 'Merging files for ' + model.name + ' mass cut = ' + str(model.massCut) + ' pt cut = 50 ias cut = ' + str(CutIas)
         call(thisMassCutFiles,stdout = fnull)
       else:
-        break
+        print 'ERROR: Ias predictions for',model.name,'not found!'
   fnull.close()
 
 
@@ -180,7 +186,7 @@ def doScaledPredictions():
   JobName = "makeScaledPredictions_"
   HSCPMakeScaledPredictionsLaunch.SendCluster_Create(FarmDirectory,JobName,
                                               IntLumi, BaseCfgMakeScaled, BaseChXML, 
-                                                           BaseCombXML, BaseMacro, AllSlices, RunCondor, QueueName)
+                                                           BaseCombXML, BaseChXMLSig, AllSlices, RunCondor, QueueName)
   for model in modelList:
     looseRPCFileName = sigInput+model.name+'BX1.root'
     tightRPCFileName = sigInput+model.name+'.root'
@@ -235,13 +241,13 @@ def doLimits():
     #HSCPDoLimitsLaunch.SendCluster_Submit()
     print 'Run observed limits'
     HSCPDoLimitsLaunch.SendCluster_Create(FarmDirectory, JobName, IntLumi, BaseMacro, False, False, RunCondor, QueueName)
-    for model in modelList:
-      fileExists = checkForScaledPredictions(model.name)
-      if not fileExists:
-        return
-      else:
-        HSCPDoLimitsLaunch.SendCluster_Push(bgInput,sigInput+model.name+'.root',model.massCut,CutIas,CutPt)
-    #HSCPDoLimitsLaunch.SendCluster_Push(bgInput,sigInput+'Gluino1000'+'.root',Gluino1000.massCut,0.1,50)
+    #for model in modelList:
+    #  fileExists = checkForScaledPredictions(model.name)
+    #  if not fileExists:
+    #    return
+    #  else:
+    #    HSCPDoLimitsLaunch.SendCluster_Push(bgInput,sigInput+model.name+'.root',model.massCut,CutIas,CutPt)
+    HSCPDoLimitsLaunch.SendCluster_Push(bgInput,sigInput+'GMStau100'+'.root',GMStau100.massCut,0.1,50)
     HSCPDoLimitsLaunch.SendCluster_Submit()
 
 
@@ -275,13 +281,13 @@ def doSignificance():
   inputWorkspacePathBeg = os.getcwd()+'/'+FarmDirectory+'/outputs/makeScaledPredictions/'
 #  # use observed data as "black line" or test point
   # first do asymptotic for all
-#  print 'Running asymptotic significance test for all models'
-#  ThrowToysSignificance = False
-#  HSCPDoSignificanceLaunch.SendCluster_Create(FarmDirectory, JobName, BaseMacroSignificance, ThrowToysSignificance, False, RunCondor, QueueName)
-#  for model in modelList:
-#    for poi in PoiList:
-#      HSCPDoSignificanceLaunch.SendCluster_Push(model.name,inputWorkspacePathBeg+model.name+'/'+inputWorkspaceFile,poi)
-#  HSCPDoSignificanceLaunch.SendCluster_Submit()
+  print 'Running asymptotic significance test for all models'
+  ThrowToysSignificance = False
+  HSCPDoSignificanceLaunch.SendCluster_Create(FarmDirectory, JobName, BaseMacroSignificance, ThrowToysSignificance, False, RunCondor, QueueName)
+  for model in modelList:
+    for poi in PoiList:
+      HSCPDoSignificanceLaunch.SendCluster_Push(model.name,inputWorkspacePathBeg+model.name+'_Significance/'+inputWorkspaceFile,poi)
+  HSCPDoSignificanceLaunch.SendCluster_Submit()
   if(DoSignificanceToys):
     # then throw toys for a few test models
     print 'Running toys for selected models'
@@ -289,7 +295,7 @@ def doSignificance():
     HSCPDoSignificanceLaunch.SendCluster_Create(FarmDirectory, JobName, BaseMacroSignificance, ThrowToysSignificance, False, RunCondor, QueueName)
     for model in ModelListToys:
       for poi in PoiList:
-        HSCPDoSignificanceLaunch.SendCluster_Push(model.name,inputWorkspacePathBeg+model.name+'/'+inputWorkspaceFile,poi)
+        HSCPDoSignificanceLaunch.SendCluster_Push(model.name,inputWorkspacePathBeg+model.name+'_Significance/'+inputWorkspaceFile,poi)
     HSCPDoSignificanceLaunch.SendCluster_Submit()
 
 def combineHypoTestResults():
