@@ -67,7 +67,8 @@ void StandardHypoTestDemo(const char* infile = "",
   SimpleLikelihoodRatioTestStat::SetAlwaysReuseNLL(true);
   RooRandom::randomGenerator()->SetSeed(0);
 
-  ROOT::Math::MinimizerOptions::SetDefaultStrategy(0);
+  // SIC MOD: change strategy to 2
+  ROOT::Math::MinimizerOptions::SetDefaultStrategy(2);
   ROOT::Math::MinimizerOptions::SetDefaultMinimizer("Minuit");
   ROOT::Math::MinimizerOptions::SetDefaultTolerance(1);
 
@@ -282,6 +283,7 @@ void StandardHypoTestDemo(const char* infile = "",
   htr->SetPValueIsRightTail(true);
   htr->SetBackgroundAsAlt(false);
   htr->Print(); // how to get meaningfull CLs at this point?
+  //cout << "Test statistic on data: " << htr->GetTestStatisticData() << endl;
 
   TFile* outFile = new TFile(outputFile,"recreate");
   outFile->cd();
