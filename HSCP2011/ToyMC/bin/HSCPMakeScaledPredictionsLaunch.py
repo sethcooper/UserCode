@@ -101,7 +101,6 @@ def CreateTheShellFile(bgInputFile,sigLooseInputFile,sigTightInputFile,modelName
     global Path_Shell
     global CopyRights
     global Jobs_Name
-    global Base_macro
     global All_Slices
     signalName = modelName
     outputFile = 'makeScaledPredictionHistograms_'+signalName+'_massCut'+`massCut`+'_ptCut'+`ptCut`+'.root'
@@ -211,13 +210,13 @@ def CreateDirectoryStructure(FarmDirectory):
         os.system('mkdir -p ' + FarmDirectory+'/inputs/makeScaledPredictions/config/')
 
 def SendCluster_Create(farmDirectory, jobName, intLumi, baseCfg,
-                       baseChXML, baseCombXML, baseMacro, allSlices, doCondor, queueName):
+                       baseChXML, baseCombXML, baseChXMLSig, allSlices, doCondor, queueName):
     global Jobs_Name
     global Jobs_Count
     global Base_Cfg
     global Base_xml_channel
     global Base_xml_combined
-    global Base_macro
+    global Base_xml_channel_sig
     global Int_Lumi
     global Condor
     global Queue_Name
@@ -227,7 +226,7 @@ def SendCluster_Create(farmDirectory, jobName, intLumi, baseCfg,
     Base_Cfg = baseCfg
     Base_xml_channel = baseChXML
     Base_xml_combined = baseCombXML
-    Base_macro = baseMacro
+    Base_xml_channel_sig = baseChXMLSig
     Int_Lumi = intLumi
     All_Slices = allSlices
     Condor = doCondor
