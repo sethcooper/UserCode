@@ -7,10 +7,14 @@ import glob
 import math
 import array
 from SignalDefinitions import *
+# run in batch
+sys.argv.append('-b')
+import ROOT
+#
 from ROOT import TGraph,TMultiGraph,TCanvas,TPaveText,gROOT,TLegend,TCutG,kGreen,TFile,RooStats,Math,vector
 
 # at UMN, must use /usr/bin/python (2.4) and my compiled ROOT version (5.32.02)
-BaseDir = 'FARM_dReg_NL_50IasBins_emptyBins1e-25_stepsFix_cutPt50GeVcutIas0.1_allSlices_Apr20'
+BaseDir = 'FARM_dReg_NL_50IasBins_emptyBins1e-25_iasPredScalingFix_cutPt50GeVcutIas0.1_allSlices_Apr30'
 runCERN = False
 PlotMinScale = 0.0005
 PlotMaxScale = 3
@@ -26,8 +30,9 @@ else:
   fileEnd = '.out'
 
 
+
 class LimitResult:
-  def __init__(self,name,mass,thCrossSection,ptCut,iasCut,massCut,sigEff,expBg,expBgStatErr,obsEvts,expLimit,obsLimit,fiveSigmaXSec):
+  def __init__(self,name,mass,thCrossSection,ptCut,iasCut,massCut,sigEff,expBg,expBgStatErr,obsEvts,expLimit,obsLimit,fiveSigmaXSec,obsSignalSignif):
     self.name = name
     self.mass = mass
     self.thCrossSection = thCrossSection
@@ -41,6 +46,7 @@ class LimitResult:
     self.expLimit = expLimit
     self.obsLimit = obsLimit
     self.fiveSigmaXSec = fiveSigmaXSec
+    self.obsSignalSignif = obsSignalSignif
 
   def Print(self):
     print 'LimitResults object information:'
@@ -57,6 +63,7 @@ class LimitResult:
     print '\texpLimit=',self.expLimit
     print '\tobsLimit=',self.obsLimit
     print '\tfiveSigmaXSec=',self.fiveSigmaXSec
+    print '\tobsSignalSignif=',self.obsSignalSignif
 
   def LatexTableLine(self):
     return ''
@@ -65,9 +72,10 @@ class LimitResult:
     tableString = string.ljust(self.name,15)+string.ljust(self.ptCut,6)+string.ljust(self.iasCut,6)
     tableString+=string.center(str(self.massCut),8)+string.center(str(round(self.sigEff,4)),10)
     backExpString = str(round(self.expBg,4))+' +/- '+str(round(self.expBgStatErr,4))
-    tableString+=string.center(backExpString,30)+string.center(str(self.obsEvts),10)
+    tableString+=string.center(backExpString,22)+string.center(str(self.obsEvts),10)
     tableString+=string.center(str(round(float(self.thCrossSection),6)),10)+string.center(str(round(self.expLimit,6)),10)
-    tableString+=string.center(str(round(self.obsLimit,6)),10)+string.center(str(round(self.fiveSigmaXSec,6)),10)
+    tableString+=string.center(str(round(self.obsLimit,6)),10)+string.center(str(round(self.fiveSigmaXSec,6)),12)
+    tableString+=string.center(str(round(self.obsSignalSignif,6)),10)
     return tableString
 
 
@@ -135,7 +143,6 @@ def GetBkOverIas(filePath):
       break
   lineSplit = line.split(' ')
   if "Bk" in line:
-    #print line
     return float(lineSplit[0])
   else:
     return 0.0
@@ -178,6 +185,24 @@ def GetSignalSignificanceFiveSigma(doSignificanceDir,fileList,modelName):
     #print 'Poi: ',poi,' medianSignificance: ',sig
   interp = Math.Interpolator(medianSignifs,poiValues)
   return interp.Eval(5)
+
+def GetObsDiscSignif(filePath):
+  for line in open(filePath):
+    if "Significance =" in line:
+      signif = line[line.rfind("Significance =")+15:line.rfind("sigma")-1]
+      if "-" in signif:
+        signif = signif.lstrip("-")
+      return float(signif)
+  return 0.0
+
+def GetSignalSignificance(doSignificanceDir,fileList,modelName):
+  significance = -999
+  for fileName in fileList:
+    if modelName in fileName and fileEnd in fileName:
+      if 'asymptotic' in fileName:
+        significance = GetObsDiscSignif(doSignificanceDir+fileName)
+        break
+  return significance
 
 def FindIntersection(obsGraph, thGraph, min, max, step, thUncertainty, debug):
   intersection = -1
@@ -228,14 +253,11 @@ def ReadXSection(InputFile):
   High = []
   for line in open(InputFile):
      line = line.strip()
-     #print line
      split = line.split(' ')
-     #print split
      splitString = []
      for i in split:
        if len(i) > 0:
          splitString.append(i)
-     #print splitString
      Mass.append(float(splitString[0]))
      XSec.append(float(splitString[1]))
      High.append(float(splitString[2]))
@@ -259,13 +281,11 @@ LimitResultsGluinos = []
 LimitResultsStops = []
 LimitResultsStaus = []
 
-# TABLE OUTPUT
-titleString = string.ljust('Model',15)+string.ljust('Pt',6)+string.ljust('Ias',6)+string.center('Mass',8)
-titleString+=string.center('SigEff',10)+string.center('BackExpOverIas',30)+string.center('Obs.',10)
-titleString+=string.center('ThCrossSec',10)+string.center('ExpLim',10)+string.center('ObsLim',10)
-titleString+=string.center('DiscSignf.',10)
-print titleString
-print
+# MKDIR
+plotsDir = BaseDir+'/results/'
+if os.path.isdir(plotsDir) == False:
+  os.mkdir(plotsDir)
+myCanvas = TCanvas("myCanvas", "myCanvas",1000,800)
 for model in modelList:
     predLogFile = GetFile(makeScaledPredictionsLogFileList,model.name)
     limitLogFile = GetFile(doLimitsLogFileList,model.name)
@@ -279,7 +299,6 @@ for model in modelList:
       continue
 
     backExp = GetBackExp(makeScaledPredictionsDir+predLogFile)
-    #TODO FIX BACKEXPERROR?
     backExpError = GetBackExpError(makeScaledPredictionsDir+predLogFile)
     iasCut  = GetIasCut(makeScaledPredictionsDir+predLogFile)
     sigEff = GetSigEff(makeScaledPredictionsDir+predLogFile)
@@ -291,28 +310,52 @@ for model in modelList:
     htr = limitTFile.Get("result_SigXsec")
     expLimit = htr.GetExpectedUpperLimit(0)
     obsLimit = htr.UpperLimit()
+    pValuePlotTitle = "Cross section limit (pb) for "+model.name
+    pValuePlotName = "crossSectionLimit_pValue_"+model.name
+    pValuePlot = RooStats.HypoTestInverterPlot("htrResultPlot",pValuePlotName,htr)
+    pValuePlot.Draw()
+    myCanvas.Print(plotsDir+pValuePlotName+".C")
+    myCanvas.Print(plotsDir+pValuePlotName+".eps")
+    myCanvas.Print(plotsDir+pValuePlotName+".png")
     limitTFile.Close()
     predTFile = TFile(makeScaledPredictionsRootDir+predRootFile)
     dataHist = predTFile.Get("dataAllNoMAllEtaUnrolledHist")
     obsEvts = dataHist.Integral()
     predTFile.Close()
     expSignalSignif = GetSignalSignificanceFiveSigma(doSignificanceDir,doSignificanceLogFileList,model.name)
+    obsSignalSignif = GetSignalSignificance(doSignificanceDir,doSignificanceLogFileList,model.name)
 
     if 'Gluino' in model.name and not 'GluinoN' in model.name:
-      thisLR = LimitResult(model.name,model.mass,model.crossSection,ptCut,iasCut,massCut,sigEff,backExp,backExpError,obsEvts,expLimit,obsLimit,expSignalSignif)
+      thisLR = LimitResult(model.name,model.mass,model.crossSection,ptCut,iasCut,massCut,sigEff,backExp,backExpError,obsEvts,expLimit,obsLimit,expSignalSignif,obsSignalSignif)
       LimitResultsGluinos.append(thisLR)
-      print thisLR.StringTableLine()
+      #print thisLR.StringTableLine()
     if 'Stop' in model.name and not 'StopN' in model.name:
-      thisLR = LimitResult(model.name,model.mass,model.crossSection,ptCut,iasCut,massCut,sigEff,backExp,backExpError,obsEvts,expLimit,obsLimit,expSignalSignif)
+      thisLR = LimitResult(model.name,model.mass,model.crossSection,ptCut,iasCut,massCut,sigEff,backExp,backExpError,obsEvts,expLimit,obsLimit,expSignalSignif,obsSignalSignif)
       LimitResultsStops.append(thisLR)
-      print thisLR.StringTableLine()
+      #print thisLR.StringTableLine()
     if 'Stau' in model.name and not 'PPStau' in model.name:
-      thisLR = LimitResult(model.name,model.mass,model.crossSection,ptCut,iasCut,massCut,sigEff,backExp,backExpError,obsEvts,expLimit,obsLimit,expSignalSignif)
+      thisLR = LimitResult(model.name,model.mass,model.crossSection,ptCut,iasCut,massCut,sigEff,backExp,backExpError,obsEvts,expLimit,obsLimit,expSignalSignif,obsSignalSignif)
       LimitResultsStaus.append(thisLR)
-      print thisLR.StringTableLine()
-      #thisLR.Print()
+      #print thisLR.StringTableLine()
 
-# TEST
+# TABLE OUTPUT
+print
+print
+titleString = string.ljust('Model',15)+string.ljust('Pt',6)+string.ljust('Ias',6)+string.center('Mass',8)
+titleString+=string.center('SigEff',10)+string.center('BackExpOverIas',22)+string.center('Obs.',10)
+titleString+=string.center('ThCrossSec',10)+string.center('ExpLim',10)+string.center('ObsLim',10)
+titleString+=string.center('Exp5SigDisc',12)
+titleString+=string.center('ObsSignf.',10)
+print titleString
+# print table lines
+for limitRes in LimitResultsGluinos:
+  print limitRes.StringTableLine()
+for limitRes in LimitResultsStops:
+  print limitRes.StringTableLine()
+for limitRes in LimitResultsStaus:
+  print limitRes.StringTableLine()
+
+# TESTING
 sys.exit()
 
 gluinoThInfo = ReadXSection(GluinoXSecFile)
