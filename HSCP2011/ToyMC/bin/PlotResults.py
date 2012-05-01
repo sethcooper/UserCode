@@ -347,13 +347,20 @@ titleString+=string.center('ThCrossSec',10)+string.center('ExpLim',10)+string.ce
 titleString+=string.center('Exp5SigDisc',12)
 titleString+=string.center('ObsSignf.',10)
 print titleString
+# write text file
+txt_file=open(plotsDir+'results.txt','w')
+txt_file.write(titleString+'\n')
 # print table lines
 for limitRes in LimitResultsGluinos:
   print limitRes.StringTableLine()
+  txt_file.write(limitRes.StringTableLine()+'\n')
 for limitRes in LimitResultsStops:
   print limitRes.StringTableLine()
+  txt_file.write(limitRes.StringTableLine()+'\n')
 for limitRes in LimitResultsStaus:
   print limitRes.StringTableLine()
+  txt_file.write(limitRes.StringTableLine()+'\n')
+txt_file.close()
 
 # TESTING
 sys.exit()
