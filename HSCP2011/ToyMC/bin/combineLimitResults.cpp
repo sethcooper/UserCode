@@ -123,5 +123,15 @@ int main(int argc, char* argv[])
   r->Write();
   thisSignalCombinedTFile->Close();
 
+  double upperLimit = r->UpperLimit();
+  double ulError = r->UpperLimitEstimatedError();
+  std::cout << "The computed upper limit is: " << upperLimit << " +/- " << ulError << std::endl;
+  // compute expected limit
+  std::cout << " expected limit (median) " << r->GetExpectedUpperLimit(0) << std::endl;
+  std::cout << " expected limit (-1 sig) " << r->GetExpectedUpperLimit(-1) << std::endl;
+  std::cout << " expected limit (+1 sig) " << r->GetExpectedUpperLimit(1) << std::endl;
+  std::cout << " expected limit (-2 sig) " << r->GetExpectedUpperLimit(-2) << std::endl;
+  std::cout << " expected limit (+2 sig) " << r->GetExpectedUpperLimit(2) << std::endl;
+
   return 0;
 }
