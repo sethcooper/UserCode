@@ -1119,6 +1119,7 @@ int main(int argc, char ** argv)
     outputRootFile->cd();
     //scaledBGPredDir->cd();
     histItr->Write();
+    bgDiscoveryHistsToUse[iteratorPos].Write();
     dataHistsToUse[iteratorPos].Write();
     //normedSignalPredDir->cd();
     iasSignalMassCutNoMSliceHist->Write();
