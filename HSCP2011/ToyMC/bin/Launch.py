@@ -17,22 +17,23 @@ now = datetime.datetime.now()
 Date = now.strftime("%b%d")
 
 # Set things here
-AllSlices = True
+AllSlices = False
 RunCondor = True
 BayesianLimit = False
 DoMass = False
-DoSignificanceToys = True
+DoSignificanceToys = False
 #ModelListToys = [GMStau100]#,GMStau432,Gluino300,Gluino900,Stop130,Stop700]
-#ModelListToys = [Gluino1200]
-ModelListToys = [GMStau100]
-#PoiList = [6e-3,5e-3,4e-3,3e-3,2e-3,1e-3]
+ModelListToys = [Gluino1200]
+#ModelListToys = [GMStau100]
+PoiList = [6e-3,5e-3,4e-3,3e-3,2e-3,1e-3,5e-4,2.5e-4]
+
 #PoiList = [5e-4,1.5e-3]
 #PoiList = [2.5e-4,1e-4]
 # TOYS
 #PoiList = [1e-3,7.5e-4,5e-4,2.5e-4,1e-4]
 #PoiList = [1.2e-3,1.5e-3]
 #PoiList = [1.35e-3]
-PoiList = [1.3e-3]
+#PoiList = [1.3e-3]
 QueueName = '8nh'
 ## FOR NOW, CutPt=Std means CutIas Std also!
 #CutPt = 'Std'
@@ -40,11 +41,9 @@ CutPt = 50
 #CutIas = 'Std'
 CutIas = 0.1
 
-# XXX SIC TEST
-modelList = [GMStau100]
-
 #FarmDirectory = 'FARM_dReg_NL_50IasBins_emptyBins1e-25_stepsFix_cutPt50GeVcutIas0.1_allSlices_Apr20'
-FarmDirectory = 'FARM_dReg_NL_50IasBins_emptyBins1e-25_iasPredFitFix5_'
+#FarmDirectory = 'FARM_dReg_NL_50IasBins_emptyBins1e-25_iasPredScalingFix_'
+FarmDirectory = 'FARM_dReg_NL_50IasBins_emptyBins1e-25_1gausSystWithStatErr_'
 FarmDirectory+='cutPt'
 #
 FarmDirectory+=str(CutPt)
@@ -115,8 +114,11 @@ def checkForIasPredictions(modelName,massCut,ptCut,iasCut):
   return True
 
 
-def checkForScaledPredictions(modelName):
-  fileName = os.getcwd()+'/'+FarmDirectory+'/outputs/makeScaledPredictions/'+modelName+'/hscp_combined_hscp_model.root'
+def checkForScaledPredictions(modelName, checkForLimitFile):
+  if(checkForLimitFile):
+    fileName = os.getcwd()+'/'+FarmDirectory+'/outputs/makeScaledPredictions/'+modelName+'_Limits/hscp_combined_hscp_model.root'
+  else:
+    fileName = os.getcwd()+'/'+FarmDirectory+'/outputs/makeScaledPredictions/'+modelName+'_Significance/hscp_combined_hscp_model.root'
   try:
     open(fileName)
   except IOError:
@@ -152,6 +154,7 @@ def doMergeIasPredictions():
       if(checkForIasPredictions(model.name,model.massCut,model.ptCut,model.iasCut)):
         thisMassCutFiles = glob.glob(OutputIasPredictionDir+'*'+model.name+'_massCut'+str(model.massCut)+'_pt'+str(model.ptCut)+'_ias'+model.iasCut+'_eta*')
         thisMassCutFiles.insert(0,OutputIasPredictionDir+'makeIasPredictionsCombined_'+model.name+'_massCut'+str(model.massCut)+'_ptCut'+str(model.ptCut)+'_ias'+model.iasCut+'.root')
+        thisMassCutFiles.insert(0,"-f")
         thisMassCutFiles.insert(0,"hadd")
         print 'Merging files for ' + model.name + ' mass cut = ' + str(model.massCut) + ' pt cut = ' + str(model.ptCut) + ' ias cut = ' + model.iasCut
         call(thisMassCutFiles,stdout = fnull)
@@ -162,6 +165,7 @@ def doMergeIasPredictions():
       if(checkForIasPredictions(model.name,model.massCut,CutPt,model.iasCut)):
         thisMassCutFiles = glob.glob(OutputIasPredictionDir+'*'+model.name+'_massCut'+str(model.massCut)+'_pt50_ias'+model.iasCut+'_eta*')
         thisMassCutFiles.insert(0,OutputIasPredictionDir+'makeIasPredictionsCombined_'+model.name+'_massCut'+str(model.massCut)+'_ptCut50_ias'+model.iasCut+'.root')
+        thisMassCutFiles.insert(0,"-f")
         thisMassCutFiles.insert(0,"hadd")
         print 'Merging files for ' + model.name + ': mass cut = ' + str(model.massCut) + ' pt cut = 50 ias cut = ' + model.iasCut
         call(thisMassCutFiles,stdout = fnull)
@@ -172,6 +176,7 @@ def doMergeIasPredictions():
       if(checkForIasPredictions(model.name,model.massCut,CutPt,CutIas)):
         thisMassCutFiles = glob.glob(OutputIasPredictionDir+'*'+model.name+'_massCut'+str(model.massCut)+'_pt50_ias'+str(CutIas)+'_eta*')
         thisMassCutFiles.insert(0,OutputIasPredictionDir+'makeIasPredictionsCombined_'+model.name+'_massCut'+str(model.massCut)+'_ptCut50_ias'+str(CutIas)+'.root')
+        thisMassCutFiles.insert(0,"-f")
         thisMassCutFiles.insert(0,"hadd")
         print 'Merging files for ' + model.name + ' mass cut = ' + str(model.massCut) + ' pt cut = 50 ias cut = ' + str(CutIas)
         call(thisMassCutFiles,stdout = fnull)
@@ -179,7 +184,30 @@ def doMergeIasPredictions():
         print 'ERROR: Ias predictions for',model.name,'not found!'
   fnull.close()
 
-
+def doCopyIasPredictions():
+  printConfiguration()
+  if(CutPt=='Std'):
+    for model in modelList:
+      thisMassCutFiles = glob.glob(OutputIasPredictionDir+'*'+model.name+'_massCut'+str(model.massCut)+'_pt'+str(model.ptCut)+'_ias'+model.iasCut+'_eta*')
+      thisMassCutFiles.append(OutputIasPredictionDir+'makeIasPredictionsCombined_'+model.name+'_massCut'+str(model.massCut)+'_ptCut'+str(model.ptCut)+'_ias'+model.iasCut+'.root')
+      thisMassCutFiles.insert(0,"cp")
+      print 'Copy file for ' + model.name + ' mass cut = ' + str(model.massCut) + ' pt cut = ' + str(model.ptCut) + ' ias cut = ' + model.iasCut
+      call(thisMassCutFiles)
+  elif(CutIas=='Std'):
+    for model in modelList:
+      thisMassCutFiles = glob.glob(OutputIasPredictionDir+'*'+model.name+'_massCut'+str(model.massCut)+'_pt50_ias'+model.iasCut+'_eta*')
+      thisMassCutFiles.append(OutputIasPredictionDir+'makeIasPredictionsCombined_'+model.name+'_massCut'+str(model.massCut)+'_ptCut50_ias'+model.iasCut+'.root')
+      thisMassCutFiles.insert(0,"cp")
+      print 'Copy file for ' + model.name + ': mass cut = ' + str(model.massCut) + ' pt cut = 50 ias cut = ' + model.iasCut
+      call(thisMassCutFiles)
+  else:
+    for model in modelList:
+      thisMassCutFiles = glob.glob(OutputIasPredictionDir+'*'+model.name+'_massCut'+str(model.massCut)+'_pt50_ias'+str(CutIas)+'_eta*')
+      thisMassCutFiles.append(OutputIasPredictionDir+'makeIasPredictionsCombined_'+model.name+'_massCut'+str(model.massCut)+'_ptCut50_ias'+str(CutIas)+'.root')
+      thisMassCutFiles.insert(0,"cp")
+      print 'Copy file for ' + model.name + ' mass cut = ' + str(model.massCut) + ' pt cut = 50 ias cut = ' + str(CutIas)
+      call(thisMassCutFiles)
+    
 def doScaledPredictions():
   printConfiguration()
   # BG
@@ -211,7 +239,7 @@ def doLimits():
     print 'Run expected limits'
     HSCPDoLimitsLaunch.SendCluster_Create(FarmDirectory, JobName, IntLumi, BaseMacroBayesian, True, True, RunCondor, QueueName)
     for model in modelList:
-      fileExists = checkForScaledPredictions(model.name)
+      fileExists = checkForScaledPredictions(model.name,True)
       if not fileExists:
         return
       else:
@@ -221,7 +249,7 @@ def doLimits():
     print 'Run observed limits'
     HSCPDoLimitsLaunch.SendCluster_Create(FarmDirectory, JobName, IntLumi, BaseMacroBayesian, True, False, RunCondor, QueueName)
     for model in modelList:
-      fileExists = checkForScaledPredictions(model.name)
+      fileExists = checkForScaledPredictions(model.name,True)
       if not fileExists:
         return
       else:
@@ -232,7 +260,7 @@ def doLimits():
     #print 'Run expected limits'
     #HSCPDoLimitsLaunch.SendCluster_Create(FarmDirectory, JobName, IntLumi, BaseMacro, False, True, RunCondor, QueueName)
     ##for model in modelList:
-    ##  fileExists = checkForScaledPredictions(model.name)
+    ##  fileExists = checkForScaledPredictions(model.name,True)
     ##  if not fileExists:
     ##    return
     ##  else:
@@ -241,13 +269,13 @@ def doLimits():
     #HSCPDoLimitsLaunch.SendCluster_Submit()
     print 'Run observed limits'
     HSCPDoLimitsLaunch.SendCluster_Create(FarmDirectory, JobName, IntLumi, BaseMacro, False, False, RunCondor, QueueName)
-    #for model in modelList:
-    #  fileExists = checkForScaledPredictions(model.name)
-    #  if not fileExists:
-    #    return
-    #  else:
-    #    HSCPDoLimitsLaunch.SendCluster_Push(bgInput,sigInput+model.name+'.root',model.massCut,CutIas,CutPt)
-    HSCPDoLimitsLaunch.SendCluster_Push(bgInput,sigInput+'GMStau100'+'.root',GMStau100.massCut,0.1,50)
+    for model in modelList:
+      fileExists = checkForScaledPredictions(model.name,True)
+      if not fileExists:
+        return
+      else:
+        HSCPDoLimitsLaunch.SendCluster_Push(bgInput,sigInput+model.name+'.root',model.massCut,CutIas,CutPt)
+    #HSCPDoLimitsLaunch.SendCluster_Push(bgInput,sigInput+'GMStau100'+'.root',GMStau100.massCut,0.1,50)
     HSCPDoLimitsLaunch.SendCluster_Submit()
 
 
@@ -256,6 +284,7 @@ def combineLimitResults():
   # must execute makeCombineLimitResults to build the binary first
   doLimitsOutputDir = FarmDirectory+'/outputs/doLimits/'
   for model in modelList:
+    logFileName = FarmDirectory+'/logs/doLimits/doLimitsCombined_'+model.name+'.out'
     shell_file=open('/tmp/combine.sh','w')
     shell_file.write('#!/bin/sh\n')
     # CERN
@@ -264,7 +293,7 @@ def combineLimitResults():
     #shell_file.write('source /afs/cern.ch/sw/lcg/app/releases/ROOT/5.32.02/x86_64-slc5-gcc43-opt/root/bin/thisroot.sh\n')
     # UMN
     shell_file.write('source /local/cms/user/cooper/root/bin/thisroot.sh\n')
-    shell_file.write(os.getcwd()+'/combineLimitResults '+doLimitsOutputDir+' '+model.name+'\n')
+    shell_file.write(os.getcwd()+'/combineLimitResults '+doLimitsOutputDir+' '+model.name+' >& '+logFileName+'\n')
     shell_file.close()
     os.system("chmod 777 /tmp/combine.sh")
     os.system("source /tmp/combine.sh")
@@ -272,10 +301,10 @@ def combineLimitResults():
 
 def doSignificance():
   printConfiguration()
-#  for model in modelList:
-#    fileExists = checkForScaledPredictions(model.name)
-#    if not fileExists:
-#      return
+  for model in modelList:
+    fileExists = checkForScaledPredictions(model.name,False)
+    if not fileExists:
+      return
   JobName = "doSignificance_"
   inputWorkspaceFile = 'hscp_combined_hscp_model.root'
   inputWorkspacePathBeg = os.getcwd()+'/'+FarmDirectory+'/outputs/makeScaledPredictions/'
@@ -312,6 +341,27 @@ def combineHypoTestResults():
       print doSignificanceMerge
       call(doSignificanceMerge)
   
+def plotIasPredictionHists():
+  fnull = open(os.devnull, 'w')
+  IasPredictionDir = FarmDirectory+'/outputs/makeIasPredictions/'
+  if os.path.isdir(FarmDirectory+'/plots') == False:
+    os.mkdir(FarmDirectory+'/plots')
+  for model in modelList:
+    fileName = 'makeIasPredictionsCombined_'+model.name+'_massCut'+str(model.massCut)+'_ptCut'+str(CutPt)+'_ias'+str(CutIas)+'.root'
+    filePath = IasPredictionDir+fileName
+    try:
+      open(filePath)
+    except IOError:
+      print 'File: ',filePath,' does not exist.'
+      break
+    print 'Making plots for ',model.name
+    dirName = 'makeIasPredictionPlots.'+model.name+'_'+Date
+    command = ['./makeIasPredictionPlotsHtml.sh','-d',dirName,'-r',filePath]
+    call(command,stdout = fnull)
+    command = ['mv',dirName,FarmDirectory+'/plots/']
+    call(command)
+  fnull.close()
+
 
 def Usage():
   print 'Usage: Launch.py [arg] where arg can be:'
@@ -324,6 +374,7 @@ def Usage():
   print '    6 --> combine limit results (when using CLs limits)'
   print '    7 --> significance test using CLs'
   print '    8 --> combine significance test results for toys'
+  print '    9 --> make ias prediction plots and html'
 
 
 
@@ -347,7 +398,10 @@ elif sys.argv[1]=='2':
 
 elif sys.argv[1]=='3':
   print 'Step 3: Merge Ias predictions'
-  doMergeIasPredictions()
+  if(AllSlices):
+    doMergeIasPredictions()
+  else:
+    doCopyIasPredictions()
 
 elif sys.argv[1]=='4':
   print 'Step 4: Make scaled prediction plots'
@@ -362,12 +416,16 @@ elif sys.argv[1]=='6':
   combineLimitResults()
 
 elif sys.argv[1]=='7':
-  print 'Step 6: Calculate significance using CLs'
+  print 'Step 7: Calculate significance using CLs'
   doSignificance()
 
 elif sys.argv[1]=='8':
-  print 'Step 7: Merge significance test toys'
+  print 'Step 8: Merge significance test toys'
   combineHypoTestResults()
+
+elif sys.argv[1]=='9':
+  print 'Step 9: Make all ias prediction plots and html'
+  plotIasPredictionHists()
   
 
 else:
