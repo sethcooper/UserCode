@@ -322,7 +322,11 @@ for model in modelList:
     dataHist = predTFile.Get("dataAllNoMAllEtaUnrolledHist")
     obsEvts = dataHist.Integral()
     predTFile.Close()
-    expSignalSignif = GetSignalSignificanceFiveSigma(doSignificanceDir,doSignificanceLogFileList,model.name)
+    expSignalSignifRaw = GetSignalSignificanceFiveSigma(doSignificanceDir,doSignificanceLogFileList,model.name)
+    # Multiply by 1.5, since we are underestimating 5-sigma cross section by using asymptotic method vs. toys
+    # see spreadsheet compareToysAsymptoticDiscovery_GMStau100_Gluino1200.xls
+    # 1.5 is the spread between the interpolations for the gluino1200, where the asymptotic approx should be the worst
+    expSignalSignif = 1.5*expSignalSignifRaw
     obsSignalSignif = GetSignalSignificance(doSignificanceDir,doSignificanceLogFileList,model.name)
 
     if 'Gluino' in model.name and not 'GluinoN' in model.name:
