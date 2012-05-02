@@ -1127,9 +1127,17 @@ int main(int argc, char ** argv)
         double cEff = ceffRegionTracksOverMassCutProfile->GetBinContent(bin);
         double bk = iasPredictionFixedLimitsHist->GetBinContent(bin);
         
-        double binContent = (cEff > 0) ? bk*cEff / entriesInARegionNoM : bk*cEffLastBin / entriesInARegionNoM;
-        double binError = (cEff > 0) ? binContent*sqrt(1.0/bk + 1.0/cEff + 1.0/entriesInARegionNoM) :
-          binContent*sqrt(1.0/bk + 1.0/cEffLastBin + 1.0/entriesInARegionNoM);
+        double binContent = emptyBinVal;
+        if(cEff > 0)
+            binContent = bk*cEff / entriesInARegionNoM;
+        else if(cEffLastBin > 0)
+          binContent = bk*cEffLastBin / entriesInARegionNoM;
+
+        double binError = sqrt(emptyBinVal);
+        if(cEff > 0)
+          binError = binContent*sqrt(1.0/bk + 1.0/cEff + 1.0/entriesInARegionNoM);
+        else if(cEffLastBin > 0)
+          binError = binContent*sqrt(1.0/bk + 1.0/cEffLastBin + 1.0/entriesInARegionNoM);
 
         iasPredictionFixedLimitsHist->SetBinContent(bin,binContent);
         iasPredictionFixedLimitsHist->SetBinError(bin,binError);
@@ -1138,9 +1146,17 @@ int main(int argc, char ** argv)
           << " A: " << entriesInARegionNoM << " cEffLastBin: " << cEffLastBin
           << " Bincontent: " << binContent << " +/- " << binError << std::endl;
 
-        binContent = (cEff > 0) ? bk*cEff / entriesInARegionNoM : bk*entriesInCRegionNoM / entriesInARegionNoM;
-        binError = (cEff > 0) ? binContent*sqrt(1.0/bk + 1.0/cEff + 1.0/entriesInARegionNoM) :
-          binContent*sqrt(1.0/bk + 1.0/entriesInCRegionNoM + 1.0/entriesInARegionNoM);
+        binContent = emptyBinVal;
+        if(cEff > 0)
+          binContent = bk*cEff / entriesInARegionNoM;
+        else if(entriesInCRegionNoM > 0)
+          binContent = bk*entriesInCRegionNoM / entriesInARegionNoM;
+
+        binError = sqrt(emptyBinVal);
+        if(cEff > 0)
+          binError = binContent*sqrt(1.0/bk + 1.0/cEff + 1.0/entriesInARegionNoM);
+        else if(entriesInCRegionNoM > 0) // this check shouldn't be necessary
+          binError = binContent*sqrt(1.0/bk + 1.0/entriesInCRegionNoM + 1.0/entriesInARegionNoM);
 
         iasPredictionFixedDiscoveryHist->SetBinContent(bin,binContent);
         iasPredictionFixedDiscoveryHist->SetBinError(bin,binError);
