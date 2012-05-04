@@ -14,7 +14,9 @@ import ROOT
 from ROOT import TGraph,TMultiGraph,TCanvas,TPaveText,gROOT,TLegend,TCutG,kGreen,TFile,RooStats,Math,vector
 
 # at UMN, must use /usr/bin/python (2.4) and my compiled ROOT version (5.32.02)
-BaseDir = 'FARM_dReg_NL_50IasBins_emptyBins1e-25_iasPredScalingFix_cutPt50GeVcutIas0.1_allSlices_Apr30'
+#BaseDir = 'FARM_dReg_NL_50IasBins_emptyBins1e-25_iasPredScalingFix_cutPt50GeVcutIas0.1_allSlices_Apr30'
+#BaseDir = 'FARM_dReg_NL_20IasBins_emptyBins1e-25_1gausSystWithNoStatErr_cutPt50GeVcutIas0.1_allSlices_May02'
+BaseDir = 'FARM_20IasB_4etaSlices_5NoMSlices_emptyB1e-25_1gausSystWithStatErr_cutPt50GeVcutIas0.1_allSlices_May03'
 runCERN = False
 PlotMinScale = 0.0005
 PlotMaxScale = 3
@@ -271,11 +273,20 @@ makeScaledPredictionsLogFileList = os.listdir(makeScaledPredictionsDir)
 makeScaledPredictionsRootDir = BaseDir+'/outputs/makeScaledPredictions/'
 makeScaledPredictionsRootFileList = os.listdir(makeScaledPredictionsRootDir)
 doLimitsDir = BaseDir+'/logs/doLimits/'
-doLimitsLogFileList = os.listdir(doLimitsDir)
+try:
+  doLimitsLogFileList = os.listdir(doLimitsDir)
+except OSError:
+  doLimitsLogFileList = []
 doLimitsRootDir = BaseDir+'/outputs/doLimits/'
-doLimitsRootFileList = os.listdir(doLimitsRootDir)
+try:
+  doLimitsRootFileList = os.listdir(doLimitsRootDir)
+except OSError:
+  doLimitsRootFileList = []
 doSignificanceDir = BaseDir+'/logs/doSignificance/'
-doSignificanceLogFileList = os.listdir(doSignificanceDir)
+try:
+  doSignificanceLogFileList = os.listdir(doSignificanceDir)
+except OSError:
+  doSignificanceLogFileList = []
 
 LimitResultsGluinos = []
 LimitResultsStops = []
@@ -293,10 +304,8 @@ for model in modelList:
     limitRootFile = GetRootFile(doLimitsRootFileList,model.name,True)
     if predLogFile=='' or limitLogFile=='':
       print 'Warning: Found predLogFile ',predLogFile,' and limitLogFile ',limitLogFile,' one of which is empty'
-      continue
     if predRootFile=='' or limitRootFile=='':
       print 'Warning: Found predRootFile ',predRootFile,' and limitRootFile ',limitRootFile,' one of which is empty'
-      continue
 
     backExp = GetBackExp(makeScaledPredictionsDir+predLogFile)
     backExpError = GetBackExpError(makeScaledPredictionsDir+predLogFile)
@@ -306,18 +315,22 @@ for model in modelList:
     massCut = GetMassCut(predLogFile)
     ptCut = GetPtCut(predLogFile)
     signalName = GetModelName(predLogFile)
-    limitTFile = TFile(doLimitsRootDir+limitRootFile)
-    htr = limitTFile.Get("result_SigXsec")
-    expLimit = htr.GetExpectedUpperLimit(0)
-    obsLimit = htr.UpperLimit()
-    pValuePlotTitle = "Cross section limit (pb) for "+model.name
-    pValuePlotName = "crossSectionLimit_pValue_"+model.name
-    pValuePlot = RooStats.HypoTestInverterPlot("htrResultPlot",pValuePlotName,htr)
-    pValuePlot.Draw()
-    myCanvas.Print(plotsDir+pValuePlotName+".C")
-    myCanvas.Print(plotsDir+pValuePlotName+".eps")
-    myCanvas.Print(plotsDir+pValuePlotName+".png")
-    limitTFile.Close()
+    if(len(limitRootFile) > 0):
+      limitTFile = TFile(doLimitsRootDir+limitRootFile)
+      htr = limitTFile.Get("result_SigXsec")
+      expLimit = htr.GetExpectedUpperLimit(0)
+      obsLimit = htr.UpperLimit()
+      pValuePlotTitle = "Cross section limit (pb) for "+model.name
+      pValuePlotName = "crossSectionLimit_pValue_"+model.name
+      pValuePlot = RooStats.HypoTestInverterPlot("htrResultPlot",pValuePlotName,htr)
+      pValuePlot.Draw()
+      myCanvas.Print(plotsDir+pValuePlotName+".C")
+      myCanvas.Print(plotsDir+pValuePlotName+".eps")
+      myCanvas.Print(plotsDir+pValuePlotName+".png")
+      limitTFile.Close()
+    else:
+      expLimit = -99
+      obsLimit = -99
     predTFile = TFile(makeScaledPredictionsRootDir+predRootFile)
     dataHist = predTFile.Get("dataAllNoMAllEtaUnrolledHist")
     obsEvts = dataHist.Integral()
