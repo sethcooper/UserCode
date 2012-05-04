@@ -392,6 +392,7 @@ int main(int argc, char ** argv)
   string dataHistNameEnd="dRegionFixedHist";
 
   // look at BG predictions to determine unrolled hist binning
+  // if stepping made variable, must change getHistNameBeg calls
   for(int lowerNoM = minNoM; lowerNoM < maxNoM; lowerNoM+=2)
   {
     for(float lowerEta = minEta; lowerEta < maxEta; lowerEta+=0.2)
@@ -401,7 +402,7 @@ int main(int argc, char ** argv)
       //TH1F* bRegionHist = 0;
       //TH1F* cRegionHist = 0;
       // get this eta/nom hist
-      string getLimitsHistName = getHistNameBeg(lowerNoM,lowerEta);
+      string getLimitsHistName = getHistNameBeg(lowerNoM,lowerEta,2,0.2);
       string getDiscoveryHistName = getLimitsHistName;
       getLimitsHistName+=bgLimitsHistNameEnd;
       getDiscoveryHistName+=bgDiscoveryHistNameEnd;
@@ -412,7 +413,7 @@ int main(int argc, char ** argv)
       fullPathDiscovery+=getDiscoveryHistName;
 
       TH1D* dRegionDataHist = 0;
-      string dataHistGetName = getHistNameBeg(lowerNoM,lowerEta);
+      string dataHistGetName = getHistNameBeg(lowerNoM,lowerEta,2,0.2);
       dataHistGetName+=dataHistNameEnd;
       string fullDataHistPath = dataDirName;
       fullDataHistPath+="/";
@@ -610,12 +611,12 @@ int main(int argc, char ** argv)
     iasSignalHistTitle+=getHistTitleEnd(lowerNoM,lowerEta,massCut_);
     // get b region ias histogram
     string iasHistName = "bRegionHistograms/";
-    iasHistName+=getHistNameBeg(lowerNoM,lowerEta);
+    iasHistName+=getHistNameBeg(lowerNoM,lowerEta,2,0.2);
     iasHistName+="iasBRegionHist";
     TH1D* iasHist = (TH1D*)backgroundPredictionRootFile->Get(iasHistName.c_str());
     // get c region tracks passing mass cut in ias bins
     string cRegionTracksOverMassCutProfileName="cRegionHistograms/";
-    cRegionTracksOverMassCutProfileName+=getHistNameBeg(lowerNoM,lowerEta);
+    cRegionTracksOverMassCutProfileName+=getHistNameBeg(lowerNoM,lowerEta,2,0.2);
     cRegionTracksOverMassCutProfileName+="tracksInCeffOverMassCutProfile";
     TProfile* cRegionTracksOverMassCutProfile = (TProfile*)backgroundPredictionRootFile->Get(cRegionTracksOverMassCutProfileName.c_str());
     // debug
@@ -636,7 +637,7 @@ int main(int argc, char ** argv)
       // bg mass hist
       string dirName="massPredictionsFixedBins";
       string bgHistNameEnd="massPredictionFixedHist";
-      string getHistName = getHistNameBeg(lowerNoM,lowerEta);
+      string getHistName = getHistNameBeg(lowerNoM,lowerEta,2,0.2);
       getHistName+=bgHistNameEnd;
       string fullPath = dirName;
       fullPath+="/";

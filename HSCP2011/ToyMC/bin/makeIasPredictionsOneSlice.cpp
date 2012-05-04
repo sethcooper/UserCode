@@ -450,7 +450,7 @@ int main(int argc, char ** argv)
   int nom = 5;
   float lowerEta = 0.0;
       // book histograms -- b region
-      std::string bRegionHistName = getHistNameBeg(nom,lowerEta);
+      std::string bRegionHistName = getHistNameBeg(nom,lowerEta,2,0.2);
       bRegionHistName+="bRegionHist";
       std::string bRegionHistTitle = "Ih for ";
       bRegionHistTitle+=getHistTitleBeg(nom,lowerEta,pSidebandThreshold,ihSidebandThreshold,ptSidebandThreshold,
@@ -458,14 +458,14 @@ int main(int argc, char ** argv)
       bRegionHistTitle+="; MeV/cm";
       TH1F* bRegionHist = bRegionDir.make<TH1F>(bRegionHistName.c_str(),bRegionHistTitle.c_str(),100,0,10);
       // ias distribution from B region
-      std::string iasBRegionHistName = getHistNameBeg(nom,lowerEta);
+      std::string iasBRegionHistName = getHistNameBeg(nom,lowerEta,2,0.2);
       iasBRegionHistName+="iasBRegionHist";
       std::string iasBRegionHistTitle = "Ias in B region for ";
       iasBRegionHistTitle+=getHistTitleBeg(nom,lowerEta,pSidebandThreshold,ihSidebandThreshold,ptSidebandThreshold,
           iasSidebandThreshold,usePtForSideband,useIasForSideband);
       TH1F* iasBRegionHist = bRegionDir.make<TH1F>(iasBRegionHistName.c_str(),iasBRegionHistTitle.c_str(),numIasBins,0,1);
       // c region hist
-      std::string cRegionHistName = getHistNameBeg(nom,lowerEta);
+      std::string cRegionHistName = getHistNameBeg(nom,lowerEta,2,0.2);
       cRegionHistName+="cRegionHist";
       std::string cRegionHistTitle = "P for ";
       cRegionHistTitle+=getHistTitleBeg(nom,lowerEta,pSidebandThreshold,ihSidebandThreshold,ptSidebandThreshold,
@@ -473,7 +473,7 @@ int main(int argc, char ** argv)
       cRegionHistTitle+="; GeV";
       TH1F* cRegionHist = cRegionDir.make<TH1F>(cRegionHistName.c_str(),cRegionHistTitle.c_str(),100,0,1000);
       // c region hist - cumulative
-      std::string cRegionCumuHistName = getHistNameBeg(nom,lowerEta);
+      std::string cRegionCumuHistName = getHistNameBeg(nom,lowerEta,2,0.2);
       cRegionCumuHistName+="cRegionCumuHist";
       std::string cRegionCumuHistTitle = "P for ";
       cRegionCumuHistTitle+=getHistTitleBeg(nom,lowerEta,pSidebandThreshold,ihSidebandThreshold,ptSidebandThreshold,
@@ -481,7 +481,7 @@ int main(int argc, char ** argv)
       cRegionCumuHistTitle+=" cumulative; GeV";
       TH1F* cRegionCumuHist = cRegionDir.make<TH1F>(cRegionCumuHistName.c_str(),cRegionCumuHistTitle.c_str(),100,0,1000);
       // ceff region hist
-      std::string ceffRegionHistName = getHistNameBeg(nom,lowerEta);
+      std::string ceffRegionHistName = getHistNameBeg(nom,lowerEta,2,0.2);
       ceffRegionHistName+="ceffRegionHist";
       std::string ceffRegionHistTitle = "P for ";
       ceffRegionHistTitle+=getHistTitleBeg(nom,lowerEta,pSidebandThreshold,ihSidebandThreshold,ptSidebandThreshold,
@@ -489,7 +489,7 @@ int main(int argc, char ** argv)
       ceffRegionHistTitle+="; GeV";
       TH1F* ceffRegionHist = cRegionDir.make<TH1F>(ceffRegionHistName.c_str(),ceffRegionHistTitle.c_str(),100,0,1000);
       // ceff region over mass cut in ias bins hist
-      std::string ceffRegionTracksOverMassCutProfileName = getHistNameBeg(nom,lowerEta);
+      std::string ceffRegionTracksOverMassCutProfileName = getHistNameBeg(nom,lowerEta,2,0.2);
       ceffRegionTracksOverMassCutProfileName+="tracksInCeffOverMassCutProfile";
       std::string ceffRegionTracksOverMassCutProfileTitle = "Tracks in Ceff Over Mass Cut in Ias bins for ";
       ceffRegionTracksOverMassCutProfileTitle+=getHistTitleBeg(nom,lowerEta,pSidebandThreshold,ihSidebandThreshold,ptSidebandThreshold,
@@ -662,7 +662,7 @@ int main(int argc, char ** argv)
       cRegionCumuHist->SetContent(cRegionIntegral);
 
       // ias prediction histogram in this NoM/eta bin for limits -- underestimation of background
-      std::string iasPredictionFixedLimitsHistName = getHistNameBeg(nom,lowerEta);
+      std::string iasPredictionFixedLimitsHistName = getHistNameBeg(nom,lowerEta,2,0.2);
       iasPredictionFixedLimitsHistName+="iasPredictionFixedLimitsHist";
       std::string iasPredictionFixedLimitsHistTitle = "Ias prediction (limits) for ";
       iasPredictionFixedLimitsHistTitle+=intToString(nom);
@@ -681,7 +681,7 @@ int main(int argc, char ** argv)
       TH1D* iasPredictionFixedLimitsHist = iasPredictionFixedBinsDir.make<TH1D>(iasPredictionFixedLimitsHistName.c_str(),iasPredictionFixedLimitsHistTitle.c_str(),numIasBins,0,1);
       iasPredictionFixedLimitsHist->Sumw2();
       // ias prediction histogram for discovery  -- overestimation of background
-      std::string iasPredictionFixedDiscoveryHistName = getHistNameBeg(nom,lowerEta);
+      std::string iasPredictionFixedDiscoveryHistName = getHistNameBeg(nom,lowerEta,2,0.2);
       iasPredictionFixedDiscoveryHistName+="iasPredictionFixedDiscoveryHist";
       std::string iasPredictionFixedDiscoveryHistTitle = "Ias prediction (discovery) for ";
       iasPredictionFixedDiscoveryHistTitle+=intToString(nom);
@@ -700,7 +700,7 @@ int main(int argc, char ** argv)
       TH1D* iasPredictionFixedDiscoveryHist = iasPredictionFixedBinsDir.make<TH1D>(iasPredictionFixedDiscoveryHistName.c_str(),iasPredictionFixedDiscoveryHistTitle.c_str(),numIasBins,0,1);
       iasPredictionFixedDiscoveryHist->Sumw2();
       // ias histogram points and fit in this NoM/eta bin
-      std::string iasPointsAndFitHistName = getHistNameBeg(nom,lowerEta);
+      std::string iasPointsAndFitHistName = getHistNameBeg(nom,lowerEta,2,0.2);
       iasPointsAndFitHistName+="iasPointsAndFitHist";
       std::string iasPointsAndFitHistTitle = "Ias prediction for ";
       iasPointsAndFitHistTitle+=intToString(nom);
@@ -719,7 +719,7 @@ int main(int argc, char ** argv)
       TH1D* iasPointsAndFitHist = iasPredictionFixedBinsDir.make<TH1D>(iasPointsAndFitHistName.c_str(),iasPointsAndFitHistTitle.c_str(),numIasBins,0,1);
       iasPointsAndFitHist->Sumw2();
       // mass prediction histogram in this NoM/eta bin
-      std::string massPredictionFixedHistName = getHistNameBeg(nom,lowerEta);
+      std::string massPredictionFixedHistName = getHistNameBeg(nom,lowerEta,2,0.2);
       massPredictionFixedHistName+="massPredictionFixedHist";
       std::string massPredictionFixedHistTitle = "mass prediction for ";
       massPredictionFixedHistTitle+=intToString(nom);
@@ -739,7 +739,7 @@ int main(int argc, char ** argv)
       massPredictionFixedHist->Sumw2();
       // success rate histogram in this NoM/eta bin -- removed APR 14
       // ias D region histogram in this NoM/eta bin
-      std::string dRegionFixedHistName = getHistNameBeg(nom,lowerEta);
+      std::string dRegionFixedHistName = getHistNameBeg(nom,lowerEta,2,0.2);
       dRegionFixedHistName+="dRegionFixedHist";
       std::string dRegionFixedHistTitle = "Ias data in D region for ";
       dRegionFixedHistTitle+=intToString(nom);
@@ -819,7 +819,7 @@ int main(int argc, char ** argv)
       }
 
       // Ih mean in Ias bins histogram in this NoM/eta bin
-      std::string ihMeanProfName = getHistNameBeg(nom,lowerEta);
+      std::string ihMeanProfName = getHistNameBeg(nom,lowerEta,2,0.2);
       ihMeanProfName+="ihMeanProf";
       std::string ihMeanProfTitle = "Ih mean for nom ";
       ihMeanProfTitle+=intToString(nom);
@@ -837,7 +837,7 @@ int main(int argc, char ** argv)
       ihMeanProfTitle+=" GeV; Ias";
       TProfile* ihMeanProf = ihMeanDir.make<TProfile>(ihMeanProfName.c_str(),ihMeanProfTitle.c_str(),numIasBins,0,1);
       // Min P cut mean in Ias bins histogram in this NoM/eta bin
-      std::string minPCutMeanProfName = getHistNameBeg(nom,lowerEta);
+      std::string minPCutMeanProfName = getHistNameBeg(nom,lowerEta,2,0.2);
       minPCutMeanProfName+="minPCutMeanProf";
       std::string minPCutMeanProfTitle = "Min P cut for nom ";
       minPCutMeanProfTitle+=intToString(nom);

@@ -137,7 +137,7 @@ int main(int argc, char ** argv)
   // get this eta/nom hist
   string dirName="iasPredictionsVariableBins";
   //string dirName="iasPredictionsFixedBins";
-  string getHistName = getHistNameBeg(lowerNoM,lowerEta);
+  string getHistName = getHistNameBeg(lowerNoM,lowerEta,2,0.2);
   string sigHistName = getHistName;
   sigHistName+="iasSignalVarBinHist";
   getHistName+="iasPredictionVarBinHist";
@@ -170,7 +170,7 @@ int main(int argc, char ** argv)
 
   // get the background B region hist
   dirName="bRegionHistograms";
-  getHistName = getHistNameBeg(lowerNoM,lowerEta);
+  getHistName = getHistNameBeg(lowerNoM,lowerEta,2,0.2);
   getHistName+="bRegionHist";
   fullPath=dirName;
   fullPath+="/";
@@ -363,57 +363,57 @@ int main(int argc, char ** argv)
     " --> sigFracThisSlice =" << sigFracThisSlice << std::endl;
 
   // NLL B/sat hist
-  std::string nllBSatHistName = getHistNameBeg(lowerNoM,lowerEta);
+  std::string nllBSatHistName = getHistNameBeg(lowerNoM,lowerEta,2,0.2);
   nllBSatHistName+="nllBSatHist";
   std::string nllBSatHistTitle = "-2*ln(B/sat)";
   nllBSatHistTitle+=getHistTitleEnd(lowerNoM,lowerEta,massCut_);
   TH1F* nllBSatHist = new TH1F(nllBSatHistName.c_str(),nllBSatHistTitle.c_str(),1000,0,100);
   // NLL sat only hist
-  std::string nllSatOnlyHistName = getHistNameBeg(lowerNoM,lowerEta);
+  std::string nllSatOnlyHistName = getHistNameBeg(lowerNoM,lowerEta,2,0.2);
   nllSatOnlyHistName+="nllSatonlyHist";
   std::string nllSatOnlyHistTitle = "NLL sat only";
   nllSatOnlyHistTitle+=getHistTitleEnd(lowerNoM,lowerEta,massCut_);
   TH1F* nllSatOnlyHist = new TH1F(nllSatOnlyHistName.c_str(),nllSatOnlyHistTitle.c_str(),30000,-30000,0);
   // NLL B only hist
-  std::string nllBOnlyHistName = getHistNameBeg(lowerNoM,lowerEta);
+  std::string nllBOnlyHistName = getHistNameBeg(lowerNoM,lowerEta,2,0.2);
   nllBOnlyHistName+="nllBonlyHist";
   std::string nllBOnlyHistTitle = "NLL B only";
   nllBOnlyHistTitle+=getHistTitleEnd(lowerNoM,lowerEta,massCut_);
   TH1F* nllBOnlyHist = new TH1F(nllBOnlyHistName.c_str(),nllBOnlyHistTitle.c_str(),30000,-30000,0);
   // NLL S only hist
-  std::string nllSonlyHistName = getHistNameBeg(lowerNoM,lowerEta);
+  std::string nllSonlyHistName = getHistNameBeg(lowerNoM,lowerEta,2,0.2);
   nllSonlyHistName+="nllSonlyHist";
   std::string nllSonlyHistTitle = "NLL S only";
   nllSonlyHistTitle+=getHistTitleEnd(lowerNoM,lowerEta,massCut_);
   TH1F* nllSOnlyHist = new TH1F(nllSonlyHistName.c_str(),nllSonlyHistTitle.c_str(),30000,-30000,0);
   // NLL SB hist
-  std::string nllSBHistName = getHistNameBeg(lowerNoM,lowerEta);
+  std::string nllSBHistName = getHistNameBeg(lowerNoM,lowerEta,2,0.2);
   nllSBHistName+="nllSBHist";
   std::string nllSBHistTitle = "NLL SB";
   nllSBHistTitle+=getHistTitleEnd(lowerNoM,lowerEta,massCut_);
   TH1F* nllSBHist = new TH1F(nllSBHistName.c_str(),nllSBHistTitle.c_str(),30000,-30000,0);
   // NLL S+B/B
-  std::string nllSBOverBHistName = getHistNameBeg(lowerNoM,lowerEta);
+  std::string nllSBOverBHistName = getHistNameBeg(lowerNoM,lowerEta,2,0.2);
   nllSBOverBHistName+="nllSBOverBHist";
   std::string nllSBOverBHistTitle = "NLL -2*ln(SB/B)";
   nllSBOverBHistTitle+=getHistTitleEnd(lowerNoM,lowerEta,massCut_);
   TH1F* nllSBOverBHist = new TH1F(nllSBOverBHistName.c_str(),nllSBOverBHistTitle.c_str(),2000,-100,100);
   // Num tracks per trial
-  std::string numTracksPerTrialHistName = getHistNameBeg(lowerNoM,lowerEta);
+  std::string numTracksPerTrialHistName = getHistNameBeg(lowerNoM,lowerEta,2,0.2);
   numTracksPerTrialHistName+="numTracksPerTrial";
   std::string numTracksPerTrialHistTitle = "Tracks per trial";
   numTracksPerTrialHistTitle+=getHistTitleEnd(lowerNoM,lowerEta,massCut_);
   TH1F* numTracksPerTrialHist = new TH1F(numTracksPerTrialHistName.c_str(),numTracksPerTrialHistTitle.c_str(),
       500,totalNumTracksThisSlice-250,totalNumTracksThisSlice+250);
   // Num signal tracks vs. NLL S+B/B
-  std::string numSigTracksVsNLLSBOverBHistName = getHistNameBeg(lowerNoM,lowerEta);
+  std::string numSigTracksVsNLLSBOverBHistName = getHistNameBeg(lowerNoM,lowerEta,2,0.2);
   numSigTracksVsNLLSBOverBHistName+="numSigTracksVsNLLSBOverB";
   std::string numSigTracksVsNLLSBOverBHistTitle = "Number of Signal tracks vs. NLL -2*ln(SB/B)";
   numSigTracksVsNLLSBOverBHistTitle+=getHistTitleEnd(lowerNoM,lowerEta,massCut_);
   TH2F* numSigTracksVsNLLSBOverBHist = new TH2F(numSigTracksVsNLLSBOverBHistName.c_str(),numSigTracksVsNLLSBOverBHistTitle.c_str(),
       2000,-10,10,15,0,15);
   // Num tracks in last bin vs. NLL S+B/B
-  std::string numTracksInLastBinVsSBOverBHistName = getHistNameBeg(lowerNoM,lowerEta);
+  std::string numTracksInLastBinVsSBOverBHistName = getHistNameBeg(lowerNoM,lowerEta,2,0.2);
   numTracksInLastBinVsSBOverBHistName+="numTracksInLastBinVsNLLBSOverB";
   std::string numTracksInLastBinVsSBOverBHistTitle = "Number of tracks in last bin vs. NLL -2*ln(SB/B)";
   numTracksInLastBinVsSBOverBHistTitle+=getHistTitleEnd(lowerNoM,lowerEta,massCut_);
@@ -433,7 +433,7 @@ int main(int argc, char ** argv)
   RooRealVar assumedTotalSigTracksRooVar("assumedTotalSigTracksRooVar","assumed total signal tracks",0,1e4);
   RooRealVar assumedSigTracksThisSliceRooVar("assumedSigTracksThisSliceRooVar","assumed signal tracks this slice",0,1e4);
   RooRealVar trialIndexRooVar("trialIndex","trial index",0,1e8);
-  std::string nllDatasetName = getHistNameBeg(lowerNoM,lowerEta);
+  std::string nllDatasetName = getHistNameBeg(lowerNoM,lowerEta,2,0.2);
   nllDatasetName+="nllValues";
   RooDataSet* nllValues = new RooDataSet(nllDatasetName.c_str(),nllDatasetName.c_str(),
       RooArgSet(sigNLLRooVar,backNLLRooVar,sigBackNLLRooVar,satModelNLLRooVar,
@@ -442,7 +442,7 @@ int main(int argc, char ** argv)
   // actual events in last bin
   RooRealVar actualEventsInLastBinRooVar("actualEventsInLastBinRooVar","actual events in last bin",0,20000);
   RooRealVar signalEventsInLastBinRooVar("signalEventsInLastBinRooVar","signal events in last bin",0,0,20000);
-  std::string datasetName = getHistNameBeg(lowerNoM,lowerEta);
+  std::string datasetName = getHistNameBeg(lowerNoM,lowerEta,2,0.2);
   datasetName+="observedEvents";
   RooDataSet* observedEvents = new RooDataSet(datasetName.c_str(),datasetName.c_str(),
       RooArgSet(actualEventsInLastBinRooVar,signalEventsInLastBinRooVar));
@@ -453,7 +453,7 @@ int main(int argc, char ** argv)
   RooRealVar expectedSignalEventsThisSliceRooVar("expectedSignalEventsThisSliceRooVar","expected signal events this slice",0,20000);
   RooRealVar expectedTotalSignalFractionRooVar("expectedTotalSignalFractionRooVar","expected total signal fraction",0,1);
   //RooRealVar numberOfTrialsRooVar("numberOfTrialsRooVar","number of trials",0,1e8);
-  datasetName = getHistNameBeg(lowerNoM,lowerEta);
+  datasetName = getHistNameBeg(lowerNoM,lowerEta,2,0.2);
   datasetName+="expectedEvents";
   RooDataSet* expectedEvents = new RooDataSet(datasetName.c_str(),datasetName.c_str(),
       RooArgSet(expectedBackgroundEventsInLastBinRooVar,expectedSignalEventsInLastBinRooVar,
