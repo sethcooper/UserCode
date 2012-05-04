@@ -7,7 +7,7 @@ import glob
 import math
 from subprocess import call
 
-BaseDirPt50Ias0p1 = 'FARM_includeDRegion_NewLumi_50IasBins_cutPt50GeVcutIas0.1_allSlices_Apr14'
+BaseDirPt50Ias0p1 = 'FARM_dReg_NL_50IasBins_emptyBins1e-25_iasPredScalingFix_cutPt50GeVcutIas0.1_allSlices_Apr30'
 BaseDirPt50IasStd = ''
 BaseDirPtStdIasStd = ''
 runCERN = False
@@ -83,13 +83,22 @@ def GetBkOverIas(filePath):
 def GetExpLimit(filePath):
   line = ''
   for thisLine in open(filePath):
-    if "95%" in thisLine:
+    if "median" in thisLine:
       line = thisLine
       break
-  #print filePath
-  #print line
-  #print "limitFind=",line[line.find("0,")+2:line.find("]")-1]
-  limitFind = line[line.find("0,")+2:line.find("]")-1]
+  limitFind = line[line.find("median")+8:len(line)-1]
+  if(len(limitFind) > 0):
+    return float(limitFind)
+  else:
+    return 0.0
+
+def GetObsLimit(filePath):
+  line = ''
+  for thisLine in open(filePath):
+    if "computed" in thisLine:
+      line = thisLine
+      break
+  limitFind = line[line.find("is:")+4:line.find("+")-1]
   if(len(limitFind) > 0):
     return float(limitFind)
   else:
@@ -136,7 +145,7 @@ if(doPt50Ias0p1):
 print
 #print 'FarmDirectory =',BaseDir
 titleString = string.ljust('Model',15)+string.ljust('Pt',8)+string.ljust('Ias',10)+string.center('Mass',8)+string.center('BackExpOverIas',30)
-titleString+=string.center('BkOverIas',10)+string.center('SigEff',10)+string.center('ExpLim',10)
+titleString+=string.center('BkOverIas',10)+string.center('SigEff',10)+string.center('ExpLim',10)+string.center('ObsLim',10)
 print
 print titleString
 if(runCERN):
