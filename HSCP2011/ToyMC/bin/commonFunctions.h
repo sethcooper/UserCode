@@ -379,17 +379,17 @@ int findFineNoMBin(int nom)
   return nom-1;
 }
 //
-std::string getHistNameBeg(int lowerNom, float lowerEta)
+std::string getHistNameBeg(int lowerNom, float lowerEta, int nomStep, float etaStep)
 {
   int etaSlice = lowerEta*10;
   string histName="nom";
   histName+=intToString(lowerNom);
   histName+="to";
-  histName+=intToString(lowerNom+1);
+  histName+=intToString(lowerNom+nomStep-1);
   histName+="eta";
   histName+=intToString(etaSlice);
   histName+="to";
-  histName+=intToString(etaSlice+2);
+  histName+=intToString(etaSlice+etaStep*10);
   return histName;
 }
 //

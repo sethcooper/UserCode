@@ -82,6 +82,10 @@ int maxNoM = 0;
 float minEta = 0;
 float maxEta = 0;
 int numIasBins = 0;
+// NB: these must match what's used in makeIasPredictions
+//TODO: make these configurable
+int nomStep = 3;
+float etaStep = 0.4;
 
 struct EventInfo
 {
@@ -120,12 +124,12 @@ struct EventInfo
 // helper functions
 int getEtaSliceFromLowerEta(float lowerEta)
 {
-  return lowerEta/0.2;
+  return lowerEta/etaStep;
 }
 //
 int getNoMSliceFromLowerNoM(int lowerNoM)
 {
-  return (lowerNoM-5)/2;
+  return (lowerNoM-5)/nomStep;
 }
 //
 int getGlobalBinFromNomSliceEtaSliceIasBin(int nomSlice, int etaSlice, int iasBin)
@@ -392,16 +396,16 @@ int main(int argc, char ** argv)
   string dataHistNameEnd="dRegionFixedHist";
 
   // look at BG predictions to determine unrolled hist binning
-  for(int lowerNoM = minNoM; lowerNoM < maxNoM; lowerNoM+=2)
+  for(int lowerNoM = minNoM; lowerNoM < maxNoM; lowerNoM+=nomStep)
   {
-    for(float lowerEta = minEta; lowerEta < maxEta; lowerEta+=0.2)
+    for(float lowerEta = minEta; lowerEta < maxEta; lowerEta+=etaStep)
     {
       TH1D* iasBackgroundPredictionMassCutNoMSliceLimitsHist = 0;
       TH1D* iasBackgroundPredictionMassCutNoMSliceDiscoveryHist = 0;
       //TH1F* bRegionHist = 0;
       //TH1F* cRegionHist = 0;
       // get this eta/nom hist
-      string getLimitsHistName = getHistNameBeg(lowerNoM,lowerEta);
+      string getLimitsHistName = getHistNameBeg(lowerNoM,lowerEta,nomStep,etaStep);
       string getDiscoveryHistName = getLimitsHistName;
       getLimitsHistName+=bgLimitsHistNameEnd;
       getDiscoveryHistName+=bgDiscoveryHistNameEnd;
@@ -412,7 +416,7 @@ int main(int argc, char ** argv)
       fullPathDiscovery+=getDiscoveryHistName;
 
       TH1D* dRegionDataHist = 0;
-      string dataHistGetName = getHistNameBeg(lowerNoM,lowerEta);
+      string dataHistGetName = getHistNameBeg(lowerNoM,lowerEta,nomStep,etaStep);
       dataHistGetName+=dataHistNameEnd;
       string fullDataHistPath = dataDirName;
       fullDataHistPath+="/";
@@ -464,7 +468,7 @@ int main(int argc, char ** argv)
       else
       {
         cout << "WARNING: no input found for this slice : lim or disc hist missing: " <<
-          getHistNameBeg(lowerNoM,lowerEta) << " in file: " << backgroundPredictionRootFilename_ << ")." << 
+          getHistNameBeg(lowerNoM,lowerEta,nomStep,etaStep) << " in file: " << backgroundPredictionRootFilename_ << ")." << 
           " Excluded -- should not happen. " << endl;
         return -11;
       }
@@ -504,18 +508,19 @@ int main(int argc, char ** argv)
       "unrolled background hist (mass)",numGlobalMassBins,1,numGlobalMassBins+1);
   TH1D* signalAllNoMAllEtaUnrolledMassHist = new TH1D("signalAllNoMAllEtaUnrolledMassHist",
       "unrolled signal hist (mass)",numGlobalMassBins,1,numGlobalMassBins+1);
-  TH2F* sigEffOverIasCutVsSliceHist = new TH2F("sigEffOverIasCutVsSlice","Sig eff. over ias cut;#eta;nom",12,0,2.4,9,5,23);
-  sigEffOverIasCutVsSliceHist->GetYaxis()->SetNdivisions(509,false);
+  TH2F* sigEffOverIasCutVsSliceHist = new TH2F("sigEffOverIasCutVsSlice","Sig eff. over ias cut;#eta;nom",24/int(etaStep*10),0,2.4,int(13/nomStep)+1,5,18);
+  int divisions = 500+int(13/nomStep)+1;
+  sigEffOverIasCutVsSliceHist->GetYaxis()->SetNdivisions(divisions,false);
   TH1F* sigEffOverIasCutHist = new TH1F("sigEffOverIasCut","Signal eff. over ias cut",100,0,1);
-  TH2F* backExpOverIasCutVsSliceHist = new TH2F("backExpOverIasCutVsSlice","Exp. background over ias cut;#eta;nom",12,0,2.4,9,5,23);
-  backExpOverIasCutVsSliceHist->GetYaxis()->SetNdivisions(509,false);
-  TH2F* backExpVsSliceHist = new TH2F("backExpVsSlice","Exp. background;#eta;nom",12,0,2.4,9,5,23);
-  backExpVsSliceHist->GetYaxis()->SetNdivisions(509,false);
+  TH2F* backExpOverIasCutVsSliceHist = new TH2F("backExpOverIasCutVsSlice","Exp. background over ias cut;#eta;nom",24/int(etaStep*10),0,2.4,int(13/nomStep)+1,5,18);
+  backExpOverIasCutVsSliceHist->GetYaxis()->SetNdivisions(divisions,false);
+  TH2F* backExpVsSliceHist = new TH2F("backExpVsSlice","Exp. background;#eta;nom",24/int(etaStep*10),0,2.4,int(13/nomStep)+1,5,18);
+  backExpVsSliceHist->GetYaxis()->SetNdivisions(divisions,false);
   TH1F* backExpOverIasCutHist = new TH1F("backExpOverIasCut","Exp. background over ias cut",100,0,1);
-  TH2F* entriesSignalHist = new TH2F("entriesSignal","Signal tracks over mass cut in slice;#eta;nom",12,0,2.4,9,5,23);
-  entriesSignalHist->GetYaxis()->SetNdivisions(509,false);
-  TH2F* entriesSignalIasHist = new TH2F("entriesSignalIas","Signal tracks over mass/ias cuts in slice;#eta;nom",12,0,2.4,9,5,23);
-  entriesSignalIasHist->GetYaxis()->SetNdivisions(509,false);
+  TH2F* entriesSignalHist = new TH2F("entriesSignal","Signal tracks over mass cut in slice;#eta;nom",24/int(etaStep*10),0,2.4,int(13/nomStep)+1,5,18);
+  entriesSignalHist->GetYaxis()->SetNdivisions(divisions,false);
+  TH2F* entriesSignalIasHist = new TH2F("entriesSignalIas","Signal tracks over mass/ias cuts in slice;#eta;nom",24/int(etaStep*10),0,2.4,int(13/nomStep)+1,5,18);
+  entriesSignalIasHist->GetYaxis()->SetNdivisions(divisions,false);
 
   double backgroundTracksOverIasCut = 0;
   double backgroundTracksOverIasCutErrorSqr = 0;
@@ -610,12 +615,12 @@ int main(int argc, char ** argv)
     iasSignalHistTitle+=getHistTitleEnd(lowerNoM,lowerEta,massCut_);
     // get b region ias histogram
     string iasHistName = "bRegionHistograms/";
-    iasHistName+=getHistNameBeg(lowerNoM,lowerEta);
+    iasHistName+=getHistNameBeg(lowerNoM,lowerEta,nomStep,etaStep);
     iasHistName+="iasBRegionHist";
     TH1D* iasHist = (TH1D*)backgroundPredictionRootFile->Get(iasHistName.c_str());
     // get c region tracks passing mass cut in ias bins
     string cRegionTracksOverMassCutProfileName="cRegionHistograms/";
-    cRegionTracksOverMassCutProfileName+=getHistNameBeg(lowerNoM,lowerEta);
+    cRegionTracksOverMassCutProfileName+=getHistNameBeg(lowerNoM,lowerEta,nomStep,etaStep);
     cRegionTracksOverMassCutProfileName+="tracksInCeffOverMassCutProfile";
     TProfile* cRegionTracksOverMassCutProfile = (TProfile*)backgroundPredictionRootFile->Get(cRegionTracksOverMassCutProfileName.c_str());
     // debug
@@ -636,7 +641,7 @@ int main(int argc, char ** argv)
       // bg mass hist
       string dirName="massPredictionsFixedBins";
       string bgHistNameEnd="massPredictionFixedHist";
-      string getHistName = getHistNameBeg(lowerNoM,lowerEta);
+      string getHistName = getHistNameBeg(lowerNoM,lowerEta,nomStep,etaStep);
       getHistName+=bgHistNameEnd;
       string fullPath = dirName;
       fullPath+="/";
@@ -650,10 +655,10 @@ int main(int argc, char ** argv)
     }
 
     // construct D region for signal in this eta/nom slice
-    string nomCutString = "rooVarNoMias==";
+    string nomCutString = "rooVarNoMias>=";
     nomCutString+=intToString(lowerNoM);
-    nomCutString+="||rooVarNoMias==";
-    nomCutString+=intToString(lowerNoM+1);
+    nomCutString+="&&rooVarNoMias<=";
+    nomCutString+=intToString(lowerNoM+nomStep-1);
     RooDataSet* nomCutDRegionDataSetSignalLooseRPC =
       (RooDataSet*)regionDDataSetSignalLooseRPC->reduce(Cut(nomCutString.c_str()));
     RooDataSet* nomCutDRegionDataSetSignalTightRPC = 
@@ -662,11 +667,11 @@ int main(int argc, char ** argv)
     etaCutString+=floatToString(lowerEta);
     etaCutString+="&&rooVarEta<";
     std::string upperEtaLimit;
-    //XXX TESTING eta 1.5 max
-    if(10*lowerEta==14)
+    //XXX eta 1.5 max
+    if(lowerEta+etaStep>1.5)
       upperEtaLimit=floatToString(1.5);
     else
-      upperEtaLimit=floatToString(lowerEta+0.2);
+      upperEtaLimit=floatToString(lowerEta+etaStep);
     etaCutString+=upperEtaLimit;
     etaCutString+=")||(rooVarEta>-";
     etaCutString+=upperEtaLimit;
@@ -694,6 +699,7 @@ int main(int argc, char ** argv)
     for(int evt=0; evt < etaCutNomCutDRegionDataSetSignalLooseRPC->numEntries(); ++evt)
     {
       etaCutNomCutDRegionDataSetSignalLooseRPC->get(evt);
+      // hard eta cut
       if(fabs(etaDataLooseRPC->getVal()) > 1.5) continue;
       // find pileupWeight
       EventInfo evtInfo(runNumDataLooseRPC->getVal(),lumiSecDataLooseRPC->getVal(),eventNumDataLooseRPC->getVal());
@@ -714,7 +720,7 @@ int main(int argc, char ** argv)
       {
         iasSignalMassCutNoMSliceHist->Fill(iasDataLooseRPC->getVal(),eventWeight);
         numSignalTracksInDRegionPassingMassCut+=eventWeight;
-        entriesSignalHist->Fill(fabs(etaDataLooseRPC->getVal())+0.1,nomIasDataLooseRPC->getVal(),eventWeight);
+        entriesSignalHist->Fill(fabs(etaDataLooseRPC->getVal())+0.01,nomIasDataLooseRPC->getVal(),eventWeight);
         if(iasDataLooseRPC->getVal() > iasCutForEffAcc)
         {
           // if track over ias cut, put the event in the set (one track per event kept)
@@ -727,7 +733,7 @@ int main(int argc, char ** argv)
             //  << " eventNum: " << eventNumDataLooseRPC->getVal() << endl;
             //cout << "add puweight=" << pileupWeight << "eventWeight=" << eventWeight << " to signalEventsOverIasCutLooseRPC; total=" << signalEventsOverIasCutLooseRPC << endl;
             signalEventsOverIasCutLooseRPC+=eventWeight;
-            entriesSignalIasHist->Fill(fabs(etaDataLooseRPC->getVal())+0.1,nomIasDataLooseRPC->getVal(),eventWeight);
+            entriesSignalIasHist->Fill(fabs(etaDataLooseRPC->getVal())+0.01,nomIasDataLooseRPC->getVal(),eventWeight);
           }
         }
       }
@@ -760,6 +766,7 @@ int main(int argc, char ** argv)
     for(int evt=0; evt < etaCutNomCutDRegionDataSetSignalTightRPC->numEntries(); ++evt)
     {
       etaCutNomCutDRegionDataSetSignalTightRPC->get(evt);
+      // hard eta cut
       if(fabs(etaDataTightRPC->getVal()) > 1.5) continue;
       // find pileupWeight
       EventInfo evtInfo(runNumDataTightRPC->getVal(),lumiSecDataTightRPC->getVal(),eventNumDataTightRPC->getVal());
@@ -780,7 +787,7 @@ int main(int argc, char ** argv)
       {
         iasSignalMassCutNoMSliceHist->Fill(iasDataTightRPC->getVal(),eventWeight);
         numSignalTracksInDRegionPassingMassCut+=eventWeight;
-        entriesSignalHist->Fill(fabs(etaDataTightRPC->getVal())+0.1,nomIasDataTightRPC->getVal(),eventWeight);
+        entriesSignalHist->Fill(fabs(etaDataTightRPC->getVal())+0.01,nomIasDataTightRPC->getVal(),eventWeight);
         if(iasDataTightRPC->getVal() > iasCutForEffAcc)
         {
           // if track over ias cut, put the event in the set (one track per event kept)
@@ -793,7 +800,7 @@ int main(int argc, char ** argv)
             //  << " eventNum: " << eventNumDataTightRPC->getVal() << endl;
             //cout << "add puweight =" << pileupWeight << " eventWeight=" << eventWeight << " to signalEventsOverIasCutTightRPC; total=" << signalEventsOverIasCutTightRPC << endl;
             signalEventsOverIasCutTightRPC+=eventWeight;
-            entriesSignalIasHist->Fill(fabs(etaDataTightRPC->getVal())+0.1,nomIasDataTightRPC->getVal(),eventWeight);
+            entriesSignalIasHist->Fill(fabs(etaDataTightRPC->getVal())+0.01,nomIasDataTightRPC->getVal(),eventWeight);
           }
         }
       }
@@ -828,18 +835,18 @@ int main(int argc, char ** argv)
     // figure out overall normalization this slice, background from ABCD
     // if using one track per event, this is the number of events in the slice passing mass in D region
     double bgEntriesInARegionThisSlice =
-      aRegionBackgroundEntriesHist->GetBinContent(aRegionBackgroundEntriesHist->FindBin(lowerEta+0.1,lowerNoM+1));
+      aRegionBackgroundEntriesHist->GetBinContent(aRegionBackgroundEntriesHist->FindBin(lowerEta+0.01,lowerNoM+1));
     //double bgEntriesInBRegionThisSlice = 
     //  bRegionBackgroundEntriesHist->GetBinContent(bRegionBackgroundEntriesHist->FindBin(lowerEta+0.1,lowerNoM+1));
     double bgEntriesInCRegionThisSlice = 
-      cRegionBackgroundEntriesHist->GetBinContent(cRegionBackgroundEntriesHist->FindBin(lowerEta+0.1,lowerNoM+1));
+      cRegionBackgroundEntriesHist->GetBinContent(cRegionBackgroundEntriesHist->FindBin(lowerEta+0.01,lowerNoM+1));
     //double fractionOfBGTracksPassingMassCutThisSlice = (bgEntriesInBRegionThisSlice > 0) ?
     //  histItr->Integral()/bgEntriesInBRegionThisSlice : 0;
     //double bgTracksInDThisSlice = (bgEntriesInARegionThisSlice > 0) ?
     //  bgEntriesInBRegionThisSlice*bgEntriesInCRegionThisSlice/bgEntriesInARegionThisSlice : 0;
     //double numBackgroundTracksInDRegionPassingMassCutThisSlice =
     //  bgTracksInDThisSlice*fractionOfBGTracksPassingMassCutThisSlice;
-    int etaBinCRegionEntriesHist = cRegionBackgroundEntriesHist->GetXaxis()->FindBin(lowerEta+0.1);
+    int etaBinCRegionEntriesHist = cRegionBackgroundEntriesHist->GetXaxis()->FindBin(lowerEta+0.01);
     int cRegionNoMSummedEntries = cRegionBackgroundEntriesHist->Integral(
         etaBinCRegionEntriesHist,etaBinCRegionEntriesHist,1,cRegionBackgroundEntriesHist->GetNbinsY());
         
