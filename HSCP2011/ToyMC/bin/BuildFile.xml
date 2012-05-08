@@ -1,16 +1,3 @@
-<bin   name="readHSCPTreeEcal" file="readHSCPTreeEcal.cpp">
-  <use   name="DataFormats/EcalDetId"/>
-  <use   name="root"/>
-  <flags   LCGDICT_ARGS="--deep"/>
-</bin>
-<bin   name="readHSCPTreeTKplots" file="readHSCPTreeTKplots.cpp">
-  <use   name="DataFormats/EcalDetId"/>
-  <use   name="DataFormats/MuonReco"/>
-  <use   name="root"/>
-  <use   name="rootmath"/>
-  <use   name="clhep"/>
-  <flags   LCGDICT_ARGS="--deep"/>
-</bin>
 <bin   name="makeEffVsRejPlots" file="makeEffVsRejPlots.cpp">
   <use   name="root"/>
   <use   name="rootgraphics"/>
@@ -22,13 +9,6 @@
   <use   name="root"/>
   <use   name="roofit"/>
   <use   name="roofitcore"/>
-</bin>
-<bin   name="makeNLLFromToyMC" file="makeNLLFromToyMC.cpp">
-  <use   name="root"/>
-  <use   name="rootgraphics"/>
-</bin>
-<bin   name="getNumTracksInPtSlices" file="getNumTracksInPtSlices.cpp">
-  <use   name="root"/>
 </bin>
 <bin   name="plotDeDxPdep" file="plotDeDxPdep.cpp">
   <use   name="root"/>
