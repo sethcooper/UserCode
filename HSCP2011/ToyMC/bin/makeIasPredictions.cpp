@@ -57,8 +57,8 @@
 
 double emptyBinVal = 1e-25;
 int numIasBins = 20;
-int nomStep = 3;
-float etaStep = 0.4;
+int nomStep = 2;
+float etaStep = 0.2;
 int lastLowerNoM = 17;
 
 
