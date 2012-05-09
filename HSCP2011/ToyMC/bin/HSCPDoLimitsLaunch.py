@@ -233,7 +233,7 @@ def SendCluster_Push(bgInputFilesBase,sigInputFile,massCut,iasCut,ptCut):
     else:
       xSecMin = 0.0001
       xSecMax = 0.01
-      nSteps = 20 # gets multiplied by points/job later
+      nSteps = 15 # gets multiplied by points/job later
       stepSize = (xSecMax-xSecMin)/nSteps
       for index in range(0,nSteps):
         xSecMinPt = xSecMin+index*stepSize
