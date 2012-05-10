@@ -69,6 +69,7 @@ def CreateTheShellFile(massCut,etaMin,etaMax,nomMin,nomMax,ptThresh,iasThresh):
     global CopyRights
     global Jobs_Name
     global All_Slices
+    global Condor
     CreateTheConfigFile(massCut,etaMin,etaMax,nomMin,nomMax,ptThresh,iasThresh)
     outputFile = Jobs_Name+GetSelectionString(massCut,etaMin,nomMin,ptThresh,iasThresh)+'.root'
     Path_Shell = Farm_Directories[1]+Jobs_Name+GetSelectionString(massCut,etaMin,nomMin,ptThresh,iasThresh)+'.sh'
@@ -76,10 +77,12 @@ def CreateTheShellFile(massCut,etaMin,etaMax,nomMin,nomMax,ptThresh,iasThresh):
     shell_file.write('#!/bin/sh\n')
     shell_file.write(CopyRights + '\n')
     # if at UMN
-    shell_file.write('source /local/cms/sw/cmsset_default.sh\n')
-    # CERN
-    #shell_file.write('export SCRAM_ARCH=slc5_amd64_gcc434\n')
-    #shell_file.write('source /afs/cern.ch/cms/sw/cmsset_default.sh\n')
+    if(Condor):
+      shell_file.write('source /local/cms/sw/cmsset_default.sh\n')
+    else:
+      # CERN
+      shell_file.write('export SCRAM_ARCH=slc5_amd64_gcc434\n')
+      shell_file.write('source /afs/cern.ch/cms/sw/cmsset_default.sh\n')
     #
     shell_file.write('cd ' + os.getcwd() + '\n')
     shell_file.write('eval `scramv1 runtime -sh`\n')
