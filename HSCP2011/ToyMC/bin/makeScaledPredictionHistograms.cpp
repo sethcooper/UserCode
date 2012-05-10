@@ -84,8 +84,8 @@ float maxEta = 0;
 int numIasBins = 0;
 // NB: these must match what's used in makeIasPredictions
 //TODO: make these configurable
-int nomStep = 3;
-float etaStep = 0.4;
+int nomStep = 2;
+float etaStep = 0.2;
 
 struct EventInfo
 {
@@ -1073,6 +1073,9 @@ int main(int argc, char ** argv)
       int globalBinIndex = iteratorPos*numBinsEachSlice+iasBin-firstIasBin+1;
       double binc = histItr->GetBinContent(iasBin);
       double bine = histItr->GetBinError(iasBin);
+      ////XXX SIC TESTING -- turn off stat error in all but one slice
+      //if(lowerNoM!=11 || lowerEta!=0)
+      //  bine = 0;
       backgroundAllNoMAllEtaUnrolledLimitsHist->SetBinContent(globalBinIndex,binc);
       backgroundAllNoMAllEtaUnrolledLimitsHist->SetBinError(globalBinIndex,bine);
       //std::cout << "INFO: Filling background hist: bin=" << globalBinIndex << " content=" << binc << " error=" << bine << std::endl;
