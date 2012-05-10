@@ -19,14 +19,17 @@
     <Data HistoName="dataAllNoMAllEtaUnrolledHist" HistoPath="" />
 
     <!-- Configure Stat Errors -->
-    <!-- <StatErrorConfig RelErrorThreshold="0.05" ConstraintType="Gaussian" /> -->
+    <StatErrorConfig RelErrorThreshold="0.05" ConstraintType="Poisson" />
 
     <Sample Name="signal" HistoPath="" HistoName="signalAllNoMAllEtaUnrolledHist">
       <NormFactor Name="SigXsec" Val="0.001" Low="0.0" High="1.0" Const="True" />
+      <OverallSys Name="sigEff" Low="0.93" High="1.07" />
     </Sample>
 
     <!-- Background  is completely DataDriven -->
     <Sample Name="background" HistoPath="" NormalizeByTheory="False" HistoName="backgroundAllNoMAllEtaUnrolledLimitsHist"  >
+      <!-- Use Default Histogram Errors as input to StatError -->
+      <StatError Activate="True" />
     </Sample>
     
   </Channel>
