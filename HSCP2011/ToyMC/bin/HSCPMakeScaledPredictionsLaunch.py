@@ -128,6 +128,7 @@ def CreateTheShellFile(bgInputFile,sigLooseInputFile,sigTightInputFile,modelName
     global CopyRights
     global Jobs_Name
     global All_Slices
+    global Condor
     signalName = modelName
     outputFile = 'makeScaledPredictionHistograms_'+signalName+'_massCut'+`massCut`+'_ptCut'+`ptCut`+'.root'
     CreateTheConfigFile(bgInputFile,sigLooseInputFile,sigTightInputFile,massCut,iasCut,ptCut,signalName,crossSection)
@@ -146,10 +147,13 @@ def CreateTheShellFile(bgInputFile,sigLooseInputFile,sigTightInputFile,modelName
     shell_file=open(Path_Shell,'w')
     shell_file.write('#!/bin/sh\n')
     shell_file.write(CopyRights + '\n')
-    # CERN
-    #shell_file.write('export SCRAM_ARCH=slc5_amd64_gcc434\n')
     # UMN
-    shell_file.write('source /local/cms/sw/cmsset_default.sh\n')
+    if(Condor):
+      shell_file.write('source /local/cms/sw/cmsset_default.sh\n')
+    else:
+      # CERN
+      shell_file.write('export SCRAM_ARCH=slc5_amd64_gcc434\n')
+      shell_file.write('source /afs/cern.ch/cms/sw/cmsset_default.sh\n')
     shell_file.write('cd ' + os.getcwd() + '\n')
     shell_file.write('eval `scramv1 runtime -sh`\n')
     shell_file.write('cd -\n')
@@ -159,11 +163,13 @@ def CreateTheShellFile(bgInputFile,sigLooseInputFile,sigTightInputFile,modelName
       shell_file.write('makeScaledPredictionHistogramsOneSlice ' + os.getcwd() + '/'+Path_Cfg + '\n')
     shell_file.write('mv ' + outputFile + ' ' + os.getcwd() + '/' + Farm_Directories[4] + '\n\n')
     shell_file.write('# switch to later root\n')
-    # CERN
-    #shell_file.write('source /afs/cern.ch/sw/lcg/external/gcc/4.3.2/x86_64-slc5/setup.sh\n')
-    #shell_file.write('source /afs/cern.ch/sw/lcg/app/releases/ROOT/5.32.00/x86_64-slc5-gcc43-opt/root/bin/thisroot.sh\n')
     # UMN
-    shell_file.write('source /local/cms/user/cooper/root/bin/thisroot.sh\n')
+    if(Condor):
+      shell_file.write('source /local/cms/user/cooper/root/bin/thisroot.sh\n')
+    else:
+      # CERN
+      shell_file.write('source /afs/cern.ch/sw/lcg/external/gcc/4.3.2/x86_64-slc5/setup.sh\n')
+      shell_file.write('source /afs/cern.ch/sw/lcg/app/releases/ROOT/5.32.02/x86_64-slc5-gcc43-opt/root/bin/thisroot.sh\n')
     #
     shell_file.write('cd ' + os.getcwd() + '/' + Farm_Directories[4] + '\n')
     shell_file.write('mkdir ' + signalName + '_Limits\n')

@@ -41,6 +41,7 @@ def CreateTheShellFile(modelName,inputFile,poiValue,index):
     global Base_macro
     global Throw_Toys
     global Expected_Significance
+    global Condor
     if(Expected_Significance):
       dataName = 'asimovData'
       prepend = 'expected_'
@@ -57,12 +58,14 @@ def CreateTheShellFile(modelName,inputFile,poiValue,index):
     shell_file.write('#!/bin/sh\n')
     shell_file.write(CopyRights + '\n')
     shell_file.write('# use later root\n')
-    # CERN
-    #shell_file.write('export SCRAM_ARCH=slc5_amd64_gcc434\n')
-    #shell_file.write('source /afs/cern.ch/sw/lcg/external/gcc/4.3.2/x86_64-slc5/setup.sh\n')
-    #shell_file.write('source /afs/cern.ch/sw/lcg/app/releases/ROOT/5.33.02/x86_64-slc5-gcc43-opt/root/bin/thisroot.sh\n')
     # UMN
-    shell_file.write('source /local/cms/user/cooper/root/bin/thisroot.sh\n')
+    if(Condor):
+      shell_file.write('source /local/cms/user/cooper/root/bin/thisroot.sh\n')
+    else:
+      # CERN
+      shell_file.write('export SCRAM_ARCH=slc5_amd64_gcc434\n')
+      shell_file.write('source /afs/cern.ch/sw/lcg/external/gcc/4.3.2/x86_64-slc5/setup.sh\n')
+      shell_file.write('source /afs/cern.ch/sw/lcg/app/releases/ROOT/5.33.02/x86_64-slc5-gcc43-opt/root/bin/thisroot.sh\n')
     numToys = 25000
     shell_file.write('cd ' + os.getcwd() + '/' + Farm_Directories[4] + '\n')
     if(Throw_Toys):
@@ -203,7 +206,7 @@ def SendCluster_Push(modelName,inputFile,poiValue):
     global Throw_Toys
     Jobs_Index = "%04i" % Jobs_Count
     if(Throw_Toys):
-      numToyJobs = 1 # 400
+      numToyJobs = 400
       for index in range(0,numToyJobs):
         CreateTheShellFile(modelName,inputFile,poiValue,index)
         AddJobToCmdFile(modelName,inputFile,poiValue,index)

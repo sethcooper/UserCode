@@ -41,6 +41,7 @@ def CreateTheShellFile(bgInputFile,sigInputFile,massCut,iasCut,ptCut,xSecMin,xSe
     global Base_macro
     global Do_Bayesian
     global Expected_Limits
+    global Condor
     posLastUndsc = sigInputFile.rfind("_")
     signalName = sigInputFile[posLastUndsc+1:len(sigInputFile)-5]
     #endRemoved = sigInputFile[0:posLastUndsc]
@@ -60,12 +61,14 @@ def CreateTheShellFile(bgInputFile,sigInputFile,massCut,iasCut,ptCut,xSecMin,xSe
       shell_file.write('#!/bin/sh\n')
       shell_file.write(CopyRights + '\n')
       shell_file.write('# use later root\n')
-      # CERN
-      #shell_file.write('export SCRAM_ARCH=slc5_amd64_gcc434\n')
-      #shell_file.write('source /afs/cern.ch/sw/lcg/external/gcc/4.3.2/x86_64-slc5/setup.sh\n')
-      #shell_file.write('source /afs/cern.ch/sw/lcg/app/releases/ROOT/5.32.00/x86_64-slc5-gcc43-opt/root/bin/thisroot.sh\n')
       # UMN
-      shell_file.write('source /local/cms/user/cooper/root/bin/thisroot.sh\n')
+      if(Condor):
+        shell_file.write('source /local/cms/user/cooper/root/bin/thisroot.sh\n')
+      else:
+        # CERN
+        shell_file.write('export SCRAM_ARCH=slc5_amd64_gcc434\n')
+        shell_file.write('source /afs/cern.ch/sw/lcg/external/gcc/4.3.2/x86_64-slc5/setup.sh\n')
+        shell_file.write('source /afs/cern.ch/sw/lcg/app/releases/ROOT/5.32.02/x86_64-slc5-gcc43-opt/root/bin/thisroot.sh\n')
       shell_file.write('cd ' + os.getcwd() + '/' + Farm_Directories[0] + 'outputs/makeScaledPredictions/' + signalName + '_Limits\n')
       shell_file.write('root -l -b -q "'+Base_macro
         +'(\\"hscp_combined_hscp_model.root\\",\\"combined\\",\\"ModelConfig\\",\\"'+dataName+'\\",\\"'+outputFile+'\\")"'+'\n')
@@ -73,8 +76,8 @@ def CreateTheShellFile(bgInputFile,sigInputFile,massCut,iasCut,ptCut,xSecMin,xSe
       # CLs
       # variables for limit setting
       #nPoints = 8 # per job
-      nPoints = 4 # per job
-      nToys = 3000 # per xSec trial point
+      nPoints = 2 # per job
+      nToys = 2000 # per xSec trial point
       # end variables for limit setting
       outputFile = 'doLimits_'+prepend+signalName+'_massCut'+`massCut`+'_ptCut'+`ptCut`+'_index'+str(index)+'.root'
       Path_Shell = Farm_Directories[1]+Jobs_Name+prepend+signalName+'_massCut'+`massCut`+'_ptCut'+`ptCut`+'_index'+str(index)+'.sh'
@@ -82,12 +85,14 @@ def CreateTheShellFile(bgInputFile,sigInputFile,massCut,iasCut,ptCut,xSecMin,xSe
       shell_file.write('#!/bin/sh\n')
       shell_file.write(CopyRights + '\n')
       shell_file.write('# use later root\n')
-      # CERN
-      #shell_file.write('export SCRAM_ARCH=slc5_amd64_gcc434\n')
-      #shell_file.write('source /afs/cern.ch/sw/lcg/external/gcc/4.3.2/x86_64-slc5/setup.sh\n')
-      #shell_file.write('source /afs/cern.ch/sw/lcg/app/releases/ROOT/5.32.02/x86_64-slc5-gcc43-opt/root/bin/thisroot.sh\n')
       # UMN
-      shell_file.write('source /local/cms/user/cooper/root/bin/thisroot.sh\n')
+      if(Condor):
+        shell_file.write('source /local/cms/user/cooper/root/bin/thisroot.sh\n')
+      else:
+        # CERN
+        shell_file.write('export SCRAM_ARCH=slc5_amd64_gcc434\n')
+        shell_file.write('source /afs/cern.ch/sw/lcg/external/gcc/4.3.2/x86_64-slc5/setup.sh\n')
+        shell_file.write('source /afs/cern.ch/sw/lcg/app/releases/ROOT/5.32.02/x86_64-slc5-gcc43-opt/root/bin/thisroot.sh\n')
       shell_file.write('cd ' + os.getcwd() + '/' + Farm_Directories[0] + 'outputs/makeScaledPredictions/' + signalName + '_Limits\n')
       shell_file.write('root -l -b -q "'+Base_macro
           # Frequentist calculator
