@@ -55,6 +55,10 @@
 
 #include "commonFunctions.h"
 
+double emptyBinVal = 1e-25;
+int numIasBins = 50;
+int lastLowerNoM = 17;
+
 
 std::string getHistTitleBeg(int lowerNom, float lowerEta, float pSB, float ihSB, float ptSB, float iasSB,
     bool usePt, bool useIas)
@@ -62,7 +66,7 @@ std::string getHistTitleBeg(int lowerNom, float lowerEta, float pSB, float ihSB,
   std::string histTitle = "NoM ";
   histTitle+=intToString(lowerNom);
   histTitle+="-";
-  if(lowerNom==21)
+  if(lowerNom==lastLowerNoM)
     histTitle+="end";
   else
     histTitle+=intToString(lowerNom+1);
@@ -444,9 +448,6 @@ int main(int argc, char ** argv)
           SelectVars(RooArgSet(rooVarP,rooVarEta,rooVarNoMias,rooVarIas,rooVarIh)));
   delete rooDataSetAll;
 
-  double emptyBinVal = 1e-25;
-  int numIasBins = 50;
-
   int nom = 5;
   float lowerEta = 0.0;
       // book histograms -- b region
@@ -667,7 +668,7 @@ int main(int argc, char ** argv)
       std::string iasPredictionFixedLimitsHistTitle = "Ias prediction (limits) for ";
       iasPredictionFixedLimitsHistTitle+=intToString(nom);
       iasPredictionFixedLimitsHistTitle+="-";
-      if(nom==17)
+      if(nom==lastLowerNoM)
         iasPredictionFixedLimitsHistTitle+="end";
       else
         iasPredictionFixedLimitsHistTitle+=intToString(nom+1);
@@ -686,7 +687,7 @@ int main(int argc, char ** argv)
       std::string iasPredictionFixedDiscoveryHistTitle = "Ias prediction (discovery) for ";
       iasPredictionFixedDiscoveryHistTitle+=intToString(nom);
       iasPredictionFixedDiscoveryHistTitle+="-";
-      if(nom==17)
+      if(nom==lastLowerNoM)
         iasPredictionFixedDiscoveryHistTitle+="end";
       else
         iasPredictionFixedDiscoveryHistTitle+=intToString(nom+1);
@@ -705,7 +706,7 @@ int main(int argc, char ** argv)
       std::string iasPointsAndFitHistTitle = "Ias prediction for ";
       iasPointsAndFitHistTitle+=intToString(nom);
       iasPointsAndFitHistTitle+="-";
-      if(nom==17)
+      if(nom==lastLowerNoM)
         iasPointsAndFitHistTitle+="end";
       else
         iasPointsAndFitHistTitle+=intToString(nom+1);
@@ -724,7 +725,7 @@ int main(int argc, char ** argv)
       std::string massPredictionFixedHistTitle = "mass prediction for ";
       massPredictionFixedHistTitle+=intToString(nom);
       massPredictionFixedHistTitle+="-";
-      if(nom==17)
+      if(nom==lastLowerNoM)
         massPredictionFixedHistTitle+="end";
       else
         massPredictionFixedHistTitle+=intToString(nom+1);
@@ -744,7 +745,7 @@ int main(int argc, char ** argv)
       std::string dRegionFixedHistTitle = "Ias data in D region for ";
       dRegionFixedHistTitle+=intToString(nom);
       dRegionFixedHistTitle+="-";
-      if(nom==17)
+      if(nom==lastLowerNoM)
         dRegionFixedHistTitle+="end";
       else
         dRegionFixedHistTitle+=intToString(nom+1);
@@ -765,7 +766,7 @@ int main(int argc, char ** argv)
       else
         std::cout << lowerEta+0.2;
       std::cout << " nom=" << nom << "-";
-      if(nom==17)
+      if(nom==lastLowerNoM)
         std::cout << "end" << std::endl;
       else
         std::cout << nom+1 << std::endl;
@@ -824,7 +825,7 @@ int main(int argc, char ** argv)
       std::string ihMeanProfTitle = "Ih mean for nom ";
       ihMeanProfTitle+=intToString(nom);
       ihMeanProfTitle+="-";
-      if(nom==17)
+      if(nom==lastLowerNoM)
         ihMeanProfTitle+="end";
       else
         ihMeanProfTitle+=intToString(nom+1);
