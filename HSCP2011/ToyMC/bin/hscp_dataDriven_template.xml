@@ -20,6 +20,7 @@
 
   <Measurement Name="hscp" Lumi="1.0" LumiRelErr="0.022" ExportOnly="False" >
     <POI>SigXsec</POI>
+    <ParamSetting Const="True">Lumi</ParamSetting>
   </Measurement>
 
 
