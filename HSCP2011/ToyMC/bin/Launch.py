@@ -22,38 +22,30 @@ RunCondor = True
 BayesianLimit = False
 DoMass = False
 DoSignificanceToys = False
-#ModelListToys = [GMStau100]#,GMStau432,Gluino300,Gluino900,Stop130,Stop700]
-ModelListToys = [Gluino1200]
-#ModelListToys = [GMStau100]
+ModelListToys = [GMStau100]#,GMStau432,Gluino300,Gluino900,Stop130,Stop700]
 PoiList = [6e-3,5e-3,4e-3,3e-3,2e-3,1e-3,5e-4,2.5e-4]
-
-#PoiList = [5e-4,1.5e-3]
-#PoiList = [2.5e-4,1e-4]
 # TOYS
 #PoiList = [1e-3,7.5e-4,5e-4,2.5e-4,1e-4]
-#PoiList = [1.2e-3,1.5e-3]
-#PoiList = [1.35e-3]
-#PoiList = [1.3e-3]
-QueueName = '8nh'
+QueueName = '8nh' # LSF
 ## FOR NOW, CutPt=Std means CutIas Std also!
-#CutPt = 'Std'
 CutPt = 50
-#CutIas = 'Std'
 CutIas = 0.1
+#CutPt = 'Std'
+#CutIas = 'Std'
 
-#FarmDirectory = 'FARM_dReg_NL_50IasBins_emptyBins1e-25_stepsFix_cutPt50GeVcutIas0.1_allSlices_Apr20'
-#FarmDirectory = 'FARM_dReg_NL_50IasBins_emptyBins1e-25_iasPredScalingFix_'
-FarmDirectory = 'FARM_dReg_NL_50IasBins_emptyBins1e-25_1gausSystWithStatErr_'
-FarmDirectory+='cutPt'
-#
-FarmDirectory+=str(CutPt)
-FarmDirectory+='GeVcutIas'
-FarmDirectory+=str(CutIas)
-if(AllSlices):
-  FarmDirectory+='_allSlices_'
-else:
-  FarmDirectory+='_oneSlice_'
-FarmDirectory+=Date
+FarmDirectory = 'FARM_50IasB_emptyB1e-25_1gausSystWithStatErr_cutPt50GeVcutIas0.1_oneSlice_May09'
+#FarmDirectory = 'FARM_20IasB_normEtaNoMSlicing_emptyB1e-25_1gausSystWithStatErrOneSliceOnly_cutPt50GeVcutIas0.1_allSlices_May06'
+#FarmDirectory = 'FARM_50IasB_emptyB1e-25_1gausSystWithStatErr_'
+#FarmDirectory+='cutPt'
+##
+#FarmDirectory+=str(CutPt)
+#FarmDirectory+='GeVcutIas'
+#FarmDirectory+=str(CutIas)
+#if(AllSlices):
+#  FarmDirectory+='_allSlices_'
+#else:
+#  FarmDirectory+='_oneSlice_'
+#FarmDirectory+=Date
 
 InputDataRootFile = os.getcwd()
 InputDataRootFile+='/FARM_MakeHSCParticlePlots_Data_Apr28/outputs/makeHSCParticlePlots_Data2011_all.root'
@@ -102,6 +94,7 @@ def printConfiguration():
 def checkForIasPredictions(modelName,massCut,ptCut,iasCut):
   # have to change this if slicing is changed in HSCPMakeIasPredictionsLaunch.py
   etaCuts = [0.0,0.4,0.8,1.2]
+  #nomCuts = [5,11]
   nomCuts = [5,13]
   for minEta in etaCuts:
     for minNom in nomCuts:
@@ -284,6 +277,7 @@ def combineLimitResults():
   # must execute makeCombineLimitResults to build the binary first
   doLimitsOutputDir = FarmDirectory+'/outputs/doLimits/'
   for model in modelList:
+    print 'Combining limit results from ',model.name
     logFileName = FarmDirectory+'/logs/doLimits/doLimitsCombined_'+model.name+'.out'
     shell_file=open('/tmp/combine.sh','w')
     shell_file.write('#!/bin/sh\n')
@@ -293,7 +287,7 @@ def combineLimitResults():
     #shell_file.write('source /afs/cern.ch/sw/lcg/app/releases/ROOT/5.32.02/x86_64-slc5-gcc43-opt/root/bin/thisroot.sh\n')
     # UMN
     shell_file.write('source /local/cms/user/cooper/root/bin/thisroot.sh\n')
-    shell_file.write(os.getcwd()+'/combineLimitResults '+doLimitsOutputDir+' '+model.name+' >& '+logFileName+'\n')
+    shell_file.write(os.getcwd()+'/combineLimitResults '+doLimitsOutputDir+' '+model.name+' |tee '+logFileName+'\n')
     shell_file.close()
     os.system("chmod 777 /tmp/combine.sh")
     os.system("source /tmp/combine.sh")
