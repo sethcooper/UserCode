@@ -16,7 +16,8 @@ from ROOT import TGraph,TMultiGraph,TCanvas,TPaveText,gROOT,TLegend,TCutG,kGreen
 # at UMN, must use /usr/bin/python (2.4) and my compiled ROOT version (5.32.02)
 #BaseDir = 'FARM_dReg_NL_50IasBins_emptyBins1e-25_iasPredScalingFix_cutPt50GeVcutIas0.1_allSlices_Apr30'
 #BaseDir = 'FARM_dReg_NL_20IasBins_emptyBins1e-25_1gausSystWithNoStatErr_cutPt50GeVcutIas0.1_allSlices_May02'
-BaseDir = 'FARM_20IasB_4etaSlices_5NoMSlices_emptyB1e-25_1gausSystWithStatErr_cutPt50GeVcutIas0.1_allSlices_May03'
+#BaseDir = 'FARM_20IasB_4etaSlices_5NoMSlices_emptyB1e-25_1gausSystWithStatErr_cutPt50GeVcutIas0.1_allSlices_May03'
+BaseDir = 'FARM_20IasB_normEtaNoMSlicing_emptyB1e-25_1gausSystWithStatErrOneSliceOnly_cutPt50GeVcutIas0.1_allSlices_May06'
 runCERN = False
 PlotMinScale = 0.0005
 PlotMaxScale = 3
@@ -171,6 +172,8 @@ def GetExpDiscSignif(filePath):
   return 0.0
 
 def GetSignalSignificanceFiveSigma(doSignificanceDir,fileList,modelName):
+  if(len(fileList) == 0):
+    return -1
   poiSigDict = {}
   for fileName in fileList:
     if modelName in fileName and fileEnd in fileName:
