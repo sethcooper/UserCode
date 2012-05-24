@@ -109,7 +109,7 @@ def CreateTheCmdFile():
       cmd_file.write('Universe                = vanilla\n')
       cmd_file.write('Environment             = CONDORJOBID=$(Process)\n')
       cmd_file.write('notification            = Error\n')
-      cmd_file.write('requirements            = (Memory > 1024)&&(Arch=?="X86_64")&&(Machine=!="zebra01.spa.umn.edu")&&(Machine=!="zebra02.spa.umn.edu")&&(Machine=!="zebra03.spa.umn.edu")&&(Machine=!="caffeine.spa.umn.edu")\n')
+      cmd_file.write('requirements            = (Memory > 1024)&&(Arch=?="X86_64")&&(Machine=!="caffeine.spa.umn.edu")\n')
       cmd_file.write('+CondorGroup            = "cmsfarm"\n')
       cmd_file.write('should_transfer_files   = NO\n')
       cmd_file.write('Notify_user = cooper@physics.umn.edu\n')
@@ -183,6 +183,8 @@ def SendCluster_Create(farmDirectory, jobName, inputRootFile, baseCfg,
     # if this splitting is changed, have to change checkForIasPredictions function in Launch.py
     if(allSlices):
       for etaIndex in range(0,16,4):
+        #SendCluster_Push(massCut,etaIndex/10.0,(etaIndex+4)/10.0,5,10,ptCut,iasCut)
+        #SendCluster_Push(massCut,etaIndex/10.0,(etaIndex+4)/10.0,11,18,ptCut,iasCut)
         SendCluster_Push(massCut,etaIndex/10.0,(etaIndex+4)/10.0,5,12,ptCut,iasCut)
         SendCluster_Push(massCut,etaIndex/10.0,(etaIndex+4)/10.0,13,18,ptCut,iasCut)
     else:
