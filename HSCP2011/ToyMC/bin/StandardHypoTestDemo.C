@@ -64,13 +64,8 @@ void StandardHypoTestDemo(const char* infile = "",
   //SIC APR 20 -- never use multigen
   ToyMCSampler::SetAlwaysUseMultiGen(false);
 
-  SimpleLikelihoodRatioTestStat::SetAlwaysReuseNLL(true);
+  //SimpleLikelihoodRatioTestStat::SetAlwaysReuseNLL(true);
   RooRandom::randomGenerator()->SetSeed(0);
-
-  // SIC MOD: change strategy to 2
-  ROOT::Math::MinimizerOptions::SetDefaultStrategy(2);
-  ROOT::Math::MinimizerOptions::SetDefaultMinimizer("Minuit");
-  ROOT::Math::MinimizerOptions::SetDefaultTolerance(1);
 
   /////////////////////////////////////////////////////////////
   // First part is just to access a user-defined file 
@@ -182,6 +177,11 @@ void StandardHypoTestDemo(const char* infile = "",
   }
 
 
+  ////XXX SIC mod
+  //const RooArgSet* nuisParams = (bModel->GetNuisanceParameters() ) ? bModel->GetNuisanceParameters() : sbModel->GetNuisanceParameters();
+  //// set all gamma stat constraint terms constant
+  //RooArgSet* statConstraints = nuisParams->selectByName("gamma_stat_*");
+  //statConstraints->setAttribAll("Constant");
 
 
   // part 1, hypothesis testing 
@@ -210,6 +210,8 @@ void StandardHypoTestDemo(const char* infile = "",
   // slrts.SetReuseNLL(mOptimize);
   // ropl.SetReuseNLL(mOptimize);
 
+  // SIC TEST OUTPUT
+  //profll.SetPrintLevel(3);
 
 
   HypoTestCalculatorGeneric *  hypoCalc = 0;
@@ -263,6 +265,11 @@ void StandardHypoTestDemo(const char* infile = "",
 
     ((HybridCalculator*)hypoCalc)->ForcePriorNuisanceAlt(*nuisPdf);
     ((HybridCalculator*)hypoCalc)->ForcePriorNuisanceNull(*nuisPdf);
+
+    //XXX SIC mod
+    // set all gamma stat constraint terms constant
+    RooArgSet* statConstraints = nuisParams->selectByName("gamma_stat_*");
+    statConstraints->setAttribAll("Constant");
   }
 
   // hypoCalc->ForcePriorNuisanceAlt(*sbModel->GetPriorPdf());
