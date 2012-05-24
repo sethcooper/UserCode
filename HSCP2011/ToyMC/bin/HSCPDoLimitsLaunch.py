@@ -76,8 +76,8 @@ def CreateTheShellFile(bgInputFile,sigInputFile,massCut,iasCut,ptCut,xSecMin,xSe
       # CLs
       # variables for limit setting
       #nPoints = 8 # per job
-      nPoints = 2 # per job
-      nToys = 2000 # per xSec trial point
+      nPoints = 1 # per job
+      nToys = 3000 # per xSec trial point
       # end variables for limit setting
       outputFile = 'doLimits_'+prepend+signalName+'_massCut'+`massCut`+'_ptCut'+`ptCut`+'_index'+str(index)+'.root'
       Path_Shell = Farm_Directories[1]+Jobs_Name+prepend+signalName+'_massCut'+`massCut`+'_ptCut'+`ptCut`+'_index'+str(index)+'.sh'
@@ -96,9 +96,9 @@ def CreateTheShellFile(bgInputFile,sigInputFile,massCut,iasCut,ptCut,xSecMin,xSe
       shell_file.write('cd ' + os.getcwd() + '/' + Farm_Directories[0] + 'outputs/makeScaledPredictions/' + signalName + '_Limits\n')
       shell_file.write('root -l -b -q "'+Base_macro
           # Frequentist calculator
-          +'(\\"hscp_combined_hscp_model.root\\",\\"combined\\",\\"ModelConfig\\",\\"\\",\\"'+dataName+'\\",0,3,true,'
+          #+'(\\"hscp_combined_hscp_model.root\\",\\"combined\\",\\"ModelConfig\\",\\"\\",\\"'+dataName+'\\",0,3,true,'
           # Hybrid calculator
-          #+'(\\"hscp_combined_hscp_model.root\\",\\"combined\\",\\"ModelConfig\\",\\"\\",\\"'+dataName+'\\",1,3,true,'
+          +'(\\"hscp_combined_hscp_model.root\\",\\"combined\\",\\"ModelConfig\\",\\"\\",\\"'+dataName+'\\",1,3,true,'
           #asymptCLs#+'(\\"hscp_combined_hscp_model.root\\",\\"combined\\",\\"ModelConfig\\",\\"\\",\\"'+dataName+'\\",2,3,true,'
           +str(nPoints)+','
           +str(xSecMin)+','
@@ -238,7 +238,7 @@ def SendCluster_Push(bgInputFilesBase,sigInputFile,massCut,iasCut,ptCut):
     else:
       xSecMin = 0.0001
       xSecMax = 0.01
-      nSteps = 15 # gets multiplied by points/job later
+      nSteps = 25 # gets multiplied by points/job later
       stepSize = (xSecMax-xSecMin)/nSteps
       for index in range(0,nSteps):
         xSecMinPt = xSecMin+index*stepSize
