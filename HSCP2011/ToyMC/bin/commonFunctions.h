@@ -385,7 +385,10 @@ std::string getHistNameBeg(int lowerNom, float lowerEta, int nomStep, float etaS
   string histName="nom";
   histName+=intToString(lowerNom);
   histName+="to";
-  histName+=intToString(lowerNom+nomStep-1);
+  if(lowerNom==5)
+    histName+=intToString(lowerNom+2*nomStep-1);
+  else
+    histName+=intToString(lowerNom+nomStep-1);
   histName+="eta";
   histName+=intToString(etaSlice);
   histName+="to";
@@ -414,7 +417,10 @@ std::string getHistTitleEnd(int lowerNom, float lowerEta, float massCut)
   std::string title =" for ";
   title+=intToString(lowerNom);
   title+="-";
-  title+=intToString(lowerNom+1);
+  if(lowerNom==5)
+    title+=intToString(lowerNom+3);
+  else
+    title+=intToString(lowerNom+1);
   title+=", ";
   title+=floatToString(lowerEta);
   title+=" < #eta < ";
