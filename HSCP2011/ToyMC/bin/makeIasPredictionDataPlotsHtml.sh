@@ -65,8 +65,7 @@ cat > index.html <<EOF
 <table>
 <tr>
 <td></td>
-<td>NoM 5-6</td>
-<td>NoM 7-8</td>
+<td>NoM 5-8</td>
 <td>NoM 9-10</td>
 <td>NoM 11-12</td>
 <td>NoM 13-14</td>
@@ -77,8 +76,7 @@ cat > index.html <<EOF
 </tr>
 <tr>
 <td>0.0 <= |eta| < 0.2</td>
-<td><a href="nom5to6eta0to2iasDataPred.png"><img height="200" src="nom5to6eta0to2iasDataPred.png"></a></td>
-<td><a href="nom7to8eta0to2iasDataPred.png"><img height="200" src="nom7to8eta0to2iasDataPred.png"></a></td>
+<td><a href="nom5to8eta0to2iasDataPred.png"><img height="200" src="nom5to8eta0to2iasDataPred.png"></a></td>
 <td><a href="nom9to10eta0to2iasDataPred.png"><img height="200" src="nom9to10eta0to2iasDataPred.png"></a></td>
 <td><a href="nom11to12eta0to2iasDataPred.png"><img height="200" src="nom11to12eta0to2iasDataPred.png"></a></td>
 <td><a href="nom13to14eta0to2iasDataPred.png"><img height="200" src="nom13to14eta0to2iasDataPred.png"></a></td>
@@ -90,8 +88,7 @@ cat > index.html <<EOF
 </tr>
 <tr>
 <td>0.2 < |eta| < 0.4</td>
-<td><a href="nom5to6eta2to4iasDataPred.png"><img height="200" src="nom5to6eta2to4iasDataPred.png"></a></td>
-<td><a href="nom7to8eta2to4iasDataPred.png"><img height="200" src="nom7to8eta2to4iasDataPred.png"></a></td>
+<td><a href="nom5to8eta2to4iasDataPred.png"><img height="200" src="nom5to8eta2to4iasDataPred.png"></a></td>
 <td><a href="nom9to10eta2to4iasDataPred.png"><img height="200" src="nom9to10eta2to4iasDataPred.png"></a></td>
 <td><a href="nom11to12eta2to4iasDataPred.png"><img height="200" src="nom11to12eta2to4iasDataPred.png"></a></td>
 <td><a href="nom13to14eta2to4iasDataPred.png"><img height="200" src="nom13to14eta2to4iasDataPred.png"></a></td>
@@ -103,8 +100,7 @@ cat > index.html <<EOF
 </tr>
 <tr>
 <td>0.4 < |eta| < 0.6</td>
-<td><a href="nom5to6eta4to6iasDataPred.png"><img height="200" src="nom5to6eta4to6iasDataPred.png"></a></td>
-<td><a href="nom7to8eta4to6iasDataPred.png"><img height="200" src="nom7to8eta4to6iasDataPred.png"></a></td>
+<td><a href="nom5to8eta4to6iasDataPred.png"><img height="200" src="nom5to8eta4to6iasDataPred.png"></a></td>
 <td><a href="nom9to10eta4to6iasDataPred.png"><img height="200" src="nom9to10eta4to6iasDataPred.png"></a></td>
 <td><a href="nom11to12eta4to6iasDataPred.png"><img height="200" src="nom11to12eta4to6iasDataPred.png"></a></td>
 <td><a href="nom13to14eta4to6iasDataPred.png"><img height="200" src="nom13to14eta4to6iasDataPred.png"></a></td>
@@ -116,8 +112,7 @@ cat > index.html <<EOF
 </tr>
 <tr>
 <td>0.6 < |eta| < 0.8</td>
-<td><a href="nom5to6eta6to8iasDataPred.png"><img height="200" src="nom5to6eta6to8iasDataPred.png"></a></td>
-<td><a href="nom7to8eta6to8iasDataPred.png"><img height="200" src="nom7to8eta6to8iasDataPred.png"></a></td>
+<td><a href="nom5to8eta6to8iasDataPred.png"><img height="200" src="nom5to8eta6to8iasDataPred.png"></a></td>
 <td><a href="nom9to10eta6to8iasDataPred.png"><img height="200" src="nom9to10eta6to8iasDataPred.png"></a></td>
 <td><a href="nom11to12eta6to8iasDataPred.png"><img height="200" src="nom11to12eta6to8iasDataPred.png"></a></td>
 <td><a href="nom13to14eta6to8iasDataPred.png"><img height="200" src="nom13to14eta6to8iasDataPred.png"></a></td>
@@ -129,8 +124,7 @@ cat > index.html <<EOF
 </tr>
 <tr>
 <td></td>
-<td>NoM 5-6</td>
-<td>NoM 7-8</td>
+<td>NoM 5-8</td>
 <td>NoM 9-10</td>
 <td>NoM 11-12</td>
 <td>NoM 13-14</td>
@@ -141,8 +135,7 @@ cat > index.html <<EOF
 </tr>
 <tr>
 <td>0.8 < |eta| < 1.0</td>
-<td><a href="nom5to6eta8to10iasDataPred.png"><img height="200" src="nom5to6eta8to10iasDataPred.png"></a></td>
-<td><a href="nom7to8eta8to10iasDataPred.png"><img height="200" src="nom7to8eta8to10iasDataPred.png"></a></td>
+<td><a href="nom5to8eta8to10iasDataPred.png"><img height="200" src="nom5to8eta8to10iasDataPred.png"></a></td>
 <td><a href="nom9to10eta8to10iasDataPred.png"><img height="200" src="nom9to10eta8to10iasDataPred.png"></a></td>
 <td><a href="nom11to12eta8to10iasDataPred.png"><img height="200" src="nom11to12eta8to10iasDataPred.png"></a></td>
 <td><a href="nom13to14eta8to10iasDataPred.png"><img height="200" src="nom13to14eta8to10iasDataPred.png"></a></td>
@@ -154,8 +147,7 @@ cat > index.html <<EOF
 </tr>
 <tr>
 <td>1.0 < |eta| < 1.2</td>
-<td><a href="nom5to6eta10to12iasDataPred.png"><img height="200" src="nom5to6eta10to12iasDataPred.png"></a></td>
-<td><a href="nom7to8eta10to12iasDataPred.png"><img height="200" src="nom7to8eta10to12iasDataPred.png"></a></td>
+<td><a href="nom5to8eta10to12iasDataPred.png"><img height="200" src="nom5to8eta10to12iasDataPred.png"></a></td>
 <td><a href="nom9to10eta10to12iasDataPred.png"><img height="200" src="nom9to10eta10to12iasDataPred.png"></a></td>
 <td><a href="nom11to12eta10to12iasDataPred.png"><img height="200" src="nom11to12eta10to12iasDataPred.png"></a></td>
 <td><a href="nom13to14eta10to12iasDataPred.png"><img height="200" src="nom13to14eta10to12iasDataPred.png"></a></td>
@@ -167,8 +159,7 @@ cat > index.html <<EOF
 </tr>
 <tr>
 <td>1.2 < |eta| < 1.4</td>
-<td><a href="nom5to6eta12to14iasDataPred.png"><img height="200" src="nom5to6eta12to14iasDataPred.png"></a></td>
-<td><a href="nom7to8eta12to14iasDataPred.png"><img height="200" src="nom7to8eta12to14iasDataPred.png"></a></td>
+<td><a href="nom5to8eta12to14iasDataPred.png"><img height="200" src="nom5to8eta12to14iasDataPred.png"></a></td>
 <td><a href="nom9to10eta12to14iasDataPred.png"><img height="200" src="nom9to10eta12to14iasDataPred.png"></a></td>
 <td><a href="nom11to12eta12to14iasDataPred.png"><img height="200" src="nom11to12eta12to14iasDataPred.png"></a></td>
 <td><a href="nom13to14eta12to14iasDataPred.png"><img height="200" src="nom13to14eta12to14iasDataPred.png"></a></td>
@@ -180,8 +171,7 @@ cat > index.html <<EOF
 </tr>
 <tr>
 <td>1.4 < |eta| < 1.6</td>
-<td><a href="nom5to6eta14to16iasDataPred.png"><img height="200" src="nom5to6eta14to16iasDataPred.png"></a></td>
-<td><a href="nom7to8eta14to16iasDataPred.png"><img height="200" src="nom7to8eta14to16iasDataPred.png"></a></td>
+<td><a href="nom5to8eta14to16iasDataPred.png"><img height="200" src="nom5to8eta14to16iasDataPred.png"></a></td>
 <td><a href="nom9to10eta14to16iasDataPred.png"><img height="200" src="nom9to10eta14to16iasDataPred.png"></a></td>
 <td><a href="nom11to12eta14to16iasDataPred.png"><img height="200" src="nom11to12eta14to16iasDataPred.png"></a></td>
 <td><a href="nom13to14eta14to16iasDataPred.png"><img height="200" src="nom13to14eta14to16iasDataPred.png"></a></td>
@@ -193,8 +183,7 @@ cat > index.html <<EOF
 </tr>
 <tr>
 <td>1.6 < |eta| < 1.8</td>
-<td><a href="nom5to6eta16to18iasDataPred.png"><img height="200" src="nom5to6eta16to18iasDataPred.png"></a></td>
-<td><a href="nom7to8eta16to18iasDataPred.png"><img height="200" src="nom7to8eta16to18iasDataPred.png"></a></td>
+<td><a href="nom5to8eta16to18iasDataPred.png"><img height="200" src="nom5to8eta16to18iasDataPred.png"></a></td>
 <td><a href="nom9to10eta16to18iasDataPred.png"><img height="200" src="nom9to10eta16to18iasDataPred.png"></a></td>
 <td><a href="nom11to12eta16to18iasDataPred.png"><img height="200" src="nom11to12eta16to18iasDataPred.png"></a></td>
 <td><a href="nom13to14eta16to18iasDataPred.png"><img height="200" src="nom13to14eta16to18iasDataPred.png"></a></td>
@@ -206,8 +195,7 @@ cat > index.html <<EOF
 </tr>
 <tr>
 <td>1.8 < |eta| < 2.0</td>
-<td><a href="nom5to6eta18to20iasDataPred.png"><img height="200" src="nom5to6eta18to20iasDataPred.png"></a></td>
-<td><a href="nom7to8eta18to20iasDataPred.png"><img height="200" src="nom7to8eta18to20iasDataPred.png"></a></td>
+<td><a href="nom5to8eta18to20iasDataPred.png"><img height="200" src="nom5to8eta18to20iasDataPred.png"></a></td>
 <td><a href="nom9to10eta18to20iasDataPred.png"><img height="200" src="nom9to10eta18to20iasDataPred.png"></a></td>
 <td><a href="nom11to12eta18to20iasDataPred.png"><img height="200" src="nom11to12eta18to20iasDataPred.png"></a></td>
 <td><a href="nom13to14eta18to20iasDataPred.png"><img height="200" src="nom13to14eta18to20iasDataPred.png"></a></td>
@@ -219,8 +207,7 @@ cat > index.html <<EOF
 </tr>
 <tr>
 <td>2.0 < |eta| < 2.2</td>
-<td><a href="nom5to6eta20to22iasDataPred.png"><img height="200" src="nom5to6eta20to22iasDataPred.png"></a></td>
-<td><a href="nom7to8eta20to22iasDataPred.png"><img height="200" src="nom7to8eta20to22iasDataPred.png"></a></td>
+<td><a href="nom5to8eta20to22iasDataPred.png"><img height="200" src="nom5to8eta20to22iasDataPred.png"></a></td>
 <td><a href="nom9to10eta20to22iasDataPred.png"><img height="200" src="nom9to10eta20to22iasDataPred.png"></a></td>
 <td><a href="nom11to12eta20to22iasDataPred.png"><img height="200" src="nom11to12eta20to22iasDataPred.png"></a></td>
 <td><a href="nom13to14eta20to22iasDataPred.png"><img height="200" src="nom13to14eta20to22iasDataPred.png"></a></td>
@@ -232,8 +219,7 @@ cat > index.html <<EOF
 </tr>
 <tr>
 <td>2.2 < |eta| < 2.4</td>
-<td><a href="nom5to6eta22to24iasDataPred.png"><img height="200" src="nom5to6eta22to24iasDataPred.png"></a></td>
-<td><a href="nom7to8eta22to24iasDataPred.png"><img height="200" src="nom7to8eta22to24iasDataPred.png"></a></td>
+<td><a href="nom5to8eta22to24iasDataPred.png"><img height="200" src="nom5to8eta22to24iasDataPred.png"></a></td>
 <td><a href="nom9to10eta22to24iasDataPred.png"><img height="200" src="nom9to10eta22to24iasDataPred.png"></a></td>
 <td><a href="nom11to12eta22to24iasDataPred.png"><img height="200" src="nom11to12eta22to24iasDataPred.png"></a></td>
 <td><a href="nom13to14eta22to24iasDataPred.png"><img height="200" src="nom13to14eta22to24iasDataPred.png"></a></td>
@@ -245,8 +231,7 @@ cat > index.html <<EOF
 </tr>
 <tr>
 <td></td>
-<td>NoM 5-6</td>
-<td>NoM 7-8</td>
+<td>NoM 5-8</td>
 <td>NoM 9-10</td>
 <td>NoM 11-12</td>
 <td>NoM 13-14</td>
