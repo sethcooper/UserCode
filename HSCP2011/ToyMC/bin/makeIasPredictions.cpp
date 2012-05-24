@@ -56,7 +56,7 @@
 #include "commonFunctions.h"
 
 double emptyBinVal = 1e-25;
-int numIasBins = 20;
+int numIasBins = 50;
 int nomStep = 2;
 float etaStep = 0.2;
 int lastLowerNoM = 17;
@@ -70,6 +70,8 @@ std::string getHistTitleBeg(int lowerNom, float lowerEta, float pSB, float ihSB,
   histTitle+="-";
   if(lowerNom==lastLowerNoM)
     histTitle+="end";
+  else if(lowerNom==5)
+    histTitle+=intToString(lowerNom+2*nomStep-1);
   else
     histTitle+=intToString(lowerNom+nomStep-1);
   histTitle+=", ";
@@ -286,6 +288,10 @@ int main(int argc, char ** argv)
   double etaMax_ (ana.getParameter<double>("EtaMax"));
   int nomMin_ (ana.getParameter<int>("NoMMin"));
   int nomMax_ (ana.getParameter<int>("NoMMax"));
+
+  // <ih> as a function of ias from MinBias data
+  TF1* avgIhFromIasFunc = new TF1("avgIhFromIasFunc","pol3(0)",0,1);
+  avgIhFromIasFunc->SetParameters(2.782,7.069,-11.93,12.83);
 
   // fileService initialization
   //string fileNameEnd = generateFileNameEnd(massCutIasHighPHighIh_,pSidebandThreshold,ptSidebandThreshold,usePtForSideband,ihSidebandThreshold);
@@ -513,6 +519,16 @@ int main(int argc, char ** argv)
       TProfile* ceffRegionTracksOverMassCutProfile =
         cRegionDir.make<TProfile>(ceffRegionTracksOverMassCutProfileName.c_str(),
             ceffRegionTracksOverMassCutProfileTitle.c_str(),numIasBins,0,1);
+      // ceff region over mass cut in ias bins hist -- using avg Ih from minBias data
+      std::string ceffRegionTracksOverMassCutAvgIhProfileName = getHistNameBeg(nom,lowerEta,nomStep,etaStep);
+      ceffRegionTracksOverMassCutAvgIhProfileName+="tracksInCeffOverMassCutAvgIhProfile";
+      std::string ceffRegionTracksOverMassCutAvgIhProfileTitle = "Tracks in Ceff Over Mass Cut (AvgIh from MinBias data) in Ias bins for ";
+      ceffRegionTracksOverMassCutAvgIhProfileTitle+=getHistTitleBeg(nom,lowerEta,pSidebandThreshold,ihSidebandThreshold,ptSidebandThreshold,
+          iasSidebandThreshold,usePtForSideband,useIasForSideband);
+      ceffRegionTracksOverMassCutAvgIhProfileTitle+="; Ias";
+      TProfile* ceffRegionTracksOverMassCutAvgIhProfile =
+        cRegionDir.make<TProfile>(ceffRegionTracksOverMassCutAvgIhProfileName.c_str(),
+            ceffRegionTracksOverMassCutAvgIhProfileTitle.c_str(),numIasBins,0,1);
 
       // B region dataset
       std::string nomCutString = "rooVarNoMias>=";
@@ -523,6 +539,13 @@ int main(int argc, char ** argv)
       {
         nomCutString = "rooVarNoMias>=";
         nomCutString+=intToString(lastLowerNoM);
+      }
+      if(nom==5) // combine 5-6 with next slice
+      {
+        nomCutString = "rooVarNoMias>=";
+        nomCutString+=intToString(nom);
+        nomCutString+="&&rooVarNoMias<=";
+        nomCutString+=intToString(nom+2*nomStep-1);
       }
       std::string etaCutString = "(rooVarEta>";
       etaCutString+=floatToString(lowerEta);
@@ -564,7 +587,12 @@ int main(int argc, char ** argv)
       std::cout << "eta=" <<
         lowerEta << "-";
       std::cout << lowerEta+etaStep;
-      std::cout << " nom=" << nom << "-" << nom+nomStep-1 << std::endl;
+      if(nom==lastLowerNoM)
+        std::cout << " nom=" << nom << "+" << std::endl;
+      else if(nom==5)
+        std::cout << " nom=5" << "-" << nom+2*nomStep-1 << std::endl;
+      else
+        std::cout << " nom=" << nom << "-" << nom+nomStep-1 << std::endl;
       std::cout << "A = " << etaCutNomCutARegionDataSet->numEntries() <<
         " B = " << etaCutNomCutBRegionDataSet->numEntries() <<
         " C = " << etaCutCRegionDataSet->numEntries() << std::endl;
@@ -705,6 +733,8 @@ int main(int argc, char ** argv)
       iasPredictionFixedLimitsHistTitle+="-";
       if(nom==lastLowerNoM)
         iasPredictionFixedLimitsHistTitle+="end";
+      else if(nom==5)
+        iasPredictionFixedLimitsHistTitle+=intToString(nom+2*nomStep-1);
       else
         iasPredictionFixedLimitsHistTitle+=intToString(nom+nomStep-1);
       iasPredictionFixedLimitsHistTitle+=", ";
@@ -724,6 +754,8 @@ int main(int argc, char ** argv)
       iasPredictionFixedDiscoveryHistTitle+="-";
       if(nom==lastLowerNoM)
         iasPredictionFixedDiscoveryHistTitle+="end";
+      else if(nom==5)
+        iasPredictionFixedDiscoveryHistTitle+=intToString(nom+2*nomStep-1);
       else
         iasPredictionFixedDiscoveryHistTitle+=intToString(nom+nomStep-1);
       iasPredictionFixedDiscoveryHistTitle+=", ";
@@ -743,6 +775,8 @@ int main(int argc, char ** argv)
       iasPointsAndFitHistTitle+="-";
       if(nom==lastLowerNoM)
         iasPointsAndFitHistTitle+="end";
+      else if(nom==5)
+        iasPointsAndFitHistTitle+=intToString(nom+2*nomStep-1);
       else
         iasPointsAndFitHistTitle+=intToString(nom+nomStep-1);
       iasPointsAndFitHistTitle+=", ";
@@ -762,6 +796,8 @@ int main(int argc, char ** argv)
       massPredictionFixedHistTitle+="-";
       if(nom==lastLowerNoM)
         massPredictionFixedHistTitle+="end";
+      else if(nom==5)
+        massPredictionFixedHistTitle+=intToString(nom+2*nomStep-1);
       else
         massPredictionFixedHistTitle+=intToString(nom+nomStep-1);
       massPredictionFixedHistTitle+=", ";
@@ -781,6 +817,8 @@ int main(int argc, char ** argv)
       dRegionFixedHistTitle+="-";
       if(nom==lastLowerNoM)
         dRegionFixedHistTitle+="end";
+      else if(nom==5)
+        dRegionFixedHistTitle+=intToString(nom+2*nomStep-1);
       else
         dRegionFixedHistTitle+=intToString(nom+nomStep-1);
       dRegionFixedHistTitle+=", ";
@@ -802,8 +840,10 @@ int main(int argc, char ** argv)
       std::cout << " nom=" << nom << "-";
       if(nom==lastLowerNoM)
         std::cout << "end" << std::endl;
+      else if(nom==5)
+        std::cout << nom+2*nomStep-1 << std::endl;
       else
-        std::cout << nom+1 << std::endl;
+        std::cout << nom+nomStep-1 << std::endl;
 
       std::cout << "\t\t" << etaCutNomCutBRegionDataSet->numEntries() <<
         " entries in B region and " << etaCutCRegionDataSet->numEntries() <<
@@ -861,6 +901,8 @@ int main(int argc, char ** argv)
       ihMeanProfTitle+="-";
       if(nom==lastLowerNoM)
         ihMeanProfTitle+="end";
+      else if(nom==5)
+        ihMeanProfTitle+=intToString(nom+2*nomStep-1);
       else
         ihMeanProfTitle+=intToString(nom+nomStep-1);
       ihMeanProfTitle+=", ";
@@ -879,6 +921,8 @@ int main(int argc, char ** argv)
       minPCutMeanProfTitle+="-";
       if(nom==lastLowerNoM)
         minPCutMeanProfTitle+="end";
+      else if(nom==5)
+        minPCutMeanProfTitle+=intToString(nom+2*nomStep-1);
       else
         minPCutMeanProfTitle+=intToString(nom+nomStep-1);
       minPCutMeanProfTitle+=", ";
@@ -895,8 +939,10 @@ int main(int argc, char ** argv)
         lowerEta << "-" << lowerEta+etaStep;
       if(nom==lastLowerNoM)
         std::cout << " nom=" << nom << "-end" << std::endl;
+      else if(nom==5)
+        std::cout << " nom=" << nom << "-" << nom+2*nomStep-1 << std::endl;
       else
-        std::cout << " nom=" << nom << "-" << nom+1 << std::endl;
+        std::cout << " nom=" << nom << "-" << nom+nomStep-1 << std::endl;
 
 // old method
       // make histogram
@@ -929,7 +975,20 @@ int main(int argc, char ** argv)
         //    "\tCtracksPassingMassCut: " << numMomPassingMass << " CtracksFailingMassCut: " << numMomFailingMass << 
         //    " CtracksTotal: " << etaCutCRegionDataSet->numEntries() << std::endl;
         //}
-        
+      }
+
+      // for avg ih vs. ias
+      for(int bin=1; bin <= ceffRegionTracksOverMassCutAvgIhProfile->GetNbinsX(); ++bin)
+      {
+        double ias = ceffRegionTracksOverMassCutAvgIhProfile->GetBinCenter(bin);
+        double ih = avgIhFromIasFunc->Eval(ias);
+        // compute minimum p to pass mass cut
+        double momSqr = (pow(massCutIasHighPHighIh_,2)*dEdx_k)/(ih-dEdx_c);
+        if(momSqr<0)
+          continue;
+        double minMomPassMass = sqrt(momSqr);
+        int numMomPassingMass = etaCutDeDxSBPHist->Integral(etaCutDeDxSBPHist->FindBin(minMomPassMass),etaCutDeDxSBPHist->GetNbinsX()+1);
+        ceffRegionTracksOverMassCutAvgIhProfile->Fill(ias,numMomPassingMass);
       }
 
 // MASS
@@ -970,7 +1029,7 @@ int main(int argc, char ** argv)
       int lastDecentStatsBin = iasBRegionHist->FindLastBinAbove(5.0);
       lastDecentStatsBin-=2; // use at least 3 bins to do the fit
       int firstIasBin = iasBRegionHist->FindBin(iasSidebandThreshold);
-      if(lastDecentStatsBin < 1)
+      if(lastDecentStatsBin < firstIasBin)
         lastDecentStatsBin = firstIasBin;
       // fill bins, including empty bins
       int lastBinWithContent = iasBRegionHist->FindLastBinAbove(1);
@@ -1051,18 +1110,20 @@ int main(int argc, char ** argv)
 
       // now do the C/A scaling
       // for bins that had no Bk:
-      //   1) For limits, underestimate background by using C/A from last non-empty bin
-      //   2) For discovery, overestimate background by using C/A without mass cut on C
+      //   1) For limits, underestimate background by using Ceff/A from last non-empty bin
+      //   2) For discovery, overestimate background by using Ceff/A with Ceff defined based on avg ih in that ias bin from minBias data 2011
       double entriesInARegionNoM = etaCutARegionDataSet->numEntries();
       double entriesInCRegionNoM = etaCutCRegionDataSet->numEntries();
       double cEffLastBin = ceffRegionTracksOverMassCutProfile->GetBinContent(
-          ceffRegionTracksOverMassCutProfile->FindLastBinAbove(10)); // find last ias bin with > 10 entries
+          ceffRegionTracksOverMassCutProfile->FindLastBinAbove(0)); // find last ias bin with nonzero entries
       for(int bin=firstIasBin; bin <= ceffRegionTracksOverMassCutProfile->GetNbinsX(); ++bin)
       {
         // Bk * < Cj over mass > / A
         double cEff = ceffRegionTracksOverMassCutProfile->GetBinContent(bin);
         double bk = iasPredictionFixedLimitsHist->GetBinContent(bin);
+        double cEffAvgIh = ceffRegionTracksOverMassCutAvgIhProfile->GetBinContent(bin);
         
+        // (1) limits
         double binContent = emptyBinVal;
         if(cEff > 0)
             binContent = bk*cEff / entriesInARegionNoM;
@@ -1077,25 +1138,32 @@ int main(int argc, char ** argv)
 
         iasPredictionFixedLimitsHist->SetBinContent(bin,binContent);
         iasPredictionFixedLimitsHist->SetBinError(bin,binError);
-
-        std::cout << "Bin: " << bin << " Bk: " << bk << " Ceff: " << ceffRegionTracksOverMassCutProfile->GetBinContent(bin)
+        std::cout << "(limits) Bin: " << bin << " Bk: " << bk << " Ceff: " << ceffRegionTracksOverMassCutProfile->GetBinContent(bin)
           << " A: " << entriesInARegionNoM << " cEffLastBin: " << cEffLastBin
           << " Bincontent: " << binContent << " +/- " << binError << std::endl;
 
+        // (2) discovery
         binContent = emptyBinVal;
         if(cEff > 0)
           binContent = bk*cEff / entriesInARegionNoM;
-        else if(entriesInCRegionNoM > 0)
-          binContent = bk*entriesInCRegionNoM / entriesInARegionNoM;
+        else if(cEffAvgIh > 0 && cEffAvgIh > cEffLastBin && cEffLastBin > 0)
+          binContent = bk*cEffAvgIh / entriesInARegionNoM;
+        else if(cEffLastBin > 0)
+          binContent = bk*cEffLastBin / entriesInARegionNoM;
 
         binError = sqrt(emptyBinVal);
         if(cEff > 0)
           binError = binContent*sqrt(1.0/bk + 1.0/cEff + 1.0/entriesInARegionNoM);
-        else if(entriesInCRegionNoM > 0) // this check shouldn't be necessary
-          binError = binContent*sqrt(1.0/bk + 1.0/entriesInCRegionNoM + 1.0/entriesInARegionNoM);
+        else if(cEffAvgIh > 0 && cEffLastBin > 0)
+          binError = binContent*sqrt(1.0/bk + 1.0/cEffAvgIh + 1.0/entriesInARegionNoM);
+        else if(cEffLastBin > 0)
+          binError = binContent*sqrt(1.0/bk + 1.0/cEffLastBin + 1.0/entriesInARegionNoM);
 
         iasPredictionFixedDiscoveryHist->SetBinContent(bin,binContent);
         iasPredictionFixedDiscoveryHist->SetBinError(bin,binError);
+        std::cout << "(disc) Bin: " << bin << " Bk: " << bk << " CeffAvgIh: " << ceffRegionTracksOverMassCutAvgIhProfile->GetBinContent(bin)
+          << " A: " << entriesInARegionNoM << " cEffAvgIh: " << cEffAvgIh
+          << " Bincontent: " << binContent << " +/- " << binError << std::endl;
       }
 
       // remove variable bin stuff - mar 1
@@ -1178,7 +1246,10 @@ int main(int argc, char ** argv)
       delete etaCutARegionDataSet;
 
     } // eta slices
-    if(nom==lastLowerNoM) break; // don't do any more after lastLowerNoM, since we've done lastLowerNoM+ in that case
+    if(nom==lastLowerNoM)
+      break; // don't do any more after lastLowerNoM, since we've done lastLowerNoM+ in that case
+    if(nom==5)
+      nom+=nomStep; // if nom==5, step over the next slice, since we've already done that one
   } // nom slices
 
 }
