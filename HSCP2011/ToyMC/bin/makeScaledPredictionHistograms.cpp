@@ -86,6 +86,7 @@ int numIasBins = 0;
 //TODO: make these configurable
 int nomStep = 2;
 float etaStep = 0.2;
+int lastLowerNoM = 17;
 
 struct EventInfo
 {
@@ -477,6 +478,8 @@ int main(int argc, char ** argv)
       //delete bRegionHist;
       //delete cRegionHist;
     }
+    if(lowerNoM==5) // step over 5 and the next slice as well
+      lowerNoM+=nomStep;
   }
 
   assert(bgLimitsHistsToUse.size() == bgDiscoveryHistsToUse.size());
@@ -544,6 +547,10 @@ int main(int argc, char ** argv)
   RooRealVar* sampleWeightLooseRPCRooVar = (RooRealVar*)genArgSetLooseRPC->find(rooVarSampleWeight.GetName());
   rooDataSetGenSignalLooseRPC->get(0);
   signalTracksLooseRPCTotal = numGenHSCPTracksLooseRPCRooVar->getVal();
+  // SIC testing
+  double likelihoodMuHatZero = 1;
+  double likelihoodMuHatPos = 1;
+  double likelihoodMuHatNeg = 1;
 
   const RooArgSet* genArgSetTightRPC = rooDataSetGenSignalTightRPC->get();
   RooRealVar* numGenHSCPTracksTightRPCRooVar = (RooRealVar*)genArgSetTightRPC->find(rooVarNumGenHSCPTracks.GetName());
@@ -655,10 +662,22 @@ int main(int argc, char ** argv)
     }
 
     // construct D region for signal in this eta/nom slice
-    string nomCutString = "rooVarNoMias>=";
+    std::string nomCutString = "rooVarNoMias>=";
     nomCutString+=intToString(lowerNoM);
     nomCutString+="&&rooVarNoMias<=";
     nomCutString+=intToString(lowerNoM+nomStep-1);
+    if(lowerNoM==lastLowerNoM) // do nom lastLowerNoM+ in one slice
+    {
+      nomCutString = "rooVarNoMias>=";
+      nomCutString+=intToString(lastLowerNoM);
+    }
+    if(lowerNoM==5) // combine 5-6 with next slice
+    {
+      nomCutString = "rooVarNoMias>=";
+      nomCutString+=intToString(lowerNoM);
+      nomCutString+="&&rooVarNoMias<=";
+      nomCutString+=intToString(lowerNoM+2*nomStep-1);
+    }
     RooDataSet* nomCutDRegionDataSetSignalLooseRPC =
       (RooDataSet*)regionDDataSetSignalLooseRPC->reduce(Cut(nomCutString.c_str()));
     RooDataSet* nomCutDRegionDataSetSignalTightRPC = 
@@ -836,10 +855,14 @@ int main(int argc, char ** argv)
     // if using one track per event, this is the number of events in the slice passing mass in D region
     double bgEntriesInARegionThisSlice =
       aRegionBackgroundEntriesHist->GetBinContent(aRegionBackgroundEntriesHist->FindBin(lowerEta+0.01,lowerNoM+1));
+    if(lowerNoM==5)
+      bgEntriesInARegionThisSlice+=aRegionBackgroundEntriesHist->GetBinContent(aRegionBackgroundEntriesHist->FindBin(lowerEta+0.01,lowerNoM+2));
     //double bgEntriesInBRegionThisSlice = 
     //  bRegionBackgroundEntriesHist->GetBinContent(bRegionBackgroundEntriesHist->FindBin(lowerEta+0.1,lowerNoM+1));
     double bgEntriesInCRegionThisSlice = 
       cRegionBackgroundEntriesHist->GetBinContent(cRegionBackgroundEntriesHist->FindBin(lowerEta+0.01,lowerNoM+1));
+    if(lowerNoM==5)
+      bgEntriesInCRegionThisSlice+=cRegionBackgroundEntriesHist->GetBinContent(cRegionBackgroundEntriesHist->FindBin(lowerEta+0.01,lowerNoM+2));
     //double fractionOfBGTracksPassingMassCutThisSlice = (bgEntriesInBRegionThisSlice > 0) ?
     //  histItr->Integral()/bgEntriesInBRegionThisSlice : 0;
     //double bgTracksInDThisSlice = (bgEntriesInARegionThisSlice > 0) ?
@@ -1073,11 +1096,28 @@ int main(int argc, char ** argv)
       int globalBinIndex = iteratorPos*numBinsEachSlice+iasBin-firstIasBin+1;
       double binc = histItr->GetBinContent(iasBin);
       double bine = histItr->GetBinError(iasBin);
-      ////XXX SIC TESTING -- turn off stat error in all but one slice
+      //// SIC TESTING -- turn off stat error in all but one slice
       //if(lowerNoM!=11 || lowerEta!=0)
       //  bine = 0;
       backgroundAllNoMAllEtaUnrolledLimitsHist->SetBinContent(globalBinIndex,binc);
       backgroundAllNoMAllEtaUnrolledLimitsHist->SetBinError(globalBinIndex,bine);
+      // SIC TESTING: DECREASE BACKGROUND PREDICTION BY 2%
+      //backgroundAllNoMAllEtaUnrolledLimitsHist->SetBinContent(globalBinIndex,0.98*binc);
+      //backgroundAllNoMAllEtaUnrolledLimitsHist->SetBinError(globalBinIndex,0.98*bine);
+      //// SIC TESTING: DECREASE BACKGROUND PREDICTION BY 25%
+      //backgroundAllNoMAllEtaUnrolledLimitsHist->SetBinContent(globalBinIndex,binc*0.75);
+      //backgroundAllNoMAllEtaUnrolledLimitsHist->SetBinError(globalBinIndex,bine*0.75);
+      // reset hist bins
+      //histItr->SetBinContent(iasBin,binc*0.75);
+      //histItr->SetBinError(iasBin,bine*0.75);
+      // SIC TEST -- SET LARGE ERROR BINS TO ZERO ERROR
+      if(bine/binc >= 1 && binc < 1)
+      {
+        backgroundAllNoMAllEtaUnrolledLimitsHist->SetBinError(globalBinIndex,0);
+        histItr->SetBinError(iasBin,0);
+      }
+      double backExpThisBin = binc;
+
       //std::cout << "INFO: Filling background hist: bin=" << globalBinIndex << " content=" << binc << " error=" << bine << std::endl;
       //// plus one sigma
       //backgroundAllNoMAllEtaUnrolledPlusOneSigmaHist->SetBinContent(globalBinIndex,binc+bine);
@@ -1093,20 +1133,55 @@ int main(int argc, char ** argv)
       bine = bgDiscoveryHistsToUse[iteratorPos].GetBinError(iasBin);
       backgroundAllNoMAllEtaUnrolledDiscoveryHist->SetBinContent(globalBinIndex,binc);
       backgroundAllNoMAllEtaUnrolledDiscoveryHist->SetBinError(globalBinIndex,bine);
+      //// SIC TESTING: DECREASE BACKGROUND PREDICTION BY 2%
+      //backgroundAllNoMAllEtaUnrolledDiscoveryHist->SetBinContent(globalBinIndex,binc*0.98);
+      //backgroundAllNoMAllEtaUnrolledDiscoveryHist->SetBinError(globalBinIndex,bine*0.98);
+      //bgDiscoveryHistsToUse[iteratorPos].SetBinContent(iasBin,binc*0.98);
+      //bgDiscoveryHistsToUse[iteratorPos].SetBinError(iasBin,bine*0.98);
+      // SIC TEST -- SET LARGE ERROR BINS TO ZERO ERROR
+      if(bine/binc >= 1 && binc < 1)
+      {
+        backgroundAllNoMAllEtaUnrolledDiscoveryHist->SetBinError(globalBinIndex,0);
+        bgDiscoveryHistsToUse[iteratorPos].SetBinError(iasBin,0);
+      }
 
+      // signal
       binc = iasSignalMassCutNoMSliceHist->GetBinContent(iasBin);
       bine = iasSignalMassCutNoMSliceHist->GetBinError(iasBin);
       signalAllNoMAllEtaUnrolledHist->SetBinContent(globalBinIndex,binc);
       signalAllNoMAllEtaUnrolledHist->SetBinError(globalBinIndex,bine);
+      double sigExpThisBin = binc;
 
       // data D region
       binc = dataHistsToUse[iteratorPos].GetBinContent(iasBin);
       bine = dataHistsToUse[iteratorPos].GetBinError(iasBin);
       dataAllNoMAllEtaUnrolledHist->SetBinContent(globalBinIndex,binc);
       dataAllNoMAllEtaUnrolledHist->SetBinError(globalBinIndex,bine);
+      //// SIC TESTING -- putting one fake event in at high Ias
+      //if(globalBinIndex==606)
+      //{
+      //  int eventsToAdd = 1;
+      //  std::cout << "Data in bin 606=" << binc << std::endl;
+      //  std::cout << "BG pred in bin 606=" << backgroundAllNoMAllEtaUnrolledDiscoveryHist->GetBinContent(606) << std::endl;
+      //  std::cout << "sig pred in bin 606=" << signalAllNoMAllEtaUnrolledHist->GetBinContent(606) << std::endl;
+      //  std::cout << "Put " << eventsToAdd << " fake event(s) into the data" << std::endl;
+      //  dataAllNoMAllEtaUnrolledHist->SetBinContent(globalBinIndex,eventsToAdd);
+      //  dataAllNoMAllEtaUnrolledHist->SetBinError(globalBinIndex,eventsToAdd);
+      //  dataHistsToUse[iteratorPos].SetBinContent(iasBin,eventsToAdd);
+      //  dataHistsToUse[iteratorPos].SetBinError(iasBin,eventsToAdd);
+      //}
+      double dataThisBin = dataHistsToUse[iteratorPos].GetBinContent(iasBin);
+
+      likelihoodMuHatZero*=TMath::Poisson(dataThisBin,backExpThisBin);
+      likelihoodMuHatPos*=TMath::Poisson(dataThisBin,backExpThisBin+0.1*sigExpThisBin);
+      likelihoodMuHatNeg*=TMath::Poisson(dataThisBin,backExpThisBin-0.1*sigExpThisBin);
+      std::cout << "Likelihood 'by hand' this bin: data: "
+        << dataThisBin << " backExp: " << backExpThisBin << " 0.1*sigExpThisBin " << 0.1*sigExpThisBin << " mu-hat = 0: " << TMath::Poisson(dataThisBin,backExpThisBin)
+        << " mu-hat = -0.1: " << TMath::Poisson(dataThisBin,backExpThisBin-0.1*sigExpThisBin) << " mu-hat = 0.1: " << TMath::Poisson(dataThisBin,backExpThisBin+0.1*sigExpThisBin) << std::endl << std::endl;
 
       //std::cout << "INFO: Filling signal hist: bin=" << globalBinIndex << " content=" << binc << " error=" << bine << std::endl;
     }
+    std::cout << "Likelihood 'by hand' so far: mu-hat 0: " << likelihoodMuHatZero << " mu-hat -0.1: " << likelihoodMuHatNeg << " mu-hat 0.1: " << likelihoodMuHatPos << std::endl << std::endl;
     //mass
     if(doMass)
     {
@@ -1174,6 +1249,8 @@ int main(int argc, char ** argv)
     dPredTotalError = dPredTotal*
       sqrt(pow(aRegionIntError/aRegionInt,2)+pow(bRegionIntError/bRegionInt,2)+pow(cRegionIntError/cRegionInt,2));
   }
+
+  std::cout << "Likelihood 'by hand': mu-hat = 0: " << likelihoodMuHatZero << " mu-hat = -0.1: " << likelihoodMuHatNeg << " mu-hat = 0.1: " << likelihoodMuHatPos << std::endl << std::endl;
 
   std::cout << "A = " << aRegionInt << " +/- " << aRegionIntError << std::endl <<
                "B = " << bRegionInt << " +/- " << bRegionIntError << std::endl <<
