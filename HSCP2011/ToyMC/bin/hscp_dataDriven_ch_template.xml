@@ -22,7 +22,7 @@
     <StatErrorConfig RelErrorThreshold="0.05" ConstraintType="Poisson" />
 
     <Sample Name="signal" HistoPath="" HistoName="signalAllNoMAllEtaUnrolledHist">
-      <NormFactor Name="SigXsec" Val="0.001" Low="0.0" High="1.0" Const="True" />
+      <NormFactor Name="SigXsec" Val="0.001" Low="0.0" High="1.0" />
       <OverallSys Name="sigEff" Low="0.93" High="1.07" />
     </Sample>
 
