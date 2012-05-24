@@ -28,6 +28,7 @@ Int_Lumi = 0
 Base_xml_channel = ''
 Base_xml_combined = ''
 Base_xml_channel_sig = ''
+Base_xml_combined_sig = ''
 #
 Condor = True
 Queue_Name = ''
@@ -65,7 +66,7 @@ def CreateTheXMLFilesLimits(signalName,inputFile,massCut,ptCut):
 
 def CreateTheXMLFilesDiscovery(signalName,inputFile,massCut,ptCut):
     global Base_xml_channel_sig
-    global Base_xml_combined
+    global Base_xml_combined_sig
 
     baseXMLchannel_file = open(Base_xml_channel_sig,'r')
     XMLchannel_txt = '\n'
@@ -79,7 +80,7 @@ def CreateTheXMLFilesDiscovery(signalName,inputFile,massCut,ptCut):
     XMLchannel_file.write(XMLchannel_txt)
     XMLchannel_file.close()
 
-    baseXMLcombined_file = open(Base_xml_combined,'r')
+    baseXMLcombined_file = open(Base_xml_combined_sig,'r')
     XMLcombined_txt = '\n'
     XMLcombined_txt += baseXMLcombined_file.read()
     baseXMLcombined_file.close()
@@ -204,7 +205,7 @@ def CreateTheCmdFile():
       cmd_file.write('Universe                = vanilla\n')
       cmd_file.write('Environment             = CONDORJOBID=$(Process)\n')
       cmd_file.write('notification            = Error\n')
-      cmd_file.write('requirements            = (Memory > 1024)&&(Arch=?="X86_64")&&(Machine=!="zebra01.spa.umn.edu")&&(Machine=!="zebra02.spa.umn.edu")&&(Machine=!="zebra03.spa.umn.edu")&&(Machine=!="caffeine.spa.umn.edu")\n')
+      cmd_file.write('requirements            = (Memory > 1024)&&(Arch=?="X86_64")&&(Machine=!="caffeine.spa.umn.edu")\n')
       cmd_file.write('+CondorGroup            = "cmsfarm"\n')
       cmd_file.write('should_transfer_files   = NO\n')
       cmd_file.write('Notify_user = cooper@physics.umn.edu\n')
@@ -257,13 +258,14 @@ def CreateDirectoryStructure(FarmDirectory):
         os.system('mkdir -p ' + FarmDirectory+'/inputs/makeScaledPredictions/config/')
 
 def SendCluster_Create(farmDirectory, jobName, intLumi, baseCfg,
-                       baseChXML, baseCombXML, baseChXMLSig, allSlices, doCondor, queueName):
+                       baseChXML, baseCombXML, baseChXMLSig, baseCombXMLSig, allSlices, doCondor, queueName):
     global Jobs_Name
     global Jobs_Count
     global Base_Cfg
     global Base_xml_channel
     global Base_xml_combined
     global Base_xml_channel_sig
+    global Base_xml_combined_sig
     global Int_Lumi
     global Condor
     global Queue_Name
@@ -274,6 +276,7 @@ def SendCluster_Create(farmDirectory, jobName, intLumi, baseCfg,
     Base_xml_channel = baseChXML
     Base_xml_combined = baseCombXML
     Base_xml_channel_sig = baseChXMLSig
+    Base_xml_combined_sig = baseCombXMLSig
     Int_Lumi = intLumi
     All_Slices = allSlices
     Condor = doCondor
