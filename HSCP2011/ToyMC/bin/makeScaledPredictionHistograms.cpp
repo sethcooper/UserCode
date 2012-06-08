@@ -1672,18 +1672,43 @@ int main(int argc, char ** argv)
   // get ahold of some needed hists
   TH1D* iasShiftedSignalHist = (TH1D*) outputRootFile->Get("signalAllNoMAllEtaUnrolledIasShiftHist");
   TH1D* nominalSignalHist = (TH1D*) outputRootFile->Get("signalAllNoMAllEtaUnrolledHist");
-  // make Ias variational hists
-  TH1D* signalIasMinusOneSigmaHist = (TH1D*) nominalSignalHist->Clone();
-  signalIasMinusOneSigmaHist->SetNameTitle("signalAllNoMAllEtaUnrolledMinusOneSigmaIasHist","unrolled signal hist, -1#sigma Ias shift (old nominal)");
-  TH1D* signalIasPlusOneSigmaHist = (TH1D*) iasShiftedSignalHist->Clone();
-  signalIasPlusOneSigmaHist->SetNameTitle("signalAllNoMAllEtaUnrolledPlusOneSigmaIasHist","unrolled signal hist, +1#sigma Ias shift (full ias shift)");
-  // make new nominal
+  TH1D* nomShiftedSignalHist = (TH1D*) outputRootFile->Get("signalAllNoMAllEtaUnrolledNoMShiftedHist");
+  // new nominal
   TH1D* newNominalSignalHist = (TH1D*) nominalSignalHist->Clone();
-  //newNominalSignalHist->Reset();
-  newNominalSignalHist->SetNameTitle("signalAllNoMAllEtaUnrolledHalfIasShiftHist","unrolled signal hist, 1/2 Ias shift (new nominal)");
-  newNominalSignalHist->Add(iasShiftedSignalHist,-1);
-  newNominalSignalHist->Scale(-0.5); // to take half difference
-  newNominalSignalHist->Add(nominalSignalHist,1); // to add on the half-difference to the original
+  newNominalSignalHist->SetNameTitle("signalAllNoMAllEtaUnrolledHalfIasShiftHalfNoMShiftHist","unrolled signal hist, 1/2 Ias shift, 1/2 NoM shift (new nominal)");
+  // make 1/2 ias shifted
+  TH1D* halfIasShiftSignalHist = (TH1D*) nominalSignalHist->Clone();
+  halfIasShiftSignalHist->Add(iasShiftedSignalHist,-1);
+  halfIasShiftSignalHist->Scale(-0.5); // to take half difference
+  // add half-diff to nominal for new nominal
+  newNominalSignalHist->Add(halfIasShiftSignalHist,1);
+  halfIasShiftSignalHist->SetNameTitle("signalAllNoMAllEtaUnrolledHalfIasShiftHist","unrolled signal hist, 1/2 Ias shift");
+  // make 1/2 nom shifted
+  TH1D* halfNoMShiftSignalHist = (TH1D*) nominalSignalHist->Clone();
+  halfNoMShiftSignalHist->Add(nomShiftedSignalHist,-1);
+  halfNoMShiftSignalHist->Scale(-0.5); // to take half difference
+  // add half-diff to nominal for new nominal
+  newNominalSignalHist->Add(halfNoMShiftSignalHist,1);
+  halfNoMShiftSignalHist->SetNameTitle("signalAllNoMAllEtaUnrolledHalfNoMShiftHist","unrolled signal hist, 1/2 NoM shift");
+
+  // make Ias variational hists
+  TH1D* signalIasMinusOneSigmaHist = (TH1D*) halfNoMShiftSignalHist->Clone();
+  signalIasMinusOneSigmaHist->SetNameTitle("signalAllNoMAllEtaUnrolledMinusOneSigmaIasHist","unrolled signal hist, 1/2 nom shift -1#sigma Ias shift (old nominal)");
+  TH1D* signalIasPlusOneSigmaHist = (TH1D*) iasShiftedSignalHist->Clone();
+  signalIasPlusOneSigmaHist->Add(halfNoMShiftSignalHist,1);
+  signalIasPlusOneSigmaHist->SetNameTitle("signalAllNoMAllEtaUnrolledPlusOneSigmaIasHist","unrolled signal hist, 1/2 nom shift +1#sigma Ias shift (full ias shift)");
+  // make NoM variational hists
+  TH1D* signalNoMMinusOneSigmaHist = (TH1D*) halfIasShiftSignalHist->Clone();
+  signalNoMMinusOneSigmaHist->SetNameTitle("signalAllNoMAllEtaUnrolledMinusOneSigmaNoMHist","unrolled signal hist, 1/2 ias shift -1#sigma NoM shift (old nominal)");
+  TH1D* signalNoMPlusOneSigmaHist = (TH1D*) iasShiftedSignalHist->Clone();
+  signalNoMPlusOneSigmaHist->Add(halfIasShiftSignalHist,1);
+  signalNoMPlusOneSigmaHist->SetNameTitle("signalAllNoMAllEtaUnrolledPlusOneSigmaNoMHist","unrolled signal hist, 1/2 ias shift +1#sigma NoM shift (full nom shift)");
+
+  // finish half-shifted signal hists
+  // add on originals
+  halfNoMShiftSignalHist->Add(nominalSignalHist,1);
+  halfIasShiftSignalHist->Add(nominalSignalHist,1);
+
   // check for zeros/negatives
   for(int bin=1; bin <= signalIasPlusOneSigmaHist->GetNbinsX(); ++bin)
   {
@@ -1692,6 +1717,36 @@ int main(int argc, char ** argv)
     {
       signalIasPlusOneSigmaHist->SetBinContent(bin,1e-25);
       signalIasPlusOneSigmaHist->SetBinError(bin,0);
+    }
+    binc = signalIasMinusOneSigmaHist->GetBinContent(bin);
+    if(binc <= 0)
+    {
+      signalIasMinusOneSigmaHist->SetBinContent(bin,1e-25);
+      signalIasMinusOneSigmaHist->SetBinError(bin,0);
+    }
+    binc = signalNoMPlusOneSigmaHist->GetBinContent(bin);
+    if(binc <= 0)
+    {
+      signalNoMPlusOneSigmaHist->SetBinContent(bin,1e-25);
+      signalNoMPlusOneSigmaHist->SetBinError(bin,0);
+    }
+    binc = signalNoMMinusOneSigmaHist->GetBinContent(bin);
+    if(binc <= 0)
+    {
+      signalNoMMinusOneSigmaHist->SetBinContent(bin,1e-25);
+      signalNoMMinusOneSigmaHist->SetBinError(bin,0);
+    }
+    binc = halfIasShiftSignalHist->GetBinContent(bin);
+    if(binc <= 0)
+    {
+      halfIasShiftSignalHist->SetBinContent(bin,1e-25);
+      halfIasShiftSignalHist->SetBinError(bin,0);
+    }
+    binc = halfNoMShiftSignalHist->GetBinContent(bin);
+    if(binc <= 0)
+    {
+      halfNoMShiftSignalHist->SetBinContent(bin,1e-25);
+      halfNoMShiftSignalHist->SetBinError(bin,0);
     }
     binc = newNominalSignalHist->GetBinContent(bin);
     if(binc <= 0)
@@ -1703,9 +1758,14 @@ int main(int argc, char ** argv)
   // write
   signalIasMinusOneSigmaHist->Write();
   signalIasPlusOneSigmaHist->Write();
+  signalNoMMinusOneSigmaHist->Write();
+  signalNoMPlusOneSigmaHist->Write();
+  halfIasShiftSignalHist->Write();
+  halfNoMShiftSignalHist->Write();
   newNominalSignalHist->Write();
 
-  doStandardAnalysisPrediction(outputRootFile,backgroundPredictionRootFile);
+  //FIXME seg fault for some reason
+  //doStandardAnalysisPrediction(outputRootFile,backgroundPredictionRootFile);
   outputRootFile->Close();
   //backgroundPredictionRootFile->Close();
   //signalRootFile->Close();
