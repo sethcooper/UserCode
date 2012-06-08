@@ -21,15 +21,19 @@
     <!-- Configure Stat Errors -->
     <StatErrorConfig RelErrorThreshold="0.05" ConstraintType="Poisson" />
 
-    <Sample Name="signal" HistoPath="" HistoName="signalAllNoMAllEtaUnrolledHist">
-      <NormFactor Name="SigXsec" Val="0.001" Low="0.0" High="1.0" Const="True" />
+    <!-- <Sample Name="signal" HistoPath="" HistoName="signalAllNoMAllEtaUnrolledHist"> -->
+    <Sample Name="signal" HistoPath="" HistoName="signalAllNoMAllEtaUnrolledHalfIasShiftHalfNoMShiftHist">
+      <NormFactor Name="SigXsec" Val="0.001" Low="0.0" High="1.0" />
       <OverallSys Name="sigEff" Low="0.93" High="1.07" />
+      <HistoSys Name="ias" HistoNameHigh="signalAllNoMAllEtaUnrolledPlusOneSigmaIasHist" HistoNameLow="signalAllNoMAllEtaUnrolledMinusOneSigmaIasHist"/>
+      <HistoSys Name="nom" HistoNameHigh="signalAllNoMAllEtaUnrolledPlusOneSigmaNoMHist" HistoNameLow="signalAllNoMAllEtaUnrolledMinusOneSigmaNoMHist"/>
     </Sample>
 
     <!-- Background  is completely DataDriven -->
     <Sample Name="background" HistoPath="" NormalizeByTheory="False" HistoName="backgroundAllNoMAllEtaUnrolledDiscoveryHist"  >
+    <!--<Sample Name="background" HistoPath="" NormalizeByTheory="False" HistoName="backgroundAllNoMAllEtaUnrolledLimitsHist"  > -->
       <!-- Use Default Histogram Errors as input to StatError -->
-      <StatError Activate="True" />
+      <!-- <StatError Activate="True" /> -->
     </Sample>
     
   </Channel>
