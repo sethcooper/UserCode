@@ -68,6 +68,14 @@ namespace edm     {class TriggerResults; class TriggerResultsByName; class Input
 
 #include "commonFunctions.h"
 
+// MC-data Ih peak shift functions
+TF1* mcDataIhPeakShiftFuncs[8];
+// ih width -- averaged over NoM, study on laptop
+TF1* ihWidthSmearFunc; // quad diff
+// MC-data Ias peak shift graphs
+TGraph* mcDataIasPeakShiftGraphs[8];
+// MC-data Ias width shift graphs
+TGraph* mcDataIasWidthShiftGraphs[8]; // quad diff
 
 // adapted from AnalysisStep234.C (GetGenHSCPBeta)
 int getNumGenHSCP(const std::vector<reco::GenParticle>& genColl, bool onlyCharged)
@@ -103,8 +111,143 @@ double GetSampleWeight(const double& IntegratedLuminosityInPb, const double& Int
   return Weight;
 }
 
+void initializeIhPeakDiffFunctions(TF1* funcArray[], int arraySize)
+{
+  for(int i=0; i<arraySize; ++i)
+  {
+    std::string funcName = "myFitNoM";
+    funcName+=intToString(i);
+    funcArray[i] = new TF1(funcName.c_str(),"pol1(0)");
+  }
+  // from study on laptop taking MC/data peak difference
+  // sometimes excluding lowest momentum points
+  funcArray[0]->SetParameters(0.6301,-0.3019); // NoM 5-6
+  funcArray[1]->SetParameters(0.5195,-0.2264); // 7-8
+  funcArray[2]->SetParameters(0.3924,-0.1238); // 9-10 <-- fitRange 0.68-1.42
+  funcArray[3]->SetParameters(0.4338,-0.1765); // 11-12 <-- fitRange 0.76-1.41
+  funcArray[4]->SetParameters(0.3947,-0.1671); // 13-14 <-- fitRange 0.84-1.4
+  funcArray[5]->SetParameters(0.4378,-0.2382); // 15-16
+  funcArray[6]->SetParameters(0.567,-0.3441);  // 17-18
+  funcArray[7]->SetParameters(0.6271,-0.3795); // 18+
+}
 
+void initializeIhWidthDiffFunction()
+{
+  ihWidthSmearFunc = new TF1("ihWidthSmearFunc","pol(2)");
+  ihWidthSmearFunc->SetParameters(1.035,-1.495,0.6101);
+}
 
+void initializeIasShiftGraphs(std::string rootFileName)
+{
+  TFile inputGraphFile(rootFileName.c_str(),"r");
+  // peak
+  mcDataIasPeakShiftGraphs[0] = (TGraph*) inputGraphFile.Get("mcDataPeakDiffGraphNoM0");
+  mcDataIasPeakShiftGraphs[1] = (TGraph*) inputGraphFile.Get("mcDataPeakDiffGraphNoM1");
+  mcDataIasPeakShiftGraphs[2] = (TGraph*) inputGraphFile.Get("mcDataPeakDiffGraphNoM2");
+  mcDataIasPeakShiftGraphs[3] = (TGraph*) inputGraphFile.Get("mcDataPeakDiffGraphNoM3");
+  mcDataIasPeakShiftGraphs[4] = (TGraph*) inputGraphFile.Get("mcDataPeakDiffGraphNoM4");
+  mcDataIasPeakShiftGraphs[5] = (TGraph*) inputGraphFile.Get("mcDataPeakDiffGraphNoM5");
+  mcDataIasPeakShiftGraphs[6] = (TGraph*) inputGraphFile.Get("mcDataPeakDiffGraphNoM6");
+  mcDataIasPeakShiftGraphs[7] = (TGraph*) inputGraphFile.Get("mcDataPeakDiffGraphNoM7");
+  // width (quad diff)
+  mcDataIasWidthShiftGraphs[0] = (TGraph*) inputGraphFile.Get("mcDataWidthQuadDiffGraphNoM0");
+  mcDataIasWidthShiftGraphs[1] = (TGraph*) inputGraphFile.Get("mcDataWidthQuadDiffGraphNoM1");
+  mcDataIasWidthShiftGraphs[2] = (TGraph*) inputGraphFile.Get("mcDataWidthQuadDiffGraphNoM2");
+  mcDataIasWidthShiftGraphs[3] = (TGraph*) inputGraphFile.Get("mcDataWidthQuadDiffGraphNoM3");
+  mcDataIasWidthShiftGraphs[4] = (TGraph*) inputGraphFile.Get("mcDataWidthQuadDiffGraphNoM4");
+  mcDataIasWidthShiftGraphs[5] = (TGraph*) inputGraphFile.Get("mcDataWidthQuadDiffGraphNoM5");
+  mcDataIasWidthShiftGraphs[6] = (TGraph*) inputGraphFile.Get("mcDataWidthQuadDiffGraphNoM6");
+  mcDataIasWidthShiftGraphs[7] = (TGraph*) inputGraphFile.Get("mcDataWidthQuadDiffGraphNoM7");
+  inputGraphFile.Close();
+}
+
+int getSliceFromNoM(int nom)
+{
+  if(nom==5||nom==6)
+    return 0;
+  else if(nom==7||nom==8)
+    return 1;
+  else if(nom==9||nom==10)
+    return 2;
+  else if(nom==11||nom==12)
+    return 3;
+  else if(nom==13||nom==14)
+    return 4;
+  else if(nom==15||nom==16)
+    return 5;
+  else if(nom==17||nom==18)
+    return 6;
+  else if(nom>18)
+    return 7;
+  else
+    return -1;
+}
+
+double getEquivProtonP(double betaHSCP)
+{
+  // p = gamma*beta*m
+  double gamma = 1/sqrt(1-pow(betaHSCP,2));
+  return gamma*betaHSCP*0.938;
+}
+
+double getIhPeakCorrection(int nom, double hscpBeta)
+{
+  int nomSlice = getSliceFromNoM(nom);
+  double protonP = getEquivProtonP(hscpBeta);
+  // special handling of apparent saturation effects
+  // in NoM around eta approx. 1
+  if(nomSlice==4 && protonP < 0.84)
+  {
+    if(protonP >= 0.8)
+      return 0.1982;
+    else if(protonP >= 0.76)
+      return 0.2527;
+    else if(protonP >= 0.72)
+      return 0.2330;
+    else
+      return 0.1409;
+  }
+  else if(nomSlice==3 && protonP < 0.76)
+  {
+    if(protonP >= 0.72)
+      return 0.2253;
+    else if(protonP >= 0.68)
+      return 0.1852;
+    else
+      return 0.1929;
+  }
+  else if(nomSlice==2 && protonP < 0.68)
+  {
+    if(protonP >= 0.64)
+      return 0.2662;
+    else if(protonP >= 0.60)
+      return 0.2309;
+    else
+      return 0.3097;
+  }
+
+  return mcDataIhPeakShiftFuncs[nomSlice]->Eval(protonP);
+}
+
+double getIhWidthCorrection(double hscpBeta)
+{
+  double protonP = getEquivProtonP(hscpBeta);
+  return ihWidthSmearFunc->Eval(protonP);
+}
+
+double getIasPeakCorrection(int nom, double hscpBeta)
+{
+  int nomSlice = getSliceFromNoM(nom);
+  double protonP = getEquivProtonP(hscpBeta);
+  return mcDataIasPeakShiftGraphs[nomSlice]->Eval(protonP);
+}
+
+double getIasWidthCorrection(int nom, double hscpBeta)
+{
+  int nomSlice = getSliceFromNoM(nom);
+  double protonP = getEquivProtonP(hscpBeta);
+  return mcDataIasWidthShiftGraphs[nomSlice]->Eval(protonP);
+}
 
 
 // ****** main
@@ -285,6 +428,14 @@ int main(int argc, char ** argv)
   LumiWeightsMC_ = edm::LumiReWeighting(BgLumiMC, TrueDist2011);
   bool Iss4pileup = true; // seems to be true for all signal MC
   reweight::PoissonMeanShifter PShift_(0.6);//0.6 for upshift, -0.6 for downshift
+
+  // initialize ih shifting functions
+  initializeIhPeakDiffFunctions(mcDataIhPeakShiftFuncs,8);
+  initializeIhWidthDiffFunction();
+
+  // initialize ias shifting functions
+  std::string mcDataIasDiffGraphsRootFile = "iasDataMCDiffsCombined.may24.root"; // produced with my own macro (on laptop dedxSystematics dir)
+  initializeIasShiftGraphs(mcDataIasDiffGraphsRootFile);
 
   double sampleWeight = 1;
   int period = 0;
@@ -540,6 +691,8 @@ int main(int argc, char ** argv)
         TOFCSCCollH.getByLabel(ev, "muontiming","csc");
         if(!TOFCSCCollH.isValid()){printf("Invalid CSC TOF collection\n");continue;}
 
+        double genMass = -1;
+
         // Look for gen HSCP tracks if MC
         if(isMC_)
         {
@@ -582,13 +735,12 @@ int main(int argc, char ** argv)
             //if(onlyCharged && (AbsPdg==1000993 || AbsPdg==1009313 || AbsPdg==1009113 || AbsPdg==1009223 || AbsPdg==1009333 || AbsPdg==1092114 || AbsPdg==1093214 || AbsPdg==1093324))continue; //Skip neutral gluino RHadrons
             //if(onlyCharged && (AbsPdg==1000622 || AbsPdg==1000642 || AbsPdg==1006113 || AbsPdg==1006311 || AbsPdg==1006313 || AbsPdg==1006333))continue;  //skip neutral stop RHadrons
             //if(beta1<0){beta1=genColl[g].p()/genColl[g].energy();}else if(beta2<0){beta2=genColl[g].p()/genColl[g].energy();return;}
-            //XXX FIXME
-            //float genMass = genColl[g].generated_mass();
-            //double genP = sqrt(pow(genColl[g].momentum().px(),2) + pow(genColl[g].momentum().py(),2) + pow(genColl[g].momentum().pz(),2) );
-            //hscpBetaDistribution->Fill(genP/sqrt(pow(genP,2)+pow(genMass,2)));
-            //hscpEtaDistribution->Fill(genColl[g].eta());
-            //hscpPtDistribution->Fill(genColl[g].pt());
-            //hscpPDistribution->Fill(genP);
+            genMass = genColl[g].mass();
+            double genP = sqrt(pow(genColl[g].px(),2) + pow(genColl[g].py(),2) + pow(genColl[g].pz(),2) );
+            hscpBetaDistribution->Fill(genP/sqrt(pow(genP,2)+pow(genMass,2)));
+            hscpEtaDistribution->Fill(genColl[g].eta());
+            hscpPtDistribution->Fill(genColl[g].pt());
+            hscpPDistribution->Fill(genP);
           }
 
           // check triggers
@@ -681,10 +833,17 @@ int main(int argc, char ** argv)
           {
             TRandom3 myRandom;
             // include TOF at some point?
+            double beta = trackP/sqrt(pow(trackP,2)+pow(genMass,2));
             // ias shift
-            shiftedIas = ias + myRandom.Gaus(0,0.083) + 0.015; // from YK results Nov 21 2011 hypernews thread
+            //shiftedIas = ias + myRandom.Gaus(0,0.083) + 0.015; // from YK results Nov 21 2011 hypernews thread
+            double iasPeakShift = getIasPeakCorrection(iasNoM,beta);
+            double iasWidthShift = getIasWidthCorrection(iasNoM,beta);
+            shiftedIas = ias + iasPeakShift + myRandom.Gaus(0,iasWidthShift);
             // ih shift
-            shiftedIh = ih*1.036; // from SIC results, Nov 10 2011 HSCP meeting
+            //shiftedIh = ih*1.036; // from SIC results, Nov 10 2011 HSCP meeting
+            double ihPeakShift = getIhPeakCorrection(iasNoM,beta);
+            double ihWidthShift = getIhWidthCorrection(beta);
+            shiftedIh = ih + ihPeakShift + myRandom.Gaus(0,ihWidthShift);
             // pt shift (and p shift) -- from MU-10-004-001 -- SIC report Jun 7 2011 HSCP meeting
             double newInvPt = 1/trackPt+0.000236-0.000135*pow(trackEta,2)+track->charge()*0.000282*TMath::Sin(track->phi()-1.337);
             shiftedPt = 1.0/newInvPt;
