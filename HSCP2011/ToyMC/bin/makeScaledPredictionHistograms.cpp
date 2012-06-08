@@ -1691,15 +1691,11 @@ int main(int argc, char ** argv)
   newNominalSignalHist->Add(halfNoMShiftSignalHist,1);
   halfNoMShiftSignalHist->SetNameTitle("signalAllNoMAllEtaUnrolledHalfNoMShiftHist","unrolled signal hist, 1/2 NoM shift");
 
-  // make Ias variational hists
-  TH1D* signalIasMinusOneSigmaHist = (TH1D*) halfNoMShiftSignalHist->Clone();
-  signalIasMinusOneSigmaHist->SetNameTitle("signalAllNoMAllEtaUnrolledMinusOneSigmaIasHist","unrolled signal hist, 1/2 nom shift -1#sigma Ias shift (old nominal)");
+  // make Ias variational hist
   TH1D* signalIasPlusOneSigmaHist = (TH1D*) iasShiftedSignalHist->Clone();
   signalIasPlusOneSigmaHist->Add(halfNoMShiftSignalHist,1);
   signalIasPlusOneSigmaHist->SetNameTitle("signalAllNoMAllEtaUnrolledPlusOneSigmaIasHist","unrolled signal hist, 1/2 nom shift +1#sigma Ias shift (full ias shift)");
-  // make NoM variational hists
-  TH1D* signalNoMMinusOneSigmaHist = (TH1D*) halfIasShiftSignalHist->Clone();
-  signalNoMMinusOneSigmaHist->SetNameTitle("signalAllNoMAllEtaUnrolledMinusOneSigmaNoMHist","unrolled signal hist, 1/2 ias shift -1#sigma NoM shift (old nominal)");
+  // make NoM variational hist
   TH1D* signalNoMPlusOneSigmaHist = (TH1D*) iasShiftedSignalHist->Clone();
   signalNoMPlusOneSigmaHist->Add(halfIasShiftSignalHist,1);
   signalNoMPlusOneSigmaHist->SetNameTitle("signalAllNoMAllEtaUnrolledPlusOneSigmaNoMHist","unrolled signal hist, 1/2 ias shift +1#sigma NoM shift (full nom shift)");
@@ -1708,6 +1704,11 @@ int main(int argc, char ** argv)
   // add on originals
   halfNoMShiftSignalHist->Add(nominalSignalHist,1);
   halfIasShiftSignalHist->Add(nominalSignalHist,1);
+  // finish variation hists
+  TH1D* signalIasMinusOneSigmaHist = (TH1D*) halfNoMShiftSignalHist->Clone();
+  signalIasMinusOneSigmaHist->SetNameTitle("signalAllNoMAllEtaUnrolledMinusOneSigmaIasHist","unrolled signal hist, 1/2 nom shift -1#sigma Ias shift (old nominal)");
+  TH1D* signalNoMMinusOneSigmaHist = (TH1D*) halfIasShiftSignalHist->Clone();
+  signalNoMMinusOneSigmaHist->SetNameTitle("signalAllNoMAllEtaUnrolledMinusOneSigmaNoMHist","unrolled signal hist, 1/2 ias shift -1#sigma NoM shift (old nominal)");
 
   // check for zeros/negatives
   for(int bin=1; bin <= signalIasPlusOneSigmaHist->GetNbinsX(); ++bin)
