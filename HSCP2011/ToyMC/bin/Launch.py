@@ -17,15 +17,13 @@ now = datetime.datetime.now()
 Date = now.strftime("%b%d")
 
 # Set things here
-AllSlices = False
+AllSlices = True
 RunCondor = True
 BayesianLimit = False
-DoMass = False
 DoSignificanceToys = False
-ModelListToys = [GMStau100]#,GMStau432,Gluino300,Gluino900,Stop130,Stop700]
-PoiList = [6e-3,5e-3,4e-3,3e-3,2e-3,1e-3,5e-4,2.5e-4]
-# TOYS
-#PoiList = [1e-3,7.5e-4,5e-4,2.5e-4,1e-4]
+DoMass = False
+ModelListToys = modelList
+PoiList = [6e-3,5e-3,4e-3,3e-3,2e-3,1e-3,7.5e-4,5e-4,2.5e-4]
 QueueName = '8nh' # LSF
 ## FOR NOW, CutPt=Std means CutIas Std also!
 CutPt = 50
@@ -33,11 +31,30 @@ CutIas = 0.1
 #CutPt = 'Std'
 #CutIas = 'Std'
 
-FarmDirectory = 'FARM_50IasB_emptyB1e-25_1gausSystWithStatErr_cutPt50GeVcutIas0.1_oneSlice_May09'
-#FarmDirectory = 'FARM_20IasB_normEtaNoMSlicing_emptyB1e-25_1gausSystWithStatErrOneSliceOnly_cutPt50GeVcutIas0.1_allSlices_May06'
-#FarmDirectory = 'FARM_50IasB_emptyB1e-25_1gausSystWithStatErr_'
-#FarmDirectory+='cutPt'
+FarmDirectory = 'FARM_chk50IasB_emptyB1e-25_1gausSystNoStatError_halfIasHalfNoMAsNominal_highToyStatAllModels_cutPt50GeVcutIas0.1_allSlices_Jun07'
+#FarmDirectory = 'FARM_chk50IasB_emptyB1e-25_1gausSystWithStatErr400SortedBins_nominalAsNominal_highToyStatTestGMStau100156_cutPt50GeVcutIas0.1_allSlices_Jun07'
+#FarmDirectory = 'FARM_chk50IasB_emptyB1e-25_1gausSystWithStatErrIgnoreFirst400SortedBins_nominalAsNominal_highToyStatTestGMStau100156_cutPt50GeVcutIas0.1_allSlices_Jun07'
+
+#FarmDirectory = 'FARM_chk50IasB_emptyB1e-25_1gausSystNoStatError_halfIasShiftAsNominalNoShapeVariation_cutPt50GeVcutIas0.1_allSlices_Jun07'
+#FarmDirectory = 'FARM_chk50IasB_emptyB1e-25_1gausSystNoStatError_nominalAsNominal_highToyStatTestFewModels_cutPt50GeVcutIas0.1_allSlices_Jun05'
+#FarmDirectory = 'FARM_chk50IasB_emptyB1e-25_1gausSystNoStatError_nomShiftAsNominal_highToyStatsAllModels_cutPt50GeVcutIas0.1_allSlices_Jun06'
+#FarmDirectory = 'FARM_chk50IasB_emptyB1e-25_1gausSystNoStatError_nominalAsNominal_highToyStatAllModels_cutPt50GeVcutIas0.1_allSlices_Jun06'
+#FarmDirectory = 'FARM_chk50IasB_emptyB1e-25_1gausSystNoStatError_halfIasShiftAsNominalPlusShapeVariation_cutPt50GeVcutIas0.1_allSlices_Jun06'
+#FarmDirectory = 'FARM_chk50IasB_emptyB1e-25_1gausSystWithStatErrIgnoreFirst400SortedBins_nominalAsNominal_highToyStatTestFewModels_cutPt50GeVcutIas0.1_allSlices_Jun04'
+#FarmDirectory = 'FARM_chk50IasB_emptyB1e-25_1gausSystNoStatError_fullIasShiftAsNominal_cutPt50GeVcutIas0.1_allSlices_Jun05'
+#FarmDirectory = 'FARM_chk50IasB_emptyB1e-25_1gausSystWithStatErr400SortedBins_nominalAsNominal_highToyStatTestFewModels_cutPt50GeVcutIas0.1_allSlices_Jun01'
+
+#FarmDirectory = 'FARM_chk50IasB_emptyB1e-25_1gausSystWithStatErrIgnoreFirst400SortedBins_nominalAsNominal_cutPt50GeVcutIas0.1_allSlices_May28'
+#FarmDirectory = 'FARM_chk50IasB_emptyB1e-25_1gausSystWithStatErr400SortedBins_nominalAsNominal_cutPt50GeVcutIas0.1_allSlices_May28'
+#FarmDirectory = 'FARM_chk50IasB_emptyB1e-25_1gausSystNoStatErr_halfIasShiftAsNominal_cutPt50GeVcutIas0.1_allSlices_May28'
+#FarmDirectory = 'FARM_chk50IasB_emptyB1e-25_1gausSystNoStatErr_nominalAsNominal_cutPt50GeVcutIas0.1_allSlices_May28'
+#FarmDirectory = 'FARM_chk50IasB_emptyB1e-25_1gausSystNoStatErr_cutPt50GeVcutIas0.1_allSlices_May26'
+#FarmDirectory = 'FARM_chk50IasB_emptyB1e-25_1gausSystNoStatErr_testTwins_'
+##FarmDirectory = 'FARM_testDiscovHistFix_chk50IasB_emptyB1e-25_1gausSystWithStatErrLargeErrorsZero_cutPt50GeVcutIas0.1_allSlices_May23'
+##FarmDirectory = 'FARM_50IasB_emptyB1e-25_1gausSystWithStatErrLargeErrorsZero_2pctBackDecr_cutPt50GeVcutIas0.1_allSlices_May16'
+##FarmDirectory = 'FARM_testDiscovHistFix_chk50IasB_emptyB1e-25_1gausSystWithStatErrLargeErrorsZero_'
 ##
+#FarmDirectory+='cutPt'
 #FarmDirectory+=str(CutPt)
 #FarmDirectory+='GeVcutIas'
 #FarmDirectory+=str(CutIas)
@@ -54,7 +71,8 @@ InputDataRootFile+='/FARM_MakeHSCParticlePlots_Data_Apr28/outputs/makeHSCParticl
 #InputDataRootFile+='/FARM_MakeHSCParticlePlots_absEta_ptErrorPresel_Mar21/outputs/makeHSCParticlePlots_Mar21_Data2011_all.root'
 sigInput = os.getcwd()
 #sigInput+='/FARM_MakeHSCParticlePlots_Signals_PUWeights_Mar23/outputs/makeHSCParticlePlots_Mar23_'
-sigInput+='/FARM_MakeHSCParticlePlots_Signals_NewLumi_Apr13/outputs/makeHSCParticlePlots_Apr13_'
+#sigInput+='/FARM_MakeHSCParticlePlots_Signals_NewLumi_Apr13/outputs/makeHSCParticlePlots_Apr13_'
+sigInput+='/FARM_MakeHSCParticlePlots_Signals_deDxSystematics_May25/outputs/makeHSCParticlePlots_May25_'
 IntLumi = 4976 # 1/pb (2011, new pixel measurement)
 #
 
@@ -72,7 +90,9 @@ else:
   BaseChXML = "hscp_dataDriven_ch_template.xml"
 BaseChXMLSig = "hscp_dataDriven_ch_sig_template.xml"
 BaseCombXML = "hscp_dataDriven_template.xml"
-BaseMacro = os.getcwd() + "/StandardHypoTestInvDemo.C"
+BaseCombXMLSig = "hscp_dataDriven_sig_template.xml"
+#BaseMacro = os.getcwd() + "/StandardHypoTestInvDemo.C"
+BaseMacro = os.getcwd() + "/TestStandardHypoTestInvDemo.C"
 BaseMacroBayesian = os.getcwd() + "/StandardBayesianNumericalDemo.C"
 #BaseMacroBayesian = os.getcwd() + "/StandardBayesianMCMCDemo.C"
 BaseMacroSignificance = os.getcwd() + "/StandardHypoTestDemo.C"
@@ -119,6 +139,15 @@ def checkForScaledPredictions(modelName, checkForLimitFile):
     return False
   return True
 
+def checkForLimitResult(model):
+  fileName = os.getcwd()+'/'+FarmDirectory+'/outputs/doLimits/doLimits_'+model.name+'_massCut'+str(model.massCut)+'_ptCut50_index0.root'
+  try:
+    open(fileName)
+  except IOError:
+    print 'File: ',fileName,' does not exist.'
+    return False
+  return True
+
 
 def doIasPredictions():
   # in the real analysis we will use the same ih/pt cuts for sidebands
@@ -153,6 +182,7 @@ def doMergeIasPredictions():
         call(thisMassCutFiles,stdout = fnull)
       else:
         print 'ERROR: Ias predictions for',model.name,'not found!'
+        break
   elif(CutIas=='Std'):
     for model in modelList:
       if(checkForIasPredictions(model.name,model.massCut,CutPt,model.iasCut)):
@@ -164,6 +194,7 @@ def doMergeIasPredictions():
         call(thisMassCutFiles,stdout = fnull)
       else:
         print 'ERROR: Ias predictions for',model.name,'not found!'
+        break
   else:
     for model in modelList:
       if(checkForIasPredictions(model.name,model.massCut,CutPt,CutIas)):
@@ -175,6 +206,7 @@ def doMergeIasPredictions():
         call(thisMassCutFiles,stdout = fnull)
       else:
         print 'ERROR: Ias predictions for',model.name,'not found!'
+        break
   fnull.close()
 
 def doCopyIasPredictions():
@@ -207,7 +239,7 @@ def doScaledPredictions():
   JobName = "makeScaledPredictions_"
   HSCPMakeScaledPredictionsLaunch.SendCluster_Create(FarmDirectory,JobName,
                                               IntLumi, BaseCfgMakeScaled, BaseChXML, 
-                                                           BaseCombXML, BaseChXMLSig, AllSlices, RunCondor, QueueName)
+                                                           BaseCombXML, BaseChXMLSig, BaseCombXMLSig, AllSlices, RunCondor, QueueName)
   for model in modelList:
     looseRPCFileName = sigInput+model.name+'BX1.root'
     tightRPCFileName = sigInput+model.name+'.root'
@@ -262,13 +294,14 @@ def doLimits():
     #HSCPDoLimitsLaunch.SendCluster_Submit()
     print 'Run observed limits'
     HSCPDoLimitsLaunch.SendCluster_Create(FarmDirectory, JobName, IntLumi, BaseMacro, False, False, RunCondor, QueueName)
+    #modelList2 = [GMStau100,GMStau126]
+    #for model in modelList2:
     for model in modelList:
       fileExists = checkForScaledPredictions(model.name,True)
       if not fileExists:
         return
       else:
         HSCPDoLimitsLaunch.SendCluster_Push(bgInput,sigInput+model.name+'.root',model.massCut,CutIas,CutPt)
-    #HSCPDoLimitsLaunch.SendCluster_Push(bgInput,sigInput+'GMStau100'+'.root',GMStau100.massCut,0.1,50)
     HSCPDoLimitsLaunch.SendCluster_Submit()
 
 
@@ -276,7 +309,13 @@ def combineLimitResults():
   # used to combine limit files from CLs
   # must execute makeCombineLimitResults to build the binary first
   doLimitsOutputDir = FarmDirectory+'/outputs/doLimits/'
+  #modelList2 = [Gluino800,Stop200,Stop300,GMStau156,GMStau200,GMStau432]
+  #for model in modelList2:
   for model in modelList:
+    atLeastOneFile = checkForLimitResult(model)
+    if(not atLeastOneFile):
+      print 'ERROR: Files for model:',model.name,'not found!'
+      continue
     print 'Combining limit results from ',model.name
     logFileName = FarmDirectory+'/logs/doLimits/doLimitsCombined_'+model.name+'.out'
     shell_file=open('/tmp/combine.sh','w')
@@ -302,7 +341,7 @@ def doSignificance():
   JobName = "doSignificance_"
   inputWorkspaceFile = 'hscp_combined_hscp_model.root'
   inputWorkspacePathBeg = os.getcwd()+'/'+FarmDirectory+'/outputs/makeScaledPredictions/'
-#  # use observed data as "black line" or test point
+  # use observed data as "black line" or test point
   # first do asymptotic for all
   print 'Running asymptotic significance test for all models'
   ThrowToysSignificance = False
@@ -313,12 +352,15 @@ def doSignificance():
   HSCPDoSignificanceLaunch.SendCluster_Submit()
   if(DoSignificanceToys):
     # then throw toys for a few test models
+    print
     print 'Running toys for selected models'
     ThrowToysSignificance = True
     HSCPDoSignificanceLaunch.SendCluster_Create(FarmDirectory, JobName, BaseMacroSignificance, ThrowToysSignificance, False, RunCondor, QueueName)
     for model in ModelListToys:
-      for poi in PoiList:
-        HSCPDoSignificanceLaunch.SendCluster_Push(model.name,inputWorkspacePathBeg+model.name+'_Significance/'+inputWorkspaceFile,poi)
+      poi = 0.001
+      HSCPDoSignificanceLaunch.SendCluster_Push(model.name,inputWorkspacePathBeg+model.name+'_Significance/'+inputWorkspaceFile,poi)
+      #for poi in PoiList:
+      #  HSCPDoSignificanceLaunch.SendCluster_Push(model.name,inputWorkspacePathBeg+model.name+'_Significance/'+inputWorkspaceFile,poi)
     HSCPDoSignificanceLaunch.SendCluster_Submit()
 
 def combineHypoTestResults():
