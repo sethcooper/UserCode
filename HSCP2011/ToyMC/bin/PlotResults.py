@@ -11,7 +11,7 @@ from SignalDefinitions import *
 sys.argv.append('-b')
 import ROOT
 #
-from ROOT import TGraph,TMultiGraph,TCanvas,TPaveText,gROOT,TLegend,TCutG,kGreen,TFile,RooStats,Math,vector
+from ROOT import TGraph,TMultiGraph,TCanvas,TPaveText,gROOT,TLegend,TCutG,kGreen,TFile,RooStats,Math,vector,gROOT,TLine,kRed,gPad
 
 # at UMN, must use /usr/bin/python (2.4) and my compiled ROOT version (5.32.02)
 #BaseDir = 'FARM_dReg_NL_50IasBins_emptyBins1e-25_iasPredScalingFix_cutPt50GeVcutIas0.1_allSlices_Apr30'
@@ -22,7 +22,21 @@ from ROOT import TGraph,TMultiGraph,TCanvas,TPaveText,gROOT,TLegend,TCutG,kGreen
 #BaseDir = 'FARM_50IasB_emptyB1e-25_1gausSystWithStatErr_cutPt50GeVcutIas0.1_oneSlice_May09'
 #BaseDir = 'FARM_50IasB_emptyB1e-25_1gausSystWithNoStatErr_cutPt50GeVcutIas0.1_oneSlice_May09'
 #BaseDir = 'FARM_50IasB_emptyB1e-25_1gausSystWithStatErrLargeErrorsZero_cutPt50GeVcutIas0.1_allSlices_May11'
-BaseDir = 'FARM_50IasB_emptyB1e-25_1gausSystWithStatErrLargeErrorsZero_2pctBackDecr_cutPt50GeVcutIas0.1_allSlices_May16'
+#BaseDir = 'FARM_50IasB_emptyB1e-25_1gausSystWithStatErrLargeErrorsZero_2pctBackDecr_cutPt50GeVcutIas0.1_allSlices_May16'
+#BaseDir = 'FARM_chk50IasB_emptyB1e-25_1gausSystNoStatErr_cutPt50GeVcutIas0.1_allSlices_May26'
+#BaseDir = 'FARM_chk50IasB_emptyB1e-25_1gausSystNoStatErr_nominalAsNominal_cutPt50GeVcutIas0.1_allSlices_May28'
+#BaseDir = 'FARM_chk50IasB_emptyB1e-25_1gausSystWithStatErr400SortedBins_nominalAsNominal_cutPt50GeVcutIas0.1_allSlices_May28'
+#BaseDir = 'FARM_chk50IasB_emptyB1e-25_1gausSystWithStatErrIgnoreFirst400SortedBins_nominalAsNominal_cutPt50GeVcutIas0.1_allSlices_May28'
+#BaseDir = 'FARM_chk50IasB_emptyB1e-25_1gausSystWithStatErr400SortedBins_nominalAsNominal_highToyStatTestFewModels_cutPt50GeVcutIas0.1_allSlices_Jun01'
+#BaseDir = 'FARM_chk50IasB_emptyB1e-25_1gausSystNoStatError_fullIasShiftAsNominal_cutPt50GeVcutIas0.1_allSlices_Jun05'
+#BaseDir = 'FARM_chk50IasB_emptyB1e-25_1gausSystWithStatErrIgnoreFirst400SortedBins_nominalAsNominal_highToyStatTestFewModels_cutPt50GeVcutIas0.1_allSlices_Jun04'
+#BaseDir = 'FARM_chk50IasB_emptyB1e-25_1gausSystNoStatError_nominalAsNominal_highToyStatTestFewModels_cutPt50GeVcutIas0.1_allSlices_Jun05'
+#BaseDir = 'FARM_chk50IasB_emptyB1e-25_1gausSystNoStatError_halfIasShiftAsNominalPlusShapeVariation_cutPt50GeVcutIas0.1_allSlices_Jun06'
+#BaseDir = 'FARM_chk50IasB_emptyB1e-25_1gausSystNoStatError_nominalAsNominal_highToyStatAllModels_cutPt50GeVcutIas0.1_allSlices_Jun06'
+#BaseDir = 'FARM_chk50IasB_emptyB1e-25_1gausSystNoStatError_nomShiftAsNominal_highToyStatsAllModels_cutPt50GeVcutIas0.1_allSlices_Jun06'
+#BaseDir = 'FARM_chk50IasB_emptyB1e-25_1gausSystNoStatError_halfIasShiftAsNominalNoShapeVariation_cutPt50GeVcutIas0.1_allSlices_Jun07'
+BaseDir = 'FARM_chk50IasB_emptyB1e-25_1gausSystNoStatError_halfIasHalfNoMAsNominal_highToyStatAllModels_cutPt50GeVcutIas0.1_allSlices_Jun07'
+
 runCERN = False
 PlotMinScale = 0.0005
 PlotMaxScale = 3
@@ -31,6 +45,10 @@ StopXSecFile = 'stop_XSec.txt'
 StauXSecFile = 'stau_XSec.txt'
 
 gROOT.Reset()
+
+# Load/apply TDR style
+gROOT.ProcessLine('.L tdrStyle.C')
+gROOT.ProcessLine('setTDRStyle()')
 
 if(runCERN):
   fileEnd = '.log'
@@ -74,7 +92,11 @@ class LimitResult:
     print '\tobsSignalSignif=',self.obsSignalSignif
 
   def LatexTableLine(self):
-    return ''
+    latexLine = self.name+'&'+self.massCut+'&'+str(round(self.sigEff,2))+'&'+str(round(self.expBg,2))+'$\pm$'+str(round(self.expBgStatErr,2))+'&'
+    latexLine+=str(self.obsEvts)+'&'+str(round(float(self.thCrossSection),4))+'&'+str(round(self.expLimit,4))+'&'
+    latexLine+=str(round(self.obsLimit,4))+'&'+str(round(self.fiveSigmaXSec,4))+'&'+str(round(self.obsSignalSignif,4))
+    latexLine+='\\\\'
+    return latexLine
 
   def StringTableLine(self):
     tableString = string.ljust(self.name,15)+string.ljust(self.ptCut,6)+string.ljust(self.iasCut,6)
@@ -173,7 +195,11 @@ def GetRootFile(fileList,modelName,limitFile):
 def GetExpDiscSignif(filePath):
   for line in open(filePath):
     if "significance at 0" in line:
-      return float(line[line.rfind("significance")+13:line.rfind("sigma")-2])
+      value = line[line.rfind("significance")+13:line.rfind("sigma")-2]
+      if(value[0]=='-'):
+        return 0.0
+      else:
+        return float(value)
   return 0.0
 
 def GetSignalSignificanceFiveSigma(doSignificanceDir,fileList,modelName):
@@ -192,7 +218,8 @@ def GetSignalSignificanceFiveSigma(doSignificanceDir,fileList,modelName):
   for poi,sig in sorted(poiSigDict.items()):
     poiValues.push_back(poi)
     medianSignifs.push_back(sig)
-    #print 'Poi: ',poi,' medianSignificance: ',sig
+    if(modelName=='GMStau494'):
+      print 'Poi: ',poi,' medianSignificance: ',sig
   if(len(medianSignifs) < 3):
     print 'ERROR: Not enough (nonzero) points to do interpolation!'
     return -666
@@ -244,7 +271,7 @@ def DrawPreliminary(Lumi,  X=0.40,  Y=0.995,  W=0.82, H=0.945):
   if(Lumi<0):
     text.AddText("CMS Preliminary   #sqrt{s} 7 TeV");
   if(Lumi>0):
-    text.AddText("CMS Preliminary   #sqrt{s} = 7 TeV   "+str(Lumi)+" fb^{-1}");
+    text.AddText("CMS Preliminary   #sqrt{s} = 7 TeV   "+str(Lumi)+" pb^{-1}");
   text.Draw("same");
 
 def GetErrorBand(name, Mass, Low, High, MinLow=PlotMinScale,MaxHigh=PlotMaxScale):
@@ -277,6 +304,47 @@ def ReadXSection(InputFile):
      Low.append(float(splitString[3]))
   return {'mass':Mass,'xsec':XSec,'high':High,'low':Low}
 
+def MakePValuePlot(htip):
+  gobs = htip.MakePlot()
+  gobs.Draw("APL")   
+  gplot = gobs
+  gplot.GetHistogram().SetTitle( htip.GetTitle() )
+  # exp
+  gexp = htip.MakeExpectedPlot()
+  gexp.Draw()
+  # line for CL
+  alpha = 0.05
+  x1 = gplot.GetXaxis().GetXmin()
+  x2 = gplot.GetXaxis().GetXmax()
+  line = TLine(x1, alpha, x2,alpha)
+  line.SetLineColor(kRed)
+  line.Draw()
+  # put axis labels 
+  gplot.GetXaxis().SetTitle("#sigma (pb)")
+  gplot.GetXaxis().SetNdivisions(508)
+  gplot.GetYaxis().SetTitle("p value")
+  # draw again observed values otherwise will be covered by the bands
+  gobs.Draw("PL");
+  # redraw the axis 
+  gPad.RedrawAxis()
+  #
+  y0 = 0.6
+  verticalSize = 0.3
+  y1 = y0 + verticalSize
+  l = TLegend(0.6,y0,0.8,y1)
+  l.AddEntry(gobs,"","PEL")
+  # loop in reverse order (opposite to drawing one)
+  #ngraphs = gexp.GetListOfGraphs().GetSize()
+  #for i in range(ngraphs-1,-1,-1):
+  #  obj =  gexp.GetListOfGraphs().At(i)
+  #  lopt = "F"
+  #  if(i == ngraphs-1):
+  #    lopt = "L"
+  #  if(obj != 0):
+  #    l.AddEntry(obj,"",lopt);
+  l.Draw()
+  gPad.Update()
+
 
 # Run
 makeScaledPredictionsDir = BaseDir+'/logs/makeScaledPredictions/'
@@ -308,6 +376,9 @@ plotsDir = BaseDir+'/results/'
 if os.path.isdir(plotsDir) == False:
   os.mkdir(plotsDir)
 myCanvas = TCanvas("myCanvas", "myCanvas",1000,800)
+##########
+#modelList = [Stop200,GMStau156,GMStau200]
+##########
 for model in modelList:
     predLogFile = GetFile(makeScaledPredictionsLogFileList,model.name)
     limitLogFile = GetFile(doLimitsLogFileList,model.name)
@@ -331,13 +402,38 @@ for model in modelList:
       htr = limitTFile.Get("result_SigXsec")
       expLimit = htr.GetExpectedUpperLimit(0)
       obsLimit = htr.UpperLimit()
-      pValuePlotTitle = "Cross section limit (pb) for "+model.name
-      pValuePlotName = "crossSectionLimit_pValue_"+model.name
+      #pValuePlotTitle = "Cross section limit (pb) for "+model.name
+      pValuePlotTitle = ""
+      #pValuePlotName = "crossSectionLimit_pValue_"+model.name
+      pValueFileName = "crossSectionLimit_pValue_"+model.name
+      pValuePlotName = ""
+      myCanvas.cd()
       pValuePlot = RooStats.HypoTestInverterPlot("htrResultPlot",pValuePlotName,htr)
       pValuePlot.Draw()
-      myCanvas.Print(plotsDir+pValuePlotName+".C")
-      myCanvas.Print(plotsDir+pValuePlotName+".eps")
-      myCanvas.Print(plotsDir+pValuePlotName+".png")
+      #MakePValuePlot(pValuePlot)
+      Lumi=4976
+      X=0.40
+      Y=0.995
+      W=0.82
+      H=0.945
+      text = TPaveText(X,Y,W,H, "NDC")
+      text.SetFillColor(0)
+      text.SetTextAlign(22)
+      text.AddText("CMS Preliminary   #sqrt{s} = 7 TeV   "+str(Lumi)+" pb^{-1}")
+      text.SetBorderSize(0)
+      text.Draw("same")
+      myCanvas.Update()
+      myCanvas.Print(plotsDir+pValueFileName+".C")
+      myCanvas.Print(plotsDir+pValueFileName+".pdf")
+      myCanvas.Print(plotsDir+pValueFileName+".png")
+      ## wait for input to keep the GUI (which lives on a ROOT event dispatcher) alive
+      #if __name__ == '__main__':
+      #   rep = ''
+      #   while not rep in [ 'q', 'Q' ]:
+      #      rep = raw_input( 'enter "q" to quit: ' )
+      #      if 1 < len(rep):
+      #         rep = rep[0]
+
       limitTFile.Close()
     else:
       expLimit = -99
@@ -390,8 +486,63 @@ for limitRes in LimitResultsStaus:
   txt_file.write(limitRes.StringTableLine()+'\n')
 txt_file.close()
 
+# write tbl fragment file
+titleTableString = '\\begin{tabular}{|l|c|c|c|}\n'
+titleTableString+= '\\hline\n'
+    #latexLine = self.name+'&'+self.massCut+'&'+str(round(self.sigEff,4))+'&'+str(round(self.expBg,4))+'&'+str(round(self.expBgStatErr,4))+'&'
+    #latexLine+=self.obsEvts+'&'+str(round(self.ThCrossSec,6))+'&'+str(round(self.expLimit,6))+'&'
+    #latexLine+=str(round(self.obsLimit,6))+'&'+str(round(self.fiveSigmaXSec,6))+'&'+str(round(self.obsSignalSignif,6))
+titleTableString+= '\\textbf{Model and mass}&\\textbf{Mass Cut}&\\textbf{Signal Eff.}&\\textbf{Background Exp.}&'
+titleTableString+= '\\textbf{Obs.}&\\textbf{Th. Cross Sec.}&\\textbf{Exp. Lim.}&\\textbf{Obs. Lim.}&\\textbf{5$\sigma$ Disc. Cross Section}&\\textbf{Obs. Sig. Eff.}\n'
+titleTableString+= '\\hline\n'
+txt_file=open(plotsDir+'results.tbl','w')
+txt_file.write(titleTableString+'\n')
+print titleTableString
+for limitRes in LimitResultsGluinos:
+  txt_file.write(limitRes.LatexTableLine()+'\n')
+  print limitRes.LatexTableLine()
+for limitRes in LimitResultsStops:
+  print limitRes.LatexTableLine()
+  txt_file.write(limitRes.LatexTableLine()+'\n')
+for limitRes in LimitResultsStaus:
+  print limitRes.LatexTableLine()
+  txt_file.write(limitRes.LatexTableLine()+'\n')
+txt_file.write('\\hline\n')
+print '\\hline'
+txt_file.write('\\end{tabular}\n')
+print '\\end{tabular}'
+txt_file.close()
+
+
 # TESTING
 sys.exit()
+
+# gluinos
+massesGluinos = []
+expCrossSectionsGluinos = []
+obsCrossSectionsGluinos = []
+for lr in LimitResultsGluinos:
+  massesGluinos.append(lr.mass)
+  expCrossSectionsGluinos.append(lr.expLimit)
+  obsCrossSectionsGluinos.append(lr.obsLimit)
+# stops
+massesStops = []
+expCrossSectionsStops = []
+obsCrossSectionsStops = []
+for lr in LimitResultsStops:
+  massesStops.append(lr.mass)
+  expCrossSectionsStops.append(lr.expLimit)
+  obsCrossSectionsStops.append(lr.obsLimit)
+# staus
+massesStaus = []
+expCrossSectionsStaus = []
+obsCrossSectionsStaus = []
+for lr in LimitResultsStaus:
+  massesStaus.append(lr.mass)
+  expCrossSectionsStaus.append(lr.expLimit)
+  obsCrossSectionsStaus.append(lr.obsLimit)
+
+    
 
 gluinoThInfo = ReadXSection(GluinoXSecFile)
 gluinoXSecErr = GetErrorBand("gluinoErr",gluinoThInfo['mass'],gluinoThInfo['low'],gluinoThInfo['high'])
@@ -487,7 +638,7 @@ text.AddText("CMS Preliminary   #sqrt{s} = 7 TeV   "+str(Lumi)+" pb^{-1}")
 text.SetBorderSize(0)
 text.Draw("same")
 
-LEGTh = TLegend(0.15,0.7,0.42,0.9)
+LEGTh = TLegend(0.2,0.7,0.42,0.9)
 LEGTh.SetHeader("Theoretical Prediction")
 LEGTh.SetFillColor(0)
 LEGTh.SetBorderSize(0)
@@ -502,9 +653,9 @@ StauThLeg.SetFillColor(stauXSecErr.GetFillColor())
 LEGTh.AddEntry(StauThLeg   ,"GMSB stau   (NLO)" ,"LF")
 LEGTh.Draw()
 
-LEGTk = TLegend(0.6,0.7,0.8,0.9)
+LEGTk = TLegend(0.7,0.7,0.9,0.9)
 #LEGTk->SetHeader("95% C.L. Limits")
-LEGTk.SetHeader("Tk - Only")
+LEGTk.SetHeader("")
 LEGTk.SetFillColor(0)
 LEGTk.SetBorderSize(0)
 #LEGTk.AddEntry(Tk_Obs_GluinoF5 , "gluino; 50% #tilde{g}g"    ,"LP")
@@ -524,6 +675,7 @@ limit = FindIntersection(expLimGraphStaus,theoryGraphStaus,100,1000,1,0.00,False
 print 'Found GMStau mass limit = ',limit
 c1.Update()
 c1.Print('gluinosStopsStaus.png')
+c1.Print('gluinosStopsStaus.pdf')
 
 
 
