@@ -38,6 +38,8 @@
 #include <fstream>
 #include <set>
 #include <limits>
+#include <map>
+#include <algorithm>
 
 namespace reco    { class Vertex; class Track; class GenParticle; class DeDxData; class MuonTimeExtra;}
 namespace susybsm { class HSCParticle; class HSCPIsolation;}
@@ -87,6 +89,45 @@ int numIasBins = 0;
 int nomStep = 2;
 float etaStep = 0.2;
 int lastLowerNoM = 17;
+// define observables
+//TODO move to something like common functions
+RooRealVar rooVarIas("rooVarIas","ias",0,1);
+RooRealVar rooVarIh("rooVarIh","ih",0,15);
+RooRealVar rooVarP("rooVarP","p",0,5000);
+RooRealVar rooVarPt("rooVarPt","pt",0,5000);
+RooRealVar rooVarNoMias("rooVarNoMias","nom",0,30);
+RooRealVar rooVarEta("rooVarEta","eta",0,2.5);
+RooRealVar rooVarRun("rooVarRun","run",0,4294967295);
+RooRealVar rooVarLumiSection("rooVarLumiSection","lumiSection",0,4294967295);
+RooRealVar rooVarEvent("rooVarEvent","event",0,4294967295);
+//TODO add mass in initial dataset generation?
+RooRealVar rooVarNumGenHSCPEvents("rooVarNumGenHSCPEvents","numGenHSCPEvents",0,1e10);
+RooRealVar rooVarNumGenHSCPTracks("rooVarNumGenHSCPTracks","numGenHSCPTracks",0,1e10);
+RooRealVar rooVarNumGenChargedHSCPTracks("rooVarNumGenChargedHSCPTracks","numGenChargedHSCPTracks",0,1e10);
+RooRealVar rooVarSignalEventCrossSection("rooVarSignalEventCrossSection","signalEventCrossSection",0,100); // pb
+RooRealVar rooVarNumGenHSCPEventsPUReweighted("rooVarNumGenHSCPEventsPUReweighted","numGenHSCPEventsPUReweighted",0,1e10);
+RooRealVar rooVarEventWeightSum("rooVarEventWeightSum","eventWeightSum",0,1e10);
+RooRealVar rooVarSampleWeight("rooVarSampleWeight","sampleWeight",0,1e10);
+//
+RooRealVar rooVarPUWeight("rooVarPUWeight","puWeight",-std::numeric_limits<double>::max(),std::numeric_limits<double>::max());
+RooRealVar rooVarPUSystFactor("rooVarPUSystFactor","puSystFactor",-std::numeric_limits<double>::max(),std::numeric_limits<double>::max());
+// python config globals
+double massCut_;
+string backgroundPredictionRootFilename_;
+string signalTightRPCRootFilename_;
+string signalLooseRPCRootFilename_;
+string outputRootFilename_;
+double dEdx_k;
+double dEdx_c;
+double pSidebandThreshold;
+double ptSidebandThreshold;
+bool usePtForSideband;
+double ihSidebandThreshold;
+double integratedLumi;
+double signalCrossSectionForEff;
+double iasCutForEffAcc;
+bool useIasForSideband;
+bool doMass;
 
 struct EventInfo
 {
@@ -192,95 +233,94 @@ std::string generateFileNameEnd(double massCut, double pSideband, double ptSideb
   fileNameEnd+=".root";
   return fileNameEnd;
 }
-
-
-
-// ****** main
-int main(int argc, char ** argv)
+//
+double getNoMWeightFromLowerNoM(int nom)
 {
-  using namespace RooFit;
+  // from study on pcminn26
+  if(nom<=5)
+    return 1.375364;
+  else if(nom==6)
+    return 1.756386;
+  else if(nom==7)
+    return 1.448682;
+  else if(nom==8)
+    return 1.350035;
+  else if(nom==9)
+    return 1.219157;
+  else if(nom==10)
+    return 1.127699;
+  else if(nom==11)
+    return 1.050045;
+  else if(nom==12)
+    return 1.011671;
+  else if(nom==13)
+    return 0.9925607;
+  else if(nom==14)
+    return 0.9688514;
+  else if(nom==15)
+    return 0.9585392;
+  else if(nom==16)
+    return 0.9565235;
+  else if(nom==17)
+    return 0.9436069;
+  else if(nom==18)
+    return 0.924295;
+  else if(nom==19)
+    return 0.8817048;
+  else if(nom==20)
+    return 0.8175668;
+  else if(nom>=21)
+    return 0.7557076;
+
+    return 1; // nothing else to do
+}
+
+double getApproxMuValueFromMassCut(int massCut)
+{
+  if(massCut==180) return 0.003736;
+  else if(massCut==230) return 0.002882;
+  else if(massCut==290) return 0.002622;
+  else if(massCut==360) return 0.002556;
+  else if(massCut==410) return 0.002755;
+  else if(massCut==460) return 0.002857;
+  else if(massCut==500) return 0.002887;
+  else if(massCut==540) return 0.003108;
+  else if(massCut==570) return 0.003762;
+  else if(massCut==600) return 0.004337;
+  else if(massCut==70) return 0.005881;
+  else if(massCut==130) return 0.003623;
+  else if(massCut==190) return 0.003101;
+  else if(massCut==250) return 0.002431;
+  else if(massCut==310) return 0.002176;
+  else if(massCut==360) return 0.001978;
+  else if(massCut==410) return 0.00204;
+  else if(massCut==450) return 0.001882;
+  else if(massCut==20) return 0.00208;
+  else if(massCut==50) return 0.002488;
+  else if(massCut==80) return 0.001908;
+  else if(massCut==120) return 0.00154;
+  else if(massCut==150) return 0.001143;
+  else if(massCut==190) return 0.001031;
+  else if(massCut==230) return 0.00101;
+  else if(massCut==260) return 0.000936;
+  else if(massCut==300) return 0.000853;
+  else return 0.001;
+}
+
+
+
+int doScaledPredictions(TFile* outputRootFile, TFile* backgroundPredictionRootFile, bool doIasShift)
+{
   using namespace std;
+  using namespace RooFit;
 
-  // load framework libraries
-  gSystem->Load("libFWCoreFWLite");
-  AutoLibraryLoader::enable();
-
-  // parse arguments
-  if(argc < 2)
-  {
-    cout << "Usage : " << argv[0] << " [parameters.py]" << endl;
-    return -1;
-  }
-
-  // get the python configuration
-  const edm::ParameterSet& process = edm::readPSetsFrom(argv[1])->getParameter<edm::ParameterSet>("process");
-  // now get each parameterset
-  const edm::ParameterSet& ana = process.getParameter<edm::ParameterSet>("makeScaledPredictionHistograms");
-  // mass cut to use for the high-p high-Ih (search region) ias dist
-  double massCut_ (ana.getParameter<double>("MassCut"));
-  string backgroundPredictionRootFilename_ (ana.getParameter<string>("BackgroundPredictionInputRootFile"));
-  string signalTightRPCRootFilename_ (ana.getParameter<string>("SignalTightRPCInputRootFile"));
-  string signalLooseRPCRootFilename_ (ana.getParameter<string>("SignalLooseRPCInputRootFile"));
-  string outputRootFilename_ (ana.getParameter<string>("OutputRootFile"));
-  // dE/dx calibration
-  double dEdx_k (ana.getParameter<double>("dEdx_k"));
-  double dEdx_c (ana.getParameter<double>("dEdx_c"));
-  // definition of sidebands/search region
-  double pSidebandThreshold (ana.getParameter<double>("PSidebandThreshold"));
-  double ptSidebandThreshold (ana.getParameter<double>("PtSidebandThreshold"));
-  bool usePtForSideband (ana.getParameter<bool>("UsePtForSideband"));
-  double ihSidebandThreshold (ana.getParameter<double>("IhSidebandThreshold"));
-  double integratedLumi (ana.getParameter<double>("IntegratedLuminosity")); // 1/pb
-  double signalCrossSectionForEff (ana.getParameter<double>("SignalCrossSection")); // pb
-  double iasCutForEffAcc (ana.getParameter<double>("IasCutForEfficiency"));
-  bool useIasForSideband (ana.getParameter<bool>("UseIasForSideband"));
-
-  // do mass?
-  bool doMass = false;
-
-  std::cout << "Using dE/dx k: " << dEdx_k << " c: " << dEdx_c << std::endl;
-
-  // TODO configurable nom/eta limits
-  // NB: always use upper edge of last bin for both
-  minNoM = 5;
-  maxNoM = 18;
-  minEta = 0.0;
-  maxEta = 1.6;
-
-
-  // define observables
-  //TODO move to something like common functions
-  RooRealVar rooVarIas("rooVarIas","ias",0,1);
-  RooRealVar rooVarIh("rooVarIh","ih",0,15);
-  RooRealVar rooVarP("rooVarP","p",0,5000);
-  RooRealVar rooVarPt("rooVarPt","pt",0,5000);
-  RooRealVar rooVarNoMias("rooVarNoMias","nom",0,30);
-  RooRealVar rooVarEta("rooVarEta","eta",0,2.5);
-  RooRealVar rooVarRun("rooVarRun","run",0,4294967295);
-  RooRealVar rooVarLumiSection("rooVarLumiSection","lumiSection",0,4294967295);
-  RooRealVar rooVarEvent("rooVarEvent","event",0,4294967295);
-  //TODO add mass in initial dataset generation?
-  RooRealVar rooVarNumGenHSCPEvents("rooVarNumGenHSCPEvents","numGenHSCPEvents",0,1e10);
-  RooRealVar rooVarNumGenHSCPTracks("rooVarNumGenHSCPTracks","numGenHSCPTracks",0,1e10);
-  RooRealVar rooVarNumGenChargedHSCPTracks("rooVarNumGenChargedHSCPTracks","numGenChargedHSCPTracks",0,1e10);
-  RooRealVar rooVarSignalEventCrossSection("rooVarSignalEventCrossSection","signalEventCrossSection",0,100); // pb
-  RooRealVar rooVarNumGenHSCPEventsPUReweighted("rooVarNumGenHSCPEventsPUReweighted","numGenHSCPEventsPUReweighted",0,1e10);
-  RooRealVar rooVarEventWeightSum("rooVarEventWeightSum","eventWeightSum",0,1e10);
-  RooRealVar rooVarSampleWeight("rooVarSampleWeight","sampleWeight",0,1e10);
-  //
-  RooRealVar rooVarPUWeight("rooVarPUWeight","puWeight",-std::numeric_limits<double>::max(),std::numeric_limits<double>::max());
-  RooRealVar rooVarPUSystFactor("rooVarPUSystFactor","puSystFactor",-std::numeric_limits<double>::max(),std::numeric_limits<double>::max());
-
-  //string fileNameEnd = generateFileNameEnd(massCut_,pSidebandThreshold,ptSidebandThreshold,usePtForSideband,ihSidebandThreshold);
-  string fileNameEnd = "";
-  TFile* outputRootFile = new TFile((outputRootFilename_+fileNameEnd).c_str(),"recreate");
-  TFile* backgroundPredictionRootFile = TFile::Open(backgroundPredictionRootFilename_.c_str());
   TFile* signalTightRPCRootFile = TFile::Open(signalTightRPCRootFilename_.c_str());
   TFile* signalLooseRPCRootFile = TFile::Open(signalLooseRPCRootFilename_.c_str());
 
+  string signalDatasetName = doIasShift ? "rooDataSetIasShift" : "rooDataSetOneCandidatePerEvent";
+
   // get roodataset from signal file -- tight RPC (period 0)
-  //RooDataSet* rooDataSetAllSignal = (RooDataSet*)signalRootFile->Get("rooDataSetCandidates");
-  RooDataSet* rooDataSetAllSignalTightRPC = (RooDataSet*)signalTightRPCRootFile->Get("rooDataSetOneCandidatePerEvent");
+  RooDataSet* rooDataSetAllSignalTightRPC = (RooDataSet*)signalTightRPCRootFile->Get(signalDatasetName.c_str());
   bool countEvents  = true;
   if(!rooDataSetAllSignalTightRPC)
   {
@@ -305,7 +345,7 @@ int main(int argc, char ** argv)
     return -3;
   }
   // get roodataset from signal file -- loose RPC (period 1)
-  RooDataSet* rooDataSetAllSignalLooseRPC = (RooDataSet*)signalLooseRPCRootFile->Get("rooDataSetOneCandidatePerEvent");
+  RooDataSet* rooDataSetAllSignalLooseRPC = (RooDataSet*)signalLooseRPCRootFile->Get(signalDatasetName.c_str());
   if(!rooDataSetAllSignalLooseRPC)
   {
     cout << "Problem with RooDataSet named rooDataSetCandidates in signal file " <<
@@ -388,8 +428,6 @@ int main(int argc, char ** argv)
   //vector<TH1F> cRegionHistsToUse;
 
   // for histograms already made
-  //string dirName="iasPredictionsVariableBins";
-  //string getHistName+="iasPredictionVarBinHist";
   string dirName="iasPredictionsFixedBins";
   string bgLimitsHistNameEnd="iasPredictionFixedLimitsHist";
   string bgDiscoveryHistNameEnd="iasPredictionFixedDiscoveryHist";
@@ -484,6 +522,9 @@ int main(int argc, char ** argv)
 
   assert(bgLimitsHistsToUse.size() == bgDiscoveryHistsToUse.size());
 
+  string histNameSuffix = doIasShift ? "IasShiftHist" : "Hist";
+  string histTitleSuffix = doIasShift ? " ias shifted" : "";
+
   // initialize the global unrolled hists
   int binsToExclude = ceil(numIasBins*iasCutForEffAcc);
   int numBinsEachSlice = numIasBins-binsToExclude;
@@ -494,36 +535,50 @@ int main(int argc, char ** argv)
   cout << "INFO: numBGLimitsHistsToUse = " << bgLimitsHistsToUse.size() << endl;
   cout << "INFO: numBGDiscoveryHistsToUse = " << bgDiscoveryHistsToUse.size() << endl;
   cout << "INFO: initializing unrolled histogram: bins=" << numGlobalBins << endl << endl;
+  // background and data hists get overwritten a few times, but I don't care
   TH1D* backgroundAllNoMAllEtaUnrolledLimitsHist = new TH1D("backgroundAllNoMAllEtaUnrolledLimitsHist",
       "unrolled background hist (limits)",numGlobalBins,1,numGlobalBins+1);
   TH1D* backgroundAllNoMAllEtaUnrolledDiscoveryHist = new TH1D("backgroundAllNoMAllEtaUnrolledDiscoveryHist",
       "unrolled background hist (discovery)",numGlobalBins,1,numGlobalBins+1);
+  TH1D* dataAllNoMAllEtaUnrolledHist = new TH1D("dataAllNoMAllEtaUnrolledHist",
+      "unrolled data hist, D region",numGlobalBins,1,numGlobalBins+1);
   //TH1D* backgroundAllNoMAllEtaUnrolledPlusOneSigmaHist = new TH1D("backgroundAllNoMAllEtaUnrolledPlusOneSigmaHist",
   //    "unrolled background hist (shape +1 sigma)",numGlobalBins,1,numGlobalBins+1);
   //TH1D* backgroundAllNoMAllEtaUnrolledMinusOneSigmaHist = new TH1D("backgroundAllNoMAllEtaUnrolledMinusOneSigmaHist",
   //    "unrolled background hist (shape -1 sigma)",numGlobalBins,1,numGlobalBins+1);
-  TH1D* signalAllNoMAllEtaUnrolledHist = new TH1D("signalAllNoMAllEtaUnrolledHist",
-      "unrolled signal hist",numGlobalBins,1,numGlobalBins+1);
-  TH1D* dataAllNoMAllEtaUnrolledHist = new TH1D("dataAllNoMAllEtaUnrolledHist",
-      "unrolled data hist, D region",numGlobalBins,1,numGlobalBins+1);
+  TH1D* signalAllNoMAllEtaUnrolledHist = new TH1D(("signalAllNoMAllEtaUnrolled"+histNameSuffix).c_str(),
+      ("unrolled signal hist"+histTitleSuffix).c_str(),numGlobalBins,1,numGlobalBins+1);
+  TH1D* signalAllNoMAllEtaUnrolledNomShiftedHist = new TH1D(("signalAllNoMAllEtaUnrolledNoMShifted"+histNameSuffix).c_str(),
+      ("unrolled signal hist, NoM weighted"+histTitleSuffix).c_str(),numGlobalBins,1,numGlobalBins+1);
   // mass
   TH1D* backgroundAllNoMAllEtaUnrolledMassHist = new TH1D("backgroundAllNoMAllEtaUnrolledMassHist",
       "unrolled background hist (mass)",numGlobalMassBins,1,numGlobalMassBins+1);
-  TH1D* signalAllNoMAllEtaUnrolledMassHist = new TH1D("signalAllNoMAllEtaUnrolledMassHist",
-      "unrolled signal hist (mass)",numGlobalMassBins,1,numGlobalMassBins+1);
-  TH2F* sigEffOverIasCutVsSliceHist = new TH2F("sigEffOverIasCutVsSlice","Sig eff. over ias cut;#eta;nom",24/int(etaStep*10),0,2.4,int(13/nomStep)+1,5,18);
+  TH1D* signalAllNoMAllEtaUnrolledMassHist = new TH1D(("signalAllNoMAllEtaUnrolledMass"+histNameSuffix).c_str(),
+      ("unrolled signal hist (mass)"+histTitleSuffix).c_str(),numGlobalMassBins,1,numGlobalMassBins+1);
+  string sigEffOverIasCutVsSliceHistTitle = "Sig eff. over ias cut";
+  sigEffOverIasCutVsSliceHistTitle+=histTitleSuffix;
+  TH2F* sigEffOverIasCutVsSliceHist = new TH2F(("sigEffOverIasCutVsSlice"+histNameSuffix).c_str(),(sigEffOverIasCutVsSliceHistTitle+";#eta;nom").c_str(),
+      24/int(etaStep*10),0,2.4,int(13/nomStep)+1,5,18);
   int divisions = 500+int(13/nomStep)+1;
   sigEffOverIasCutVsSliceHist->GetYaxis()->SetNdivisions(divisions,false);
-  TH1F* sigEffOverIasCutHist = new TH1F("sigEffOverIasCut","Signal eff. over ias cut",100,0,1);
+  TH1F* sigEffOverIasCutHist = new TH1F(("sigEffOverIasCut"+histNameSuffix).c_str(),("Signal eff. over ias cut"+histTitleSuffix).c_str(),100,0,1);
+
   TH2F* backExpOverIasCutVsSliceHist = new TH2F("backExpOverIasCutVsSlice","Exp. background over ias cut;#eta;nom",24/int(etaStep*10),0,2.4,int(13/nomStep)+1,5,18);
   backExpOverIasCutVsSliceHist->GetYaxis()->SetNdivisions(divisions,false);
   TH2F* backExpVsSliceHist = new TH2F("backExpVsSlice","Exp. background;#eta;nom",24/int(etaStep*10),0,2.4,int(13/nomStep)+1,5,18);
   backExpVsSliceHist->GetYaxis()->SetNdivisions(divisions,false);
   TH1F* backExpOverIasCutHist = new TH1F("backExpOverIasCut","Exp. background over ias cut",100,0,1);
-  TH2F* entriesSignalHist = new TH2F("entriesSignal","Signal tracks over mass cut in slice;#eta;nom",24/int(etaStep*10),0,2.4,int(13/nomStep)+1,5,18);
+
+  string entriesSignalHistTitle = "Signal tracks over mass cut in slice";
+  entriesSignalHistTitle+=histTitleSuffix;
+  TH2F* entriesSignalHist = new TH2F(("entriesSignal"+histNameSuffix).c_str(),(entriesSignalHistTitle+";#eta;nom").c_str(),24/int(etaStep*10),0,2.4,int(13/nomStep)+1,5,18);
   entriesSignalHist->GetYaxis()->SetNdivisions(divisions,false);
-  TH2F* entriesSignalIasHist = new TH2F("entriesSignalIas","Signal tracks over mass/ias cuts in slice;#eta;nom",24/int(etaStep*10),0,2.4,int(13/nomStep)+1,5,18);
+  string entriesSignalIasHistTitle = "Signal tracks over mass/ias cuts in slice";
+  entriesSignalIasHistTitle+=histTitleSuffix;
+  TH2F* entriesSignalIasHist = new TH2F(("entriesSignalIas"+histNameSuffix).c_str(),(entriesSignalIasHistTitle+";#eta;nom").c_str(),24/int(etaStep*10),0,2.4,int(13/nomStep)+1,5,18);
   entriesSignalIasHist->GetYaxis()->SetNdivisions(divisions,false);
+  // sorting  [(delta B)/S] / [(B/S + mu)]^2
+  map<double,int> deltaBOverSAndBinNumbersMap;
 
   double backgroundTracksOverIasCut = 0;
   double backgroundTracksOverIasCutErrorSqr = 0;
@@ -611,15 +666,18 @@ int main(int argc, char ** argv)
     //TH1F* iasBackgroundPredictionMassCutNoMSliceHist = 0;
     TH1D* iasSignalMassCutNoMSliceHist = 0;
     TH1D* iasSignalMassCutNoMSliceForEffHist = 0;
+    TH1D* iasSignalMassCutNoMSliceNoMShiftedHist = 0;
     string bgHistName = string(histItr->GetName());
     string bgHistNameBeg = bgHistName.substr(0,bgHistName.size()-bgLimitsHistNameEnd.size());
     int lowerNoM = getLowerNoMFromHistName(bgHistName,bgLimitsHistNameEnd);
     float lowerEta = getLowerEtaFromHistName(bgHistName,bgLimitsHistNameEnd);
     string sigHistName = bgHistNameBeg;
     //sigHistName+="iasSignalVarBinHist";
-    sigHistName+="iasSignalFixedHist";
+    sigHistName+="iasSignalFixed";
+    sigHistName+=histNameSuffix;
     string iasSignalHistTitle = "Ias of signal";
     iasSignalHistTitle+=getHistTitleEnd(lowerNoM,lowerEta,massCut_);
+    iasSignalHistTitle+=histTitleSuffix;
     // get b region ias histogram
     string iasHistName = "bRegionHistograms/";
     iasHistName+=getHistNameBeg(lowerNoM,lowerEta,nomStep,etaStep);
@@ -640,6 +698,18 @@ int main(int argc, char ** argv)
     iasSignalMassCutNoMSliceHist->Reset();
     iasSignalMassCutNoMSliceHist->SetName(sigHistName.c_str());
     iasSignalMassCutNoMSliceHist->SetTitle(iasSignalHistTitle.c_str());
+    // nom shifted hist
+    string sigHistNoMShiftName = bgHistNameBeg;
+    sigHistNoMShiftName+="iasSignalFixed";
+    sigHistNoMShiftName+=histNameSuffix;
+    sigHistNoMShiftName+="NoMShifted";
+    string iasSignalHistNoMShiftTitle = "Ias of signal";
+    iasSignalHistNoMShiftTitle+=getHistTitleEnd(lowerNoM,lowerEta,massCut_);
+    iasSignalHistNoMShiftTitle+=histTitleSuffix;
+    iasSignalHistNoMShiftTitle+=" NoM weighted";
+    iasSignalMassCutNoMSliceNoMShiftedHist = (TH1D*) histItr->Clone();
+    iasSignalMassCutNoMSliceNoMShiftedHist->Reset();
+    iasSignalMassCutNoMSliceNoMShiftedHist->SetNameTitle(sigHistNoMShiftName.c_str(),iasSignalHistNoMShiftTitle.c_str());
     // mass
     TH1D* massBackgroundPredictionNoMSliceHist = 0;
     TH1D* massSignalNoMSliceHist = 0;
@@ -738,6 +808,7 @@ int main(int argc, char ** argv)
       if(sqrt(massSqr) >= massCut_)
       {
         iasSignalMassCutNoMSliceHist->Fill(iasDataLooseRPC->getVal(),eventWeight);
+        iasSignalMassCutNoMSliceNoMShiftedHist->Fill(iasDataLooseRPC->getVal(),eventWeight*getNoMWeightFromLowerNoM(nomIasDataLooseRPC->getVal()));
         numSignalTracksInDRegionPassingMassCut+=eventWeight;
         entriesSignalHist->Fill(fabs(etaDataLooseRPC->getVal())+0.01,nomIasDataLooseRPC->getVal(),eventWeight);
         if(iasDataLooseRPC->getVal() > iasCutForEffAcc)
@@ -805,6 +876,7 @@ int main(int argc, char ** argv)
       if(sqrt(massSqr) >= massCut_)
       {
         iasSignalMassCutNoMSliceHist->Fill(iasDataTightRPC->getVal(),eventWeight);
+        iasSignalMassCutNoMSliceNoMShiftedHist->Fill(iasDataTightRPC->getVal(),eventWeight*getNoMWeightFromLowerNoM(nomIasDataTightRPC->getVal()));
         numSignalTracksInDRegionPassingMassCut+=eventWeight;
         entriesSignalHist->Fill(fabs(etaDataTightRPC->getVal())+0.01,nomIasDataTightRPC->getVal(),eventWeight);
         if(iasDataTightRPC->getVal() > iasCutForEffAcc)
@@ -838,6 +910,7 @@ int main(int argc, char ** argv)
     }
 
     double numSignalTracksInDRegionMassCutThisSlice = iasSignalMassCutNoMSliceHist->Integral();
+    double numSignalTracksInDRegionMassCutThisSliceNoMWeighted = iasSignalMassCutNoMSliceNoMShiftedHist->Integral();
     // adjust for bin width ratio if variable bins used
     //for(int bin=1; bin<=iasSignalMassCutNoMSliceHist->GetNbinsX(); ++bin)
     //{
@@ -962,11 +1035,18 @@ int main(int argc, char ** argv)
     //double fractionOfSigTracksInDRegionPassingMassCutThisSlice =
     //  numSignalTracksInDRegionMassCutThisSlice/totalGenHSCPTracks; // includes trigger eff.
     double fractionOfSigTracksInDRegionPassingMassCutThisSlice = 0;
+    double fractionOfSigTracksInDRegionPassingMassCutThisSliceNoMWeighted = 0;
     if(countEvents)
+    {
       fractionOfSigTracksInDRegionPassingMassCutThisSlice =
         numSignalTracksInDRegionMassCutThisSlice/totalGenHSCPEvents;
+      fractionOfSigTracksInDRegionPassingMassCutThisSliceNoMWeighted =
+        numSignalTracksInDRegionMassCutThisSliceNoMWeighted/totalGenHSCPEvents;
+    }
     double numSignalTracksInDRegionPassingMassCutThisSlice =
       fractionOfSigTracksInDRegionPassingMassCutThisSlice*totalSignalEvents;
+    double numSignalTracksInDRegionPassingMassCutThisSliceNoMWeighted = 
+      fractionOfSigTracksInDRegionPassingMassCutThisSliceNoMWeighted*totalSignalEvents;
 
     signalTracksOverIasCut+=iasSignalMassCutNoMSliceHist->Integral(
         iasSignalMassCutNoMSliceHist->FindBin(iasCutForEffAcc),
@@ -1087,6 +1167,13 @@ int main(int argc, char ** argv)
     double sigNormFactor = (iasSignalMassCutNoMSliceHist->Integral() > 0) ?
       numSignalTracksInDRegionPassingMassCutThisSlice/iasSignalMassCutNoMSliceHist->Integral() : 0;
     iasSignalMassCutNoMSliceHist->Scale(sigNormFactor);
+    // normalize sig NoM weighted/shifted hist
+    iasSignalMassCutNoMSliceNoMShiftedHist->Sumw2();
+    double sigNormFactorNoMWeighted = (iasSignalMassCutNoMSliceNoMShiftedHist->Integral() > 0) ?
+      numSignalTracksInDRegionPassingMassCutThisSlice/iasSignalMassCutNoMSliceNoMShiftedHist->Integral() : 0;
+      //numSignalTracksInDRegionPassingMassCutThisSliceNoMWeighted/iasSignalMassCutNoMSliceNoMShiftedHist->Integral() : 0;
+      // SIC: normalize to nominal number of signal tracks to keep total integral the same with or without NoM shift
+    iasSignalMassCutNoMSliceNoMShiftedHist->Scale(sigNormFactorNoMWeighted);
 
     // Fill unrolled histograms
     // loop over ias bins, fill unrolled hists
@@ -1096,9 +1183,7 @@ int main(int argc, char ** argv)
       int globalBinIndex = iteratorPos*numBinsEachSlice+iasBin-firstIasBin+1;
       double binc = histItr->GetBinContent(iasBin);
       double bine = histItr->GetBinError(iasBin);
-      //// SIC TESTING -- turn off stat error in all but one slice
-      //if(lowerNoM!=11 || lowerEta!=0)
-      //  bine = 0;
+      // limits
       backgroundAllNoMAllEtaUnrolledLimitsHist->SetBinContent(globalBinIndex,binc);
       backgroundAllNoMAllEtaUnrolledLimitsHist->SetBinError(globalBinIndex,bine);
       // SIC TESTING: DECREASE BACKGROUND PREDICTION BY 2%
@@ -1117,6 +1202,7 @@ int main(int argc, char ** argv)
         histItr->SetBinError(iasBin,0);
       }
       double backExpThisBin = binc;
+      double backExpErrorThisBin = bine;
 
       //std::cout << "INFO: Filling background hist: bin=" << globalBinIndex << " content=" << binc << " error=" << bine << std::endl;
       //// plus one sigma
@@ -1151,7 +1237,16 @@ int main(int argc, char ** argv)
       signalAllNoMAllEtaUnrolledHist->SetBinContent(globalBinIndex,binc);
       signalAllNoMAllEtaUnrolledHist->SetBinError(globalBinIndex,bine);
       double sigExpThisBin = binc;
+      // NoM shifted version
+      binc = iasSignalMassCutNoMSliceNoMShiftedHist->GetBinContent(iasBin);
+      bine = iasSignalMassCutNoMSliceNoMShiftedHist->GetBinError(iasBin);
+      signalAllNoMAllEtaUnrolledNomShiftedHist->SetBinContent(globalBinIndex,binc);
+      signalAllNoMAllEtaUnrolledNomShiftedHist->SetBinError(globalBinIndex,bine);
 
+      // push onto map
+      double approxMuValue = getApproxMuValueFromMassCut(massCut_);
+      if(bine/binc < 1 || binc >= 1)
+        deltaBOverSAndBinNumbersMap[(backExpErrorThisBin/sigExpThisBin)/pow((backExpThisBin/sigExpThisBin+approxMuValue),2)] = globalBinIndex;
       // data D region
       binc = dataHistsToUse[iteratorPos].GetBinContent(iasBin);
       bine = dataHistsToUse[iteratorPos].GetBinError(iasBin);
@@ -1175,13 +1270,13 @@ int main(int argc, char ** argv)
       likelihoodMuHatZero*=TMath::Poisson(dataThisBin,backExpThisBin);
       likelihoodMuHatPos*=TMath::Poisson(dataThisBin,backExpThisBin+0.1*sigExpThisBin);
       likelihoodMuHatNeg*=TMath::Poisson(dataThisBin,backExpThisBin-0.1*sigExpThisBin);
-      std::cout << "Likelihood 'by hand' this bin: data: "
-        << dataThisBin << " backExp: " << backExpThisBin << " 0.1*sigExpThisBin " << 0.1*sigExpThisBin << " mu-hat = 0: " << TMath::Poisson(dataThisBin,backExpThisBin)
-        << " mu-hat = -0.1: " << TMath::Poisson(dataThisBin,backExpThisBin-0.1*sigExpThisBin) << " mu-hat = 0.1: " << TMath::Poisson(dataThisBin,backExpThisBin+0.1*sigExpThisBin) << std::endl << std::endl;
+      //std::cout << "Likelihood 'by hand' this bin: data: "
+      //  << dataThisBin << " backExp: " << backExpThisBin << " 0.1*sigExpThisBin " << 0.1*sigExpThisBin << " mu-hat = 0: " << TMath::Poisson(dataThisBin,backExpThisBin)
+      //  << " mu-hat = -0.1: " << TMath::Poisson(dataThisBin,backExpThisBin-0.1*sigExpThisBin) << " mu-hat = 0.1: " << TMath::Poisson(dataThisBin,backExpThisBin+0.1*sigExpThisBin) << std::endl << std::endl;
 
       //std::cout << "INFO: Filling signal hist: bin=" << globalBinIndex << " content=" << binc << " error=" << bine << std::endl;
     }
-    std::cout << "Likelihood 'by hand' so far: mu-hat 0: " << likelihoodMuHatZero << " mu-hat -0.1: " << likelihoodMuHatNeg << " mu-hat 0.1: " << likelihoodMuHatPos << std::endl << std::endl;
+    //std::cout << "Likelihood 'by hand' so far: mu-hat 0: " << likelihoodMuHatZero << " mu-hat -0.1: " << likelihoodMuHatNeg << " mu-hat 0.1: " << likelihoodMuHatPos << std::endl << std::endl;
     //mass
     if(doMass)
     {
@@ -1208,6 +1303,7 @@ int main(int argc, char ** argv)
     dataHistsToUse[iteratorPos].Write();
     //normedSignalPredDir->cd();
     iasSignalMassCutNoMSliceHist->Write();
+    iasSignalMassCutNoMSliceNoMShiftedHist->Write();
     if(doMass)
     {
       massSignalNoMSliceHist->Write();
@@ -1222,10 +1318,164 @@ int main(int argc, char ** argv)
     delete etaCutNomCutDRegionDataSetSignalTightRPC;
     //delete iasBackgroundPredictionMassCutNoMSliceHist;
     delete iasSignalMassCutNoMSliceHist;
+    delete iasSignalMassCutNoMSliceNoMShiftedHist;
     delete iasSignalMassCutNoMSliceForEffHist;
     delete iasHist;
   }
 
+  double signalEventsOverIasCut = signalEventsOverIasCutLooseRPC+signalEventsOverIasCutTightRPC;
+  cout << "Signal events > ias cut loose RPC: " << signalEventsOverIasCutLooseRPC <<
+    " tight RPC: " << signalEventsOverIasCutTightRPC << endl;
+
+  cout << endl << endl << "Ias cut = " << iasCutForEffAcc << endl << "\tfound " << backgroundTracksOverIasCutNoApprox
+    << " +/- " << sqrt(backgroundTracksOverIasCutNoApproxErrorSqr)
+    << " background tracks over ias cut from ias pred hist (limits)" << endl 
+    << backgroundTracksOverIasCut
+    << " +/- " << sqrt(backgroundTracksOverIasCutErrorSqr)
+    << " tracks over ias cut from approximation" << endl
+    << numBkOverIasCut << " Bk tracks over ias cut"
+    << endl << endl
+    << signalEventsOverIasCut << " signal events over ias cut" << endl
+    << signalEventsOverIasCut/totalGenHSCPEvents << " signal efficiency (event level) or" << endl  << endl;
+    //<< signalTracksOverIasCut/totalGenHSCPTracks << " signal efficiency (track level) with this ias cut. " << endl << endl;
+
+  cout << "event weight sum: " << totalGenHSCPEvents << endl;
+  cout << "event weight sum loose: " << eventWeightSumLooseRPCRooVar->getVal() << " tight: " << eventWeightSumTightRPCRooVar->getVal() << endl;
+  //cout << "original generated events: " << totalGenHSCPEvents << " events over ias cut: " << signalEventsOverIasCut
+  //  << endl;
+  //cout << "original generated tracks: " << totalGenHSCPTracks << " tracks over ias cut: " << signalTracksOverIasCut
+  //  << endl;
+  //cout << "orig signal tracks passing trig/presel: " << numSignalTracksTotal << endl << " orig signal tracks in D region: "
+  //  << numSignalTracksInDRegion << endl << " original signal tracks in D region passing mass cut: "
+  //  << numSignalTracksInDRegionPassingMassCut
+  //  << endl;
+  //cout << "(eff) signal tracks passing trig/presel: " << numSignalTracksTotal/totalGenHSCPTracks << endl
+  //  << " (eff) signal tracks in D region: " << numSignalTracksInDRegion/totalGenHSCPTracks << endl
+  //  << " (eff) signal tracks in D region passing mass cut: " << numSignalTracksInDRegionPassingMassCut/totalGenHSCPTracks
+  //  << endl;
+
+//  // make toy data
+//  TRandom3* rand = new TRandom3();
+//  // background
+//  TH1D* backgroundToyDataHist = (TH1D*) backgroundAllNoMAllEtaUnrolledLimitsHist->Clone();
+//  backgroundToyDataHist->Reset();
+//  backgroundToyDataHist->SetNameTitle("backgroundToyData","background toy data");
+//  for(int bin=1; bin <= backgroundToyDataHist->GetNbinsX(); ++bin)
+//    backgroundToyDataHist->SetBinContent(bin,rand->Poisson(backgroundAllNoMAllEtaUnrolledHist->GetBinContent(bin)));
+//  // signal
+//  TH1D* signalToyDataHist = (TH1D*) signalAllNoMAllEtaUnrolledHist->Clone();
+//  signalToyDataHist->Reset();
+//  signalToyDataHist->SetNameTitle("signalToyData","signal toy data");
+//  for(int bin=1; bin <= signalToyDataHist->GetNbinsX(); ++bin)
+//  {
+//    // set signal zero bins to small value
+//    if(signalAllNoMAllEtaUnrolledHist->GetBinContent(bin)==0)
+//      signalAllNoMAllEtaUnrolledHist->SetBinContent(bin,1e-15);
+//    signalToyDataHist->SetBinContent(bin,rand->Poisson(signalAllNoMAllEtaUnrolledHist->GetBinContent(bin)));
+//  }
+//  signalToyDataHist->Scale(signalCrossSectionForEff);  // scale by cross section
+//  //signalToyDataHist->Scale(1e-4);
+//  // signal and background
+//  TH1D* signalAndBackgroundToyDataHist = (TH1D*) backgroundAllNoMAllEtaUnrolledHist->Clone();
+//  signalAndBackgroundToyDataHist->Reset();
+//  signalAndBackgroundToyDataHist->SetNameTitle("signalAndBackgroundToyDataHist","signal and background toy data");
+//  signalAndBackgroundToyDataHist->Add(backgroundToyDataHist,signalToyDataHist);
+
+  //check for zeros
+  for(int bin=1; bin <= backgroundAllNoMAllEtaUnrolledLimitsHist->GetNbinsX(); ++bin)
+  {
+    double binc = backgroundAllNoMAllEtaUnrolledLimitsHist->GetBinContent(bin);
+    //double bincToy = signalAndBackgroundToyDataHist->GetBinContent(bin);
+    //if(bincToy > 0)
+    //{
+    //  std::cout << "bincToy=" << bincToy << " binc=" << binc << std::endl;
+    //  if(binc==0)
+    //    std::cout << "\tDetected bin where binc==0!" << std::endl;
+    //}
+    if(binc == 0)
+    {
+      std::cout << "WARNING: limits hist: binc==0 : bin " << bin << std::endl;
+      outputRootFile->cd();
+      backgroundAllNoMAllEtaUnrolledLimitsHist->Write();
+      backgroundAllNoMAllEtaUnrolledDiscoveryHist->Write();
+      outputRootFile->Close();
+      return -11;
+    }
+
+    binc = backgroundAllNoMAllEtaUnrolledDiscoveryHist->GetBinContent(bin);
+    if(binc == 0)
+    {
+      std::cout << "WARNING: discovery hist: binc==0 : bin " << bin << std::endl;
+      outputRootFile->cd();
+      backgroundAllNoMAllEtaUnrolledLimitsHist->Write();
+      backgroundAllNoMAllEtaUnrolledDiscoveryHist->Write();
+      outputRootFile->Close();
+      return -11;
+    }
+  }
+
+  // map of s/b values and bin numbers
+  if(deltaBOverSAndBinNumbersMap.size() > 400)
+  {
+    int count = 0;
+    map<double,int>::reverse_iterator itr;
+    for(itr = deltaBOverSAndBinNumbersMap.rbegin();
+        itr != deltaBOverSAndBinNumbersMap.rend(); itr++)
+    {
+      //if(count >= 400) // keep error on 400 bins with highest deltaB/S value
+      //{
+      //  backgroundAllNoMAllEtaUnrolledLimitsHist->SetBinError(itr->second,0);
+      //  std::cout << "INFO: Setting error on background bin " << itr->second << " to zero." << std::endl;
+      //}
+
+      if(count < 400) // set first 400 largest to zero error
+      {
+        backgroundAllNoMAllEtaUnrolledLimitsHist->SetBinError(itr->second,0);
+        std::cout << "INFO: Setting error on background bin " << itr->second << " to zero." << std::endl;
+      }
+      else if(count >= 800) // AND set all bins with deltaB/S numbers 800 and higher to zero error
+      {
+        backgroundAllNoMAllEtaUnrolledLimitsHist->SetBinError(itr->second,0);
+        std::cout << "INFO: Setting error on background bin " << itr->second << " to zero." << std::endl;
+      }
+      ++count;
+    }
+  }
+
+  outputRootFile->cd();
+  backgroundAllNoMAllEtaUnrolledLimitsHist->Write();
+  backgroundAllNoMAllEtaUnrolledDiscoveryHist->Write();
+  //backgroundAllNoMAllEtaUnrolledPlusOneSigmaHist->Write();
+  //backgroundAllNoMAllEtaUnrolledMinusOneSigmaHist->Write();
+  signalAllNoMAllEtaUnrolledHist->Write();
+  signalAllNoMAllEtaUnrolledNomShiftedHist->Write();
+  dataAllNoMAllEtaUnrolledHist->Write();
+  if(doMass)
+  {
+    backgroundAllNoMAllEtaUnrolledMassHist->Write();
+    signalAllNoMAllEtaUnrolledMassHist->Write();
+  }
+  sigEffOverIasCutVsSliceHist->Write();
+  sigEffOverIasCutHist->Write();
+  backExpOverIasCutVsSliceHist->Write();
+  backExpVsSliceHist->Write();
+  backExpOverIasCutHist->Write();
+  entriesSignalHist->Write();
+  entriesSignalIasHist->Write();
+  //// toy data
+  //backgroundToyDataHist->Write();
+  //signalToyDataHist->Write();
+  //signalAndBackgroundToyDataHist->Write();
+
+  if(backgroundAllNoMAllEtaUnrolledLimitsHist->Integral() <= 0
+      || backgroundAllNoMAllEtaUnrolledDiscoveryHist->Integral() <= 0)
+    return -1;
+
+  return 0;
+}
+
+void doStandardAnalysisPrediction(TFile* backgroundPredictionRootFile, TFile* outputRootFile)
+{
   // now do the standard analysis style prediction
   TH1F* etaBRegionHist = (TH1F*) backgroundPredictionRootFile->Get("etaBRegionHist");
   TH1F* etaARegionHist = (TH1F*) backgroundPredictionRootFile->Get("etaARegionHist");
@@ -1250,7 +1500,7 @@ int main(int argc, char ** argv)
       sqrt(pow(aRegionIntError/aRegionInt,2)+pow(bRegionIntError/bRegionInt,2)+pow(cRegionIntError/cRegionInt,2));
   }
 
-  std::cout << "Likelihood 'by hand': mu-hat = 0: " << likelihoodMuHatZero << " mu-hat = -0.1: " << likelihoodMuHatNeg << " mu-hat = 0.1: " << likelihoodMuHatPos << std::endl << std::endl;
+  //std::cout << "Likelihood 'by hand': mu-hat = 0: " << likelihoodMuHatZero << " mu-hat = -0.1: " << likelihoodMuHatNeg << " mu-hat = 0.1: " << likelihoodMuHatPos << std::endl << std::endl;
 
   std::cout << "A = " << aRegionInt << " +/- " << aRegionIntError << std::endl <<
                "B = " << bRegionInt << " +/- " << bRegionIntError << std::endl <<
@@ -1347,98 +1597,6 @@ int main(int argc, char ** argv)
   cout << " +/- " << massPredError
        << endl << endl;
   // end of standard analysis style prediction
-
-  double signalEventsOverIasCut = signalEventsOverIasCutLooseRPC+signalEventsOverIasCutTightRPC;
-  cout << "Signal events > ias cut loose RPC: " << signalEventsOverIasCutLooseRPC <<
-    " tight RPC: " << signalEventsOverIasCutTightRPC << endl;
-
-  cout << endl << endl << "Ias cut = " << iasCutForEffAcc << endl << "\tfound " << backgroundTracksOverIasCutNoApprox
-    << " +/- " << sqrt(backgroundTracksOverIasCutNoApproxErrorSqr)
-    << " background tracks over ias cut from ias pred hist (limits)" << endl 
-    << backgroundTracksOverIasCut
-    << " +/- " << sqrt(backgroundTracksOverIasCutErrorSqr)
-    << " tracks over ias cut from approximation" << endl
-    << numBkOverIasCut << " Bk tracks over ias cut"
-    << endl << endl
-    << signalEventsOverIasCut << " signal events over ias cut" << endl
-    << signalEventsOverIasCut/totalGenHSCPEvents << " signal efficiency (event level) or" << endl  << endl;
-    //<< signalTracksOverIasCut/totalGenHSCPTracks << " signal efficiency (track level) with this ias cut. " << endl << endl;
-
-  cout << "event weight sum: " << totalGenHSCPEvents << endl;
-  cout << "event weight sum loose: " << eventWeightSumLooseRPCRooVar->getVal() << " tight: " << eventWeightSumTightRPCRooVar->getVal() << endl;
-  //cout << "original generated events: " << totalGenHSCPEvents << " events over ias cut: " << signalEventsOverIasCut
-  //  << endl;
-  //cout << "original generated tracks: " << totalGenHSCPTracks << " tracks over ias cut: " << signalTracksOverIasCut
-  //  << endl;
-  //cout << "orig signal tracks passing trig/presel: " << numSignalTracksTotal << endl << " orig signal tracks in D region: "
-  //  << numSignalTracksInDRegion << endl << " original signal tracks in D region passing mass cut: "
-  //  << numSignalTracksInDRegionPassingMassCut
-  //  << endl;
-  //cout << "(eff) signal tracks passing trig/presel: " << numSignalTracksTotal/totalGenHSCPTracks << endl
-  //  << " (eff) signal tracks in D region: " << numSignalTracksInDRegion/totalGenHSCPTracks << endl
-  //  << " (eff) signal tracks in D region passing mass cut: " << numSignalTracksInDRegionPassingMassCut/totalGenHSCPTracks
-  //  << endl;
-
-//  // make toy data
-//  TRandom3* rand = new TRandom3();
-//  // background
-//  TH1D* backgroundToyDataHist = (TH1D*) backgroundAllNoMAllEtaUnrolledLimitsHist->Clone();
-//  backgroundToyDataHist->Reset();
-//  backgroundToyDataHist->SetNameTitle("backgroundToyData","background toy data");
-//  for(int bin=1; bin <= backgroundToyDataHist->GetNbinsX(); ++bin)
-//    backgroundToyDataHist->SetBinContent(bin,rand->Poisson(backgroundAllNoMAllEtaUnrolledHist->GetBinContent(bin)));
-//  // signal
-//  TH1D* signalToyDataHist = (TH1D*) signalAllNoMAllEtaUnrolledHist->Clone();
-//  signalToyDataHist->Reset();
-//  signalToyDataHist->SetNameTitle("signalToyData","signal toy data");
-//  for(int bin=1; bin <= signalToyDataHist->GetNbinsX(); ++bin)
-//  {
-//    // set signal zero bins to small value
-//    if(signalAllNoMAllEtaUnrolledHist->GetBinContent(bin)==0)
-//      signalAllNoMAllEtaUnrolledHist->SetBinContent(bin,1e-15);
-//    signalToyDataHist->SetBinContent(bin,rand->Poisson(signalAllNoMAllEtaUnrolledHist->GetBinContent(bin)));
-//  }
-//  signalToyDataHist->Scale(signalCrossSectionForEff);  // scale by cross section
-//  //signalToyDataHist->Scale(1e-4);
-//  // signal and background
-//  TH1D* signalAndBackgroundToyDataHist = (TH1D*) backgroundAllNoMAllEtaUnrolledHist->Clone();
-//  signalAndBackgroundToyDataHist->Reset();
-//  signalAndBackgroundToyDataHist->SetNameTitle("signalAndBackgroundToyDataHist","signal and background toy data");
-//  signalAndBackgroundToyDataHist->Add(backgroundToyDataHist,signalToyDataHist);
-
-  //check for zeros
-  for(int bin=1; bin <= backgroundAllNoMAllEtaUnrolledLimitsHist->GetNbinsX(); ++bin)
-  {
-    double binc = backgroundAllNoMAllEtaUnrolledLimitsHist->GetBinContent(bin);
-    //double bincToy = signalAndBackgroundToyDataHist->GetBinContent(bin);
-    //if(bincToy > 0)
-    //{
-    //  std::cout << "bincToy=" << bincToy << " binc=" << binc << std::endl;
-    //  if(binc==0)
-    //    std::cout << "\tDetected bin where binc==0!" << std::endl;
-    //}
-    if(binc == 0)
-    {
-      std::cout << "WARNING: limits hist: binc==0 : bin " << bin << std::endl;
-      outputRootFile->cd();
-      backgroundAllNoMAllEtaUnrolledLimitsHist->Write();
-      backgroundAllNoMAllEtaUnrolledDiscoveryHist->Write();
-      outputRootFile->Close();
-      return -11;
-    }
-
-    binc = backgroundAllNoMAllEtaUnrolledDiscoveryHist->GetBinContent(bin);
-    if(binc == 0)
-    {
-      std::cout << "WARNING: discovery hist: binc==0 : bin " << bin << std::endl;
-      outputRootFile->cd();
-      backgroundAllNoMAllEtaUnrolledLimitsHist->Write();
-      backgroundAllNoMAllEtaUnrolledDiscoveryHist->Write();
-      outputRootFile->Close();
-      return -11;
-    }
-  }
-
   outputRootFile->cd();
   etaBRegionHist->Write();
   etaARegionHist->Write();
@@ -1447,35 +1605,109 @@ int main(int argc, char ** argv)
   ihBRegionTotalHist->Write();
   reweightedPInCRegionHist->Write();
   massHist->Write();
-  backgroundAllNoMAllEtaUnrolledLimitsHist->Write();
-  backgroundAllNoMAllEtaUnrolledDiscoveryHist->Write();
-  //backgroundAllNoMAllEtaUnrolledPlusOneSigmaHist->Write();
-  //backgroundAllNoMAllEtaUnrolledMinusOneSigmaHist->Write();
-  signalAllNoMAllEtaUnrolledHist->Write();
-  dataAllNoMAllEtaUnrolledHist->Write();
-  if(doMass)
-  {
-    backgroundAllNoMAllEtaUnrolledMassHist->Write();
-    signalAllNoMAllEtaUnrolledMassHist->Write();
-  }
-  sigEffOverIasCutVsSliceHist->Write();
-  sigEffOverIasCutHist->Write();
-  backExpOverIasCutVsSliceHist->Write();
-  backExpVsSliceHist->Write();
-  backExpOverIasCutHist->Write();
-  entriesSignalHist->Write();
-  entriesSignalIasHist->Write();
-  //// toy data
-  //backgroundToyDataHist->Write();
-  //signalToyDataHist->Write();
-  //signalAndBackgroundToyDataHist->Write();
-  outputRootFile->Close();
+}
 
+
+// ****** main
+int main(int argc, char ** argv)
+{
+  using namespace RooFit;
+  using namespace std;
+
+  // load framework libraries
+  gSystem->Load("libFWCoreFWLite");
+  AutoLibraryLoader::enable();
+
+  // parse arguments
+  if(argc < 2)
+  {
+    cout << "Usage : " << argv[0] << " [parameters.py]" << endl;
+    return -1;
+  }
+
+  // get the python configuration
+  const edm::ParameterSet& process = edm::readPSetsFrom(argv[1])->getParameter<edm::ParameterSet>("process");
+  // now get each parameterset
+  const edm::ParameterSet& ana = process.getParameter<edm::ParameterSet>("makeScaledPredictionHistograms");
+  // mass cut to use for the high-p high-Ih (search region) ias dist
+  massCut_ = ana.getParameter<double>("MassCut");
+  backgroundPredictionRootFilename_ = ana.getParameter<string>("BackgroundPredictionInputRootFile");
+  signalTightRPCRootFilename_ = ana.getParameter<string>("SignalTightRPCInputRootFile");
+  signalLooseRPCRootFilename_ = ana.getParameter<string>("SignalLooseRPCInputRootFile");
+  outputRootFilename_ = ana.getParameter<string>("OutputRootFile");
+  // dE/dx calibration
+  dEdx_k = ana.getParameter<double>("dEdx_k");
+  dEdx_c = ana.getParameter<double>("dEdx_c");
+  // definition of sidebands/search region
+  pSidebandThreshold = ana.getParameter<double>("PSidebandThreshold");
+  ptSidebandThreshold = ana.getParameter<double>("PtSidebandThreshold");
+  usePtForSideband = ana.getParameter<bool>("UsePtForSideband");
+  ihSidebandThreshold = ana.getParameter<double>("IhSidebandThreshold");
+  integratedLumi = ana.getParameter<double>("IntegratedLuminosity"); // 1/pb
+  signalCrossSectionForEff = ana.getParameter<double>("SignalCrossSection"); // pb
+  iasCutForEffAcc = ana.getParameter<double>("IasCutForEfficiency");
+  useIasForSideband = ana.getParameter<bool>("UseIasForSideband");
+
+  // do mass?
+  doMass = false;
+
+  std::cout << "Using dE/dx k: " << dEdx_k << " c: " << dEdx_c << std::endl;
+
+  // TODO configurable nom/eta limits
+  // NB: always use upper edge of last bin for both
+  minNoM = 5;
+  maxNoM = 18;
+  minEta = 0.0;
+  maxEta = 1.6;
+
+  //string fileNameEnd = generateFileNameEnd(massCut_,pSidebandThreshold,ptSidebandThreshold,usePtForSideband,ihSidebandThreshold);
+  string fileNameEnd = "";
+  TFile* outputRootFile = new TFile((outputRootFilename_+fileNameEnd).c_str(),"recreate");
+  TFile* backgroundPredictionRootFile = TFile::Open(backgroundPredictionRootFilename_.c_str());
+
+  doScaledPredictions(outputRootFile,backgroundPredictionRootFile,false);
+  doScaledPredictions(outputRootFile,backgroundPredictionRootFile,true);
+
+  outputRootFile->cd();
+  // get ahold of some needed hists
+  TH1D* iasShiftedSignalHist = (TH1D*) outputRootFile->Get("signalAllNoMAllEtaUnrolledIasShiftHist");
+  TH1D* nominalSignalHist = (TH1D*) outputRootFile->Get("signalAllNoMAllEtaUnrolledHist");
+  // make Ias variational hists
+  TH1D* signalIasMinusOneSigmaHist = (TH1D*) nominalSignalHist->Clone();
+  signalIasMinusOneSigmaHist->SetNameTitle("signalAllNoMAllEtaUnrolledMinusOneSigmaIasHist","unrolled signal hist, -1#sigma Ias shift (old nominal)");
+  TH1D* signalIasPlusOneSigmaHist = (TH1D*) iasShiftedSignalHist->Clone();
+  signalIasPlusOneSigmaHist->SetNameTitle("signalAllNoMAllEtaUnrolledPlusOneSigmaIasHist","unrolled signal hist, +1#sigma Ias shift (full ias shift)");
+  // make new nominal
+  TH1D* newNominalSignalHist = (TH1D*) nominalSignalHist->Clone();
+  //newNominalSignalHist->Reset();
+  newNominalSignalHist->SetNameTitle("signalAllNoMAllEtaUnrolledHalfIasShiftHist","unrolled signal hist, 1/2 Ias shift (new nominal)");
+  newNominalSignalHist->Add(iasShiftedSignalHist,-1);
+  newNominalSignalHist->Scale(-0.5); // to take half difference
+  newNominalSignalHist->Add(nominalSignalHist,1); // to add on the half-difference to the original
+  // check for zeros/negatives
+  for(int bin=1; bin <= signalIasPlusOneSigmaHist->GetNbinsX(); ++bin)
+  {
+    double binc = signalIasPlusOneSigmaHist->GetBinContent(bin);
+    if(binc <= 0)
+    {
+      signalIasPlusOneSigmaHist->SetBinContent(bin,1e-25);
+      signalIasPlusOneSigmaHist->SetBinError(bin,0);
+    }
+    binc = newNominalSignalHist->GetBinContent(bin);
+    if(binc <= 0)
+    {
+      newNominalSignalHist->SetBinContent(bin,1e-25);
+      newNominalSignalHist->SetBinError(bin,0);
+    }
+  }
+  // write
+  signalIasMinusOneSigmaHist->Write();
+  signalIasPlusOneSigmaHist->Write();
+  newNominalSignalHist->Write();
+
+  doStandardAnalysisPrediction(outputRootFile,backgroundPredictionRootFile);
+  outputRootFile->Close();
   //backgroundPredictionRootFile->Close();
   //signalRootFile->Close();
-
-  if(backgroundAllNoMAllEtaUnrolledLimitsHist->Integral() <= 0
-      || backgroundAllNoMAllEtaUnrolledDiscoveryHist->Integral() <= 0)
-    return -1;
 }
 
