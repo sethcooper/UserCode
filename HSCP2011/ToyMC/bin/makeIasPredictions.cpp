@@ -767,6 +767,48 @@ int main(int argc, char ** argv)
       iasPredictionFixedDiscoveryHistTitle+=" GeV";
       TH1D* iasPredictionFixedDiscoveryHist = iasPredictionFixedBinsDir.make<TH1D>(iasPredictionFixedDiscoveryHistName.c_str(),iasPredictionFixedDiscoveryHistTitle.c_str(),numIasBins,0,1);
       iasPredictionFixedDiscoveryHist->Sumw2();
+      // ias prediction histogram in this NoM/eta bin -- add one sigma of slope in exp fit
+      std::string iasPredictionFixedSlopeAddOneSigmaHistName = getHistNameBeg(nom,lowerEta,nomStep,etaStep);
+      iasPredictionFixedSlopeAddOneSigmaHistName+="iasPredictionFixedSlopeAddOneSigmaHist";
+      std::string iasPredictionFixedSlopeAddOneSigmaHistTitle = "Ias prediction (+1 #sigma slope) for ";
+      iasPredictionFixedSlopeAddOneSigmaHistTitle+=intToString(nom);
+      iasPredictionFixedSlopeAddOneSigmaHistTitle+="-";
+      if(nom==lastLowerNoM)
+        iasPredictionFixedSlopeAddOneSigmaHistTitle+="end";
+      else if(nom==5)
+        iasPredictionFixedSlopeAddOneSigmaHistTitle+=intToString(nom+2*nomStep-1);
+      else
+        iasPredictionFixedSlopeAddOneSigmaHistTitle+=intToString(nom+nomStep-1);
+      iasPredictionFixedSlopeAddOneSigmaHistTitle+=", ";
+      iasPredictionFixedSlopeAddOneSigmaHistTitle+=floatToString(lowerEta);
+      iasPredictionFixedSlopeAddOneSigmaHistTitle+=" < |#eta| < ";
+      iasPredictionFixedSlopeAddOneSigmaHistTitle+=floatToString(lowerEta+etaStep);
+      iasPredictionFixedSlopeAddOneSigmaHistTitle+=", mass > ";
+      iasPredictionFixedSlopeAddOneSigmaHistTitle+=floatToString(massCutIasHighPHighIh_);
+      iasPredictionFixedSlopeAddOneSigmaHistTitle+=" GeV";
+      TH1D* iasPredictionFixedSlopeAddOneSigmaHist = iasPredictionFixedBinsDir.make<TH1D>(iasPredictionFixedSlopeAddOneSigmaHistName.c_str(),iasPredictionFixedSlopeAddOneSigmaHistTitle.c_str(),numIasBins,0,1);
+      iasPredictionFixedSlopeAddOneSigmaHist->Sumw2();
+      // ias prediction histogram in this NoM/eta bin -- add one sigma of slope in exp fit
+      std::string iasPredictionFixedSlopeMinusOneSigmaHistName = getHistNameBeg(nom,lowerEta,nomStep,etaStep);
+      iasPredictionFixedSlopeMinusOneSigmaHistName+="iasPredictionFixedSlopeMinusOneSigmaHist";
+      std::string iasPredictionFixedSlopeMinusOneSigmaHistTitle = "Ias prediction (-1 #sigma slope) for ";
+      iasPredictionFixedSlopeMinusOneSigmaHistTitle+=intToString(nom);
+      iasPredictionFixedSlopeMinusOneSigmaHistTitle+="-";
+      if(nom==lastLowerNoM)
+        iasPredictionFixedSlopeMinusOneSigmaHistTitle+="end";
+      else if(nom==5)
+        iasPredictionFixedSlopeMinusOneSigmaHistTitle+=intToString(nom+2*nomStep-1);
+      else
+        iasPredictionFixedSlopeMinusOneSigmaHistTitle+=intToString(nom+nomStep-1);
+      iasPredictionFixedSlopeMinusOneSigmaHistTitle+=", ";
+      iasPredictionFixedSlopeMinusOneSigmaHistTitle+=floatToString(lowerEta);
+      iasPredictionFixedSlopeMinusOneSigmaHistTitle+=" < |#eta| < ";
+      iasPredictionFixedSlopeMinusOneSigmaHistTitle+=floatToString(lowerEta+etaStep);
+      iasPredictionFixedSlopeMinusOneSigmaHistTitle+=", mass > ";
+      iasPredictionFixedSlopeMinusOneSigmaHistTitle+=floatToString(massCutIasHighPHighIh_);
+      iasPredictionFixedSlopeMinusOneSigmaHistTitle+=" GeV";
+      TH1D* iasPredictionFixedSlopeMinusOneSigmaHist = iasPredictionFixedBinsDir.make<TH1D>(iasPredictionFixedSlopeMinusOneSigmaHistName.c_str(),iasPredictionFixedSlopeMinusOneSigmaHistTitle.c_str(),numIasBins,0,1);
+      iasPredictionFixedSlopeMinusOneSigmaHist->Sumw2();
       // ias histogram points and fit in this NoM/eta bin
       std::string iasPointsAndFitHistName = getHistNameBeg(nom,lowerEta,nomStep,etaStep);
       iasPointsAndFitHistName+="iasPointsAndFitHist";
@@ -888,6 +930,10 @@ int main(int argc, char ** argv)
             iasPredictionFixedDiscoveryHist->SetBinError(bin,sqrt(emptyBinVal));
             iasPointsAndFitHist->SetBinContent(bin,emptyBinVal);
             iasPointsAndFitHist->SetBinError(bin,sqrt(emptyBinVal));
+            iasPredictionFixedSlopeAddOneSigmaHist->SetBinContent(bin,emptyBinVal);
+            iasPredictionFixedSlopeAddOneSigmaHist->SetBinError(bin,sqrt(emptyBinVal));
+            iasPredictionFixedSlopeMinusOneSigmaHist->SetBinContent(bin,emptyBinVal);
+            iasPredictionFixedSlopeMinusOneSigmaHist->SetBinError(bin,sqrt(emptyBinVal));
           }
         }
         continue;
@@ -1045,6 +1091,10 @@ int main(int argc, char ** argv)
           iasPredictionFixedDiscoveryHist->SetBinError(bin,sqrt(Bk));
           iasPointsAndFitHist->SetBinContent(bin,Bk);
           iasPointsAndFitHist->SetBinError(bin,sqrt(Bk));
+          iasPredictionFixedSlopeAddOneSigmaHist->SetBinContent(bin,Bk);
+          iasPredictionFixedSlopeAddOneSigmaHist->SetBinError(bin,sqrt(Bk));
+          iasPredictionFixedSlopeMinusOneSigmaHist->SetBinContent(bin,Bk);
+          iasPredictionFixedSlopeMinusOneSigmaHist->SetBinError(bin,sqrt(Bk));
         }
         else
         {
@@ -1061,6 +1111,10 @@ int main(int argc, char ** argv)
           iasPredictionFixedDiscoveryHist->SetBinError(bin,lastBinError);
           iasPointsAndFitHist->SetBinContent(bin,0);
           iasPointsAndFitHist->SetBinError(bin,lastBinError);
+          iasPredictionFixedSlopeAddOneSigmaHist->SetBinContent(bin,0);
+          iasPredictionFixedSlopeAddOneSigmaHist->SetBinError(bin,lastBinError);
+          iasPredictionFixedSlopeMinusOneSigmaHist->SetBinContent(bin,0);
+          iasPredictionFixedSlopeMinusOneSigmaHist->SetBinError(bin,lastBinError);
         }
       }
       // now fit from here to the end with an exp and fill the empty bins
@@ -1076,6 +1130,10 @@ int main(int argc, char ** argv)
         std::cout << "ERROR: Fit status is " << fitStatus << " which is nonzero!  Not using the fit." << endl;
         continue;
       }
+      TF1* myExpPlusOneSigma = (TF1*)myExp->Clone(); // shallower slope
+      myExpPlusOneSigma->SetParameters(myExp->GetParameter(0),myExp->GetParameter(1)+myExp->GetParError(1));
+      TF1* myExpMinusOneSigma = (TF1*)myExp->Clone(); // steeper slope
+      myExpMinusOneSigma->SetParameters(myExp->GetParameter(0),myExp->GetParameter(1)-myExp->GetParError(1));
       for(int bin=lastDecentStatsBin+1; bin <= iasPredictionFixedLimitsHist->GetNbinsX(); ++bin)
       {
         double expVal = myExp->Eval(iasPredictionFixedLimitsHist->GetBinCenter(bin));
@@ -1106,14 +1164,58 @@ int main(int argc, char ** argv)
         //std::cout << "expVal=" << expVal << " par0Err=" << par0Err << " par1Err=" << par1Err << " cov=" << cov
         //  << " xVal=" << xVal << std::endl;
       }
+      // now for +1 sigma exp slope
+      for(int bin=lastDecentStatsBin+1; bin <= iasPredictionFixedLimitsHist->GetNbinsX(); ++bin)
+      {
+        double expVal = myExpPlusOneSigma->Eval(iasPredictionFixedLimitsHist->GetBinCenter(bin));
+        double absErr = sqrt(expVal);
+        if(isnan(absErr) && expVal < emptyBinVal)
+        {
+          iasPredictionFixedSlopeAddOneSigmaHist->SetBinContent(bin,emptyBinVal);
+          iasPredictionFixedSlopeAddOneSigmaHist->SetBinError(bin,sqrt(emptyBinVal));
+        }
+        else if(expVal < emptyBinVal)
+        {
+          iasPredictionFixedSlopeAddOneSigmaHist->SetBinContent(bin,emptyBinVal);
+          iasPredictionFixedSlopeAddOneSigmaHist->SetBinError(bin,sqrt(emptyBinVal));
+        }
+        else
+        {
+          iasPredictionFixedSlopeAddOneSigmaHist->SetBinContent(bin,expVal);
+          iasPredictionFixedSlopeAddOneSigmaHist->SetBinError(bin,absErr);
+        }
+      }
+      // now for -1 sigma exp slope
+      for(int bin=lastDecentStatsBin+1; bin <= iasPredictionFixedLimitsHist->GetNbinsX(); ++bin)
+      {
+        double expVal = myExpMinusOneSigma->Eval(iasPredictionFixedLimitsHist->GetBinCenter(bin));
+        double absErr = sqrt(expVal);
+        if(isnan(absErr) && expVal < emptyBinVal)
+        {
+          iasPredictionFixedSlopeMinusOneSigmaHist->SetBinContent(bin,emptyBinVal);
+          iasPredictionFixedSlopeMinusOneSigmaHist->SetBinError(bin,sqrt(emptyBinVal));
+        }
+        else if(expVal < emptyBinVal)
+        {
+          iasPredictionFixedSlopeMinusOneSigmaHist->SetBinContent(bin,emptyBinVal);
+          iasPredictionFixedSlopeMinusOneSigmaHist->SetBinError(bin,sqrt(emptyBinVal));
+        }
+        else
+        {
+          iasPredictionFixedSlopeMinusOneSigmaHist->SetBinContent(bin,expVal);
+          iasPredictionFixedSlopeMinusOneSigmaHist->SetBinError(bin,absErr);
+        }
+      }
       delete myExp;
+      delete myExpPlusOneSigma;
+      delete myExpMinusOneSigma;
 
       // now do the C/A scaling
       // for bins that had no Bk:
       //   1) For limits, underestimate background by using Ceff/A from last non-empty bin
       //   2) For discovery, overestimate background by using Ceff/A with Ceff defined based on avg ih in that ias bin from minBias data 2011
       double entriesInARegionNoM = etaCutARegionDataSet->numEntries();
-      double entriesInCRegionNoM = etaCutCRegionDataSet->numEntries();
+      //double entriesInCRegionNoM = etaCutCRegionDataSet->numEntries();
       double cEffLastBin = ceffRegionTracksOverMassCutProfile->GetBinContent(
           ceffRegionTracksOverMassCutProfile->FindLastBinAbove(0)); // find last ias bin with nonzero entries
       for(int bin=firstIasBin; bin <= ceffRegionTracksOverMassCutProfile->GetNbinsX(); ++bin)
@@ -1142,7 +1244,38 @@ int main(int argc, char ** argv)
           << " A: " << entriesInARegionNoM << " cEffLastBin: " << cEffLastBin
           << " Bincontent: " << binContent << " +/- " << binError << std::endl;
 
+        // (1') +1 sigma shifted hist --> use limits underestimation for C/A scaling
+        bk = iasPredictionFixedSlopeAddOneSigmaHist->GetBinContent(bin);
+        binContent = emptyBinVal;
+        if(cEff > 0)
+            binContent = bk*cEff / entriesInARegionNoM;
+        else if(cEffLastBin > 0)
+          binContent = bk*cEffLastBin / entriesInARegionNoM;
+        binError = sqrt(emptyBinVal);
+        if(cEff > 0)
+          binError = binContent*sqrt(1.0/bk + 1.0/cEff + 1.0/entriesInARegionNoM);
+        else if(cEffLastBin > 0)
+          binError = binContent*sqrt(1.0/bk + 1.0/cEffLastBin + 1.0/entriesInARegionNoM);
+        iasPredictionFixedSlopeAddOneSigmaHist->SetBinContent(bin,binContent);
+        iasPredictionFixedSlopeAddOneSigmaHist->SetBinError(bin,binError);
+
+        // (1'') -1 sigma shifted hist --> use limits underestimation for C/A scaling
+        bk = iasPredictionFixedSlopeMinusOneSigmaHist->GetBinContent(bin);
+        binContent = emptyBinVal;
+        if(cEff > 0)
+            binContent = bk*cEff / entriesInARegionNoM;
+        else if(cEffLastBin > 0)
+          binContent = bk*cEffLastBin / entriesInARegionNoM;
+        binError = sqrt(emptyBinVal);
+        if(cEff > 0)
+          binError = binContent*sqrt(1.0/bk + 1.0/cEff + 1.0/entriesInARegionNoM);
+        else if(cEffLastBin > 0)
+          binError = binContent*sqrt(1.0/bk + 1.0/cEffLastBin + 1.0/entriesInARegionNoM);
+        iasPredictionFixedSlopeMinusOneSigmaHist->SetBinContent(bin,binContent);
+        iasPredictionFixedSlopeMinusOneSigmaHist->SetBinError(bin,binError);
+
         // (2) discovery
+        bk = iasPredictionFixedLimitsHist->GetBinContent(bin);
         binContent = emptyBinVal;
         if(cEff > 0)
           binContent = bk*cEff / entriesInARegionNoM;
@@ -1150,6 +1283,8 @@ int main(int argc, char ** argv)
           binContent = bk*cEffAvgIh / entriesInARegionNoM;
         else if(cEffLastBin > 0)
           binContent = bk*cEffLastBin / entriesInARegionNoM;
+        else
+          binContent = bk / entriesInARegionNoM; // assume c = 1 to be conservative
 
         binError = sqrt(emptyBinVal);
         if(cEff > 0)
@@ -1158,6 +1293,8 @@ int main(int argc, char ** argv)
           binError = binContent*sqrt(1.0/bk + 1.0/cEffAvgIh + 1.0/entriesInARegionNoM);
         else if(cEffLastBin > 0)
           binError = binContent*sqrt(1.0/bk + 1.0/cEffLastBin + 1.0/entriesInARegionNoM);
+        else
+          binError = binContent*sqrt(1.0/bk + 1.0/entriesInARegionNoM); //assume c = 1 to be conservative
 
         iasPredictionFixedDiscoveryHist->SetBinContent(bin,binContent);
         iasPredictionFixedDiscoveryHist->SetBinError(bin,binError);
