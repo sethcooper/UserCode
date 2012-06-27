@@ -35,7 +35,15 @@ from ROOT import TGraph,TMultiGraph,TCanvas,TPaveText,gROOT,TLegend,TCutG,kGreen
 #BaseDir = 'FARM_chk50IasB_emptyB1e-25_1gausSystNoStatError_nominalAsNominal_highToyStatAllModels_cutPt50GeVcutIas0.1_allSlices_Jun06'
 #BaseDir = 'FARM_chk50IasB_emptyB1e-25_1gausSystNoStatError_nomShiftAsNominal_highToyStatsAllModels_cutPt50GeVcutIas0.1_allSlices_Jun06'
 #BaseDir = 'FARM_chk50IasB_emptyB1e-25_1gausSystNoStatError_halfIasShiftAsNominalNoShapeVariation_cutPt50GeVcutIas0.1_allSlices_Jun07'
-BaseDir = 'FARM_chk50IasB_emptyB1e-25_1gausSystNoStatError_halfIasHalfNoMAsNominal_highToyStatAllModels_cutPt50GeVcutIas0.1_allSlices_Jun07'
+#BaseDir = 'FARM_chk50IasB_emptyB1e-25_1gausSystNoStatError_halfIasHalfNoMAsNominal_highToyStatAllModels_cutPt50GeVcutIas0.1_allSlices_Jun07'
+#BaseDir = 'FARM_chk50IasB_emptyB1e-25_1gausSystWithStatErr400SortedBins_nominalAsNominal_highToyStatTestGMStau100156_cutPt50GeVcutIas0.1_allSlices_Jun07'
+#BaseDir = 'FARM_chk50IasB_emptyB1e-25_1gausSystWithStatErrIgnoreFirst400SortedBins_nominalAsNominal_highToyStatTestGMStau100156_cutPt50GeVcutIas0.1_allSlices_Jun07'
+#BaseDir = 'FARM_chk50IasB_emptyB1e-25_1gausSystNoStatError_nominalAsNominal_highToyStatTestGMStaus_cutPt50GeVcutIas0.1_allSlices_Jun11'
+#BaseDir = 'FARM_50IasB_emptyB1e-25_1gausSyst_noStatErr_halfIasHalfNoMAsNominal_highToyStatAllModels_cutPt50GeVcutIas0.1_allSlices_Jun14'
+#BaseDir = 'FARM_50IasB_emptyB1e-25_1gausSyst_300largestDeltaBStatErrors_halfIasHalfNoMAsNominal_highToyStatTestGMStaus_cutPt50GeVcutIas0.1_allSlices_Jun14'
+#BaseDir = 'FARM_50IasB_emptyB1e-25_1gausSyst_second300largestDeltaBStatErrors_halfIasHalfNoMAsNominal_highToyStatTestGMStaus_cutPt50GeVcutIas0.1_allSlices_Jun14'
+#BaseDir = 'FARM_50IasB_emptyB1e-25_1gausSyst_noStatErr_halfIasHalfNoMAsNominal_highToyStatSomeModels_cutPt50GeVcutIas0.1_allSlices_Jun21'
+BaseDir = 'FARM_50IasB_emptyB1e-25_1gausSyst_noStatErr_halfIasHalfNoMAsNominal_handleZeroBGSlices_allModels_cutPt50GeVcutIas0.1_allSlices_Jun18'
 
 runCERN = False
 PlotMinScale = 0.0005
@@ -56,6 +64,39 @@ else:
   fileEnd = '.out'
 
 
+# STD ANA INFO
+StdAnaInfo = {}
+# expLim, obsLim, 5-sigma xsec
+# gluino f=0.1
+StdAnaInfo['Gluino300'] = [3.8e-3,3.7e-3,8.5e-3]
+StdAnaInfo['Gluino400'] = [3.3e-3,3.3e-3,5.5e-3]
+StdAnaInfo['Gluino500'] = [3.1e-3,3.1e-3,5.2e-3]
+StdAnaInfo['Gluino600'] = [3.0e-3,4.1e-3,4.8e-3]
+StdAnaInfo['Gluino700'] = [3.0e-3,4.0e-3,4.8e-3]
+StdAnaInfo['Gluino800'] = [3.0e-3,4.1e-3,4.9e-3]
+StdAnaInfo['Gluino900'] = [3.2e-3,4.3e-3,5.2e-3]
+StdAnaInfo['Gluino1000'] = [3.5e-3,3.4e-3,5.7e-3]
+StdAnaInfo['Gluino1100'] = [4.0e-3,3.9e-3,6.6e-3]
+StdAnaInfo['Gluino1200'] = [4.8e-3,6.4e-3,7.6e-3]
+# Stop
+StdAnaInfo['Stop130'] = [1.5e-2,1.9e-2,3.8e-2]
+StdAnaInfo['Stop200'] = [5.8e-2,1.1e-2,1.4e-2]
+StdAnaInfo['Stop300'] = [3.4e-3,3.4e-3,6.7e-3]
+StdAnaInfo['Stop400'] = [2.8e-3,2.8e-3,4.8e-3]
+StdAnaInfo['Stop500'] = [2.4e-3,2.3e-3,4.0e-3]
+StdAnaInfo['Stop600'] = [2.4e-3,3.2e-3,3.8e-3]
+StdAnaInfo['Stop700'] = [2.3e-3,3.0e-3,3.6e-3]
+StdAnaInfo['Stop800'] = [2.1e-3,2.8e-3,3.4e-3]
+# GMStau
+StdAnaInfo['GMStau100'] = [1.2e-2,1.3e-2,3.1e-2]
+StdAnaInfo['GMStau126'] = [6.5e-3,8.1e-3,1.7e-2]
+StdAnaInfo['GMStau156'] = [4.1e-3,7.2e-3,1.0e-2]
+StdAnaInfo['GMStau200'] = [2.3e-3,4.1e-3,5.7e-3]
+StdAnaInfo['GMStau247'] = [1.4e-3,1.7e-3,3.7e-3]
+StdAnaInfo['GMStau308'] = [1.2e-3,1.2e-3,2.3e-3]
+StdAnaInfo['GMStau370'] = [1.1e-3,1.1e-3,1.8e-3]
+StdAnaInfo['GMStau432'] = [1.0e-3,1.0e-3,1.7e-3]
+StdAnaInfo['GMStau494'] = [9.3e-4,9.3e-4,1.5e-3]
 
 class LimitResult:
   def __init__(self,name,mass,thCrossSection,ptCut,iasCut,massCut,sigEff,expBg,expBgStatErr,obsEvts,expLimit,obsLimit,fiveSigmaXSec,obsSignalSignif):
@@ -92,9 +133,13 @@ class LimitResult:
     print '\tobsSignalSignif=',self.obsSignalSignif
 
   def LatexTableLine(self):
-    latexLine = self.name+'&'+self.massCut+'&'+str(round(self.sigEff,2))+'&'+str(round(self.expBg,2))+'$\pm$'+str(round(self.expBgStatErr,2))+'&'
-    latexLine+=str(self.obsEvts)+'&'+str(round(float(self.thCrossSection),4))+'&'+str(round(self.expLimit,4))+'&'
-    latexLine+=str(round(self.obsLimit,4))+'&'+str(round(self.fiveSigmaXSec,4))+'&'+str(round(self.obsSignalSignif,4))
+    latexLine = self.name+'&'+self.massCut+'&'+'%.1E'%self.sigEff+'&'+str(round(self.expBg,2))+'$\pm$'+str(round(self.expBgStatErr,2))+'&'
+    latexLine+=str(int(self.obsEvts))+'&'
+    latexLine+='%.1E'%float(self.thCrossSection)+'&'
+    latexLine+='%.1E'%self.expLimit+'&'
+    latexLine+='%.1E'%self.obsLimit+'&'
+    latexLine+='%.1E'%self.fiveSigmaXSec
+    #latexLine+='&'+str(round(self.obsSignalSignif,2))
     latexLine+='\\\\'
     return latexLine
 
@@ -478,12 +523,12 @@ txt_file.write(titleString+'\n')
 for limitRes in LimitResultsGluinos:
   print limitRes.StringTableLine()
   txt_file.write(limitRes.StringTableLine()+'\n')
-for limitRes in LimitResultsStops:
-  print limitRes.StringTableLine()
-  txt_file.write(limitRes.StringTableLine()+'\n')
-for limitRes in LimitResultsStaus:
-  print limitRes.StringTableLine()
-  txt_file.write(limitRes.StringTableLine()+'\n')
+#for limitRes in LimitResultsStops:
+#  print limitRes.StringTableLine()
+#  txt_file.write(limitRes.StringTableLine()+'\n')
+#for limitRes in LimitResultsStaus:
+#  print limitRes.StringTableLine()
+#  txt_file.write(limitRes.StringTableLine()+'\n')
 txt_file.close()
 
 # write tbl fragment file
@@ -493,12 +538,12 @@ titleTableString+= '\\hline\n'
     #latexLine+=self.obsEvts+'&'+str(round(self.ThCrossSec,6))+'&'+str(round(self.expLimit,6))+'&'
     #latexLine+=str(round(self.obsLimit,6))+'&'+str(round(self.fiveSigmaXSec,6))+'&'+str(round(self.obsSignalSignif,6))
 titleTableString+= '\\textbf{Model and mass}&\\textbf{Mass Cut}&\\textbf{Signal Eff.}&\\textbf{Background Exp.}&'
-titleTableString+= '\\textbf{Obs.}&\\textbf{Th. Cross Sec.}&\\textbf{Exp. Lim.}&\\textbf{Obs. Lim.}&\\textbf{5$\sigma$ Disc. Cross Section}&\\textbf{Obs. Sig. Eff.}\n'
+titleTableString+= '\\textbf{Obs.}&\\textbf{Th. Cross Sec.}&\\textbf{Exp. Lim.}&\\textbf{Obs. Lim.}&\\textbf{5$\sigma$ Disc. Cross Section}\n'#&\\textbf{Obs. Sig. Eff.}\n'
 titleTableString+= '\\hline\n'
 txt_file=open(plotsDir+'results.tbl','w')
 txt_file.write(titleTableString+'\n')
 print titleTableString
-for limitRes in LimitResultsGluinos:
+for limitRes in LimitResultsGluinos+LimitResultsStops+LimitResultsStaus:
   txt_file.write(limitRes.LatexTableLine()+'\n')
   print limitRes.LatexTableLine()
 for limitRes in LimitResultsStops:
@@ -513,6 +558,24 @@ txt_file.write('\\end{tabular}\n')
 print '\\end{tabular}'
 txt_file.close()
 
+# Ratios
+print
+print
+titleString = string.ljust('Model',15)+string.center('ExpLimStd',12)+string.center('ObsLimStd',12)+string.center('5XsecStd',12)
+titleString+=string.center('ExpLimShape',12)+string.center('ObsLimShape',12)+string.center('5XsecShape',12)
+titleString+=string.center('ExpLimStd/sh',14)+string.center('ObsLimStd/sh',14)+string.center('5XsecStd/sh',14)
+print titleString
+for limitRes in LimitResultsGluinos+LimitResultsStops+LimitResultsStaus:
+  expLimStd = StdAnaInfo[limitRes.name][0]
+  obsLimStd = StdAnaInfo[limitRes.name][1]
+  fiveSigmaStd = StdAnaInfo[limitRes.name][2]
+  ratioLimExp = round(expLimStd/limitRes.expLimit,2)
+  ratioLimObs = round(obsLimStd/limitRes.obsLimit,2)
+  ratioFiveSig = round(fiveSigmaStd/limitRes.fiveSigmaXSec,2)
+  printString = string.ljust(limitRes.name,15)+string.center(str(expLimStd),12)+string.center(str(obsLimStd),12)+string.center(str(fiveSigmaStd),12)
+  printString+=string.center('%.1E'%limitRes.expLimit,12)+string.center('%.1E'%limitRes.obsLimit,12)+string.center('%.1E'%limitRes.fiveSigmaXSec,12)
+  printString+=string.center(str(ratioLimExp),14)+string.center(str(ratioLimObs),14)+string.center(str(ratioFiveSig),14)
+  print printString
 
 # TESTING
 sys.exit()
@@ -674,8 +737,8 @@ print 'Found Stop mass limit = ',limit
 limit = FindIntersection(expLimGraphStaus,theoryGraphStaus,100,1000,1,0.00,False)
 print 'Found GMStau mass limit = ',limit
 c1.Update()
-c1.Print('gluinosStopsStaus.png')
-c1.Print('gluinosStopsStaus.pdf')
+c1.Print(plotsDir+'gluinosStopsStaus.png')
+c1.Print(plotsDir+'gluinosStopsStaus.pdf')
 
 
 
