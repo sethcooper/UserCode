@@ -22,6 +22,7 @@ Jobs_Count        = 0
 Farm_Directories  = []
 Path_Log          = ''
 Path_Shell        = ''
+RunCondor         = False
 
 
 def CreateTheConfigFile(jobName, baseCfg, inputFile, crossSection, massCut, intLumi, intLumiBefTrigChange,
@@ -86,31 +87,40 @@ def CreateTheCmdFile():
     global Path_Cmd
     global CopyRights
     global Jobs_Name
+    global RunCondor
     Path_Cmd   = Farm_Directories[0]+Jobs_Name+'submit.sh'
     cmd_file=open(Path_Cmd,'w')
     cmd_file.write(CopyRights + '\n')
-    cmd_file.write('Universe                = vanilla\n')
-    cmd_file.write('Environment             = CONDORJOBID=$(Process)\n')
-    cmd_file.write('notification            = Error\n')
-    cmd_file.write('requirements            = (Memory > 1024)&&(Arch=?="X86_64")&&(Machine=!="zebra01.spa.umn.edu")&&(Machine=!="zebra02.spa.umn.edu")&&(Machine=!="zebra03.spa.umn.edu")&&(Machine=!="caffeine.spa.umn.edu")\n')
-    cmd_file.write('+CondorGroup            = "cmsfarm"\n')
-    cmd_file.write('should_transfer_files   = NO\n')
-    cmd_file.write('Notify_user = cooper@physics.umn.edu\n')
+    if(RunCondor):
+      cmd_file.write('Universe                = vanilla\n')
+      cmd_file.write('Environment             = CONDORJOBID=$(Process)\n')
+      cmd_file.write('notification            = Error\n')
+      cmd_file.write('requirements            = (Memory > 1024)&&(Arch=?="X86_64")&&(Machine=!="zebra01.spa.umn.edu")&&(Machine=!="zebra02.spa.umn.edu")&&(Machine=!="zebra03.spa.umn.edu")&&(Machine=!="caffeine.spa.umn.edu")\n')
+      cmd_file.write('+CondorGroup            = "cmsfarm"\n')
+      cmd_file.write('should_transfer_files   = NO\n')
+      cmd_file.write('Notify_user = cooper@physics.umn.edu\n')
+    else:
+      cmd_file.write('# List of bash commands\n')
     cmd_file.close()
 
 def AddJobToCmdFile(jobName):
     global Path_Shell
     global Path_Cmd
     global Jobs_Name
+    global RunCondor
     Path_Log   = os.getcwd()+'/'+Farm_Directories[2]+Jobs_Name+jobName
     Path_Error   = os.getcwd()+'/'+Farm_Directories[3]+Jobs_Name+jobName
     cmd_file=open(Path_Cmd,'a')
     cmd_file.write('\n')
-    cmd_file.write('Executable              = %s\n'     % Path_Shell)
-    cmd_file.write('output                  = %s.out\n' % Path_Log)
-    cmd_file.write('error                   = %s.err\n' % Path_Error)
-    cmd_file.write('log                     = %s.log\n' % Path_Log)
-    cmd_file.write('Queue 1\n')
+    if(RunCondor):
+      cmd_file.write('Executable              = %s\n'     % Path_Shell)
+      cmd_file.write('output                  = %s.out\n' % Path_Log)
+      cmd_file.write('error                   = %s.err\n' % Path_Error)
+      cmd_file.write('log                     = %s.log\n' % Path_Log)
+      cmd_file.write('Queue 1\n')
+    else:
+      cmd_file.write('echo "Executing: '+Path_Shell+' >& '+Path_Log+'"\n')
+      cmd_file.write('source '+Path_Shell+' >& '+Path_Log+'\n')
     cmd_file.close()
 
 def CreateDirectoryStructure(FarmDirectory, jobsName):
@@ -123,7 +133,9 @@ def CreateDirectoryStructure(FarmDirectory, jobsName):
         if os.path.isdir(Farm_Directories[i]) == False:
             os.system('mkdir ' + Farm_Directories[i])
 
-def SendCluster_Create(FarmDirectory,jobsName):
+def SendCluster_Create(FarmDirectory,jobsName,runCondor):
+    global RunCondor
+    RunCondor = runCondor
     CreateDirectoryStructure(FarmDirectory,jobsName)
     CreateTheCmdFile()
 
@@ -139,7 +151,12 @@ def SendCluster_Submit():
     global CopyRights
     global Jobs_Count
     global Path_Cmd
-    os.system("condor_submit " + Path_Cmd)
-    print '\n'+CopyRights
-    print '%i job(s) has/have been submitted to condor' % Jobs_Count
+    global RunCondor
+    if(RunCondor):
+      os.system("condor_submit " + Path_Cmd)
+      print '\n'+CopyRights
+      print '%i job(s) has/have been submitted to condor' % Jobs_Count
+    else:
+     print 'Run everything locally'
+     os.system("source " + Path_Cmd)
 
