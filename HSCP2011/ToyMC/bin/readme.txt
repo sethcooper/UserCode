@@ -11,13 +11,18 @@ twiki page [2].  I have copies of the files at Minnesota on the HDFS cluster [3]
 
 [1]
 http://cmssw.cvs.cern.ch/cgi-bin/cmssw.cgi/CMSSW/SUSYBSMAnalysis/Skimming/python/EXOHSCP_cff.py?revision=1.16&view=markup
-[2] https://twiki.cern.ch/twiki/bin/viewauth/CMS/Hscp2011Analysis#EDM_files [3]
-/hdfs/cms/user/cooper/data/hscp/428/Data/HSCParticles_HSCP2011_PostEPS_Nov11/
+[2] https://twiki.cern.ch/twiki/bin/viewauth/CMS/Hscp2011Analysis#EDM_files
+[3] /hdfs/cms/user/cooper/data/hscp/428/Data/HSCParticles_HSCP2011_PostEPS_Nov11/
 
-(2) Using CMSSW_4_2_8, check out the following tag list: V00-04-07
-AnalysisDataFormats/SUSYBSMObjects V08-03-09      PhysicsTools/Utilities V00-04-19
-SUSYBSMAnalysis/HSCP V00-04-06 SUSYBSMAnalysis/HSCP/src/BetaCalculatorECAL.cc V00-07-10
-SUSYBSMAnalysis/Skimming
+(2) Using CMSSW_4_2_8, check out the following tag list:
+V00-04-07    AnalysisDataFormats/SUSYBSMObjects
+V08-03-09    PhysicsTools/Utilities
+V03-03-07    RecoLuminosity/LumiDB
+V03-00-09    RecoMuon/TrackingTools
+V00-06-00    RecoTracker/DeDx 
+V00-04-19    SUSYBSMAnalysis/HSCP
+V00-04-06    SUSYBSMAnalysis/HSCP/src/BetaCalculatorECAL.cc
+V00-07-10    SUSYBSMAnalysis/Skimming
 
 You will also need my package: UserCode/SCooper/HSCP2011/ToyMC.  The HEAD should be in good shape.
 Compile.  To run the limit setting code, you will need a recent version of root, 5.32 or above.
