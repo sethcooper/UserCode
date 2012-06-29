@@ -10,7 +10,7 @@ from subprocess import call
 import datetime
 from SignalDefinitions import *
 
-RunCondor = False
+RunCondor = True
 FarmDirBeg = "FARM_MakeHSCParticlePlots_Signals_deDxSystematics_"
 now = datetime.datetime.now()
 Date = now.strftime("%b%d")
