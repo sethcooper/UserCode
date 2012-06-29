@@ -38,11 +38,11 @@ will run the makeHSCParticlePlots.cpp binary on all the signal and data input fi
 will create output root files which contain the RooDataSets needed to do the analysis, along with
 some plots.  The preselection is also applied at this step.  Each signal model has two input
 files, one for the tight and one for the loose RPC trigger regimes in 2011.  The data files
-from the output of the condor jobs should be combined into a single data file using the binary
-mergeHSCParticlePlotsRooDataSets.cpp.  Edit this file with the appropriate input file names,
-recompile, and then run it from the command line (mergeHSCParticlePlotsRooDataSets).  Inputs:
-EDM skim files from data and signal (2 for each signal model) Outputs: root files containing
-the RooDataSets and plots
+(NOT signal sample files) from the output of the condor jobs should be combined into a single data
+file using the binary mergeHSCParticlePlotsRooDataSets.cpp.  Edit this file with the appropriate
+input file names, recompile, and then run it from the command line (mergeHSCParticlePlotsRooDataSets).
+Inputs: EDM skim files from data and signal (2 for each signal model)
+Outputs: root files containing the RooDataSets and plots
 
 * This is a file that contains information for each model/mass, such as the standard analysis
 counting experiment Pt/Ias cuts and the location of the signal files.  Groups of signals (such as
@@ -63,11 +63,11 @@ must be created for each unique mass.  This step also creates the histogram for 
 in the search region.  The Launch.py script divides the prediction-making into a few slices per
 job and submits the jobs to condor.  The individual prediction files for each mass cut are then
 merged together in the next step.  The first invocation of Launch.py will create the directory
-structure, with the top level directory name specified as the FarmDirectory variable.  Inputs:
-root files for data (not signal) containing RooDataSets Outputs: one root file for each set
-of slices, containing: background prediction for limits, background prediction for discovery,
-background prediction with exponential slope variation of +/- 1 sigma; data observed in search
-region; other diagnostic plots
+structure, with the top level directory name specified as the FarmDirectory variable.
+Inputs: root files for data (not signal) containing RooDataSets
+Outputs: one root file for each set of slices, containing: background prediction for limits,
+background prediction for discovery, background prediction with exponential slope variation
+of +/- 1 sigma; data observed in search region; other diagnostic plots
 
 * This is the driver script for the analysis.  There are many things that must be properly
 configured here, such as: FarmDirectory name, input root file for data (from step (3) above),
@@ -82,8 +82,9 @@ the jobs, write the cfg and sh files for each job, and submit to the batch clust
 these steps.
 
 (2) Merge the prediction files for each mass point: python Launch.py 3.  You should see an error
-if there are one or more files missing for any of the models/masses.  Inputs: root files from
-step (1) Outputs: 1 root file for each model/mass, containing all the background predictions
+if there are one or more files missing for any of the models/masses.
+Inputs: root files from step (1)
+Outputs: 1 root file for each model/mass, containing all the background predictions
 (and data distributions) for all NoM/eta slices.
 
 (3) Make the predictions for the signal.  This is done by invoking step 4 (python Launch.py 4)
@@ -97,9 +98,10 @@ as they are currently being used.  The final part of this step is the running of
 a part of RooStats [1][2] which takes XML files and the root files containing the histograms
 and produces RooStats models which can be fed to the limit-setting macros.  This requires a
 recent version of root, so you will need to edit HSCPMakeScaledPredictionsLaunch.py with the
-location of your installation of root (if running at Minnesota).  Inputs: Signal skim files,
-output prediction root file from step (2) Outputs: Root files containing signal and background
-predictions and data distributions; root files containing RooStats models
+location of your installation of root (if running at Minnesota).
+Inputs: Signal skim files, output prediction root file from step (2)
+Outputs: Root files containing signal and background predictions and data distributions;
+root files containing RooStats models
 
 [1] https://twiki.cern.ch/twiki/bin/view/RooStats/WebHome
 [2] https://twiki.cern.ch/twiki/bin/view/CMS/RooStatsTprime
@@ -110,8 +112,9 @@ StandardHypoTestInvDemo.C macro, which is a RooStats tutorial macro, which scans
 section values and computes the expected/observed CLs (expected is from toy generation).
 These are then combined together in the next step for difference cross section points or
 to sum up the toys for an individual cross section point.  Each job can take hours to run.
-Invoked with step 5 (python Launch.py 5).  Inputs: Root files with RooStats model from step
-(3) Outputs: Root files with the HypoTestInverter information
+Invoked with step 5 (python Launch.py 5).
+Inputs: Root files with RooStats model from step (3)
+Outputs: Root files with the HypoTestInverter information
 
 (5) Combine the limit-setting jobs.  This is done via Launch.py with a standalone binary called
 combineLimitResults.cpp.  I recommend updating the file setupRoot.sh with your installation
@@ -119,7 +122,8 @@ of root.  Then you can execute makeCombineLimitResults (source makeCombineLimitR
 will compile the standalone binary for you.  Once you have compiled the binary, you can invoke
 step 6 (python Launch.py 6) to combine the limit results.  You can also make sure in the output
 on the screen that the number of files being merged together is correct, and that a sensible
-limit is computed.  Inputs: Root files with the HypoTestInverter information from step (4)
+limit is computed.
+Inputs: Root files with the HypoTestInverter information from step (4)
 Outputs: Root files with all the HypoTestInverter information combined
 
 (6) Submit the significance jobs.  This will compute the observed signal significance and the
@@ -127,8 +131,8 @@ expected significance for several trial cross sections.  The latter is later use
 the expected minimum cross section at which we can claim a 5-sigma discovery.  The significance
 calculation is done using a different binary (StandardHypoTestDemo.C).  Invoke step 7 (python
 Launch.py 7).  Since the asymptotic approximation is used here, the jobs run very quickly.
-Inputs: Root files with the HypoTestInverter information from step (4) Outputs: Root files with
-HypoTest information, one for each trial cross section
+Inputs: Root files with the HypoTestInverter information from step (4)
+Outputs: Root files with HypoTest information, one for each trial cross section
 
 (7) Plot results and tables.  This is done using a standalone script called PlotResults.py,
 where you must specify the farm directory you were using with Launch.py (here called BaseDir).
@@ -137,7 +141,8 @@ with some information and results, like that in the analysis note, and a plot of
 taken from interpolating the limit results from each mass and finding the intersection with
 the theoretical cross section.  The output is saved in a folder called results just underneath
 the farm directory.  Note that it is not necessary to have both the significance results and
-the limit results to run this script.  Inputs: Combined limit root files from step (5) and
-significance files from step (6) Outputs: PNG, EPS formats of p-value of mass limit plots;
-text files containing tables in text and latex format
+the limit results to run this script.
+Inputs: Combined limit root files from step (5) and significance files from step (6)
+Outputs: PNG, EPS formats of p-value of mass limit plots; text files containing tables in
+text and latex format
 
