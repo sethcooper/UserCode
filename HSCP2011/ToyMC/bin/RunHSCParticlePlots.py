@@ -10,8 +10,8 @@ from subprocess import call
 import datetime
 from SignalDefinitions import *
 
-
-FarmDirBeg = "FARM_MakeHSCParticlePlots_Signals_NewLumi_"
+RunCondor = False
+FarmDirBeg = "FARM_MakeHSCParticlePlots_Signals_deDxSystematics_"
 now = datetime.datetime.now()
 Date = now.strftime("%b%d")
 BaseCfg = "makeHSCParticlePlots_template_cfg.py"
@@ -20,10 +20,13 @@ JobsName+=Date
 JobsName+="_"
 FarmDirBeg+=Date
 
-# initialize dirs and shell file
-HSCParticlePlotsLaunch.SendCluster_Create(FarmDirBeg,JobsName)
+IntLumiBefTrigChange = 352.067 #Total luminosity taken before RPC L1 trigger change (went into effect on run 165970)
+IntLumi = 4976 # 1/pb (2011, new pixel measurement)
 
-## 2011 data
+# initialize dirs and shell file
+HSCParticlePlotsLaunch.SendCluster_Create(FarmDirBeg,JobsName,RunCondor)
+
+### 2011 data
 #DataCrossSection = 0.0
 #DataMassCut = 0.0
 #DataIsMC = "False"
@@ -52,14 +55,12 @@ HSCParticlePlotsLaunch.SendCluster_Create(FarmDirBeg,JobsName)
 #DataInputFiles.append("    'file:/hdfs/cms/user/cooper/data/hscp/428/Data/HSCParticles_HSCP2011_PostEPS_Nov11/Data_RunA_179434_180252.root'")
 #for index,item in enumerate(DataInputFiles):
 #  HSCParticlePlotsLaunch.SendCluster_Push("Data2011_"+str(index), BaseCfg, item, DataCrossSection,
-#                      DataMassCut, DataIsMC, DataIsHSCP)
+#                      DataMassCut, IntLumi,IntLumiBefTrigChange,DataIsMC, DataIsHSCP)
 
 
 # SIGNAL MC
 HSCPisMC = "True"
 HSCPisHSCP = "True"
-IntLumiBefTrigChange = 352.067 #Total luminosity taken before RPC L1 trigger change (went into effect on run 165970)
-IntLumi = 4976 # 1/pb (2011, new pixel measurement)
 #
 for model in modelList:
   fileName = SignalBasePath+model.name+"BX1.root'"
