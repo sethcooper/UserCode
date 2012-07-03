@@ -423,6 +423,10 @@ int doScaledPredictions(TFile* outputRootFile, TFile* backgroundPredictionRootFi
   // can remove these and use only one loop
   vector<TH1D> bgLimitsHistsToUse;
   vector<TH1D> bgDiscoveryHistsToUse;
+  vector<TH1D> bgPlusOneSigmaLimitsHistsToUse;
+  vector<TH1D> bgMinusOneSigmaLimitsHistsToUse;
+  vector<TH1D> bgPlusOneSigmaDiscoveryHistsToUse;
+  vector<TH1D> bgMinusOneSigmaDiscoveryHistsToUse;
   vector<TH1D> dataHistsToUse;
   //vector<TH1F> bRegionHistsToUse;
   //vector<TH1F> cRegionHistsToUse;
@@ -431,6 +435,10 @@ int doScaledPredictions(TFile* outputRootFile, TFile* backgroundPredictionRootFi
   string dirName="iasPredictionsFixedBins";
   string bgLimitsHistNameEnd="iasPredictionFixedLimitsHist";
   string bgDiscoveryHistNameEnd="iasPredictionFixedDiscoveryHist";
+  string bgPlusOneSigmaLimitsHistNameEnd="iasPredictionFixedSlopeAddOneSigmaLimitsHist";
+  string bgMinusOneSigmaLimitsHistNameEnd="iasPredictionFixedSlopeMinusOneSigmaLimitsHist";
+  string bgPlusOneSigmaDiscoveryHistNameEnd="iasPredictionFixedSlopeAddOneSigmaDiscoveryHist";
+  string bgMinusOneSigmaDiscoveryHistNameEnd="iasPredictionFixedSlopeMinusOneSigmaDiscoveryHist";
   string dataDirName="dRegionFixedBins";
   string dataHistNameEnd="dRegionFixedHist";
 
@@ -441,18 +449,38 @@ int doScaledPredictions(TFile* outputRootFile, TFile* backgroundPredictionRootFi
     {
       TH1D* iasBackgroundPredictionMassCutNoMSliceLimitsHist = 0;
       TH1D* iasBackgroundPredictionMassCutNoMSliceDiscoveryHist = 0;
+      TH1D* iasBackgroundPredictionMassCutNoMSlicePlusOneSigmaLimitsHist = 0;
+      TH1D* iasBackgroundPredictionMassCutNoMSliceMinusOneSigmaLimitsHist = 0;
+      TH1D* iasBackgroundPredictionMassCutNoMSlicePlusOneSigmaDiscoveryHist = 0;
+      TH1D* iasBackgroundPredictionMassCutNoMSliceMinusOneSigmaDiscoveryHist = 0;
       //TH1F* bRegionHist = 0;
       //TH1F* cRegionHist = 0;
       // get this eta/nom hist
       string getLimitsHistName = getHistNameBeg(lowerNoM,lowerEta,nomStep,etaStep);
       string getDiscoveryHistName = getLimitsHistName;
+      string getPlusOneSigmaLimitsHistName = getLimitsHistName;
+      string getMinusOneSigmaLimitsHistName = getLimitsHistName;
+      string getPlusOneSigmaDiscoveryHistName = getDiscoveryHistName;
+      string getMinusOneSigmaDiscoveryHistName = getDiscoveryHistName;
       getLimitsHistName+=bgLimitsHistNameEnd;
       getDiscoveryHistName+=bgDiscoveryHistNameEnd;
+      getPlusOneSigmaLimitsHistName+=bgPlusOneSigmaLimitsHistNameEnd;
+      getMinusOneSigmaLimitsHistName+=bgMinusOneSigmaLimitsHistNameEnd;
+      getPlusOneSigmaDiscoveryHistName+=bgPlusOneSigmaDiscoveryHistNameEnd;
+      getMinusOneSigmaDiscoveryHistName+=bgMinusOneSigmaDiscoveryHistNameEnd;
       string fullPathLimits = dirName;
       fullPathLimits+="/";
       string fullPathDiscovery = fullPathLimits;
+      string fullPathPlusOneSigmaLimits = fullPathLimits;
+      string fullPathMinusOneSigmaLimits = fullPathLimits;
+      string fullPathPlusOneSigmaDiscovery = fullPathLimits;
+      string fullPathMinusOneSigmaDiscovery = fullPathLimits;
       fullPathLimits+=getLimitsHistName;
       fullPathDiscovery+=getDiscoveryHistName;
+      fullPathPlusOneSigmaLimits+=getPlusOneSigmaLimitsHistName;
+      fullPathMinusOneSigmaLimits+=getMinusOneSigmaLimitsHistName;
+      fullPathPlusOneSigmaDiscovery+=getPlusOneSigmaDiscoveryHistName;
+      fullPathMinusOneSigmaDiscovery+=getMinusOneSigmaDiscoveryHistName;
 
       TH1D* dRegionDataHist = 0;
       string dataHistGetName = getHistNameBeg(lowerNoM,lowerEta,nomStep,etaStep);
@@ -463,6 +491,10 @@ int doScaledPredictions(TFile* outputRootFile, TFile* backgroundPredictionRootFi
 
       iasBackgroundPredictionMassCutNoMSliceLimitsHist = (TH1D*)backgroundPredictionRootFile->Get(fullPathLimits.c_str());
       iasBackgroundPredictionMassCutNoMSliceDiscoveryHist = (TH1D*)backgroundPredictionRootFile->Get(fullPathDiscovery.c_str());
+      iasBackgroundPredictionMassCutNoMSlicePlusOneSigmaLimitsHist = (TH1D*)backgroundPredictionRootFile->Get(fullPathPlusOneSigmaLimits.c_str());
+      iasBackgroundPredictionMassCutNoMSliceMinusOneSigmaLimitsHist = (TH1D*)backgroundPredictionRootFile->Get(fullPathMinusOneSigmaLimits.c_str());
+      iasBackgroundPredictionMassCutNoMSlicePlusOneSigmaDiscoveryHist = (TH1D*)backgroundPredictionRootFile->Get(fullPathPlusOneSigmaDiscovery.c_str());
+      iasBackgroundPredictionMassCutNoMSliceMinusOneSigmaDiscoveryHist = (TH1D*)backgroundPredictionRootFile->Get(fullPathMinusOneSigmaDiscovery.c_str());
         
       dRegionDataHist = (TH1D*)backgroundPredictionRootFile->Get(fullDataHistPath.c_str());
 
@@ -481,11 +513,16 @@ int doScaledPredictions(TFile* outputRootFile, TFile* backgroundPredictionRootFi
           return -10;
         }
         //// debug
-        //cout << "Found hist: " << iasBackgroundPredictionMassCutNoMSliceHist->GetName()
+        //cout << "Found hist: " << iasBackgroundPredictionMassCutNoMSliceLimitsHist->GetName()
         //  << " with integral = " << iasBackgroundPredictionMassCutNoMSliceHist->Integral()
-        //  << " pushing onto the vector." << endl;
+        //  << ", pushing onto the vector." << endl;
         bgLimitsHistsToUse.push_back(*iasBackgroundPredictionMassCutNoMSliceLimitsHist);
         bgDiscoveryHistsToUse.push_back(*iasBackgroundPredictionMassCutNoMSliceDiscoveryHist);
+        //cout << "Pushing hist: " << fullPathPlusOneSigma << " onto the vector..." << endl;
+        bgPlusOneSigmaLimitsHistsToUse.push_back(*iasBackgroundPredictionMassCutNoMSlicePlusOneSigmaLimitsHist);
+        bgMinusOneSigmaLimitsHistsToUse.push_back(*iasBackgroundPredictionMassCutNoMSliceMinusOneSigmaLimitsHist);
+        bgPlusOneSigmaDiscoveryHistsToUse.push_back(*iasBackgroundPredictionMassCutNoMSlicePlusOneSigmaDiscoveryHist);
+        bgMinusOneSigmaDiscoveryHistsToUse.push_back(*iasBackgroundPredictionMassCutNoMSliceMinusOneSigmaDiscoveryHist);
         dataHistsToUse.push_back(*dRegionDataHist);
         // now get the b region hist
         //string getHistName = dirName;
@@ -513,6 +550,10 @@ int doScaledPredictions(TFile* outputRootFile, TFile* backgroundPredictionRootFi
       }
       delete iasBackgroundPredictionMassCutNoMSliceLimitsHist;
       delete iasBackgroundPredictionMassCutNoMSliceDiscoveryHist;
+      delete iasBackgroundPredictionMassCutNoMSlicePlusOneSigmaLimitsHist;
+      delete iasBackgroundPredictionMassCutNoMSliceMinusOneSigmaLimitsHist;
+      delete iasBackgroundPredictionMassCutNoMSlicePlusOneSigmaDiscoveryHist;
+      delete iasBackgroundPredictionMassCutNoMSliceMinusOneSigmaDiscoveryHist;
       //delete bRegionHist;
       //delete cRegionHist;
     }
@@ -542,10 +583,14 @@ int doScaledPredictions(TFile* outputRootFile, TFile* backgroundPredictionRootFi
       "unrolled background hist (discovery)",numGlobalBins,1,numGlobalBins+1);
   TH1D* dataAllNoMAllEtaUnrolledHist = new TH1D("dataAllNoMAllEtaUnrolledHist",
       "unrolled data hist, D region",numGlobalBins,1,numGlobalBins+1);
-  //TH1D* backgroundAllNoMAllEtaUnrolledPlusOneSigmaHist = new TH1D("backgroundAllNoMAllEtaUnrolledPlusOneSigmaHist",
-  //    "unrolled background hist (shape +1 sigma)",numGlobalBins,1,numGlobalBins+1);
-  //TH1D* backgroundAllNoMAllEtaUnrolledMinusOneSigmaHist = new TH1D("backgroundAllNoMAllEtaUnrolledMinusOneSigmaHist",
-  //    "unrolled background hist (shape -1 sigma)",numGlobalBins,1,numGlobalBins+1);
+  TH1D* backgroundAllNoMAllEtaUnrolledPlusOneSigmaLimitsHist = new TH1D("backgroundAllNoMAllEtaUnrolledPlusOneSigmaLimitsHist",
+      "unrolled background hist lims (shape +1 sigma)",numGlobalBins,1,numGlobalBins+1);
+  TH1D* backgroundAllNoMAllEtaUnrolledMinusOneSigmaLimitsHist = new TH1D("backgroundAllNoMAllEtaUnrolledMinusOneSigmaLimitsHist",
+      "unrolled background hist lims (shape -1 sigma)",numGlobalBins,1,numGlobalBins+1);
+  TH1D* backgroundAllNoMAllEtaUnrolledPlusOneSigmaDiscoveryHist = new TH1D("backgroundAllNoMAllEtaUnrolledPlusOneSigmaDiscoveryHist",
+      "unrolled background hist disc (shape +1 sigma)",numGlobalBins,1,numGlobalBins+1);
+  TH1D* backgroundAllNoMAllEtaUnrolledMinusOneSigmaDiscoveryHist = new TH1D("backgroundAllNoMAllEtaUnrolledMinusOneSigmaDiscoveryHist",
+      "unrolled background hist disc (shape -1 sigma)",numGlobalBins,1,numGlobalBins+1);
   TH1D* signalAllNoMAllEtaUnrolledHist = new TH1D(("signalAllNoMAllEtaUnrolled"+histNameSuffix).c_str(),
       ("unrolled signal hist"+histTitleSuffix).c_str(),numGlobalBins,1,numGlobalBins+1);
   TH1D* signalAllNoMAllEtaUnrolledNomShiftedHist = new TH1D(("signalAllNoMAllEtaUnrolledNoMShifted"+histNameSuffix).c_str(),
@@ -1045,8 +1090,9 @@ int doScaledPredictions(TFile* outputRootFile, TFile* backgroundPredictionRootFi
     }
     double numSignalTracksInDRegionPassingMassCutThisSlice =
       fractionOfSigTracksInDRegionPassingMassCutThisSlice*totalSignalEvents;
-    double numSignalTracksInDRegionPassingMassCutThisSliceNoMWeighted = 
-      fractionOfSigTracksInDRegionPassingMassCutThisSliceNoMWeighted*totalSignalEvents;
+    // don't use - renormalize NoM shift using the unshifted normalization
+    //double numSignalTracksInDRegionPassingMassCutThisSliceNoMWeighted = 
+    //  fractionOfSigTracksInDRegionPassingMassCutThisSliceNoMWeighted*totalSignalEvents;
 
     signalTracksOverIasCut+=iasSignalMassCutNoMSliceHist->Integral(
         iasSignalMassCutNoMSliceHist->FindBin(iasCutForEffAcc),
@@ -1175,9 +1221,10 @@ int doScaledPredictions(TFile* outputRootFile, TFile* backgroundPredictionRootFi
       // SIC: normalize to nominal number of signal tracks to keep total integral the same with or without NoM shift
     iasSignalMassCutNoMSliceNoMShiftedHist->Scale(sigNormFactorNoMWeighted);
 
+    int firstIasBin = binsToExclude+1;
+
     // Fill unrolled histograms
     // loop over ias bins, fill unrolled hists
-    int firstIasBin = binsToExclude+1;
     for(int iasBin=firstIasBin; iasBin < numIasBins+1; ++iasBin)
     {
       int globalBinIndex = iteratorPos*numBinsEachSlice+iasBin-firstIasBin+1;
@@ -1202,17 +1249,30 @@ int doScaledPredictions(TFile* outputRootFile, TFile* backgroundPredictionRootFi
         histItr->SetBinError(iasBin,0);
       }
       double backExpThisBin = binc;
-      double backExpErrorThisBin = bine;
+      double backExpErrorThisBin = histItr->GetBinError(iasBin);
 
-      //std::cout << "INFO: Filling background hist: bin=" << globalBinIndex << " content=" << binc << " error=" << bine << std::endl;
-      //// plus one sigma
-      //backgroundAllNoMAllEtaUnrolledPlusOneSigmaHist->SetBinContent(globalBinIndex,binc+bine);
-      //backgroundAllNoMAllEtaUnrolledPlusOneSigmaHist->SetBinError(globalBinIndex,bine);
-      //// minus one sigma
-      //if(binc-bine < 0)
-      //  bine = 0.3*binc; // if 1-sigma shift is negative, shift down to 30% of nominal
-      //backgroundAllNoMAllEtaUnrolledMinusOneSigmaHist->SetBinContent(globalBinIndex,binc-bine);
-      //backgroundAllNoMAllEtaUnrolledMinusOneSigmaHist->SetBinError(globalBinIndex,bine);
+      // +1 sigma slope shift
+      binc = bgPlusOneSigmaLimitsHistsToUse[iteratorPos].GetBinContent(iasBin);
+      bine = bgPlusOneSigmaLimitsHistsToUse[iteratorPos].GetBinError(iasBin);
+      backgroundAllNoMAllEtaUnrolledPlusOneSigmaLimitsHist->SetBinContent(globalBinIndex,binc);
+      backgroundAllNoMAllEtaUnrolledPlusOneSigmaLimitsHist->SetBinError(globalBinIndex,bine);
+      // SIC TEST -- SET LARGE ERROR BINS TO ZERO ERROR
+      if(bine/binc >= 1 && binc < 1)
+      {
+        backgroundAllNoMAllEtaUnrolledPlusOneSigmaLimitsHist->SetBinError(globalBinIndex,0);
+        bgPlusOneSigmaLimitsHistsToUse[iteratorPos].SetBinError(iasBin,0);
+      }
+      // -1 sigma slope shift
+      binc = bgMinusOneSigmaLimitsHistsToUse[iteratorPos].GetBinContent(iasBin);
+      bine = bgMinusOneSigmaLimitsHistsToUse[iteratorPos].GetBinError(iasBin);
+      backgroundAllNoMAllEtaUnrolledMinusOneSigmaLimitsHist->SetBinContent(globalBinIndex,binc);
+      backgroundAllNoMAllEtaUnrolledMinusOneSigmaLimitsHist->SetBinError(globalBinIndex,bine);
+      // SIC TEST -- SET LARGE ERROR BINS TO ZERO ERROR
+      if(bine/binc >= 1 && binc < 1)
+      {
+        backgroundAllNoMAllEtaUnrolledMinusOneSigmaLimitsHist->SetBinError(globalBinIndex,0);
+        bgMinusOneSigmaLimitsHistsToUse[iteratorPos].SetBinError(iasBin,0);
+      }
 
       // discovery
       binc = bgDiscoveryHistsToUse[iteratorPos].GetBinContent(iasBin);
@@ -1231,6 +1291,29 @@ int doScaledPredictions(TFile* outputRootFile, TFile* backgroundPredictionRootFi
         bgDiscoveryHistsToUse[iteratorPos].SetBinError(iasBin,0);
       }
 
+      // +1 sigma slope shift
+      binc = bgPlusOneSigmaDiscoveryHistsToUse[iteratorPos].GetBinContent(iasBin);
+      bine = bgPlusOneSigmaDiscoveryHistsToUse[iteratorPos].GetBinError(iasBin);
+      backgroundAllNoMAllEtaUnrolledPlusOneSigmaDiscoveryHist->SetBinContent(globalBinIndex,binc);
+      backgroundAllNoMAllEtaUnrolledPlusOneSigmaDiscoveryHist->SetBinError(globalBinIndex,bine);
+      // SIC TEST -- SET LARGE ERROR BINS TO ZERO ERROR
+      if(bine/binc >= 1 && binc < 1)
+      {
+        backgroundAllNoMAllEtaUnrolledPlusOneSigmaDiscoveryHist->SetBinError(globalBinIndex,0);
+        bgPlusOneSigmaDiscoveryHistsToUse[iteratorPos].SetBinError(iasBin,0);
+      }
+      // -1 sigma slope shift
+      binc = bgMinusOneSigmaDiscoveryHistsToUse[iteratorPos].GetBinContent(iasBin);
+      bine = bgMinusOneSigmaDiscoveryHistsToUse[iteratorPos].GetBinError(iasBin);
+      backgroundAllNoMAllEtaUnrolledMinusOneSigmaDiscoveryHist->SetBinContent(globalBinIndex,binc);
+      backgroundAllNoMAllEtaUnrolledMinusOneSigmaDiscoveryHist->SetBinError(globalBinIndex,bine);
+      // SIC TEST -- SET LARGE ERROR BINS TO ZERO ERROR
+      if(bine/binc >= 1 && binc < 1)
+      {
+        backgroundAllNoMAllEtaUnrolledMinusOneSigmaDiscoveryHist->SetBinError(globalBinIndex,0);
+        bgMinusOneSigmaDiscoveryHistsToUse[iteratorPos].SetBinError(iasBin,0);
+      }
+
       // signal
       binc = iasSignalMassCutNoMSliceHist->GetBinContent(iasBin);
       bine = iasSignalMassCutNoMSliceHist->GetBinError(iasBin);
@@ -1245,7 +1328,8 @@ int doScaledPredictions(TFile* outputRootFile, TFile* backgroundPredictionRootFi
 
       // push onto map
       double approxMuValue = getApproxMuValueFromMassCut(massCut_);
-      if(bine/binc < 1 || binc >= 1)
+      //if(bine/binc < 1 || binc >= 1)
+      if(backExpErrorThisBin > 0)
         deltaBOverSAndBinNumbersMap[(backExpErrorThisBin/sigExpThisBin)/pow((backExpThisBin/sigExpThisBin+approxMuValue),2)] = globalBinIndex;
       // data D region
       binc = dataHistsToUse[iteratorPos].GetBinContent(iasBin);
@@ -1414,30 +1498,53 @@ int doScaledPredictions(TFile* outputRootFile, TFile* backgroundPredictionRootFi
     }
   }
 
-  // map of s/b values and bin numbers
-  if(deltaBOverSAndBinNumbersMap.size() > 400)
+  std::cout << "Size of map: " << deltaBOverSAndBinNumbersMap.size() << std::endl;
+  // loop map of s/b values and bin numbers
+  unsigned int maxBinsWithErrors = 50;
+  if(deltaBOverSAndBinNumbersMap.size() > maxBinsWithErrors)
   {
-    int count = 0;
+    unsigned int count = 0;
     map<double,int>::reverse_iterator itr;
     for(itr = deltaBOverSAndBinNumbersMap.rbegin();
         itr != deltaBOverSAndBinNumbersMap.rend(); itr++)
     {
-      //if(count >= 400) // keep error on 400 bins with highest deltaB/S value
+
+      //if(count >= maxBinsWithErrors) // keep error on first xxx bins with highest deltaB/S value
       //{
-      //  backgroundAllNoMAllEtaUnrolledLimitsHist->SetBinError(itr->second,0);
-      //  std::cout << "INFO: Setting error on background bin " << itr->second << " to zero." << std::endl;
+      //  if(backgroundAllNoMAllEtaUnrolledLimitsHist->GetBinError(itr->second) > 0)
+      //  {
+      //    std::cout << "INFO: count = " << count << "; Setting error on background bin " << itr->second << " to zero." << std::endl;
+      //    backgroundAllNoMAllEtaUnrolledLimitsHist->SetBinError(itr->second,0);
+      //  }
+      //}
+      //else
+      //{
+      //  std::cout << "INFO: count = " << count << "; Keeping error of " << backgroundAllNoMAllEtaUnrolledLimitsHist->GetBinError(itr->second) <<
+      //    " (deltaB/S(mu)) = " << itr->first << " on bin " << itr->second << std::endl;
       //}
 
-      if(count < 400) // set first 400 largest to zero error
+      if(count < maxBinsWithErrors) // set first xxx largest to zero error
       {
-        backgroundAllNoMAllEtaUnrolledLimitsHist->SetBinError(itr->second,0);
-        std::cout << "INFO: Setting error on background bin " << itr->second << " to zero." << std::endl;
+        if(backgroundAllNoMAllEtaUnrolledLimitsHist->GetBinError(itr->second) > 0)
+        {
+          std::cout << "INFO: count = " << count << "; Setting error on background bin " << itr->second << " to zero." << std::endl;
+          backgroundAllNoMAllEtaUnrolledLimitsHist->SetBinError(itr->second,0);
+        }
       }
-      else if(count >= 800) // AND set all bins with deltaB/S numbers 800 and higher to zero error
+      else if(count >= 2*maxBinsWithErrors) // AND set all bins with deltaB/S numbers xxx and higher to zero error
       {
-        backgroundAllNoMAllEtaUnrolledLimitsHist->SetBinError(itr->second,0);
-        std::cout << "INFO: Setting error on background bin " << itr->second << " to zero." << std::endl;
+        if(backgroundAllNoMAllEtaUnrolledLimitsHist->GetBinError(itr->second) > 0)
+        {
+          std::cout << "INFO: count = " << count << "; Setting error on background bin " << itr->second << " to zero." << std::endl;
+          backgroundAllNoMAllEtaUnrolledLimitsHist->SetBinError(itr->second,0);
+        }
       }
+      else
+      {
+        std::cout << "INFO: count = " << count << "; Keeping error of " << backgroundAllNoMAllEtaUnrolledLimitsHist->GetBinError(itr->second) <<
+          " (deltaB/S(mu)) = " << itr->first << " on bin " << itr->second << std::endl;
+      }
+
       ++count;
     }
   }
@@ -1445,8 +1552,10 @@ int doScaledPredictions(TFile* outputRootFile, TFile* backgroundPredictionRootFi
   outputRootFile->cd();
   backgroundAllNoMAllEtaUnrolledLimitsHist->Write();
   backgroundAllNoMAllEtaUnrolledDiscoveryHist->Write();
-  //backgroundAllNoMAllEtaUnrolledPlusOneSigmaHist->Write();
-  //backgroundAllNoMAllEtaUnrolledMinusOneSigmaHist->Write();
+  backgroundAllNoMAllEtaUnrolledPlusOneSigmaLimitsHist->Write();
+  backgroundAllNoMAllEtaUnrolledMinusOneSigmaLimitsHist->Write();
+  backgroundAllNoMAllEtaUnrolledPlusOneSigmaDiscoveryHist->Write();
+  backgroundAllNoMAllEtaUnrolledMinusOneSigmaDiscoveryHist->Write();
   signalAllNoMAllEtaUnrolledHist->Write();
   signalAllNoMAllEtaUnrolledNomShiftedHist->Write();
   dataAllNoMAllEtaUnrolledHist->Write();
