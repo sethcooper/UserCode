@@ -1318,7 +1318,8 @@ int main(int argc, char ** argv)
       {
         // Bk * < Cj over mass > / A
         double cEff = ceffRegionTracksOverMassCutProfile->GetBinContent(bin);
-        double bk = iasPredictionFixedLimitsHist->GetBinContent(bin);
+        double bkOriginal = iasPredictionFixedLimitsHist->GetBinContent(bin);
+        double bk = bkOriginal;
         double cEffAvgIh = ceffRegionTracksOverMassCutAvgIhProfile->GetBinContent(bin);
         
         // (1) limits
@@ -1371,7 +1372,7 @@ int main(int argc, char ** argv)
         iasPredictionFixedSlopeMinusOneSigmaLimitsHist->SetBinError(bin,binError);
 
         // (2) discovery
-        bk = iasPredictionFixedLimitsHist->GetBinContent(bin);
+        bk = bkOriginal;
         binContent = emptyBinVal;
         if(cEff > 0)
           binContent = bk*cEff / entriesInARegionNoM;
