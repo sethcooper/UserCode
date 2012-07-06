@@ -1385,6 +1385,10 @@ int doScaledPredictions(TFile* outputRootFile, TFile* backgroundPredictionRootFi
     histItr->Write();
     bgDiscoveryHistsToUse[iteratorPos].Write();
     dataHistsToUse[iteratorPos].Write();
+    bgPlusOneSigmaLimitsHistsToUse[iteratorPos].Write();
+    bgMinusOneSigmaLimitsHistsToUse[iteratorPos].Write();
+    bgPlusOneSigmaDiscoveryHistsToUse[iteratorPos].Write();
+    bgMinusOneSigmaDiscoveryHistsToUse[iteratorPos].Write();
     //normedSignalPredDir->cd();
     iasSignalMassCutNoMSliceHist->Write();
     iasSignalMassCutNoMSliceNoMShiftedHist->Write();
