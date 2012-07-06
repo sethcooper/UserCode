@@ -133,7 +133,7 @@ void initializeIhPeakDiffFunctions(TF1* funcArray[], int arraySize)
 
 void initializeIhWidthDiffFunction()
 {
-  ihWidthSmearFunc = new TF1("ihWidthSmearFunc","pol(2)");
+  ihWidthSmearFunc = new TF1("ihWidthSmearFunc","pol2(0)");
   ihWidthSmearFunc->SetParameters(1.035,-1.495,0.6101);
 }
 
