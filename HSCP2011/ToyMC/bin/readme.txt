@@ -27,7 +27,8 @@ V00-07-10    SUSYBSMAnalysis/Skimming
 You will also need my package: UserCode/SCooper/HSCP2011/ToyMC.  The HEAD should be in good shape.
 Compile.  To run the limit setting code, you will need a recent version of root, 5.32 or above.
 At Minnesota, you will need to download and compile the source by hand (I had to disable HDFS
-support or it wouldn't compile) in a directory of your choice.
+support or it wouldn't compile, and you have to enable RooFit)
+in a directory of your choice.
 
 (3) You will need to generate a sort of ntuple (in the format of RooDataSet) from the skim
 files.  First, cd into the HSCP2011/ToyMC/bin folder.  Then, edit the SignalDefinitions.py*
