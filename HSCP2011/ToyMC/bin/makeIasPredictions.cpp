@@ -1184,10 +1184,14 @@ int main(int argc, char ** argv)
         std::cout << "ERROR: Fit status is " << fitStatus << " which is nonzero!  Not using the fit." << endl;
         continue;
       }
+      // for p0, must constrain +/-1 sig exps to be equal to nominal where exp fit starts
+      double fitStartPoint = iasPredictionFixedLimitsHist->GetBinCenter(lastDecentStatsBin+1);
       TF1* myExpPlusOneSigma = (TF1*)myExp->Clone(); // shallower slope
-      myExpPlusOneSigma->SetParameters(myExp->GetParameter(0),myExp->GetParameter(1)+myExp->GetParError(1));
+      myExpPlusOneSigma->SetParameters(myExp->GetParameter(0)-fitStartPoint*myExp->GetParError(1),myExp->GetParameter(1)+myExp->GetParError(1));
       TF1* myExpMinusOneSigma = (TF1*)myExp->Clone(); // steeper slope
-      myExpMinusOneSigma->SetParameters(myExp->GetParameter(0),myExp->GetParameter(1)-myExp->GetParError(1));
+      myExpMinusOneSigma->SetParameters(myExp->GetParameter(0)+fitStartPoint*myExp->GetParError(1),myExp->GetParameter(1)-myExp->GetParError(1));
+      cout << "DEBUG: " << " original expVal at start point = " << myExp->Eval(fitStartPoint) << " +1sigma: " << myExpPlusOneSigma->Eval(iasPredictionFixedLimitsHist->GetBinCenter(lastDecentStatsBin+1))
+        << " -1sigma: " << myExpMinusOneSigma->Eval(iasPredictionFixedLimitsHist->GetBinCenter(lastDecentStatsBin+1)) << endl;
       for(int bin=lastDecentStatsBin+1; bin <= iasPredictionFixedLimitsHist->GetNbinsX(); ++bin)
       {
         double expVal = myExp->Eval(iasPredictionFixedLimitsHist->GetBinCenter(bin));
