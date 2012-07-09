@@ -37,7 +37,9 @@ makeIasPredictionDataPngsFixedBins()
       histName+=intToString(etaSlice);
       histName+="to";
       histName+=intToString(etaSlice+2);
+      string histNameBeg = histName;
       histName+="iasPredictionFixedLimitsHist";
+      //histName+="iasPredictionFixedDiscoveryHist";
 
       //cout << "Getting hist: " << histName << endl;
       TH1D* iasPredHistThisSlice = (TH1D*)_file0->Get(histName.c_str());
@@ -60,12 +62,28 @@ makeIasPredictionDataPngsFixedBins()
 
       iasDataHistThisSlice->SetLineColor(kBlack);
       iasDataHistThisSlice->SetMarkerColor(kBlack);
-      iasDataHistThisSlice->SetMarkerStyle(23);
+      iasDataHistThisSlice->SetMarkerStyle(20);
       iasDataHistThisSlice->Draw();
       iasPredHistThisSlice->SetLineColor(kBlue);
       iasPredHistThisSlice->SetMarkerColor(kBlue);
-      iasPredHistThisSlice->SetMarkerStyle(22);
+      iasPredHistThisSlice->SetMarkerStyle(21);
       iasPredHistThisSlice->Draw("same");
+      // draw 3rd hist?
+      string thirdHistName = histNameBeg;
+      thirdHistName+="iasPredictionFixedSlopeMinusOneSigmaLimitsHist";
+      TH1D* iasPredThirdHist = (TH1D*)_file0->Get(thirdHistName.c_str());
+      iasPredThirdHist->SetLineColor(kRed);
+      iasPredThirdHist->SetMarkerColor(kRed);
+      iasPredThirdHist->SetMarkerStyle(23);
+      iasPredThirdHist->Draw("same");
+      // draw 4th hist?
+      string fourthHistName = histNameBeg;
+      fourthHistName+="iasPredictionFixedSlopeAddOneSigmaLimitsHist";
+      TH1D* iasPredFourthHist = (TH1D*)_file0->Get(fourthHistName.c_str());
+      iasPredFourthHist->SetLineColor(kGreen+2);
+      iasPredFourthHist->SetMarkerColor(kGreen+2);
+      iasPredFourthHist->SetMarkerStyle(22);
+      iasPredFourthHist->Draw("same");
 
       if(iasDataHistThisSlice->GetMaximum() <= 0)
         iasDataHistThisSlice->GetYaxis()->SetRangeUser(1e-10,iasPredHistThisSlice->GetMaximum()*1.2);

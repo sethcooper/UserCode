@@ -53,13 +53,13 @@ cat > index.html <<EOF
 
 <HTML>
 
-<HEAD><TITLE>Ias prediction and Data</TITLE></HEAD>
+<HEAD><TITLE>Ias prediction (limits) and Data</TITLE></HEAD>
  
 <BODY link="Red">
 <FONT color="Black">
  
 <Center>
-<h2><FONT color="Blue">Ias prediction and Data</FONT></h2>
+<h2><FONT color="Blue">Ias prediction nominal (limits)</FONT><FONT color="Red"> Ias prediction (-1 sigma limits)</FONT><FONT color="Green"> Ias prediction (+1 sigma limits)</FONT> and Data</h2>
 </Center>
 
 <table>
