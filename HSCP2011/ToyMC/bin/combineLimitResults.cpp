@@ -32,10 +32,30 @@ vector<string> getFilesInDir(string dir, string signal)
       continue;
     if(fileName.find("combined") != string::npos)
       continue;
-    //int dotRootPos = fileName.find(".root");
-    //int indexPos = fileName.find("index");
-    //string indexStr = fileName.substr(indexPos+5,dotRootPos-1);
-    //int index = atoi(indexStr.c_str());
+    if(signal.find("N") == string::npos && fileName.find("N") != string::npos)
+      continue;
+    if(signal.find("f5") == string::npos && fileName.find("f5") != string::npos)
+      continue;
+
+    int dotRootPos = fileName.find(".root");
+    int indexPos = fileName.find("index");
+    string indexStr = fileName.substr(indexPos+5,dotRootPos-1);
+    int index = atoi(indexStr.c_str());
+    //if(fileName.find("GMStau100") != string::npos)
+    //{
+    //  if(index > 12 || index < 5)
+    //    continue;
+    //}
+    //else if(fileName.find("Gluino1000") != string::npos)
+    //{
+    //  if(index > 12 || index < 5)
+    //    continue;
+    //}
+    //if(fileName.find("Gluino1200") != string::npos)
+    //{
+    //  if(index > 14 || index < 7)
+    //    continue;
+    //}
     //if(fileName.find("GMStau") != string::npos)
     //{
     //  if(index > 7 || index < 1)
@@ -90,6 +110,7 @@ int main(int argc, char* argv[])
   // kill RooFit/RooStats output
   RooMsgService::instance().setGlobalKillBelow(RooFit::WARNING);
 
+  vector<double> trialCrossSections;
   int fileCounter = 0;
   cout << "Doing " << signalName << "..." << endl;
   vector<string> thisSignalFiles = getFilesInDir(outputDir, signalName);
@@ -99,17 +120,38 @@ int main(int argc, char* argv[])
   for(vector<string>::const_iterator fileItr = thisSignalFiles.begin();
       fileItr != thisSignalFiles.end(); ++fileItr)
   {
-    //cout << "Merging file: " << *fileItr << endl;
+    //cout << "Examining file: " << *fileItr << endl;
     thisTFile = new TFile(fileItr->c_str(),"read");
     if(!r)
+    {
       r =  dynamic_cast<HypoTestInverterResult*>(thisTFile->Get("result_SigXsec"));
+      ++fileCounter;
+    }
     else
     {
       delete thisResult;
       thisResult = dynamic_cast<HypoTestInverterResult*>(thisTFile->Get("result_SigXsec"));
-      r->Add(*thisResult);
+      //cout << "Number of x-values in result: " << thisResult->ArraySize() << endl;
+      //for(int i=0; i < thisResult->ArraySize(); ++i)
+      //  cout << "\t" << thisResult->GetXValue(i) << endl;
+      //if(find(trialCrossSections.begin(),trialCrossSections.end(),thisResult->GetXValue(0)) == trialCrossSections.end())
+      bool add = true;
+      //if(signalName=="GMStau200" && thisResult->GetXValue(0) < 0.0014)
+      //  add = false;
+      //if(signalName=="Gluino1000" && (thisResult->GetXValue(0) < 0.0025 || thisResult->GetXValue(0) > 0.004))
+      //  add = false;
+
+      if(add)
+      {
+        trialCrossSections.push_back(thisResult->GetXValue(0));
+        r->Add(*thisResult);
+        //cout << "Add cross section: " << thisResult->GetXValue(0) << endl;
+        ++fileCounter;
+      }
+      //else
+      //  cout << "Skipping already-seen cross section: " << thisResult->GetXValue(0) << endl;
     }
-    ++fileCounter;
+    //cout << endl;
   }
 
   string outputPath = outputDir;
