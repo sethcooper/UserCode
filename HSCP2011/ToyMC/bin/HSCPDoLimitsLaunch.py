@@ -77,7 +77,8 @@ def CreateTheShellFile(bgInputFile,sigInputFile,massCut,iasCut,ptCut,xSecMin,xSe
       # variables for limit setting
       #nPoints = 8 # per job
       nPoints = 1 # per job
-      nToys = 3000 # per xSec trial point
+      nToys = 2000 # per xSec trial point
+      #nToys = 5000 # for high stats test; since each gets run twice we end up with nToysx2 total toys per point
       # end variables for limit setting
       outputFile = 'doLimits_'+prepend+signalName+'_massCut'+`massCut`+'_ptCut'+`ptCut`+'_index'+str(index)+'.root'
       Path_Shell = Farm_Directories[1]+Jobs_Name+prepend+signalName+'_massCut'+`massCut`+'_ptCut'+`ptCut`+'_index'+str(index)+'.sh'
@@ -96,9 +97,9 @@ def CreateTheShellFile(bgInputFile,sigInputFile,massCut,iasCut,ptCut,xSecMin,xSe
       shell_file.write('cd ' + os.getcwd() + '/' + Farm_Directories[0] + 'outputs/makeScaledPredictions/' + signalName + '_Limits\n')
       shell_file.write('root -l -b -q "'+Base_macro
           # Frequentist calculator
-          #+'(\\"hscp_combined_hscp_model.root\\",\\"combined\\",\\"ModelConfig\\",\\"\\",\\"'+dataName+'\\",0,3,true,'
+          +'(\\"hscp_combined_hscp_model.root\\",\\"combined\\",\\"ModelConfig\\",\\"\\",\\"'+dataName+'\\",0,3,true,'
           # Hybrid calculator
-          +'(\\"hscp_combined_hscp_model.root\\",\\"combined\\",\\"ModelConfig\\",\\"\\",\\"'+dataName+'\\",1,3,true,'
+          #+'(\\"hscp_combined_hscp_model.root\\",\\"combined\\",\\"ModelConfig\\",\\"\\",\\"'+dataName+'\\",1,3,true,'
           #asymptCLs#+'(\\"hscp_combined_hscp_model.root\\",\\"combined\\",\\"ModelConfig\\",\\"\\",\\"'+dataName+'\\",2,3,true,'
           +str(nPoints)+','
           +str(xSecMin)+','
@@ -138,7 +139,8 @@ def CreateTheCmdFile():
       cmd_file.write('Environment             = CONDORJOBID=$(Process)\n')
       cmd_file.write('notification            = Error\n')
       cmd_file.write('requirements            = (Memory > 1024)&&(Arch=?="X86_64")&&(Machine=!="zebra01.spa.umn.edu")&&(Machine=!="zebra02.spa.umn.edu")&&(Machine=!="zebra03.spa.umn.edu")&&(Machine=!="caffeine.spa.umn.edu")\n')
-      cmd_file.write('+CondorGroup            = "cmsfarm"\n')
+      #cmd_file.write('+CondorGroup            = "cmsfarm"\n')
+      cmd_file.write('+CondorGroup            = "twins"\n')
       cmd_file.write('should_transfer_files   = NO\n')
       cmd_file.write('Notify_user = cooper@physics.umn.edu\n')
       #cmd_file.write('should_transfer_files   = YES\n')
@@ -231,21 +233,164 @@ def SendCluster_Push(bgInputFilesBase,sigInputFile,massCut,iasCut,ptCut):
     global Do_Bayesian
     Jobs_Index = "%04i" % Jobs_Count
     bgInputFile = bgInputFilesBase+`massCut`+'_ptCut'+`ptCut`+'.root'
+    posLastUndsc = sigInputFile.rfind("_")
+    signalName = sigInputFile[posLastUndsc+1:len(sigInputFile)-5]
     if(Do_Bayesian):
       CreateTheShellFile(bgInputFile,sigInputFile,massCut,iasCut,ptCut,0,0,0)
       AddJobToCmdFile(massCut,ptCut,sigInputFile,0)
       Jobs_Count = Jobs_Count+1
     else:
       xSecMin = 0.0001
-      xSecMax = 0.01
-      nSteps = 25 # gets multiplied by points/job later
+      #xSecMax = 0.01
+      xSecMax = 0.1
+      # zoom in on limit area
+      if(signalName=='Gluino300'):
+        xSecMin = 0.002
+        xSecMax = 0.004
+      elif(signalName=='Gluino400'):
+        xSecMin = 0.002
+        xSecMax = 0.004
+      elif(signalName=='Gluino500'):
+        xSecMin = 0.0015
+        xSecMax = 0.0035
+      elif(signalName=='Gluino600'):
+        xSecMin = 0.0015
+        xSecMax = 0.0035
+      elif(signalName=='Gluino700'):
+        xSecMin = 0.0015
+        xSecMax = 0.0035
+      elif(signalName=='Gluino800'):
+        xSecMin = 0.002
+        xSecMax = 0.003
+      elif(signalName=='Gluino900'):
+        xSecMin = 0.002
+        xSecMax = 0.004
+      elif(signalName=='Gluino1000'):
+        xSecMin = 0.002
+        xSecMax = 0.005
+      elif(signalName=='Gluino1100'):
+        xSecMin = 0.002
+        xSecMax = 0.005
+      elif(signalName=='Gluino1200'):
+        xSecMin = 0.003
+        xSecMax = 0.006
+      ## GluinoN
+      if(signalName=='Gluino300N'):
+        xSecMin = 0.01
+        xSecMax = 0.05
+      elif(signalName=='Gluino400N'):
+        xSecMin = 0.01
+        xSecMax = 0.05
+      elif(signalName=='Gluino500N'):
+        xSecMin = 0.009
+        xSecMax = 0.02
+      elif(signalName=='Gluino600N'):
+        xSecMin = 0.009
+        xSecMax = 0.02
+      elif(signalName=='Gluino700N'):
+        xSecMin = 0.008
+        xSecMax = 0.02
+      elif(signalName=='Gluino800N'):
+        xSecMin = 0.008
+        xSecMax = 0.02
+      elif(signalName=='Gluino900N'):
+        xSecMin = 0.008
+        xSecMax = 0.02
+      elif(signalName=='Gluino1000N'):
+        xSecMin = 0.008
+        xSecMax = 0.02
+      elif(signalName=='Gluino1100N'):
+        xSecMin = 0.009
+        xSecMax = 0.02
+      elif(signalName=='Gluino1200N'):
+        xSecMin = 0.009
+        xSecMax = 0.02
+      ## Stop
+      elif(signalName=='Stop200'):
+        xSecMin = 0.003
+        xSecMax = 0.005
+      elif(signalName=='Stop300'):
+        xSecMin = 0.002
+        xSecMax = 0.004
+      elif(signalName=='Stop400'):
+        xSecMin = 0.0015
+        xSecMax = 0.0035
+      elif(signalName=='Stop500'):
+        xSecMin = 0.0015
+        xSecMax = 0.0035
+      elif(signalName=='Stop600'):
+        xSecMin = 0.001
+        xSecMax = 0.003
+      elif(signalName=='Stop700'):
+        xSecMin = 0.001
+        xSecMax = 0.003
+      elif(signalName=='Stop800'):
+        xSecMin = 0.001
+        xSecMax = 0.003
+      ## StopN
+      elif(signalName=='Stop200N'):
+        xSecMin = 0.008
+        xSecMax = 0.025
+      elif(signalName=='Stop300N'):
+        xSecMin = 0.008
+        xSecMax = 0.015
+      elif(signalName=='Stop400N'):
+        xSecMin = 0.008
+        xSecMax = 0.012
+      elif(signalName=='Stop500N'):
+        xSecMin = 0.006
+        xSecMax = 0.01
+      elif(signalName=='Stop600N'):
+        xSecMin = 0.005
+        xSecMax = 0.009
+      elif(signalName=='Stop700N'):
+        xSecMin = 0.006
+        xSecMax = 0.008
+      elif(signalName=='Stop800N'):
+        xSecMin = 0.005
+        xSecMax = 0.008
+      ## GMStau
+      elif(signalName=='GMStau200'):
+        xSecMin = 0.001
+        xSecMax = 0.002
+      elif(signalName=='GMStau247'):
+        xSecMin = 0.001
+        xSecMax = 0.002
+      elif(signalName=='GMStau308'):
+        xSecMin = 0.0007
+        xSecMax = 0.0015
+      elif(signalName=='GMStau370'):
+        xSecMin = 0.0007
+        xSecMax = 0.0015
+      elif(signalName=='GMStau432'):
+        xSecMin = 0.0005
+        xSecMax = 0.0015
+      elif(signalName=='GMStau494'):
+        xSecMin = 0.0005
+        xSecMax = 0.0015
+      # too low mass
+      elif(signalName=='GMStau100'):
+        xSecMin = 0.003
+        xSecMax = 0.005
+      elif(signalName=='GMStau126'):
+        xSecMin = 0.003
+        xSecMax = 0.005
+      elif(signalName=='GMStau156'):
+        xSecMin = 0.0015
+        xSecMax = 0.0025
+
+      nSteps = 12 # gets multiplied by points/job later
       stepSize = (xSecMax-xSecMin)/nSteps
+
       for index in range(0,nSteps):
         xSecMinPt = xSecMin+index*stepSize
         xSecMaxPt = xSecMin+(index+1)*stepSize
-        CreateTheShellFile(bgInputFile,sigInputFile,massCut,iasCut,ptCut,xSecMinPt,xSecMaxPt,index)
-        AddJobToCmdFile(massCut,ptCut,sigInputFile,index)
-        Jobs_Count = Jobs_Count+1
+        # repeat same toys a few times
+        repeatTimes = 20
+        for count in range(0,repeatTimes):
+          CreateTheShellFile(bgInputFile,sigInputFile,massCut,iasCut,ptCut,xSecMinPt,xSecMaxPt,Jobs_Count+count)
+          AddJobToCmdFile(massCut,ptCut,sigInputFile,Jobs_Count+count)
+        Jobs_Count = Jobs_Count+repeatTimes
 
 def SendCluster_Submit():
     global CopyRights
