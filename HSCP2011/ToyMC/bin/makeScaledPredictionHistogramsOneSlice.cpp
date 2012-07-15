@@ -1068,6 +1068,10 @@ int main(int argc, char ** argv)
       double bine = histItr->GetBinError(iasBin);
       backgroundAllNoMAllEtaUnrolledLimitsHist->SetBinContent(globalBinIndex,binc);
       backgroundAllNoMAllEtaUnrolledLimitsHist->SetBinError(globalBinIndex,bine);
+      //XXX SIC TEST MAY 10 -- SET LARGE ERROR BINS TO ZERO ERROR
+      //if(bine/binc >= 1)
+      //  backgroundAllNoMAllEtaUnrolledLimitsHist->SetBinError(globalBinIndex,0);
+
       //std::cout << "INFO: Filling background hist: bin=" << globalBinIndex << " content=" << binc << " error=" << bine << std::endl;
       //// plus one sigma
       //backgroundAllNoMAllEtaUnrolledPlusOneSigmaHist->SetBinContent(globalBinIndex,binc+bine);
@@ -1083,6 +1087,9 @@ int main(int argc, char ** argv)
       bine = bgDiscoveryHistsToUse[iteratorPos].GetBinError(iasBin);
       backgroundAllNoMAllEtaUnrolledDiscoveryHist->SetBinContent(globalBinIndex,binc);
       backgroundAllNoMAllEtaUnrolledDiscoveryHist->SetBinError(globalBinIndex,bine);
+      //XXX SIC TEST MAY 10 -- SET LARGE ERROR BINS TO ZERO ERROR
+      //if(bine/binc >= 1)
+      //  backgroundAllNoMAllEtaUnrolledDiscoveryHist->SetBinError(globalBinIndex,0);
 
       binc = iasSignalMassCutNoMSliceHist->GetBinContent(iasBin);
       bine = iasSignalMassCutNoMSliceHist->GetBinError(iasBin);
