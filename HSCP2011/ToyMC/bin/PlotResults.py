@@ -14,36 +14,19 @@ import ROOT
 from ROOT import TGraph,TMultiGraph,TCanvas,TPaveText,gROOT,TLegend,TCutG,kGreen,TFile,RooStats,Math,vector,gROOT,TLine,kRed,gPad
 
 # at UMN, must use /usr/bin/python (2.4) and my compiled ROOT version (5.32.02)
-#BaseDir = 'FARM_dReg_NL_50IasBins_emptyBins1e-25_iasPredScalingFix_cutPt50GeVcutIas0.1_allSlices_Apr30'
-#BaseDir = 'FARM_dReg_NL_20IasBins_emptyBins1e-25_1gausSystWithNoStatErr_cutPt50GeVcutIas0.1_allSlices_May02'
-#BaseDir = 'FARM_20IasB_4etaSlices_5NoMSlices_emptyB1e-25_1gausSystWithStatErr_cutPt50GeVcutIas0.1_allSlices_May03'
-#BaseDir = 'FARM_20IasB_normEtaNoMSlicing_emptyB1e-25_1gausSystWithStatErrOneSliceOnly_cutPt50GeVcutIas0.1_allSlices_May06'
-#BaseDir = 'FARM_50IasB_emptyB1e-25_1gausSystWithStatErrLargeErrorBinsToZero_cutPt50GeVcutIas0.1_oneSlice_May09'
-#BaseDir = 'FARM_50IasB_emptyB1e-25_1gausSystWithStatErr_cutPt50GeVcutIas0.1_oneSlice_May09'
-#BaseDir = 'FARM_50IasB_emptyB1e-25_1gausSystWithNoStatErr_cutPt50GeVcutIas0.1_oneSlice_May09'
-#BaseDir = 'FARM_50IasB_emptyB1e-25_1gausSystWithStatErrLargeErrorsZero_cutPt50GeVcutIas0.1_allSlices_May11'
-#BaseDir = 'FARM_50IasB_emptyB1e-25_1gausSystWithStatErrLargeErrorsZero_2pctBackDecr_cutPt50GeVcutIas0.1_allSlices_May16'
-#BaseDir = 'FARM_chk50IasB_emptyB1e-25_1gausSystNoStatErr_cutPt50GeVcutIas0.1_allSlices_May26'
-#BaseDir = 'FARM_chk50IasB_emptyB1e-25_1gausSystNoStatErr_nominalAsNominal_cutPt50GeVcutIas0.1_allSlices_May28'
-#BaseDir = 'FARM_chk50IasB_emptyB1e-25_1gausSystWithStatErr400SortedBins_nominalAsNominal_cutPt50GeVcutIas0.1_allSlices_May28'
-#BaseDir = 'FARM_chk50IasB_emptyB1e-25_1gausSystWithStatErrIgnoreFirst400SortedBins_nominalAsNominal_cutPt50GeVcutIas0.1_allSlices_May28'
-#BaseDir = 'FARM_chk50IasB_emptyB1e-25_1gausSystWithStatErr400SortedBins_nominalAsNominal_highToyStatTestFewModels_cutPt50GeVcutIas0.1_allSlices_Jun01'
-#BaseDir = 'FARM_chk50IasB_emptyB1e-25_1gausSystNoStatError_fullIasShiftAsNominal_cutPt50GeVcutIas0.1_allSlices_Jun05'
-#BaseDir = 'FARM_chk50IasB_emptyB1e-25_1gausSystWithStatErrIgnoreFirst400SortedBins_nominalAsNominal_highToyStatTestFewModels_cutPt50GeVcutIas0.1_allSlices_Jun04'
-#BaseDir = 'FARM_chk50IasB_emptyB1e-25_1gausSystNoStatError_nominalAsNominal_highToyStatTestFewModels_cutPt50GeVcutIas0.1_allSlices_Jun05'
-#BaseDir = 'FARM_chk50IasB_emptyB1e-25_1gausSystNoStatError_halfIasShiftAsNominalPlusShapeVariation_cutPt50GeVcutIas0.1_allSlices_Jun06'
-#BaseDir = 'FARM_chk50IasB_emptyB1e-25_1gausSystNoStatError_nominalAsNominal_highToyStatAllModels_cutPt50GeVcutIas0.1_allSlices_Jun06'
-#BaseDir = 'FARM_chk50IasB_emptyB1e-25_1gausSystNoStatError_nomShiftAsNominal_highToyStatsAllModels_cutPt50GeVcutIas0.1_allSlices_Jun06'
-#BaseDir = 'FARM_chk50IasB_emptyB1e-25_1gausSystNoStatError_halfIasShiftAsNominalNoShapeVariation_cutPt50GeVcutIas0.1_allSlices_Jun07'
-#BaseDir = 'FARM_chk50IasB_emptyB1e-25_1gausSystNoStatError_halfIasHalfNoMAsNominal_highToyStatAllModels_cutPt50GeVcutIas0.1_allSlices_Jun07'
-#BaseDir = 'FARM_chk50IasB_emptyB1e-25_1gausSystWithStatErr400SortedBins_nominalAsNominal_highToyStatTestGMStau100156_cutPt50GeVcutIas0.1_allSlices_Jun07'
-#BaseDir = 'FARM_chk50IasB_emptyB1e-25_1gausSystWithStatErrIgnoreFirst400SortedBins_nominalAsNominal_highToyStatTestGMStau100156_cutPt50GeVcutIas0.1_allSlices_Jun07'
-#BaseDir = 'FARM_chk50IasB_emptyB1e-25_1gausSystNoStatError_nominalAsNominal_highToyStatTestGMStaus_cutPt50GeVcutIas0.1_allSlices_Jun11'
-#BaseDir = 'FARM_50IasB_emptyB1e-25_1gausSyst_noStatErr_halfIasHalfNoMAsNominal_highToyStatAllModels_cutPt50GeVcutIas0.1_allSlices_Jun14'
-#BaseDir = 'FARM_50IasB_emptyB1e-25_1gausSyst_300largestDeltaBStatErrors_halfIasHalfNoMAsNominal_highToyStatTestGMStaus_cutPt50GeVcutIas0.1_allSlices_Jun14'
-#BaseDir = 'FARM_50IasB_emptyB1e-25_1gausSyst_second300largestDeltaBStatErrors_halfIasHalfNoMAsNominal_highToyStatTestGMStaus_cutPt50GeVcutIas0.1_allSlices_Jun14'
-#BaseDir = 'FARM_50IasB_emptyB1e-25_1gausSyst_noStatErr_halfIasHalfNoMAsNominal_highToyStatSomeModels_cutPt50GeVcutIas0.1_allSlices_Jun21'
-BaseDir = 'FARM_50IasB_emptyB1e-25_1gausSyst_noStatErr_halfIasHalfNoMAsNominal_handleZeroBGSlices_allModels_cutPt50GeVcutIas0.1_allSlices_Jun18'
+#BaseDir = 'FARM_50IasB_emptyB1e-25_1gausSyst_noStatErr_halfIasHalfNoMAsNominal_handleZeroBGSlices_allModels_cutPt50GeVcutIas0.1_allSlices_Jun18'
+#BaseDir = 'FARM_50IasB_emptyB1e-25_1gausSyst_50largestDeltaBStatErrors_halfIasHalfNoMAsNominal_highToyStatTestSomeModels_cutPt50GeVcutIas0.1_allSlices_Jun25'
+#BaseDir = 'FARM_50IasB_emptyB1e-25_1gausSyst_second50largestDeltaBStatErrors_halfIasHalfNoMAsNominal_highToyStatTestSomeModels_cutPt50GeVcutIas0.1_allSlices_Jun25'
+#BaseDir = 'FARM_50IasB_emptyB1e-25_1gausSyst_noStatErr_halfIasHalfNoMAsNominal_handleZeroBGSlices_discBGMinusOneSigma_allModels_cutPt50GeVcutIas0.1_allSlices_Jul3'
+#BaseDir = 'FARM_50IasB_emptyB1e-25_1gausSyst_noStatErr_halfIasHalfNoMAsNominal_handleZeroBGSlices_nominal_allModels_cutPt50GeVcutIas0.1_allSlices_Jul4'
+#BaseDir = 'FARM_50IasB_emptyB1e-25_1gausSyst_noStatErr_halfIasHalfNoMAsNominal_handleZeroBGSlices_iasMinusOneSigmaShapeShift_allModels_cutPt50GeVcutIas0.1_allSlices_Jul4'
+#BaseDir = 'FARM_50IasB_emptyB1e-25_1gausSyst_noStatErr_halfIasHalfNoMAsNominal_handleZeroBGSlices_bgShapeVary_allModels_cutPt50GeVcutIas0.1_allSlices_Jul5'
+#BaseDir = 'FARM_50IasB_emptyB1e-25_1gausSyst_noStatErr_halfIasHalfNoMAsNominal_handleZeroBGSlices_bgShapeVaryFIX_allModels_cutPt50GeVcutIas0.1_allSlices_Jul5'
+#BaseDir = 'FARM_50IasB_emptyB1e-25_1gausSyst_noStatErr_halfIasHalfNoMAsNominal_handleZeroBGSlices_bgShapeVaryFIX_allModelsMoreToys_cutPt50GeVcutIas0.1_allSlices_Jul9'
+#BaseDir = 'FARM_50IasB_emptyB1e-25_stdSysts_pureFreqAndInitialFit_moreModels_Jul10'
+#BaseDir = 'FARM_50IasB_emptyB1e-25_stdSysts_pureFreqAndInitialFit_noBGShapeSyst_moreModels_Jul10'
+#BaseDir = 'FARM_50IasB_emptyB1e-25_stdSysts_pureFreqAndInitialFit_moreModels_Jul10'
+BaseDir = 'FARM_50IasB_emptyB1e-25_stdSysts_pureFreqAndInitialFit_moreModels_moreToys_Jul11'
 
 runCERN = False
 PlotMinScale = 0.0005
@@ -80,7 +63,7 @@ StdAnaInfo['Gluino1100'] = [4.0e-3,3.9e-3,6.6e-3]
 StdAnaInfo['Gluino1200'] = [4.8e-3,6.4e-3,7.6e-3]
 # Stop
 StdAnaInfo['Stop130'] = [1.5e-2,1.9e-2,3.8e-2]
-StdAnaInfo['Stop200'] = [5.8e-2,1.1e-2,1.4e-2]
+StdAnaInfo['Stop200'] = [5.8e-3,1.1e-2,1.4e-2]
 StdAnaInfo['Stop300'] = [3.4e-3,3.4e-3,6.7e-3]
 StdAnaInfo['Stop400'] = [2.8e-3,2.8e-3,4.8e-3]
 StdAnaInfo['Stop500'] = [2.4e-3,2.3e-3,4.0e-3]
@@ -97,6 +80,37 @@ StdAnaInfo['GMStau308'] = [1.2e-3,1.2e-3,2.3e-3]
 StdAnaInfo['GMStau370'] = [1.1e-3,1.1e-3,1.8e-3]
 StdAnaInfo['GMStau432'] = [1.0e-3,1.0e-3,1.7e-3]
 StdAnaInfo['GMStau494'] = [9.3e-4,9.3e-4,1.5e-3]
+# gluinoN f=0.1
+StdAnaInfo['Gluino300N'] = [3.0e-2,3.0e-2,6.8e-2]
+StdAnaInfo['Gluino400N'] = [1.8e-2,1.7e-2,3.0e-2]
+StdAnaInfo['Gluino500N'] = [1.6e-2,1.6e-2,2.7e-2]
+StdAnaInfo['Gluino600N'] = [1.3e-2,1.3e-2,2.2e-2]
+StdAnaInfo['Gluino700N'] = [1.4e-2,1.8e-2,2.2e-2]
+StdAnaInfo['Gluino800N'] = [1.4e-2,1.9e-2,2.2e-2]
+StdAnaInfo['Gluino900N'] = [1.4e-2,1.9e-2,2.2e-2]
+StdAnaInfo['Gluino1000N'] = [1.6e-2,2.2e-2,2.6e-2]
+StdAnaInfo['Gluino1100N'] = [1.9e-2,2.6e-2,3.1e-2]
+StdAnaInfo['Gluino1200N'] = [2.3e-2,3.0e-2,3.6e-2]
+# StopN
+StdAnaInfo['Stop130N'] = [1.5e-1,2.1e-1,4.2e-1]
+StdAnaInfo['Stop200N'] = [4.0e-2,7.2e-2,1.0e-1]
+StdAnaInfo['Stop300N'] = [1.5e-2,1.5e-2,3.4e-2]
+StdAnaInfo['Stop400N'] = [1.2e-2,1.1e-2,1.9e-2]
+StdAnaInfo['Stop500N'] = [9.1e-3,9.1e-3,1.5e-2]
+StdAnaInfo['Stop600N'] = [8.3e-3,8.2e-3,1.4e-2]
+StdAnaInfo['Stop700N'] = [8.3e-3,1.1e-2,1.3e-2]
+StdAnaInfo['Stop800N'] = [8.1e-3,1.1e-2,1.3e-2]
+# gluino f=0.5
+StdAnaInfo['Gluino300f5'] = [6.9e-3,6.8e-3,1.6e-2]
+StdAnaInfo['Gluino400f5'] = [6.0e-3,6.0e-3,1.0e-2]
+StdAnaInfo['Gluino500f5'] = [5.5e-3,5.5e-3,9.3e-3]
+StdAnaInfo['Gluino600f5'] = [5.4e-3,7.3e-3,8.6e-3]
+StdAnaInfo['Gluino700f5'] = [5.3e-3,7.1e-3,8.5e-3]
+StdAnaInfo['Gluino800f5'] = [5.4e-3,7.3e-3,8.7e-3]
+StdAnaInfo['Gluino900f5'] = [5.8e-3,7.7e-3,9.2e-3]
+StdAnaInfo['Gluino1000f5'] = [5.9e-3,5.9e-3,1.0e-2]
+StdAnaInfo['Gluino1100f5'] = [7.0e-3,6.9e-3,1.2e-2]
+StdAnaInfo['Gluino1200f5'] = [8.6e-3,1.2e-2,1.4e-2]
 
 class LimitResult:
   def __init__(self,name,mass,thCrossSection,ptCut,iasCut,massCut,sigEff,expBg,expBgStatErr,obsEvts,expLimit,obsLimit,fiveSigmaXSec,obsSignalSignif):
@@ -133,7 +147,17 @@ class LimitResult:
     print '\tobsSignalSignif=',self.obsSignalSignif
 
   def LatexTableLine(self):
-    latexLine = self.name+'&'+self.massCut+'&'+'%.1E'%self.sigEff+'&'+str(round(self.expBg,2))+'$\pm$'+str(round(self.expBgStatErr,2))+'&'
+    modelSymbol = ''
+    if('Gluino' in self.name):
+      modelSymbol = '$\\tilde{g}$'
+    elif('GMStau' in self.name):
+      modelSymbol = '$\\tilde\\tau$'
+    elif('Stop' in self.name):
+      modelSymbol = '$\\tilde{t}$'
+    latexLine = modelSymbol+' '+str(self.mass)
+    if 'N' in self.name:
+      latexLine+='N'
+    latexLine+='&'+self.massCut+'&'+str(round(self.sigEff,2))+'&'+str(round(self.expBg,1))+'$\pm$'+str(round(self.expBgStatErr,1))+'&'
     latexLine+=str(int(self.obsEvts))+'&'
     latexLine+='%.1E'%float(self.thCrossSection)+'&'
     latexLine+='%.1E'%self.expLimit+'&'
@@ -254,7 +278,14 @@ def GetSignalSignificanceFiveSigma(doSignificanceDir,fileList,modelName):
   for fileName in fileList:
     if modelName in fileName and fileEnd in fileName:
       if 'asymptotic' in fileName:
+        if 'N' in fileName and not 'N' in modelName:
+          continue
+        if 'f5' in fileName and not 'f5' in modelName:
+          continue
         medianSignificance = GetExpDiscSignif(doSignificanceDir+fileName)
+        #print 'modelName=',modelName
+        #print 'fileName=',fileName
+        #print 'poi=',fileName[fileName.find(modelName)+len(modelName)+1:fileName.rfind("asymptotic")-1]
         poi = float(fileName[fileName.find(modelName)+len(modelName)+1:fileName.rfind("asymptotic")-1])
         if(medianSignificance > 0):
           poiSigDict[poi] = medianSignificance
@@ -263,8 +294,6 @@ def GetSignalSignificanceFiveSigma(doSignificanceDir,fileList,modelName):
   for poi,sig in sorted(poiSigDict.items()):
     poiValues.push_back(poi)
     medianSignifs.push_back(sig)
-    if(modelName=='GMStau494'):
-      print 'Poi: ',poi,' medianSignificance: ',sig
   if(len(medianSignifs) < 3):
     print 'ERROR: Not enough (nonzero) points to do interpolation!'
     return -666
@@ -285,6 +314,10 @@ def GetSignalSignificance(doSignificanceDir,fileList,modelName):
   for fileName in fileList:
     if modelName in fileName and fileEnd in fileName:
       if 'asymptotic' in fileName:
+        if 'N' in fileName and not 'N' in modelName:
+          continue
+        if 'f5' in fileName and not 'f5' in modelName:
+          continue
         significance = GetObsDiscSignif(doSignificanceDir+fileName)
         break
   return significance
@@ -391,7 +424,7 @@ def MakePValuePlot(htip):
   gPad.Update()
 
 
-# Run
+#XXX Run
 makeScaledPredictionsDir = BaseDir+'/logs/makeScaledPredictions/'
 makeScaledPredictionsLogFileList = os.listdir(makeScaledPredictionsDir)
 makeScaledPredictionsRootDir = BaseDir+'/outputs/makeScaledPredictions/'
@@ -415,6 +448,8 @@ except OSError:
 LimitResultsGluinos = []
 LimitResultsStops = []
 LimitResultsStaus = []
+LimitResultsGluinoNs = []
+LimitResultsStopNs = []
 
 # MKDIR
 plotsDir = BaseDir+'/results/'
@@ -422,9 +457,10 @@ if os.path.isdir(plotsDir) == False:
   os.mkdir(plotsDir)
 myCanvas = TCanvas("myCanvas", "myCanvas",1000,800)
 ##########
-#modelList = [Stop200,GMStau156,GMStau200]
+#
 ##########
 for model in modelList:
+    print 'Do model',model.name
     predLogFile = GetFile(makeScaledPredictionsLogFileList,model.name)
     limitLogFile = GetFile(doLimitsLogFileList,model.name)
     predRootFile = GetRootFile(makeScaledPredictionsRootFileList,model.name,False)
@@ -494,13 +530,19 @@ for model in modelList:
     expSignalSignif = 1.5*expSignalSignifRaw
     obsSignalSignif = GetSignalSignificance(doSignificanceDir,doSignificanceLogFileList,model.name)
 
-    if 'Gluino' in model.name and not 'GluinoN' in model.name:
+    if 'Gluino' in model.name:
       thisLR = LimitResult(model.name,model.mass,model.crossSection,ptCut,iasCut,massCut,sigEff,backExp,backExpError,obsEvts,expLimit,obsLimit,expSignalSignif,obsSignalSignif)
-      LimitResultsGluinos.append(thisLR)
+      if 'N' in model.name:
+        LimitResultsGluinoNs.append(thisLR)
+      else:
+        LimitResultsGluinos.append(thisLR)
       #print thisLR.StringTableLine()
-    if 'Stop' in model.name and not 'StopN' in model.name:
+    if 'Stop' in model.name:
       thisLR = LimitResult(model.name,model.mass,model.crossSection,ptCut,iasCut,massCut,sigEff,backExp,backExpError,obsEvts,expLimit,obsLimit,expSignalSignif,obsSignalSignif)
-      LimitResultsStops.append(thisLR)
+      if 'N' in model.name:
+        LimitResultsStopNs.append(thisLR)
+      else:
+        LimitResultsStops.append(thisLR)
       #print thisLR.StringTableLine()
     if 'Stau' in model.name and not 'PPStau' in model.name:
       thisLR = LimitResult(model.name,model.mass,model.crossSection,ptCut,iasCut,massCut,sigEff,backExp,backExpError,obsEvts,expLimit,obsLimit,expSignalSignif,obsSignalSignif)
@@ -523,12 +565,18 @@ txt_file.write(titleString+'\n')
 for limitRes in LimitResultsGluinos:
   print limitRes.StringTableLine()
   txt_file.write(limitRes.StringTableLine()+'\n')
-#for limitRes in LimitResultsStops:
-#  print limitRes.StringTableLine()
-#  txt_file.write(limitRes.StringTableLine()+'\n')
-#for limitRes in LimitResultsStaus:
-#  print limitRes.StringTableLine()
-#  txt_file.write(limitRes.StringTableLine()+'\n')
+for limitRes in LimitResultsGluinoNs:
+  print limitRes.StringTableLine()
+  txt_file.write(limitRes.StringTableLine()+'\n')
+for limitRes in LimitResultsStops:
+  print limitRes.StringTableLine()
+  txt_file.write(limitRes.StringTableLine()+'\n')
+for limitRes in LimitResultsStopNs:
+  print limitRes.StringTableLine()
+  txt_file.write(limitRes.StringTableLine()+'\n')
+for limitRes in LimitResultsStaus:
+  print limitRes.StringTableLine()
+  txt_file.write(limitRes.StringTableLine()+'\n')
 txt_file.close()
 
 # write tbl fragment file
@@ -537,21 +585,18 @@ titleTableString+= '\\hline\n'
     #latexLine = self.name+'&'+self.massCut+'&'+str(round(self.sigEff,4))+'&'+str(round(self.expBg,4))+'&'+str(round(self.expBgStatErr,4))+'&'
     #latexLine+=self.obsEvts+'&'+str(round(self.ThCrossSec,6))+'&'+str(round(self.expLimit,6))+'&'
     #latexLine+=str(round(self.obsLimit,6))+'&'+str(round(self.fiveSigmaXSec,6))+'&'+str(round(self.obsSignalSignif,6))
-titleTableString+= '\\textbf{Model and mass}&\\textbf{Mass Cut}&\\textbf{Signal Eff.}&\\textbf{Background Exp.}&'
-titleTableString+= '\\textbf{Obs.}&\\textbf{Th. Cross Sec.}&\\textbf{Exp. Lim.}&\\textbf{Obs. Lim.}&\\textbf{5$\sigma$ Disc. Cross Section}\n'#&\\textbf{Obs. Sig. Eff.}\n'
-titleTableString+= '\\hline\n'
+titleTableString+= '\\textbf{Model}&$\\mathbf{M_{reco}}$&\\textbf{Sig. Eff.}&\\textbf{Back. Exp.}&'
+titleTableString+= '\\textbf{Obs.}&\\textbf{Th. $\sigma$}&\\textbf{Exp. $\sigma$}&\\textbf{Obs. $\sigma$}&'
+titleTableString+= '\\textbf{Disc. $\sigma$}\\'
+#\textbf{Model and mass}&\\textbf{Mass Cut}&\\textbf{Signal Eff.}&\\textbf{Background Exp.}&'
+#\textbf{Obs.}&\\textbf{Th. Cross Sec.}&\\textbf{Exp. Lim.}&\\textbf{Obs. Lim.}&\\textbf{5$\sigma$ Disc. Cross Section}\n'#&\\textbf{Obs. Sig. Eff.}\n'
+titleTableString+='\\hline\n'
 txt_file=open(plotsDir+'results.tbl','w')
 txt_file.write(titleTableString+'\n')
 print titleTableString
-for limitRes in LimitResultsGluinos+LimitResultsStops+LimitResultsStaus:
+for limitRes in LimitResultsGluinos+LimitResultsGluinoNs+LimitResultsStops+LimitResultsStopNs+LimitResultsStaus:
   txt_file.write(limitRes.LatexTableLine()+'\n')
   print limitRes.LatexTableLine()
-for limitRes in LimitResultsStops:
-  print limitRes.LatexTableLine()
-  txt_file.write(limitRes.LatexTableLine()+'\n')
-for limitRes in LimitResultsStaus:
-  print limitRes.LatexTableLine()
-  txt_file.write(limitRes.LatexTableLine()+'\n')
 txt_file.write('\\hline\n')
 print '\\hline'
 txt_file.write('\\end{tabular}\n')
@@ -560,12 +605,41 @@ txt_file.close()
 
 # Ratios
 print
+print 'Tables of ratios with standard analysis'
+print
+for limitRes in LimitResultsGluinos+LimitResultsGluinoNs+LimitResultsStops+LimitResultsStopNs+LimitResultsStaus:
+  expLimStd = StdAnaInfo[limitRes.name][0]
+  obsLimStd = StdAnaInfo[limitRes.name][1]
+  fiveSigmaStd = StdAnaInfo[limitRes.name][2]
+  ratioLimExp = round(expLimStd/limitRes.expLimit,2)
+  ratioLimObs = round(obsLimStd/limitRes.obsLimit,2)
+  ratioFiveSig = round(fiveSigmaStd/limitRes.fiveSigmaXSec,2)
+  modelSymbol = ''
+  if('Gluino' in limitRes.name):
+    modelSymbol = '$\\tilde{g}$'
+  elif('GMStau' in limitRes.name):
+    modelSymbol = '$\\tilde\\tau$'
+  elif('Stop' in limitRes.name):
+    modelSymbol = '$\\tilde{t}$'
+  latexLine = modelSymbol+' '+str(limitRes.mass)+'&'
+  latexLine+='%.1E'%expLimStd+'&'
+  latexLine+='%.1E'%limitRes.expLimit+'&'
+  #latexLine+='%.1E'%obsLimStd+'&'
+  #latexLine+='%.1E'%limitRes.obsLimit+'&'
+  latexLine+='%.1E'%fiveSigmaStd+'&'
+  latexLine+='%.1E'%limitRes.fiveSigmaXSec+'&'
+  latexLine+=str(ratioLimExp)+'&'
+  #latexline+=str(ratioLimObs)+'&'
+  latexLine+=str(ratioFiveSig)
+  latexLine+='\\\\'
+  print latexLine
+print
 print
 titleString = string.ljust('Model',15)+string.center('ExpLimStd',12)+string.center('ObsLimStd',12)+string.center('5XsecStd',12)
 titleString+=string.center('ExpLimShape',12)+string.center('ObsLimShape',12)+string.center('5XsecShape',12)
 titleString+=string.center('ExpLimStd/sh',14)+string.center('ObsLimStd/sh',14)+string.center('5XsecStd/sh',14)
 print titleString
-for limitRes in LimitResultsGluinos+LimitResultsStops+LimitResultsStaus:
+for limitRes in LimitResultsGluinos+LimitResultsGluinoNs+LimitResultsStops+LimitResultsStopNs+LimitResultsStaus:
   expLimStd = StdAnaInfo[limitRes.name][0]
   obsLimStd = StdAnaInfo[limitRes.name][1]
   fiveSigmaStd = StdAnaInfo[limitRes.name][2]
@@ -578,7 +652,7 @@ for limitRes in LimitResultsGluinos+LimitResultsStops+LimitResultsStaus:
   print printString
 
 # TESTING
-sys.exit()
+#sys.exit()
 
 # gluinos
 massesGluinos = []
@@ -605,8 +679,26 @@ for lr in LimitResultsStaus:
   expCrossSectionsStaus.append(lr.expLimit)
   obsCrossSectionsStaus.append(lr.obsLimit)
 
-    
+# now for charge suppression models
+# gluinoNs
+massesGluinoNs = []
+expCrossSectionsGluinoNs = []
+obsCrossSectionsGluinoNs = []
+for lr in LimitResultsGluinoNs:
+  massesGluinoNs.append(lr.mass)
+  expCrossSectionsGluinoNs.append(lr.expLimit)
+  obsCrossSectionsGluinoNs.append(lr.obsLimit)
+# stopNs
+massesStopNs = []
+expCrossSectionsStopNs = []
+obsCrossSectionsStopNs = []
+for lr in LimitResultsStopNs:
+  massesStopNs.append(lr.mass)
+  expCrossSectionsStopNs.append(lr.expLimit)
+  obsCrossSectionsStopNs.append(lr.obsLimit)
 
+    
+# gluinos
 gluinoThInfo = ReadXSection(GluinoXSecFile)
 gluinoXSecErr = GetErrorBand("gluinoErr",gluinoThInfo['mass'],gluinoThInfo['low'],gluinoThInfo['high'])
 theoryGraphGluinos = TGraph(len(gluinoThInfo['mass']),array.array("f",gluinoThInfo['mass']),array.array("f",gluinoThInfo['xsec']))
@@ -627,6 +719,34 @@ expLimGraphGluinos.SetMarkerColor(4)
 expLimGraphGluinos.SetLineWidth(2)
 expLimGraphGluinos.SetLineStyle(1)
 expLimGraphGluinos.SetMarkerStyle(22)
+obsLimGraphGluinos = TGraph(len(massesGluinos),array.array("f",massesGluinos),array.array("f",obsCrossSectionsGluinos))
+obsLimGraphGluinos.SetTitle('')
+obsLimGraphGluinos.GetYaxis().SetTitle("CrossSection ( pb )")
+obsLimGraphGluinos.GetYaxis().SetTitleOffset(1.70)
+obsLimGraphGluinos.SetLineColor(4)
+obsLimGraphGluinos.SetMarkerColor(4)
+obsLimGraphGluinos.SetLineWidth(2)
+obsLimGraphGluinos.SetLineStyle(1)
+obsLimGraphGluinos.SetMarkerStyle(22)
+expLimGraphGluinoNs = TGraph(len(massesGluinoNs),array.array("f",massesGluinoNs),array.array("f",expCrossSectionsGluinoNs))
+expLimGraphGluinoNs.SetTitle('')
+expLimGraphGluinoNs.GetYaxis().SetTitle("CrossSection ( pb )")
+expLimGraphGluinoNs.GetYaxis().SetTitleOffset(1.70)
+expLimGraphGluinoNs.SetLineColor(4)
+expLimGraphGluinoNs.SetMarkerColor(4)
+expLimGraphGluinoNs.SetLineWidth(2)
+expLimGraphGluinoNs.SetLineStyle(1)
+expLimGraphGluinoNs.SetMarkerStyle(26)
+obsLimGraphGluinoNs = TGraph(len(massesGluinoNs),array.array("f",massesGluinoNs),array.array("f",obsCrossSectionsGluinoNs))
+obsLimGraphGluinoNs.SetTitle('')
+obsLimGraphGluinoNs.GetYaxis().SetTitle("CrossSection ( pb )")
+obsLimGraphGluinoNs.GetYaxis().SetTitleOffset(1.70)
+obsLimGraphGluinoNs.SetLineColor(4)
+obsLimGraphGluinoNs.SetMarkerColor(4)
+obsLimGraphGluinoNs.SetLineWidth(2)
+obsLimGraphGluinoNs.SetLineStyle(1)
+obsLimGraphGluinoNs.SetMarkerStyle(26)
+# Stops
 stopThInfo = ReadXSection(StopXSecFile)
 stopXSecErr = GetErrorBand("stopErr",stopThInfo['mass'],stopThInfo['low'],stopThInfo['high'])
 theoryGraphStops = TGraph(len(stopThInfo['mass']),array.array("f",stopThInfo['mass']),array.array("f",stopThInfo['xsec']))
@@ -647,6 +767,33 @@ expLimGraphStops.SetMarkerColor(2)
 expLimGraphStops.SetLineWidth(2)
 expLimGraphStops.SetLineStyle(1)
 expLimGraphStops.SetMarkerStyle(21)
+obsLimGraphStops = TGraph(len(massesStops),array.array("f",massesStops),array.array("f",obsCrossSectionsStops))
+obsLimGraphStops.SetTitle('')
+obsLimGraphStops.GetYaxis().SetTitle("CrossSection ( pb )")
+obsLimGraphStops.GetYaxis().SetTitleOffset(1.70)
+obsLimGraphStops.SetLineColor(2)
+obsLimGraphStops.SetMarkerColor(2)
+obsLimGraphStops.SetLineWidth(2)
+obsLimGraphStops.SetLineStyle(1)
+obsLimGraphStops.SetMarkerStyle(21)
+expLimGraphStopNs = TGraph(len(massesStopNs),array.array("f",massesStopNs),array.array("f",expCrossSectionsStopNs))
+expLimGraphStopNs.SetTitle('')
+expLimGraphStopNs.GetYaxis().SetTitle("CrossSection ( pb )")
+expLimGraphStopNs.GetYaxis().SetTitleOffset(1.70)
+expLimGraphStopNs.SetLineColor(2)
+expLimGraphStopNs.SetMarkerColor(2)
+expLimGraphStopNs.SetLineWidth(2)
+expLimGraphStopNs.SetLineStyle(1)
+expLimGraphStopNs.SetMarkerStyle(25)
+obsLimGraphStopNs = TGraph(len(massesStopNs),array.array("f",massesStopNs),array.array("f",obsCrossSectionsStopNs))
+obsLimGraphStopNs.SetTitle('')
+obsLimGraphStopNs.GetYaxis().SetTitle("CrossSection ( pb )")
+obsLimGraphStopNs.GetYaxis().SetTitleOffset(1.70)
+obsLimGraphStopNs.SetLineColor(2)
+obsLimGraphStopNs.SetMarkerColor(2)
+obsLimGraphStopNs.SetLineWidth(2)
+obsLimGraphStopNs.SetLineStyle(1)
+obsLimGraphStopNs.SetMarkerStyle(25)
 stauThInfo = ReadXSection(StauXSecFile)
 stauXSecErr = GetErrorBand("stauErr",stauThInfo['mass'],stauThInfo['low'],stauThInfo['high'])
 theoryGraphStaus = TGraph(len(stauThInfo['mass']),array.array("f",stauThInfo['mass']),array.array("f",stauThInfo['xsec']))
@@ -667,6 +814,15 @@ expLimGraphStaus.SetMarkerColor(1)
 expLimGraphStaus.SetLineWidth(2)
 expLimGraphStaus.SetLineStyle(1)
 expLimGraphStaus.SetMarkerStyle(20)
+obsLimGraphStaus = TGraph(len(massesStaus),array.array("f",massesStaus),array.array("f",obsCrossSectionsStaus))
+obsLimGraphStaus.SetTitle('')
+obsLimGraphStaus.GetYaxis().SetTitle("CrossSection ( pb )")
+obsLimGraphStaus.GetYaxis().SetTitleOffset(1.70)
+obsLimGraphStaus.SetLineColor(1)
+obsLimGraphStaus.SetMarkerColor(1)
+obsLimGraphStaus.SetLineWidth(2)
+obsLimGraphStaus.SetLineStyle(1)
+obsLimGraphStaus.SetMarkerStyle(20)
 
 c1 = TCanvas("c1", "c1",600,600)
 c1.SetLogy()
@@ -679,16 +835,21 @@ MGTk = TMultiGraph()
 MGTk.Add(theoryGraphGluinos      ,"L")
 MGTk.Add(theoryGraphStops      ,"L")
 MGTk.Add(theoryGraphStaus      ,"L")
-MGTk.Add(expLimGraphGluinos      ,"LP")
-MGTk.Add(expLimGraphStops      ,"LP")
-MGTk.Add(expLimGraphStaus      ,"LP")
+#MGTk.Add(expLimGraphGluinos      ,"LP")
+#MGTk.Add(expLimGraphStops      ,"LP")
+#MGTk.Add(expLimGraphStaus      ,"LP")
+MGTk.Add(obsLimGraphGluinos      ,"LP")
+MGTk.Add(obsLimGraphGluinoNs      ,"LP")
+MGTk.Add(obsLimGraphStops      ,"LP")
+MGTk.Add(obsLimGraphStopNs      ,"LP")
+MGTk.Add(obsLimGraphStaus      ,"LP")
 MGTk.Draw("A")
 MGTk.SetTitle("")
 MGTk.GetXaxis().SetTitle("Mass (GeV/c^{2})")
 MGTk.GetYaxis().SetTitle("#sigma (pb)")
 MGTk.GetYaxis().SetTitleOffset(1.0)
 MGTk.GetYaxis().SetRangeUser(PlotMinScale,PlotMaxScale)
-
+# lumi text
 Lumi=4976
 X=0.40
 Y=0.995
@@ -700,7 +861,7 @@ text.SetTextAlign(22)
 text.AddText("CMS Preliminary   #sqrt{s} = 7 TeV   "+str(Lumi)+" pb^{-1}")
 text.SetBorderSize(0)
 text.Draw("same")
-
+# legend th
 LEGTh = TLegend(0.2,0.7,0.42,0.9)
 LEGTh.SetHeader("Theoretical Prediction")
 LEGTh.SetFillColor(0)
@@ -715,31 +876,35 @@ StauThLeg = theoryGraphStaus.Clone("StauThLeg")
 StauThLeg.SetFillColor(stauXSecErr.GetFillColor())
 LEGTh.AddEntry(StauThLeg   ,"GMSB stau   (NLO)" ,"LF")
 LEGTh.Draw()
-
-LEGTk = TLegend(0.7,0.7,0.9,0.9)
+# leg limits
+#LEGTk = TLegend(0.7,0.7,0.9,0.9)
+LEGTk = TLegend(0.6,0.6,0.9,0.9)
 #LEGTk->SetHeader("95% C.L. Limits")
 LEGTk.SetHeader("")
 LEGTk.SetFillColor(0)
 LEGTk.SetBorderSize(0)
 #LEGTk.AddEntry(Tk_Obs_GluinoF5 , "gluino; 50% #tilde{g}g"    ,"LP")
-LEGTk.AddEntry(expLimGraphGluinos , "gluino; 10% #tilde{g}g"    ,"LP")
+LEGTk.AddEntry(obsLimGraphGluinos , "gluino; 10% #tilde{g}g"    ,"LP")
+LEGTk.AddEntry(obsLimGraphGluinoNs , "gluino; 10% #tilde{g}g, ch. supp."    ,"LP")
 #LEGTk.AddEntry(Tk_Obs_GluinoNF1, "gluino; 10% #tilde{g}g; ch. suppr.","LP")
-LEGTk.AddEntry(expLimGraphStops     , "stop"            ,"LP")
+LEGTk.AddEntry(obsLimGraphStops     , "stop"            ,"LP")
+LEGTk.AddEntry(obsLimGraphStopNs     , "stop; ch. supp."            ,"LP")
 #LEGTk.AddEntry(Tk_Obs_StopN    , "stop; ch. suppr.","LP")
 #LEGTk.AddEntry(Tk_Obs_PPStau   , "Pair Prod. stau"       ,"LP")
-LEGTk.AddEntry(expLimGraphStaus   , "GMSB stau"       ,"LP")
+LEGTk.AddEntry(obsLimGraphStaus   , "GMSB stau"       ,"LP")
 LEGTk.Draw()
 
-limit = FindIntersection(expLimGraphGluinos,theoryGraphGluinos,300,1200,1,0.00,False)
+limit = FindIntersection(obsLimGraphGluinos,theoryGraphGluinos,300,1200,1,0.00,False)
 print 'Found Gluino (f=0.1) mass limit = ',limit
-limit = FindIntersection(expLimGraphStops,theoryGraphStops,300,1200,1,0.00,False)
+limit = FindIntersection(obsLimGraphGluinoNs,theoryGraphGluinos,300,1200,1,0.00,False)
+print 'Found GluinoN (f=0.1) mass limit = ',limit
+limit = FindIntersection(obsLimGraphStops,theoryGraphStops,300,1200,1,0.00,False)
 print 'Found Stop mass limit = ',limit
-limit = FindIntersection(expLimGraphStaus,theoryGraphStaus,100,1000,1,0.00,False)
+limit = FindIntersection(obsLimGraphStopNs,theoryGraphStops,300,1200,1,0.00,False)
+print 'Found StopN mass limit = ',limit
+limit = FindIntersection(obsLimGraphStaus,theoryGraphStaus,100,1000,1,0.00,False)
 print 'Found GMStau mass limit = ',limit
 c1.Update()
 c1.Print(plotsDir+'gluinosStopsStaus.png')
 c1.Print(plotsDir+'gluinosStopsStaus.pdf')
-
-
-
 
