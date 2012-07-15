@@ -111,6 +111,7 @@ def CreateTheCmdFile():
       cmd_file.write('notification            = Error\n')
       cmd_file.write('requirements            = (Memory > 1024)&&(Arch=?="X86_64")&&(Machine=!="caffeine.spa.umn.edu")\n')
       cmd_file.write('+CondorGroup            = "cmsfarm"\n')
+      #cmd_file.write('+CondorGroup            = "twins"\n')
       cmd_file.write('should_transfer_files   = NO\n')
       cmd_file.write('Notify_user = cooper@physics.umn.edu\n')
       #cmd_file.write('should_transfer_files   = YES\n')

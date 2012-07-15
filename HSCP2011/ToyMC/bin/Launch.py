@@ -22,8 +22,8 @@ RunCondor = True
 BayesianLimit = False
 DoSignificanceToys = False
 DoMass = False
-ModelListToys = modelList
-PoiList = [6e-3,5e-3,4e-3,3e-3,2e-3,1e-3,7.5e-4,5e-4,2.5e-4]
+ModelListToys = []
+PoiList = [1e-1,8e-2,5e-2,2e-2,8e-3,6e-3,5e-3,4e-3,3e-3,2e-3,1e-3,7.5e-4,5e-4,2.5e-4]
 QueueName = '8nh' # LSF
 ## FOR NOW, CutPt=Std means CutIas Std also!
 CutPt = 50
@@ -31,28 +31,17 @@ CutIas = 0.1
 #CutPt = 'Std'
 #CutIas = 'Std'
 
-FarmDirectory = 'FARM_chk50IasB_emptyB1e-25_1gausSystNoStatError_halfIasHalfNoMAsNominal_highToyStatAllModels_cutPt50GeVcutIas0.1_allSlices_Jun07'
-#FarmDirectory = 'FARM_chk50IasB_emptyB1e-25_1gausSystWithStatErr400SortedBins_nominalAsNominal_highToyStatTestGMStau100156_cutPt50GeVcutIas0.1_allSlices_Jun07'
-#FarmDirectory = 'FARM_chk50IasB_emptyB1e-25_1gausSystWithStatErrIgnoreFirst400SortedBins_nominalAsNominal_highToyStatTestGMStau100156_cutPt50GeVcutIas0.1_allSlices_Jun07'
+FarmDirectory = 'FARM_50IasB_emptyB1e-25_stdSysts_pureFreqAndInitialFit_stop200N_moreToys_Jul12'
+#FarmDirectory = 'FARM_50IasB_emptyB1e-25_stdSysts_pureFreqAndInitialFit_glu300N400N_moreToys_Jul12'
+#FarmDirectory = 'FARM_50IasB_emptyB1e-25_stdSysts_pureFreqAndInitialFit_moreModels_moreToys_Jul11'
+#FarmDirectory = 'FARM_50IasB_emptyB1e-25_pureFreqAndInitialFit_overallSigSystOnly_moreModels_Jul10'
+#FarmDirectory = 'FARM_50IasB_emptyB1e-25_stdSysts_pureFreqAndInitialFit_noBGShapeSyst_moreModels_Jul10'
+#FarmDirectory = 'FARM_50IasB_emptyB1e-25_stdSysts_pureFreqAndInitialFit_moreModels_Jul10'
+#FarmDirectory = 'FARM_50IasB_emptyB1e-25_1gausSyst_noStatErr_halfIasHalfNoMAsNominal_handleZeroBGSlices_bgShapeVaryFIX_allModelsMoreToys_cutPt50GeVcutIas0.1_allSlices_Jul9'
+#FarmDirectory = 'FARM_50IasB_emptyB1e-25_1gausSyst_noStatErr_halfIasHalfNoMAsNominal_handleZeroBGSlices_bgShapeVaryFIX_moreModels_cutPt50GeVcutIas0.1_allSlices_Jul5'
+#FarmDirectory = 'FARM_50IasB_emptyB1e-25_1gausSyst_noStatErr_halfIasHalfNoMAsNominal_handleZeroBGSlices_bgShapeVaryFIX_allModels_cutPt50GeVcutIas0.1_allSlices_Jul5'
+#FarmDirectory = 'FARM_50IasB_emptyB1e-25_1gausSyst_noStatErr_halfIasHalfNoMAsNominal_handleZeroBGSlices_bgShapeVary_allModels_cutPt50GeVcutIas0.1_allSlices_Jul5'
 
-#FarmDirectory = 'FARM_chk50IasB_emptyB1e-25_1gausSystNoStatError_halfIasShiftAsNominalNoShapeVariation_cutPt50GeVcutIas0.1_allSlices_Jun07'
-#FarmDirectory = 'FARM_chk50IasB_emptyB1e-25_1gausSystNoStatError_nominalAsNominal_highToyStatTestFewModels_cutPt50GeVcutIas0.1_allSlices_Jun05'
-#FarmDirectory = 'FARM_chk50IasB_emptyB1e-25_1gausSystNoStatError_nomShiftAsNominal_highToyStatsAllModels_cutPt50GeVcutIas0.1_allSlices_Jun06'
-#FarmDirectory = 'FARM_chk50IasB_emptyB1e-25_1gausSystNoStatError_nominalAsNominal_highToyStatAllModels_cutPt50GeVcutIas0.1_allSlices_Jun06'
-#FarmDirectory = 'FARM_chk50IasB_emptyB1e-25_1gausSystNoStatError_halfIasShiftAsNominalPlusShapeVariation_cutPt50GeVcutIas0.1_allSlices_Jun06'
-#FarmDirectory = 'FARM_chk50IasB_emptyB1e-25_1gausSystWithStatErrIgnoreFirst400SortedBins_nominalAsNominal_highToyStatTestFewModels_cutPt50GeVcutIas0.1_allSlices_Jun04'
-#FarmDirectory = 'FARM_chk50IasB_emptyB1e-25_1gausSystNoStatError_fullIasShiftAsNominal_cutPt50GeVcutIas0.1_allSlices_Jun05'
-#FarmDirectory = 'FARM_chk50IasB_emptyB1e-25_1gausSystWithStatErr400SortedBins_nominalAsNominal_highToyStatTestFewModels_cutPt50GeVcutIas0.1_allSlices_Jun01'
-
-#FarmDirectory = 'FARM_chk50IasB_emptyB1e-25_1gausSystWithStatErrIgnoreFirst400SortedBins_nominalAsNominal_cutPt50GeVcutIas0.1_allSlices_May28'
-#FarmDirectory = 'FARM_chk50IasB_emptyB1e-25_1gausSystWithStatErr400SortedBins_nominalAsNominal_cutPt50GeVcutIas0.1_allSlices_May28'
-#FarmDirectory = 'FARM_chk50IasB_emptyB1e-25_1gausSystNoStatErr_halfIasShiftAsNominal_cutPt50GeVcutIas0.1_allSlices_May28'
-#FarmDirectory = 'FARM_chk50IasB_emptyB1e-25_1gausSystNoStatErr_nominalAsNominal_cutPt50GeVcutIas0.1_allSlices_May28'
-#FarmDirectory = 'FARM_chk50IasB_emptyB1e-25_1gausSystNoStatErr_cutPt50GeVcutIas0.1_allSlices_May26'
-#FarmDirectory = 'FARM_chk50IasB_emptyB1e-25_1gausSystNoStatErr_testTwins_'
-##FarmDirectory = 'FARM_testDiscovHistFix_chk50IasB_emptyB1e-25_1gausSystWithStatErrLargeErrorsZero_cutPt50GeVcutIas0.1_allSlices_May23'
-##FarmDirectory = 'FARM_50IasB_emptyB1e-25_1gausSystWithStatErrLargeErrorsZero_2pctBackDecr_cutPt50GeVcutIas0.1_allSlices_May16'
-##FarmDirectory = 'FARM_testDiscovHistFix_chk50IasB_emptyB1e-25_1gausSystWithStatErrLargeErrorsZero_'
 ##
 #FarmDirectory+='cutPt'
 #FarmDirectory+=str(CutPt)
@@ -70,12 +59,10 @@ InputDataRootFile+='/FARM_MakeHSCParticlePlots_Data_Apr28/outputs/makeHSCParticl
 #InputDataRootFile+='/FARM_MakeHSCParticlePlots_data_absEta_ptErrorPresel_Mar08/outputs/makeHSCParticlePlots_Data2011_all.root'
 #InputDataRootFile+='/FARM_MakeHSCParticlePlots_absEta_ptErrorPresel_Mar21/outputs/makeHSCParticlePlots_Mar21_Data2011_all.root'
 sigInput = os.getcwd()
-#sigInput+='/FARM_MakeHSCParticlePlots_Signals_PUWeights_Mar23/outputs/makeHSCParticlePlots_Mar23_'
-#sigInput+='/FARM_MakeHSCParticlePlots_Signals_NewLumi_Apr13/outputs/makeHSCParticlePlots_Apr13_'
-sigInput+='/FARM_MakeHSCParticlePlots_Signals_deDxSystematics_May25/outputs/makeHSCParticlePlots_May25_'
+#sigInput+='/FARM_MakeHSCParticlePlots_Signals_deDxSystematics_May25/outputs/makeHSCParticlePlots_May25_'
+sigInput+='/FARM_MakeHSCParticlePlots_Signals_Jul06/outputs/makeHSCParticlePlots_Jul06_'
 IntLumi = 4976 # 1/pb (2011, new pixel measurement)
 #
-
 
 OutputIasPredictionDir = os.getcwd()
 OutputIasPredictionDir+="/"
@@ -91,7 +78,6 @@ else:
 BaseChXMLSig = "hscp_dataDriven_ch_sig_template.xml"
 BaseCombXML = "hscp_dataDriven_template.xml"
 BaseCombXMLSig = "hscp_dataDriven_sig_template.xml"
-#BaseMacro = os.getcwd() + "/StandardHypoTestInvDemo.C"
 BaseMacro = os.getcwd() + "/TestStandardHypoTestInvDemo.C"
 BaseMacroBayesian = os.getcwd() + "/StandardBayesianNumericalDemo.C"
 #BaseMacroBayesian = os.getcwd() + "/StandardBayesianMCMCDemo.C"
@@ -140,13 +126,18 @@ def checkForScaledPredictions(modelName, checkForLimitFile):
   return True
 
 def checkForLimitResult(model):
-  fileName = os.getcwd()+'/'+FarmDirectory+'/outputs/doLimits/doLimits_'+model.name+'_massCut'+str(model.massCut)+'_ptCut50_index0.root'
-  try:
-    open(fileName)
-  except IOError:
-    print 'File: ',fileName,' does not exist.'
-    return False
-  return True
+  #fileName = os.getcwd()+'/'+FarmDirectory+'/outputs/doLimits/doLimits_'+model.name+'_massCut'+str(model.massCut)+'_ptCut50_index0.root'
+  outputsDir = os.getcwd()+'/'+FarmDirectory+'/outputs/doLimits'
+  doLimitsFiles = os.listdir(outputsDir)
+  for fileName in doLimitsFiles:
+    if model.name in fileName:
+      try:
+        open(outputsDir+'/'+fileName)
+      except IOError:
+        print 'File: ',fileName,' does not exist.'
+        return False
+      return True
+  return False
 
 
 def doIasPredictions():
@@ -240,6 +231,7 @@ def doScaledPredictions():
   HSCPMakeScaledPredictionsLaunch.SendCluster_Create(FarmDirectory,JobName,
                                               IntLumi, BaseCfgMakeScaled, BaseChXML, 
                                                            BaseCombXML, BaseChXMLSig, BaseCombXMLSig, AllSlices, RunCondor, QueueName)
+                                                           
   for model in modelList:
     looseRPCFileName = sigInput+model.name+'BX1.root'
     tightRPCFileName = sigInput+model.name+'.root'
@@ -294,8 +286,6 @@ def doLimits():
     #HSCPDoLimitsLaunch.SendCluster_Submit()
     print 'Run observed limits'
     HSCPDoLimitsLaunch.SendCluster_Create(FarmDirectory, JobName, IntLumi, BaseMacro, False, False, RunCondor, QueueName)
-    #modelList2 = [GMStau100,GMStau126]
-    #for model in modelList2:
     for model in modelList:
       fileExists = checkForScaledPredictions(model.name,True)
       if not fileExists:
@@ -309,8 +299,6 @@ def combineLimitResults():
   # used to combine limit files from CLs
   # must execute makeCombineLimitResults to build the binary first
   doLimitsOutputDir = FarmDirectory+'/outputs/doLimits/'
-  #modelList2 = [Gluino800,Stop200,Stop300,GMStau156,GMStau200,GMStau432]
-  #for model in modelList2:
   for model in modelList:
     atLeastOneFile = checkForLimitResult(model)
     if(not atLeastOneFile):

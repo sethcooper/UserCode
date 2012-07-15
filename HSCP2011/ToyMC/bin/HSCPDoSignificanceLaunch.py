@@ -66,13 +66,15 @@ def CreateTheShellFile(modelName,inputFile,poiValue,index):
       shell_file.write('export SCRAM_ARCH=slc5_amd64_gcc434\n')
       shell_file.write('source /afs/cern.ch/sw/lcg/external/gcc/4.3.2/x86_64-slc5/setup.sh\n')
       shell_file.write('source /afs/cern.ch/sw/lcg/app/releases/ROOT/5.33.02/x86_64-slc5-gcc43-opt/root/bin/thisroot.sh\n')
-    numToys = 25000
+    #numToys = 25000
+    numToys = 5000
     shell_file.write('cd ' + os.getcwd() + '/' + Farm_Directories[4] + '\n')
     if(Throw_Toys):
       shell_file.write('root -l -b -q "'+Base_macro
         +'(\\"'
         +inputFile
-        +'\\",\\"combined\\",\\"ModelConfig\\",\\"\\",\\"'+dataName+'\\",0,3,'
+        #+'\\",\\"combined\\",\\"ModelConfig\\",\\"\\",\\"'+dataName+'\\",0,3,'
+        +'\\",\\"combined\\",\\"ModelConfig\\",\\"\\",\\"'+dataName+'\\",1,3,'
         +str(numToys)
         +',false,\\"\\",\\"'
         +outputFile
@@ -118,6 +120,7 @@ def CreateTheCmdFile():
       cmd_file.write('notification            = Error\n')
       cmd_file.write('requirements            = (Memory > 512)&&(Arch=?="X86_64")&&(Machine=!="zebra01.spa.umn.edu")&&(Machine=!="zebra02.spa.umn.edu")&&(Machine=!="zebra03.spa.umn.edu")&&(Machine=!="caffeine.spa.umn.edu")\n')
       cmd_file.write('+CondorGroup            = "cmsfarm"\n')
+      #cmd_file.write('+CondorGroup            = "twins"\n')
       cmd_file.write('should_transfer_files   = NO\n')
       cmd_file.write('Notify_user = cooper@physics.umn.edu\n')
       #cmd_file.write('should_transfer_files   = YES\n')
@@ -206,7 +209,8 @@ def SendCluster_Push(modelName,inputFile,poiValue):
     global Throw_Toys
     Jobs_Index = "%04i" % Jobs_Count
     if(Throw_Toys):
-      numToyJobs = 400
+      #numToyJobs = 400
+      numToyJobs = 1
       for index in range(0,numToyJobs):
         CreateTheShellFile(modelName,inputFile,poiValue,index)
         AddJobToCmdFile(modelName,inputFile,poiValue,index)
