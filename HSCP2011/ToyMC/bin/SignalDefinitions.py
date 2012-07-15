@@ -71,12 +71,12 @@ PPStau308 = SignalSample('PPStau308',308,'0.000353',70,'0.400',190)
 
 modelList = []
 modelList.extend([Gluino300,Gluino400,Gluino500,Gluino600,Gluino700,Gluino800,Gluino900,Gluino1000,Gluino1100,Gluino1200])
-#modelList.extend([GluinoN300,GluinoN400,GluinoN500,GluinoN600,GluinoN700,GluinoN800,GluinoN900,GluinoN1000,GluinoN1100,GluinoN1200])
-modelList.extend([Stop130,Stop200,Stop300,Stop400,Stop500,Stop600,Stop700,Stop800])
-#modelList.extend([StopN130,StopN200,StopN300,StopN400,StopN500,StopN600,StopN700,StopN800])
-modelList.extend([GMStau100,GMStau126,GMStau156,GMStau200,GMStau247,GMStau308,GMStau370,GMStau432,GMStau494])
+modelList.extend([Stop200,Stop300,Stop400,Stop500,Stop600,Stop700,Stop800]) # remove Stop130
+modelList.extend([GMStau200,GMStau247,GMStau308,GMStau370,GMStau432,GMStau494]) # remove GMStau100, GMStau126, GMStau156
+modelList.extend([GluinoN300,GluinoN400,GluinoN500,GluinoN600,GluinoN700,GluinoN800,GluinoN900,GluinoN1000,GluinoN1100,GluinoN1200])
+modelList.extend([StopN200,StopN300,StopN400,StopN500,StopN600,StopN700,StopN800]) # remove StopN130
+
 #modelList.extend([PPStau100,PPStau126,PPStau156,PPStau200,PPStau247,PPStau308])
-#modelList.extend([PPStau100,PPStau126,PPStau156,PPStau247,PPStau308])
 
 
 SignalBasePath = "    'file:/hdfs/cms/user/cooper/data/hscp/428/Data/HSCParticles_HSCP2011_PostEPS_Nov11/"
